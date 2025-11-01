@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiTrack - Admin Login</title>
+    <link rel="icon" href="{{ request.url_for('static', path='favicon.ico') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <h1>Acceso de Administrador</h1>
+    <p>Ingresa la contraseña de administrador para continuar.</p>
+    <form method="post">
+        <input type="password" name="password" required>
+        <button type="submit">Acceder</button>
+    </form>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>

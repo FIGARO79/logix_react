@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiTrack - Registros</title>
+    <link rel="icon" href="{{ request.url_for('static', path='favicon.ico') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Historial de Registros de Inbound</h1>
+            <a href="/" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">&larr; Volver a la Página Principal</a>
+        </div>
+
+        <!-- CAMPO DE BÚSQUEDA AÑADIDO -->
+        <div class="mb-6">
+            <input type="text" id="searchInput" 
+                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                   placeholder="Buscar en los registros...">
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            <table id="logsTable" class="min-w-full leading-normal">                   
+                <thead>
+                    <tr class="border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th class="px-5 py-3">ID</th>
+                        <th class="px-5 py-3">Timestamp</th>
+                        <th class="px-5 py-3">I.R.</th>
+                        <th class="px-5 py-3">Waybill</th>
+                        <th class="px-5 py-3">Item Code</th>
+                        <th class="px-5 py-3">Descripción</th>
+                        <th class="px-5 py-3">Ubicación </th>
+                        <th class="px-5 py-3">Ubicación Nueva</th>
+                        <th class="px-5 py-3 text-right">Cant. Recibida</th>
+                        <th class="px-5 py-3 text-right">Cant. GRN</th>
+                        <th class="px-5 py-3 text-right">Diferencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-5 py-4 text-sm">{{ log['id'] }}</td>
+                        <td class="px-5 py-4 text-sm whitespace-nowrap">{{ log['timestamp'] }}</td>
+                        <td class="px-5 py-4 text-sm">{{ log['importReference'] }}</td>
+                        <td class="px-5 py-4 text-sm">{{ log['waybill'] }}</td>
+                        <td class="px-5 py-4 text-sm font-mono">{{ log['itemCode'] }}</td>
+                        <td class="px-5 py-4 text-sm max-w-xs truncate">{{ log['itemDescription'] }}</td>
+                        <td class="px-5 py-4 text-sm">{{ log['binLocation'] }}</td>
+                        <td class="px-5 py-4 text-sm">{{ log['relocatedBin'] }}</td>
+                        <td class="px-5 py-4 text-sm text-right font-semibold">{{ log['qtyReceived'] }}</td>
+                        <td class="px-5 py-4 text-sm text-right">{{ log['qtyGrn'] }}</td>
+                        <td class="px-5 py-4 text-sm text-right font-bold 
+                            {% if log['difference'] > 0 %} text-blue-600 
+                            {% elif log['difference'] < 0 %} text-red-600 
+                            {% endif %}">
+                            {{ log['difference'] }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center py-10 text-gray-500">No hay registros en la base de datos.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- SCRIPT DE BÚSQUEDA AÑADIDO -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const table = document.getElementById('logsTable');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+            searchInput.addEventListener('keyup', function () {
+                const filter = searchInput.value.toLowerCase();
+
+                for (let i = 0; i < rows.length; i++) {
+                    const cells = rows[i].getElementsByTagName('td');
+                    let found = false;
+                    for (let j = 0; j < cells.length; j++) {
+                        if (cells[j]) {
+                            if (cells[j].innerHTML.toLowerCase().indexOf(filter) > -1) {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (found) {
+                        rows[i].style.display = '';
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

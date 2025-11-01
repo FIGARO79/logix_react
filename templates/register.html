@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LogiTrack - Crear Cuenta</title>
+    <link rel="icon" href="{{ request.url_for('static', path='favicon.ico') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Crear una Nueva Cuenta</h1>
+        {% if error %}
+            <div class="p-4 mb-4 text-sm text-red-800 bg-red-100 rounded-lg" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+        {% if message %}
+            <div class="p-4 mb-4 text-sm text-blue-800 bg-blue-100 rounded-lg" role="alert">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            <label for="username">Nombre de Usuario:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Registrar</button>
+        </form>
+        <p>¿Ya tienes una cuenta? <a href="{{ request.url_for('login_get') }}">Inicia sesión aquí</a>.</p>
+    </div>
+</body>
+</html>
