@@ -79,14 +79,6 @@ app.add_middleware(SchemeMiddleware)
 # --- FIN DE LA CORRECCIÓN DE MIDDLEWARE ---
 
 # --- Montar archivos estáticos ---
-# (Tu código existente continúa aquí...)
-app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "static")), name="static")
-
-
-
-
-
-# --- Montar archivos estáticos ---
 app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "static")), name="static")
 
 # --- Configuración de plantillas Jinja2 ---
