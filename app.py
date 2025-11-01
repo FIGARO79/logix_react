@@ -1213,6 +1213,24 @@ async def admin_users_get(request: Request):
         users = await cursor.fetchall()
     return templates.TemplateResponse('admin_users.html', {"request": request, "users": users})
 
+@app.post('/admin/check_password/{user_id}')
+async def check_password(user_id: int, request: Request):
+    if not request.cookies.get("admin_logged_in"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para realizar esta acción.")
+    
+    data = await request.json()
+    password = data.get('password')
+
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+        user = await cursor.fetchone()
+
+    if user and check_password_hash(user['password_hash'], password):
+        return JSONResponse(content={"matches": True})
+    else:
+        return JSONResponse(content={"matches": False})
+
 @app.post('/admin/users', response_class=HTMLResponse)
 def admin_users_post(request: Request, password: str = Form(...)):
     if password == UPDATE_PASSWORD:
@@ -1239,6 +1257,34 @@ async def delete_user(user_id: int, request: Request):
         await conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
         await conn.commit()
     return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='')), status_code=status.HTTP_302_FOUND)
+
+@app.post('/admin/reset_password/{user_id}')
+async def reset_password(user_id: int, request: Request):
+    if not request.cookies.get("admin_logged_in"):
+        return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='')), status_code=status.HTTP_302_FOUND)
+    
+    new_password = "1234"
+    hashed_password = generate_password_hash(new_password)
+    
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        await conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hashed_password, user_id))
+        await conn.commit()
+    
+    return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='message=Contraseña reseteada')), status_code=status.HTTP_302_FOUND)
+
+@app.post('/admin/reset_count_sessions/{user_id}')
+async def reset_count_sessions(user_id: int, request: Request):
+    if not request.cookies.get("admin_logged_in"):
+        return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='')), status_code=status.HTTP_302_FOUND)
+    
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        cursor = await conn.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+        user = await cursor.fetchone()
+        if user:
+            await conn.execute("DELETE FROM count_sessions WHERE user_username = ?", (user[0],))
+            await conn.commit()
+    
+    return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='message=Sesiones de conteo reseteadas')), status_code=status.HTTP_302_FOUND)
 
 @app.get('/admin/logout')
 async def admin_logout(request: Request):
