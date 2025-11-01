@@ -255,9 +255,19 @@ async def init_db():
                     counted_qty INTEGER NOT NULL,
                     counted_location TEXT NOT NULL,
                     bin_location_system TEXT,
+                    username TEXT,
                     FOREIGN KEY(session_id) REFERENCES count_sessions(id)
                 )
             ''')
+
+            # Asegurarse de que la columna 'username' exista para tablas creadas en versiones antiguas
+            cursor = await conn.execute("PRAGMA table_info(stock_counts);")
+            existing_cols = [row['name'] for row in await cursor.fetchall()]
+            if 'username' not in existing_cols:
+                try:
+                    await conn.execute("ALTER TABLE stock_counts ADD COLUMN username TEXT;")
+                except aiosqlite.Error as e:
+                    print(f"DB Warning: no se pudo añadir columna 'username' a stock_counts: {e}")
 
             # --- Índices ---
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_importReference_itemCode ON logs (importReference, itemCode)")
@@ -762,12 +772,12 @@ async def save_count(data: StockCount, username: str = Depends(login_required)):
             # Para inventario ciego, no usamos system_qty ni calculamos difference
             await conn.execute(
                 '''
-                INSERT INTO stock_counts (session_id, timestamp, item_code, item_description, counted_qty, counted_location, bin_location_system)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO stock_counts (session_id, timestamp, item_code, item_description, counted_qty, counted_location, bin_location_system, username)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
                 (
                     data.session_id, datetime.datetime.now().isoformat(timespec='seconds'), data.item_code,
-                    data.description, counted_qty, data.counted_location, data.bin_location_system
+                    data.description, counted_qty, data.counted_location, data.bin_location_system, username
                 )
             )
             await conn.commit()
@@ -997,8 +1007,8 @@ async def view_counts_page(request: Request, username: str = Depends(login_requi
         enriched = dict(count)
         enriched['system_qty'] = system_qty
         enriched['difference'] = difference
-        # Añadir nombre de usuario que realizó la sesión (si disponible)
-        enriched['username'] = session_map.get(count.get('session_id')) if session_map else None
+        # Añadir nombre de usuario que realizó la sesión (si está almacenado en el conteo, usarlo; sino usar session_map)
+        enriched['username'] = count.get('username') or (session_map.get(count.get('session_id')) if session_map else None)
         enriched_counts.append(enriched)
 
     # Construir lista de usuarios únicos para el filtro en la UI
@@ -1050,7 +1060,7 @@ async def export_counts(username: str = Depends(login_required)):
         enriched = {
             'id': count.get('id'),
             'session_id': count.get('session_id'),
-            'username': session_map.get(count.get('session_id')) if session_map else None,
+            'username': count.get('username') or (session_map.get(count.get('session_id')) if session_map else None),
             'timestamp': count.get('timestamp'),
             'item_code': item_code,
             'item_description': count.get('item_description'),
