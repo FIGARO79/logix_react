@@ -29,7 +29,7 @@
     </header>
 
     <main class="py-10">
-        <div class="max-w-8xl mx-auto px-4 sm:px-7 lg:px-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-semibold text-gray-900">Historial de Conteos de Stock</h1>
                 <div class="flex items-center gap-3">
@@ -46,6 +46,25 @@
                     </svg>
                     Exportar a Excel
                     </a>
+                </div>
+            </div>
+
+            <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-sm font-medium text-gray-500">Items con Stock</h3>
+                    <p id="stats-total-items" class="text-2xl font-bold text-gray-800">-</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-sm font-medium text-gray-500">Ubicaciones Contadas</h3>
+                    <p id="stats-counted-locations" class="text-2xl font-bold text-gray-800">-</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-sm font-medium text-gray-500">Items Contados</h3>
+                    <p id="stats-total-counted" class="text-2xl font-bold text-gray-800">-</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <h3 class="text-sm font-medium text-gray-500">Items con Diferencia</h3>
+                    <p id="stats-items-with-diff" class="text-2xl font-bold text-red-500">-</p>
                 </div>
             </div>
 
@@ -121,10 +140,34 @@
                 }
             }
 
-            if (userFilter) {
-                userFilter.addEventListener('change', applyFilter);
-            }
-        });
-    </script>
-</body>
+                    if (userFilter) {
+                        userFilter.addEventListener('change', applyFilter);
+                    }
+            
+                    async function fetchStats() {
+                        try {
+                            const response = await fetch('/api/counts/stats');
+                            if (!response.ok) {
+                                throw new Error('Error al cargar las estadísticas');
+                            }
+                            const stats = await response.json();
+            
+                            document.getElementById('stats-total-items').textContent = stats.total_items_with_stock;
+                            document.getElementById('stats-counted-locations').textContent = stats.counted_locations;
+                            document.getElementById('stats-total-counted').textContent = stats.total_items_counted;
+                            document.getElementById('stats-items-with-diff').textContent = stats.items_with_differences;
+            
+                        } catch (error) {
+                            console.error('Error fetching stats:', error);
+                            // Optionally, display an error message in the stats containers
+                            document.getElementById('stats-total-items').textContent = 'Error';
+                            document.getElementById('stats-counted-locations').textContent = 'Error';
+                            document.getElementById('stats-total-counted').textContent = 'Error';
+                            document.getElementById('stats-items-with-diff').textContent = 'Error';
+                        }
+                    }
+            
+                    fetchStats();
+                });
+            </script></body>
 </html>

@@ -229,18 +229,25 @@ async def init_db():
                 )
             ''')
 
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS session_locations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id INTEGER NOT NULL,
-                    location_code TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'open', -- open, closed
-                    closed_at TEXT,
-                    FOREIGN KEY(session_id) REFERENCES count_sessions(id)
-                )
-            ''')
-
-            # --- Tabla de Conteos (Modificada) ---
+                        await conn.execute('''
+                            CREATE TABLE IF NOT EXISTS session_locations ( 
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                session_id INTEGER NOT NULL,
+                                location_code TEXT NOT NULL,
+                                status TEXT NOT NULL DEFAULT 'open', -- open, closed
+                                count_stage INTEGER NOT NULL DEFAULT 1, -- Etapa del conteo
+                                closed_at TEXT,
+                                FOREIGN KEY(session_id) REFERENCES count_sessions(id)
+                            )
+                        ''')
+            
+                        # --- Migración para añadir count_stage si no existe ---
+                        cursor = await conn.execute("PRAGMA table_info(session_locations);
+                        columns = [row['name'] for row in await cursor.fetchall()]
+                        if 'count_stage' not in columns:
+                            print("Migrando esquema: añadiendo 'count_stage' a 'session_locations'.")
+                            await conn.execute("ALTER TABLE session_locations ADD COLUMN count_stage INTEGER NOT NULL DEFAULT 1;")
+                        # --- Tabla de Conteos (Modificada) ---
             # Se añade session_id y se mejora la estructura.
             # NOTA: En producción NO eliminamos la tabla para preservar los conteos.
             # Si necesitas forzar un esquema nuevo durante desarrollo, borra manualmente
@@ -459,11 +466,12 @@ async def close_session(session_id: int, username: str = Depends(login_required)
         await conn.commit()
         return {"message": f"Sesión {session_id} cerrada con éxito."}
 
-@app.post("/api/locations/close")
-async def close_location(data: CloseLocationRequest, username: str = Depends(login_required)):
-    """Marca una ubicación como 'cerrada' para una sesión de conteo."""
+@app.post("/api/locations/next_stage")
+async def next_count_stage(data: CloseLocationRequest, username: str = Depends(login_required)):
+    """Avanza una ubicación a la siguiente etapa de conteo."""
     async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        # Verificar que la sesión existe y pertenece al usuario
+        conn.row_factory = aiosqlite.Row
+        # Verificar que la sesión es válida
         cursor = await conn.execute(
             "SELECT id FROM count_sessions WHERE id = ? AND user_username = ? AND status = 'in_progress'",
             (data.session_id, username)
@@ -471,16 +479,33 @@ async def close_location(data: CloseLocationRequest, username: str = Depends(log
         if not await cursor.fetchone():
             raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
 
-        # Insertar o actualizar el estado de la ubicación
-        await conn.execute(
-            """
-            INSERT INTO session_locations (session_id, location_code, status, closed_at)
-            VALUES (?, ?, 'closed', ?)
-            """,
-            (data.session_id, data.location_code, datetime.datetime.now().isoformat(timespec='seconds'))
+        # Obtener el estado actual de la ubicación
+        cursor = await conn.execute(
+            "SELECT status, count_stage FROM session_locations WHERE session_id = ? AND location_code = ?",
+            (data.session_id, data.location_code)
         )
+        location_data = await cursor.fetchone()
+
+        current_stage = location_data['count_stage'] if location_data else 0
+
+        if current_stage >= 4:
+            raise HTTPException(status_code=400, detail=f"La ubicación {data.location_code} ya ha alcanzado el número máximo de conteos.")
+
+        if location_data:
+            # Si la ubicación ya existe, actualiza la etapa
+            await conn.execute(
+                "UPDATE session_locations SET count_stage = ?, status = 'open', closed_at = NULL WHERE session_id = ? AND location_code = ?",
+                (current_stage + 1, data.session_id, data.location_code)
+            )
+        else:
+            # Si es la primera vez que se cierra, se inserta con etapa 2
+            await conn.execute(
+                "INSERT INTO session_locations (session_id, location_code, status, count_stage) VALUES (?, ?, 'open', 2)",
+                (data.session_id, data.location_code)
+            )
+        
         await conn.commit()
-        return {"message": f"Ubicación {data.location_code} cerrada para la sesión {data.session_id}."}
+        return {"message": f"Ubicación {data.location_code} avanzada a la etapa de conteo {current_stage + 1}."}
 
 @app.get("/api/sessions/{session_id}/locations")
 async def get_session_locations(session_id: int, username: str = Depends(login_required)):
@@ -495,7 +520,7 @@ async def get_session_locations(session_id: int, username: str = Depends(login_r
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta sesión.")
 
         cursor = await conn.execute(
-            "SELECT location_code, status FROM session_locations WHERE session_id = ?", (session_id,)
+            "SELECT location_code, status, count_stage FROM session_locations WHERE session_id = ?", (session_id,)
         )
         locations = await cursor.fetchall()
         return [dict(row) for row in locations]
@@ -758,14 +783,15 @@ async def save_count(data: StockCount, username: str = Depends(login_required)):
             if not await cursor.fetchone():
                 raise HTTPException(status_code=403, detail="La sesión de conteo no es válida, está cerrada o no te pertenece.")
 
-            # 2. Verificar que la ubicación no esté cerrada para esta sesión
             cursor = await conn.execute(
-                "SELECT status FROM session_locations WHERE session_id = ? AND location_code = ?",
+                "SELECT status, count_stage FROM session_locations WHERE session_id = ? AND location_code = ?",
                 (data.session_id, data.counted_location)
             )
-            location_status = await cursor.fetchone()
-            if location_status and location_status['status'] == 'closed':
-                raise HTTPException(status_code=400, detail=f"La ubicación {data.counted_location} ya está cerrada y no se puede modificar.")
+            location_data = await cursor.fetchone()
+            current_stage = location_data['count_stage'] if location_data else 1
+
+            if current_stage > 4:
+                raise HTTPException(status_code=400, detail=f"La ubicación {data.counted_location} ya ha alcanzado el número máximo de conteos.")
 
             # 3. Insertar el conteo
             counted_qty = int(data.counted_qty)
@@ -1091,6 +1117,68 @@ async def export_counts(username: str = Depends(login_required)):
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"conteos_export_{timestamp_str}.xlsx"
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@app.get('/api/counts/stats')
+async def get_count_stats(username: str = Depends(login_required)):
+    """Devuelve estadísticas sobre los conteos de stock."""
+    try:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+
+            # 1. Total de ubicaciones contadas
+            cursor = await conn.execute("SELECT COUNT(DISTINCT counted_location) FROM stock_counts")
+            counted_locations = (await cursor.fetchone())[0]
+
+            # 2. Total de items contados (registros en la tabla)
+            cursor = await conn.execute("SELECT COUNT(id) FROM stock_counts")
+            total_items_counted = (await cursor.fetchone())[0]
+
+            # 3. Total de items con stock (del maestro de items)
+            total_items_with_stock = 0
+            if master_qty_map:
+                for qty in master_qty_map.values():
+                    if qty is not None and qty > 0:
+                        total_items_with_stock += 1
+            
+            # 4. Items con diferencias
+            cursor = await conn.execute("SELECT item_code, counted_qty FROM stock_counts")
+            all_counts = await cursor.fetchall()
+            
+            items_with_differences = 0
+            processed_items = set()
+
+            for count in all_counts:
+                item_code = count['item_code']
+                if item_code not in processed_items:
+                    system_qty_raw = master_qty_map.get(item_code)
+                    system_qty = 0
+                    if system_qty_raw is not None:
+                        try:
+                            system_qty = int(float(system_qty_raw))
+                        except (ValueError, TypeError):
+                            system_qty = 0
+                    
+                    # Sumar todos los conteos para este item_code
+                    cursor = await conn.execute("SELECT SUM(counted_qty) FROM stock_counts WHERE item_code = ?", (item_code,))
+                    total_counted_for_item = (await cursor.fetchone())[0]
+
+                    if total_counted_for_item != system_qty:
+                        items_with_differences += 1
+                    
+                    processed_items.add(item_code)
+
+            return JSONResponse(content={
+                "total_items_with_stock": total_items_with_stock,
+                "counted_locations": counted_locations,
+                "total_items_counted": total_items_counted,
+                "items_with_differences": items_with_differences
+            })
+
+    except aiosqlite.Error as e:
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {e}")
+
 
 @app.get('/reconciliation', response_class=HTMLResponse)
 async def reconciliation_page(request: Request, username: str = Depends(login_required)):

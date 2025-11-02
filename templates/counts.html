@@ -188,7 +188,7 @@
                     <div id="session-locations-list" class="max-h-60 overflow-y-auto">
                         <!-- Location statuses will be dynamically inserted here -->
                     </div>
-                     <button id="close-location-btn" class="btn btn-primary w-full mt-2 text-sm">Cerrar Ubicación Actual</button>
+                     <button id="next-stage-btn" class="btn btn-primary w-full mt-2 text-sm">Avanzar Etapa de Conteo</button>
                 </div>
             </div>
         </div>
@@ -313,10 +313,10 @@
                 locations.forEach(loc => {
                     const locDiv = document.createElement('div');
                     locDiv.className = 'flex justify-between items-center text-sm p-1';
-                    const statusClass = loc.status === 'closed' ? 'text-red-500' : 'text-green-500';
+                    const stageText = loc.count_stage ? `Etapa ${loc.count_stage}` : '';
                     locDiv.innerHTML = `
                         <span>${loc.location_code}</span>
-                        <span class="font-semibold ${statusClass}">${loc.status.toUpperCase()}</span>
+                        <span class="font-semibold">${stageText}</span>
                     `;
                     sessionLocationsList.appendChild(locDiv);
                 });
@@ -503,30 +503,30 @@
                 }
             }
 
-            async function handleCloseLocation() {
+            async function handleNextStage() {
                 const locationCode = countedLocationInput.value.trim();
                 if (!activeSession || !locationCode) {
-                    showToast("Por favor, ingresa una ubicación para cerrarla.", "error");
+                    showToast("Por favor, ingresa una ubicación para avanzar a la siguiente etapa.", "error");
                     return;
                 }
-                if (!confirm(`¿Estás seguro de cerrar la ubicación ${locationCode}? No podrás agregar más conteos.`)) return;
+                if (!confirm(`¿Estás seguro de avanzar la ubicación ${locationCode} a la siguiente etapa de conteo?`)) return;
 
-                toggleButtonSpinner(closeLocationBtn, true, 'Cerrando...');
+                toggleButtonSpinner(nextStageBtn, true, 'Avanzando...');
                 try {
                     const payload = { session_id: activeSession.id, location_code: locationCode };
-                    const response = await fetch(`${API_BASE_URL}/locations/close`, {
+                    const response = await fetch(`${API_BASE_URL}/locations/next_stage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     const data = await response.json();
-                    if (!response.ok) throw new Error(data.detail || 'No se pudo cerrar la ubicación');
+                    if (!response.ok) throw new Error(data.detail || 'No se pudo avanzar la etapa de la ubicación');
                     showToast(data.message, 'success');
                     await updateSessionData();
                 } catch (error) {
                     showToast(`Error: ${error.message}`, 'error');
                 } finally {
-                    toggleButtonSpinner(closeLocationBtn, false, 'Cerrar Ubicación Actual');
+                    toggleButtonSpinner(nextStageBtn, false, 'Avanzar Etapa de Conteo');
                 }
             }
 
@@ -568,7 +568,8 @@
             // --- EVENT LISTENERS ---
             startSessionBtn.addEventListener('click', handleStartSession);
             endSessionBtn.addEventListener('click', handleEndSession);
-            closeLocationBtn.addEventListener('click', handleCloseLocation);
+            const nextStageBtn = document.getElementById('next-stage-btn');
+            nextStageBtn.addEventListener('click', handleNextStage);
             scanLocationButton.addEventListener('click', () => startScanner(countedLocationInput));
             scanItemButton.addEventListener('click', () => startScanner(itemCodeInput));
             searchButton.addEventListener('click', fetchItemData);
