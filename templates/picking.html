@@ -512,10 +512,44 @@
                 hideQuantityModal();
             }
 
+            async function saveAuditData(status) {
+                const auditData = {
+                    order_number: orderNumberDisplay.textContent,
+                    despatch_number: despatchNumberDisplay.textContent,
+                    customer_name: customerName,
+                    status: status,
+                    items: orderItems
+                };
+
+                try {
+                    const response = await fetch('/api/save_picking_audit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(auditData),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Error al guardar la auditoría.');
+                    }
+
+                    const result = await response.json();
+                    console.log('Auditoría guardada:', result);
+                    return true;
+
+                } catch (error) {
+                    console.error('Error al guardar la auditoría:', error);
+                    showMessage(error.message, 'error');
+                    return false;
+                }
+            }
+
             /**
              * Finaliza la auditoría. Comprueba diferencias.
              */
-            function finalizeAudit() {
+            async function finalizeAudit() {
                 // Asegurarse de que se haya cargado un pedido
                 if (orderItems.length === 0) {
                     showMessage("No hay ningún pedido cargado para finalizar.", "error");
@@ -529,22 +563,24 @@
                     confirmationModal.classList.remove('hidden');
                 } else {
                     // Todo OK
-                    showMessage("¡Auditoría Finalizada! Picking OK.", "success", 5000);
-                    // Aquí podrías guardar los datos
-                    console.log("Datos guardados (OK):", orderItems);
-                    resetApp();
+                    const saved = await saveAuditData('Completo');
+                    if (saved) {
+                        showMessage("¡Auditoría Finalizada! Picking OK y guardado.", "success", 5000);
+                        resetApp();
+                    }
                 }
             }
 
             /**
              * Se llama si el usuario confirma guardar con diferencias.
              */
-            function confirmFinalizeWithDifferences() {
+            async function confirmFinalizeWithDifferences() {
                 confirmationModal.classList.add('hidden');
-                showMessage("Auditoría finalizada y guardada con diferencias.", "warning", 5000);
-                // Aquí iría la lógica para guardar los datos (ej. enviar a un servidor)
-                console.log("Datos guardados (con diferencias):", orderItems);
-                resetApp();
+                const saved = await saveAuditData('Con Diferencia');
+                if (saved) {
+                    showMessage("Auditoría finalizada y guardada con diferencias.", "warning", 5000);
+                    resetApp();
+                }
             }
 
             /**

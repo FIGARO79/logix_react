@@ -116,6 +116,19 @@ class CloseLocationRequest(BaseModel):
     session_id: int
     location_code: str
 
+class PickingAuditItem(BaseModel):
+    code: str
+    description: str
+    qty_req: int
+    qty_scan: int
+
+class PickingAudit(BaseModel):
+    order_number: str
+    despatch_number: str
+    customer_name: str
+    status: str
+    items: List[PickingAuditItem]
+
 # --- LÓGICA DE LOGIN Y DECORADOR ---
 def get_current_user(request: Request):
     return request.cookies.get("username")
@@ -272,6 +285,34 @@ async def init_db():
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_importReference_itemCode ON logs (importReference, itemCode)")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_session_id ON stock_counts (session_id)")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_location_code ON session_locations (location_code)")
+
+            # --- Nuevas Tablas para Auditoría de Picking ---
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS picking_audits (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_number TEXT NOT NULL,
+                    despatch_number TEXT NOT NULL,
+                    customer_name TEXT,
+                    username TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    status TEXT NOT NULL -- 'Completo' o 'Con Diferencia'
+                )
+            ''')
+
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS picking_audit_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    audit_id INTEGER NOT NULL,
+                    item_code TEXT NOT NULL,
+                    description TEXT,
+                    qty_req INTEGER NOT NULL,
+                    qty_scan INTEGER NOT NULL,
+                    difference INTEGER NOT NULL,
+                    FOREIGN KEY(audit_id) REFERENCES picking_audits(id)
+                )
+            ''')
+            
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_picking_audit_id ON picking_audit_items (audit_id)")
 
 
             await conn.commit()
@@ -1009,6 +1050,78 @@ async def picking_page(request: Request, username: str = Depends(login_required)
     if not isinstance(username, str):
         return username
     return templates.TemplateResponse("picking.html", {"request": request, "username": username})
+
+@app.post('/api/save_picking_audit')
+async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(login_required)):
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        try:
+            # 1. Insertar la auditoría principal
+            cursor = await conn.execute(
+                '''
+                INSERT INTO picking_audits (order_number, despatch_number, customer_name, username, timestamp, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    audit_data.order_number,
+                    audit_data.despatch_number,
+                    audit_data.customer_name,
+                    username,
+                    datetime.datetime.now().isoformat(timespec='seconds'),
+                    audit_data.status
+                )
+            )
+            await conn.commit()
+            audit_id = cursor.lastrowid
+
+            # 2. Insertar los items de la auditoría
+            items_to_insert = []
+            for item in audit_data.items:
+                difference = item.qty_scan - item.qty_req
+                items_to_insert.append((
+                    audit_id,
+                    item.code,
+                    item.description,
+                    item.qty_req,
+                    item.qty_scan,
+                    difference
+                ))
+
+            await conn.executemany(
+                '''
+                INSERT INTO picking_audit_items (audit_id, item_code, description, qty_req, qty_scan, difference)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ''',
+                items_to_insert
+            )
+            await conn.commit()
+
+            return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": audit_id}, status_code=201)
+
+        except aiosqlite.Error as e:
+            print(f"Database error in save_picking_audit: {e}")
+            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+
+@app.get('/view_picking_audits', response_class=HTMLResponse)
+async def view_picking_audits_page(request: Request, username: str = Depends(login_required)):
+    if not isinstance(username, str):
+        return username
+
+    audits = await load_picking_audits_from_db()
+    return templates.TemplateResponse('view_picking_audits.html', {"request": request, "audits": audits})
+
+async def load_picking_audits_from_db():
+    audits = []
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute("SELECT * FROM picking_audits ORDER BY id DESC")
+        rows = await cursor.fetchall()
+        for row in rows:
+            audit = dict(row)
+            cursor_items = await conn.execute("SELECT * FROM picking_audit_items WHERE audit_id = ?", (audit['id'],))
+            items = await cursor_items.fetchall()
+            audit['items'] = [dict(item) for item in items]
+            audits.append(audit)
+    return audits
 
 @app.get('/view_counts', response_class=HTMLResponse)
 async def view_counts_page(request: Request, username: str = Depends(login_required)):
