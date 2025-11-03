@@ -171,6 +171,19 @@
             </div>
         </div>
 
+        <!-- Modal de Cantidad -->
+        <div id="quantity-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4" id="quantity-modal-item-name"></h3>
+                <p class="text-gray-700 mb-4">Ingrese la cantidad alistada:</p>
+                <input type="number" id="quantity-input" inputmode="numeric" class="w-full text-center border border-gray-300 rounded-md shadow-sm py-2 text-2xl" />
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-quantity-btn" class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
+                    <button id="confirm-quantity-btn" class="py-2 px-4 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
 
         <script>
             // --- Variables Globales ---
@@ -178,6 +191,7 @@
             let customerName = "";
             let html5QrCode;
             let soundBeep, soundBoop;
+            let currentItemForQuantity = null;
 
             // --- Selectores del DOM ---
             const loadSection = document.getElementById('load-section');
@@ -201,6 +215,11 @@
             const confirmationModal = document.getElementById('confirmation-modal');
             const cancelModalBtn = document.getElementById('cancel-modal-btn');
             const confirmModalBtn = document.getElementById('confirm-modal-btn');
+            const quantityModal = document.getElementById('quantity-modal');
+            const quantityModalItemName = document.getElementById('quantity-modal-item-name');
+            const quantityInput = document.getElementById('quantity-input');
+            const cancelQuantityBtn = document.getElementById('cancel-quantity-btn');
+            const confirmQuantityBtn = document.getElementById('confirm-quantity-btn');
 
             // --- Inicialización ---
             document.addEventListener('DOMContentLoaded', () => {
@@ -233,6 +252,9 @@
             resetBtn.addEventListener('click', resetApp);
             cancelModalBtn.addEventListener('click', () => confirmationModal.classList.add('hidden'));
             confirmModalBtn.addEventListener('click', confirmFinalizeWithDifferences);
+            cancelQuantityBtn.addEventListener('click', hideQuantityModal);
+            confirmQuantityBtn.addEventListener('click', confirmQuantity);
+            quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
 
             // --- Funciones Principales ---
 
@@ -440,32 +462,54 @@
                 const item = orderItems.find(i => i.code === scannedCode);
 
                 if (item) {
-                    item.qty_scan++;
+                    showQuantityModal(item);
                     soundBeep.triggerAttackRelease("C5", "0.1"); // Sonido agudo OK
-                    showMessage(`OK: ${item.description}`, "success");
-
-                    // Enfocar y resaltar la fila
-                    const row = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(item)}"]`);
-                    if(row) {
-                        row.closest('tr').classList.add('bg-blue-100');
-                        row.focus();
-                        setTimeout(() => {
-                            // Quitar clase solo si todavía existe
-                            const currentRow = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(item)}"]`);
-                            if (currentRow) {
-                                currentRow.closest('tr').classList.remove('bg-blue-100');
-                            }
-                        }, 1500); // Quitar resaltado después de 1.5s
-                    }
-
                 } else {
                     soundBoop.triggerAttackRelease("C3", "0.2"); // Sonido grave ERROR
                     showMessage(`ERROR: Item incorrecto (${scannedCode})`, "error");
+                    itemCodeInput.value = ''; // Limpiar input manual
+                    itemCodeInput.focus(); // Devolver el foco al input
                 }
+            }
 
+            function showQuantityModal(item) {
+                currentItemForQuantity = item;
+                quantityModalItemName.textContent = `${item.code} - ${item.description}`;
+                quantityInput.value = ''; // Clear previous value
+                quantityModal.classList.remove('hidden');
+                quantityInput.focus();
+            }
+
+            function hideQuantityModal() {
+                quantityModal.classList.add('hidden');
+                currentItemForQuantity = null;
                 itemCodeInput.value = ''; // Limpiar input manual
                 itemCodeInput.focus(); // Devolver el foco al input
-                updateTable();
+            }
+
+            function confirmQuantity() {
+                if (!currentItemForQuantity) return;
+
+                const quantity = parseInt(quantityInput.value, 10);
+                if (!isNaN(quantity) && quantity >= 0) {
+                    currentItemForQuantity.qty_scan = quantity;
+                    showMessage(`OK: ${currentItemForQuantity.description} - Cantidad: ${quantity}`, "success");
+                    updateTable();
+                    // Highlight row
+                    const row = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
+                    if(row) {
+                        row.closest('tr').classList.add('bg-blue-100');
+                        setTimeout(() => {
+                            const currentRow = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
+                            if (currentRow) {
+                                currentRow.closest('tr').classList.remove('bg-blue-100');
+                            }
+                        }, 1500);
+                    }
+                } else {
+                    showMessage('Por favor ingrese una cantidad válida.', 'error');
+                }
+                hideQuantityModal();
             }
 
             /**
