@@ -923,6 +923,12 @@ async def debug_last_counts(limit: int = 20, username: str = Depends(login_requi
 def home_page(request: Request, username: str = Depends(login_required)):
     if not isinstance(username, str):
         return username # Return the redirect response if login fails
+    return templates.TemplateResponse("inicio.html", {"request": request})
+
+@app.get('/inbound', response_class=HTMLResponse)
+def inbound_page(request: Request, username: str = Depends(login_required)):
+    if not isinstance(username, str):
+        return username # Return the redirect response if login fails
     return templates.TemplateResponse("inbound.html", {"request": request})
 
 @app.get('/update', response_class=HTMLResponse)
