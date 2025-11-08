@@ -33,7 +33,7 @@ export const ScannerPage = () => {
       };
 
       // Hacemos la petición POST a nuestro backend
-      const response = await axios.post('http://localhost:8000/api/counts/', countData);
+      const response = await axios.post('/api/counts/', countData);
       
       alert(response.data.message); // Muestra mensaje de éxito
       

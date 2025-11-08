@@ -938,11 +938,9 @@ def update_files_get(request: Request, username: str = Depends(login_required)):
     return templates.TemplateResponse("update.html", {"request": request, "error": request.query_params.get('error'), "message": request.query_params.get('message')})
 
 @app.post('/update', response_class=JSONResponse)
-async def update_files_post(request: Request, password: str = Form(...), item_master: UploadFile = File(None), grn_file: UploadFile = File(None), picking_file: UploadFile = File(None), username: str = Depends(login_required)):
+async def update_files_post(request: Request, item_master: UploadFile = File(None), grn_file: UploadFile = File(None), picking_file: UploadFile = File(None), username: str = Depends(login_required)):
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
-    if password != UPDATE_PASSWORD:
-        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"error": "Contraseña incorrecta"})
     
     files_uploaded = False
     message = ""

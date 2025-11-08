@@ -64,16 +64,18 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-                </div>
+                    <div>
+                        <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            INICIO
+                        </a>
+                    </div>    
+            </div>
+                    
                 <!-- Navigation Link -->
-                <div>
-                    <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                        </svg>
-                        INICIO
-                    </a>
-                </div>
+                    
             </div>
         </div>
     </header>
@@ -89,24 +91,7 @@
 
                 <form id="upload-form" action="/update" method="post" enctype="multipart/form-data">
                     <div class="space-y-6">
-                        <div>
-                            <label for="password" class="block mb-2 text-sm font-medium text-gray-800">Contraseña de Administrador:</label>
-                            <div class="password-container">
-                                <input type="password" id="password" name="password" required
-                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5"
-                                    placeholder="••••••••••">
-                                <span class="toggle-password" id="togglePassword">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.595 6.837-6.425M16.5 10.5a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
-                                    </svg>
-                                </span>
-                            </div>
-                        </div>
-
+                        
                         <div id="drop-zone" class="flex items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                             <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                 <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H13.5a4 4 0 014 4v1.586a1 1 0 01-.293.707l-1.414 1.414a1 1 0 00-.293.707V16a4 4 0 01-4 4H7z"></path></svg>
@@ -264,19 +249,14 @@
             }
 
             async function uploadFiles() {
-                const password = passwordInput.value;
-                if (!password) {
-                    showToast('Please enter the admin password.', 'error');
-                    return;
-                }
-
+               
                 if (filesToUpload.length === 0) {
                     showToast('Please select files to upload.', 'error');
                     return;
                 }
 
                 const formData = new FormData();
-                formData.append('password', password);
+                
                 filesToUpload.forEach(file => {
                     if (file.name === 'AURRSGLBD0250 - Item Stockroom Balance.csv') {
                         formData.append('item_master', file);

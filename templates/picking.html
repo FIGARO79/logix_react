@@ -40,7 +40,7 @@
 <body class="bg-gray-100 text-gray-800 flex justify-center p-4 pt-20">
     <header class="bg-white shadow-sm w-full fixed top-0 left-0 z-10">
         <div class="container mx-auto max-w-4xl p-4 flex justify-between items-center">
-                <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+                <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-10 w-19 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
             <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -83,7 +83,7 @@
                     </header>
 
                     <div class="mb-6 space-y-2">
-                        <p class="text-lg">Orden: <span id="order-number-display" class="font-bold text-gray-700"></span>/<span id="despatch-number-display" class="font-bold text-gray-700"></span></p>
+                        <p class="text-lg">Orden: <span id="order-number-display" class="font-bold text-gray-700"></span>/<span id="despatch-number-display" class_name="font-bold text-gray-700"></span></p>
                         <p class="text-lg">Cliente: <span id="customer-name" class="font-bold text-gray-700"></span></p>
                     </div>
 
@@ -110,26 +110,21 @@
                         </div>
                     </div>
 
-                    <!-- Contenedor del Escáner (Oculto) -->
-                    <div id="scanner-container" class="hidden mb-4">
-                        <div id="qr-reader" class="w-full max-w-md mx-auto aspect-video md:aspect-square md:max-h-[300px]"></div>
-                        <button id="stop-scanner-btn" class="mt-4 w-full bg-gray-500 text-white py-2 px-4 rounded-md font-semibold shadow-sm hover:bg-gray-600">
-                            Detener Escáner
-                        </button>
-                    </div>
+
 
                     <!-- Lista de Items -->
                     <div>
                         <h3 class="text-xl font-semibold mb-4">Lista de items</h3>
-                        <div class="overflow-x-auto border rounded-md max-h-[400px] md:max-h-[500px]">
-                            <table class="min-w-full divide-y divide-gray-200">
+                        <div class="border rounded-md max-h-[400px] md:max-h-[500px] overflow-y-auto">
+                            <table class="w-full divide-y divide-gray-200 table-auto">
+                                <!-- ***** CORRECCIÓN APLICADA AQUÍ (thead) ***** -->
                                 <thead class="bg-gray-50 sticky top-0 z-10">
                                     <tr>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Code</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Req.</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scan.</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dif.</th>
+                                        <th scope="col" class="px-2 py-2 md:px-4 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Code</th>
+                                        <th scope="col" class="px-2 py-2 md:px-4 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                        <th scope="col" class="px-2 py-2 md:px-4 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Req.</th>
+                                        <th scope="col" class="px-2 py-2 md:px-4 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Scan.</th>
+                                        <th scope="col" class="px-2 py-2 md:px-4 md:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Dif.</th>
                                     </tr>
                                 </thead>
                                 <tbody id="items-table-body" class="bg-white divide-y divide-gray-200">
@@ -149,6 +144,15 @@
                         </button>
                     </div>
                 </section>
+            </div>
+        </div>
+
+        <!-- Modal del Escáner -->
+        <div id="scanner-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
+                <div id="qr-reader" class="w-full rounded-md overflow-hidden border"></div>
+                <button id="close-scanner-btn" class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
             </div>
         </div>
 
@@ -204,8 +208,6 @@
             const itemCodeInput = document.getElementById('itemCode');
             const scanItemBtn = document.getElementById('scanItemBtn');
             const findItemBtn = document.getElementById('findItemBtn');
-            const scannerContainer = document.getElementById('scanner-container');
-            const stopScannerBtn = document.getElementById('stop-scanner-btn');
             const finalizeBtn = document.getElementById('finalize-btn');
             const resetBtn = document.getElementById('reset-btn');
             const messageBox = document.getElementById('message-box');
@@ -218,12 +220,18 @@
             const quantityInput = document.getElementById('quantity-input');
             const cancelQuantityBtn = document.getElementById('cancel-quantity-btn');
             const confirmQuantityBtn = document.getElementById('confirm-quantity-btn');
+            const scannerModal = document.getElementById('scanner-modal');
+            const closeScannerBtn = document.getElementById('close-scanner-btn');
 
             // --- Inicialización ---
             document.addEventListener('DOMContentLoaded', () => {
                 // Inicializar el objeto del escáner
                 try {
                     html5QrCode = new Html5Qrcode("qr-reader");
+                    const Html5QrcodeScanType = {
+                        SCAN_TYPE_CAMERA: 0,
+                        SCAN_TYPE_FILE: 1
+                    }
                 } catch (e) {
                     console.error("No se pudo inicializar Html5Qrcode. Asegúrese de que el div 'qr-reader' existe.", e);
                     showMessage("Error al iniciar el componente de escáner.", "error");
@@ -242,8 +250,8 @@
 
             // --- Event Listeners ---
             loadOrderBtn.addEventListener('click', loadOrder); // Cambiado a la función original
-            scanItemBtn.addEventListener('click', toggleScanner);
-            stopScannerBtn.addEventListener('click', stopScanner);
+            scanItemBtn.addEventListener('click', startScanner);
+            closeScannerBtn.addEventListener('click', stopScanner);
             findItemBtn.addEventListener('click', () => processScan(itemCodeInput.value));
             itemCodeInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); processScan(itemCodeInput.value); } });
             finalizeBtn.addEventListener('click', finalizeAudit);
@@ -350,14 +358,16 @@
 
                     const row = document.createElement('tr');
                     row.className = `${rowClass} transition-colors duration-200`;
+                    
+                    // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
                     row.innerHTML = `
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.code}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${item.description}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-blue-700">${item.qty_req}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold">
-                            <input type="number" value="${item.qty_scan}" min="0" class="w-20 text-center border border-gray-300 rounded-md shadow-sm py-1" data-index="${index}">
+                        <td class="px-2 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium text-gray-900">${item.code}</td>
+                        <td class="px-2 py-2 md:px-4 md:py-3 text-xs md:text-sm text-gray-600">${item.description}</td>
+                        <td class="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
+                        <td class="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap text-xs md:text-sm font-bold text-center">
+                            <input type="number" value="${item.qty_scan}" min="0" class="w-20 text-center text-xs md:text-sm border border-gray-300 rounded-md shadow-sm py-1" data-index="${index}">
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold ${diffClass}">${diff}</td>
+                        <td class="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap text-xs md:text-sm font-semibold ${diffClass} text-center">${diff}</td>
                     `;
                     itemsTableBody.appendChild(row);
                 });
@@ -384,24 +394,12 @@
             }
 
             /**
-             * Muestra/Oculta el escáner de la cámara.
-             */
-            function toggleScanner() {
-                if (scannerContainer.classList.contains('hidden')) {
-                    scannerContainer.classList.remove('hidden');
-                    startScanner();
-                } else {
-                    stopScanner();
-                }
-            }
-
-            /**
              * Inicia la cámara para escanear.
              */
             function startScanner() {
+                scannerModal.classList.remove('hidden');
                 if (!html5QrCode) {
-                    showMessage("El escáner no está inicializado.", "error");
-                    return;
+                    html5QrCode = new Html5Qrcode("qr-reader");
                 }
 
                 const config = {
@@ -420,14 +418,17 @@
                 html5QrCode.start(
                     { facingMode: "environment" }, // Pedir cámara trasera
                     config,
-                    (decodedText, decodedResult) => processScan(decodedText), // onScanSuccess
+                    (decodedText, decodedResult) => {
+                        stopScanner();
+                        processScan(decodedText);
+                    }, // onScanSuccess
                     (error) => { /* onScanFailure (opcional) */ }
                 ).then(() => {
                     showMessage("Cámara iniciada. Apunte al código.", "info");
                 }).catch(err => {
                     showMessage("Error al iniciar la cámara. Verifique permisos.", "error");
                     console.error(err);
-                    scannerContainer.classList.add('hidden');
+                    stopScanner();
                 });
             }
 
@@ -438,16 +439,13 @@
                 if (html5QrCode && html5QrCode.isScanning) {
                     html5QrCode.stop()
                         .then(() => {
-                            scannerContainer.classList.add('hidden');
                             showMessage("Escáner detenido.", "info");
                         })
                         .catch(err => {
                             console.error("Error al detener el escáner:", err);
                         });
-                } else {
-                    // Si no estaba escaneando, solo oculta el contenedor
-                    scannerContainer.classList.add('hidden');
                 }
+                scannerModal.classList.add('hidden');
             }
 
             /**
@@ -632,4 +630,3 @@
 
     </body>
     </html>
-
