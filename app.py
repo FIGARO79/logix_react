@@ -1471,7 +1471,8 @@ async def login_post(request: Request, username: str = Form(...), password: str 
             # comportamiento y no mostrar el mensaje de 'Login successful'.
             response = RedirectResponse(url='/', status_code=status.HTTP_302_FOUND)
             # Adjuntamos la cookie a la respuesta de redirección.
-            response.set_cookie(key="username", value=username, httponly=True, samesite='lax', secure=True, path='/')
+            # Usar secure sólo si la petición original fue HTTPS (evita problemas en desarrollo)
+            response.set_cookie(key="username", value=username, httponly=True, samesite='lax', secure=(request.url.scheme == 'https'), path='/')
             return response
         else:
             # Error de aprobación: Enviamos un JSON con el error específico.
@@ -1527,7 +1528,8 @@ async def check_password(user_id: int, request: Request):
 def admin_users_post(request: Request, password: str = Form(...)):
     if password == UPDATE_PASSWORD:
         response = RedirectResponse(url='/admin/users', status_code=status.HTTP_302_FOUND)
-        response.set_cookie(key="admin_logged_in", value="true", httponly=True)
+        # Marcar secure sólo si la petición usa HTTPS
+        response.set_cookie(key="admin_logged_in", value="true", httponly=True, secure=(request.url.scheme == 'https'))
         return response
     else:
         return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Contraseña incorrecta"})

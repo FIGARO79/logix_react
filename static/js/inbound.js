@@ -1,7 +1,9 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- Constants and Configuration ---
-    const API_BASE_URL = "http://localhost:5000/api"; // para desarrollo local
+    // En producción el backend está en el mismo dominio; usar ruta relativa evita problemas
+    // de mixed content cuando el sitio se sirve por HTTPS.
+    const API_BASE_URL = "/api"; // cambiar a http(s) absoluto solo para desarrollo local si es necesario
     const dynamicUrls = {
         updateFiles: "/update",
         viewLogs: "/view_logs",
@@ -363,9 +365,9 @@ document.addEventListener("DOMContentLoaded", () => {
             itemCodeInput.readOnly = false;
             const cancelBtn = document.getElementById("cancelEditBtn");
             if (cancelBtn) cancelBtn.style.display = "none";
-            
+
             clearItemSpecificFields(); // Llamamos a la función que también protegeremos
-            
+
             if (!isAfterUpdate) showToast("Edición cancelada.", "info");
             packingListNumberInput.focus();
         } catch (error) {
@@ -435,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Como alternativa, recargamos toda la tabla para asegurar consistencia
             loadInitialLogs();
         }
-}
+    }
 
     async function loadInitialLogs() {
         showToast("Cargando registros...", "info");
@@ -485,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // new Date() expects MM/DD/YYYY, so we rearrange
                 const isoDateString = `${month}/${day}/${year}`;
                 return new Date(isoDateString).getTime() || 0;
-            } catch (e) { 
+            } catch (e) {
                 return 0; // Return a default value if parsing fails
             }
         }
