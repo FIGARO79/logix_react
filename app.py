@@ -764,7 +764,7 @@ async def clear_database(password: str = Form(...)):
         return RedirectResponse(url=f'/update?{query_string}', status_code=status.HTTP_302_FOUND)
 
 @app.get('/api/stock_item/{item_code}')
-async def stock_item():
+async def stock_item(item_code: str):
     details = await get_item_details_from_master_csv(item_code)
     if details:
         response_data = {
@@ -783,7 +783,7 @@ async def stock_item():
         raise HTTPException(status_code=404, detail="Artículo no encontrado")
 
 @app.get('/api/get_item_details/{item_code}')
-async def get_item_details_for_label():
+async def get_item_details_for_label(item_code: str):
     details = await get_item_details_from_master_csv(item_code)
     if details:
         response_data = {
