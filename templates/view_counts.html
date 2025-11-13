@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,18 +11,33 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        body { font-family: "Inter", sans-serif; }
-        .table-container { max-height: 80vh; }
-        thead th { position: sticky; top: 0; z-index: 10; }
+        body {
+            font-family: "Inter", sans-serif;
+        }
+
+        .table-container {
+            max-height: 80vh;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100">
     <header class="bg-white shadow-sm">
         <div class="max-w-auto mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-            <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain"
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+            <a href="/"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd"
+                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
                 </svg>
                 INICIO
             </a>
@@ -37,14 +53,18 @@
                     <select id="userFilter" class="p-2 border rounded">
                         <option value="">Todos</option>
                         {% for u in usernames %}
-                            <option value="{{ u }}">{{ u }}</option>
+                        <option value="{{ u }}">{{ u }}</option>
                         {% endfor %}
                     </select>
-                    <a href="/api/export_counts" id="exportCountsBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                    Exportar a Excel
+                    <a href="/api/export_counts" id="exportCountsBtn"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Exportar a Excel
                     </a>
                 </div>
             </div>
@@ -63,55 +83,84 @@
                     <p id="stats-items-with-diff" class="text-2xl font-bold text-red-500">-</p>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <h3 class="text-sm font-medium text-gray-500">Ubicaciones Totales con Stock</h3>
+                    <h3 class="text-sm font-medium text-gray-500">Ubicaciones en uso</h3>
                     <p id="stats-total-locations-with-stock" class="text-2xl font-bold text-gray-800">-</p>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow text-center">
                     <h3 class="text-sm font-medium text-gray-500">Ubicaciones Contadas</h3>
                     <p id="stats-counted-locations" class="text-2xl font-bold text-gray-800">-</p>
-                </div>                
-                
+                </div>
+
             </div>
 
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div class="overflow-x-auto table-container">
                     <table class="min-w-full leading-normal">
                         <thead class="bg-gray-800 text-white">
-                                <tr>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">ID Sesión</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Usuario</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Timestamp</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Item Code</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Descripción</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Ubic. Contada</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Cant. Sistema</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Cant. Contada</th>                                
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Diferencia</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">Ubic. Sistema</th>
+                            <tr>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    ID Sesión</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Usuario</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Timestamp</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Item Code</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Descripción</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Ubic. Contada</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Cant. Sistema</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Cant. Contada</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Diferencia</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Ubic. Sistema</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
                             {% if counts %}
-                                {% for count in counts %}
-                                <tr class="hover:bg-gray-50" data-username="{{ count.username if count.username is not none else '' }}">
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.session_id }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.username if count.username is not none else '-' }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.timestamp }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm font-medium text-gray-800">{{ count.item_code }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.item_description }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm font-semibold text-blue-600">{{ count.counted_location }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.system_qty if count.system_qty is not none else '-' }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm font-bold text-green-600">{{ count.counted_qty }}</td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm font-bold {% if count.difference is not none and count.difference != 0 %}text-red-600{% else %}text-gray-700{% endif %}">
-                                        {{ count.difference if count.difference is not none else '-' }}
-                                    </td>
-                                    <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.bin_location_system }}</td>
-                                </tr>
-                                {% endfor %}
+                            {% for count in counts %}
+                            <tr class="hover:bg-gray-50"
+                                data-username="{{ count.username if count.username is not none else '' }}">
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.session_id }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.username if
+                                    count.username is not none else '-' }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.timestamp }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm font-medium text-gray-800">{{
+                                    count.item_code }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.item_description }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm font-semibold text-blue-600">{{
+                                    count.counted_location }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.system_qty if
+                                    count.system_qty is not none else '-' }}</td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm font-bold text-green-600">{{
+                                    count.counted_qty }}</td>
+                                <td
+                                    class="px-5 py-4 border-b border-gray-200 text-sm font-bold {% if count.difference is not none and count.difference != 0 %}text-red-600{% else %}text-gray-700{% endif %}">
+                                    {{ count.difference if count.difference is not none else '-' }}
+                                </td>
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.bin_location_system }}
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                                <tr>
-                                    <td colspan="11" class="text-center py-10 text-gray-500">No hay registros de conteo para mostrar.</td>
-                                </tr>
+                            <tr>
+                                <td colspan="11" class="text-center py-10 text-gray-500">No hay registros de conteo para
+                                    mostrar.</td>
+                            </tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -143,36 +192,38 @@
                 }
             }
 
-                    if (userFilter) {
-                        userFilter.addEventListener('change', applyFilter);
+            if (userFilter) {
+                userFilter.addEventListener('change', applyFilter);
+            }
+
+            async function fetchStats() {
+                try {
+                    const response = await fetch('/api/counts/stats');
+                    if (!response.ok) {
+                        throw new Error('Error al cargar las estadísticas');
                     }
-            
-                    async function fetchStats() {
-                        try {
-                            const response = await fetch('/api/counts/stats');
-                            if (!response.ok) {
-                                throw new Error('Error al cargar las estadísticas');
-                            }
-                            const stats = await response.json();
-            
-                            document.getElementById('stats-total-items').textContent = stats.total_items_with_stock;
-                            document.getElementById('stats-counted-locations').textContent = stats.counted_locations;
-                            document.getElementById('stats-total-counted').textContent = stats.total_items_counted;
-                            document.getElementById('stats-items-with-diff').textContent = stats.items_with_differences;
-                            document.getElementById('stats-total-locations-with-stock').textContent = stats.total_locations_with_stock;
-            
-                        } catch (error) {
-                            console.error('Error fetching stats:', error);
-                            // Optionally, display an error message in the stats containers
-                            document.getElementById('stats-total-items').textContent = 'Error';
-                            document.getElementById('stats-counted-locations').textContent = 'Error';
-                            document.getElementById('stats-total-counted').textContent = 'Error';
-                            document.getElementById('stats-items-with-diff').textContent = 'Error';
-                            document.getElementById('stats-total-locations-with-stock').textContent = 'Error';
-                        }
-                    }
-            
-                    fetchStats();
-                });
-            </script></body>
+                    const stats = await response.json();
+
+                    document.getElementById('stats-total-items').textContent = stats.total_items_with_stock;
+                    document.getElementById('stats-counted-locations').textContent = stats.counted_locations;
+                    document.getElementById('stats-total-counted').textContent = stats.total_items_counted;
+                    document.getElementById('stats-items-with-diff').textContent = stats.items_with_differences;
+                    document.getElementById('stats-total-locations-with-stock').textContent = stats.total_locations_with_stock;
+
+                } catch (error) {
+                    console.error('Error fetching stats:', error);
+                    // Optionally, display an error message in the stats containers
+                    document.getElementById('stats-total-items').textContent = 'Error';
+                    document.getElementById('stats-counted-locations').textContent = 'Error';
+                    document.getElementById('stats-total-counted').textContent = 'Error';
+                    document.getElementById('stats-items-with-diff').textContent = 'Error';
+                    document.getElementById('stats-total-locations-with-stock').textContent = 'Error';
+                }
+            }
+
+            fetchStats();
+        });
+    </script>
+</body>
+
 </html>
