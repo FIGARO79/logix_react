@@ -1728,18 +1728,23 @@ async def reset_count_sessions(user_id: int, request: Request):
     async with aiosqlite.connect(DB_FILE_PATH) as conn:
         cursor = await conn.execute("SELECT username FROM users WHERE id = ?", (user_id,))
         user = await cursor.fetchone()
+        
         if user:
-            # First, get all session_ids for the user
-            cursor = await conn.execute("SELECT id FROM count_sessions WHERE user_username = ?", (user[0],))
-            session_ids = [row[0] for row in await cursor.fetchall()]
-
-            if session_ids:
-                # Delete all stock_counts associated with those session_ids
-                placeholders = ','.join(['?' for _ in session_ids])
-                await conn.execute(f"DELETE FROM stock_counts WHERE session_id IN ({placeholders})", session_ids)
-
-            # Now, delete the count_sessions for the user
-            await conn.execute("DELETE FROM count_sessions WHERE user_username = ?", (user[0],))
+            username = user[0]
+            # CAMBIO IMPORTANTE: 
+            # En lugar de BORRAR (DELETE), ahora actualizamos el estado a 'completed'.
+            # Esto preserva los conteos (stock_counts) y el historial de la sesión.
+            
+            now = datetime.datetime.now().isoformat(timespec='seconds')
+            
+            # Solo cerramos las sesiones que estén 'in_progress' (activas)
+            await conn.execute(
+                "UPDATE count_sessions SET status = 'completed', end_time = ? WHERE user_username = ? AND status = 'in_progress'",
+                (now, username)
+            )
+            
+            # Nota: No tocamos la tabla 'stock_counts'. Los items permanecen seguros vinculados a la sesión (ahora cerrada).
+            
             await conn.commit()
     
     return RedirectResponse(url='/admin/users', status_code=status.HTTP_302_FOUND)
