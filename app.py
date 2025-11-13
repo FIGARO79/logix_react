@@ -16,6 +16,7 @@ import datetime
 import numpy as np
 import sqlite3
 import aiosqlite
+import secrets
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
@@ -345,6 +346,20 @@ async def init_db():
             
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_picking_audit_id ON picking_audit_items (audit_id)")
 
+            # Tabla para tokens de restablecimiento de contraseña (un solo uso)
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    token TEXT NOT NULL UNIQUE,
+                    expires_at TEXT NOT NULL,
+                    used INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            ''')
+
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens (token)")
 
             await conn.commit()
             print("Esquema de la base de datos verificado/actualizado con éxito.")
@@ -1523,7 +1538,10 @@ async def admin_users_get(request: Request):
         conn.row_factory = aiosqlite.Row
         cursor = await conn.execute("SELECT id, username, is_approved FROM users ORDER BY id DESC")
         users = await cursor.fetchall()
-    return templates.TemplateResponse('admin_users.html', {"request": request, "users": users})
+    # Leer posibles parámetros para mostrar token de reset generado
+    reset_token = request.query_params.get('reset_token')
+    reset_user = request.query_params.get('reset_user')
+    return templates.TemplateResponse('admin_users.html', {"request": request, "users": users, "reset_token": reset_token, "reset_user": reset_user})
 
 @app.post('/admin/check_password/{user_id}')
 async def check_password(user_id: int, request: Request):
@@ -1585,16 +1603,98 @@ async def reset_password(user_id: int, request: Request):
         return RedirectResponse(url=str(request.url.replace(path='/admin/users', query='error=Usuario no encontrado')), status_code=status.HTTP_302_FOUND)
     
     username = user[0]
-    new_password = "1234"
-    hashed_password = generate_password_hash(new_password)
-    
+    # Generar token de un solo uso y almacenarlo con expiración
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).isoformat()
+    created_at = datetime.datetime.utcnow().isoformat()
+
     async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        await conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hashed_password, user_id))
+        await conn.execute(
+            "INSERT INTO password_reset_tokens (user_id, token, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
+            (user_id, token, expires_at, created_at)
+        )
         await conn.commit()
-    
-    # Redirigir a login con mensaje que incluye usuario y contraseña temporal
-    message = f"Contraseña reseteada. Usuario: {username}, Contraseña temporal: {new_password}"
-    query_string = urlencode({'message': message})
+
+    # Redirigir al panel de admin y mostrar el token para que el admin lo copie y entregue al usuario
+    query_string = urlencode({'reset_token': token, 'reset_user': username})
+    return RedirectResponse(url=f'/admin/users?{query_string}', status_code=status.HTTP_302_FOUND)
+
+
+@app.get('/set_password')
+async def set_password(request: Request, token: Optional[str] = None):
+    """Muestra el formulario para cambiar la contraseña usando un token de un solo uso."""
+    context = {"request": request, "token": "", "username": "", "error": None, "message": None}
+    if token:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+            cursor = await conn.execute("SELECT user_id, token, expires_at, used FROM password_reset_tokens WHERE token = ?", (token,))
+            row = await cursor.fetchone()
+            if not row:
+                context['error'] = "Token inválido o inexistente."
+                return templates.TemplateResponse("set_password.html", context)
+
+            if row['used']:
+                context['error'] = "Este token ya fue utilizado."
+                return templates.TemplateResponse("set_password.html", context)
+
+            expires_at = datetime.datetime.fromisoformat(row['expires_at'])
+            if datetime.datetime.utcnow() > expires_at:
+                context['error'] = "El token ha expirado. Solicita un nuevo restablecimiento."
+                return templates.TemplateResponse("set_password.html", context)
+
+            # Obtener username para mostrar en el formulario
+            cursor = await conn.execute("SELECT username FROM users WHERE id = ?", (row['user_id'],))
+            user_row = await cursor.fetchone()
+            context['username'] = user_row['username'] if user_row else ''
+            context['token'] = token
+
+    return templates.TemplateResponse("set_password.html", context)
+
+
+@app.post('/set_password')
+async def set_password_post(request: Request, token: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):
+    """Procesa el cambio de contraseña usando el token: valida token y actualiza la contraseña.
+
+    Requisitos mínimos de contraseña: al menos 8 caracteres, al menos una letra y al menos un dígito.
+    """
+
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute("SELECT id, user_id, expires_at, used FROM password_reset_tokens WHERE token = ?", (token,))
+        token_row = await cursor.fetchone()
+        if not token_row:
+            return templates.TemplateResponse("set_password.html", {"request": request, "token": "", "username": "", "error": "Token inválido.", "message": None})
+
+        if token_row['used']:
+            return templates.TemplateResponse("set_password.html", {"request": request, "token": "", "username": "", "error": "Token ya utilizado.", "message": None})
+
+        expires_at = datetime.datetime.fromisoformat(token_row['expires_at'])
+        if datetime.datetime.utcnow() > expires_at:
+            return templates.TemplateResponse("set_password.html", {"request": request, "token": "", "username": "", "error": "El token ha expirado.", "message": None})
+
+        user_id = token_row['user_id']
+        # Obtener username para volver a mostrar en caso de error
+        cursor = await conn.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+        user_row = await cursor.fetchone()
+        username = user_row['username'] if user_row else ''
+
+    # Validaciones del lado servidor
+    if new_password != confirm_password:
+        return templates.TemplateResponse("set_password.html", {"request": request, "token": token, "username": username, "error": "Las contraseñas nuevas no coinciden.", "message": None})
+
+    # Política mínima: longitud >=8, al menos una letra y un dígito
+    if len(new_password) < 8 or not any(c.isalpha() for c in new_password) or not any(c.isdigit() for c in new_password):
+        return templates.TemplateResponse("set_password.html", {"request": request, "token": token, "username": username, "error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos.", "message": None})
+
+    # Si pasa validaciones, actualizar la contraseña y marcar token como usado
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        new_hash = generate_password_hash(new_password)
+        await conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+        await conn.execute("UPDATE password_reset_tokens SET used = 1 WHERE id = ?", (token_row['id'],))
+        await conn.commit()
+
+    # Redirigir al login con mensaje de éxito
+    query_string = urlencode({'message': 'Contraseña actualizada con éxito. Por favor inicie sesión.'})
     return RedirectResponse(url=f'/login?{query_string}', status_code=status.HTTP_302_FOUND)
 
 @app.post('/admin/reset_count_sessions/{user_id}')

@@ -29,6 +29,45 @@
         <h2 class="text-xl font-semibold text-gray-700 mb-4">Usuarios Registrados</h2>
 
         <div class="overflow-x-auto">
+
+            {% if reset_token %}
+            <div class="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="font-semibold">Token de restablecimiento generado para <strong>{{ reset_user
+                                }}</strong></p>
+                        <p class="text-sm text-gray-700 mt-1">Copia y entrega este token al usuario para que pueda crear
+                            su nueva contraseña. El token expira en 1 hora.</p>
+                        <div class="mt-3 flex items-center space-x-2">
+                            <code id="resetToken" class="bg-gray-100 px-3 py-1 rounded">{{ reset_token }}</code>
+                            <button id="copyTokenBtn"
+                                class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Copiar</button>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="{{ request.url.replace(path='/admin/users', query='') }}"
+                            class="text-sm text-gray-600 hover:underline">Cerrar</a>
+                    </div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const btn = document.getElementById('copyTokenBtn');
+                    const tokenEl = document.getElementById('resetToken');
+                    if (btn) {
+                        btn.addEventListener('click', function () {
+                            const token = tokenEl.textContent.trim();
+                            navigator.clipboard.writeText(token).then(() => {
+                                btn.textContent = 'Copiado';
+                                setTimeout(() => btn.textContent = 'Copiar', 2000);
+                            }).catch(() => {
+                                alert('No se pudo copiar al portapapeles. Copia manualmente.');
+                            });
+                        });
+                    }
+                });
+            </script>
+            {% endif %}
             <table class="min-w-full bg-white">
                 <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
                     <tr>
@@ -56,29 +95,27 @@
                                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xs">Verificar
                                     Pass</button>
                                 {% if not user.is_approved %}
-                                <form action="{{ secure_url_for(request, 'approve_user', user_id=user.id) }}"
-                                    method="post"
+                                <form action="{{ request.url_for('approve_user', user_id=user.id).path }}" method="post"
                                     onsubmit="return confirm('¿Seguro que quieres aprobar a este usuario?');">
                                     <button type="submit"
                                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-xs">Aprobar</button>
                                 </form>
                                 {% endif %}
-                                <form action="{{ secure_url_for(request, 'reset_password', user_id=user.id) }}"
+                                <form action="{{ request.url_for('reset_password', user_id=user.id).path }}"
                                     method="post"
                                     onsubmit="return confirm('¿Seguro que quieres resetear la contraseña de este usuario?');">
                                     <button type="submit"
                                         class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
                                         Pass</button>
                                 </form>
-                                <form action="{{ secure_url_for(request, 'reset_count_sessions', user_id=user.id) }}"
+                                <form action="{{ request.url_for('reset_count_sessions', user_id=user.id).path }}"
                                     method="post"
                                     onsubmit="return confirm('¿Seguro que quieres resetear las sesiones de conteo de este usuario?');">
                                     <button type="submit"
                                         class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
                                         Conteos</button>
                                 </form>
-                                <form action="{{ secure_url_for(request, 'delete_user', user_id=user.id) }}"
-                                    method="post"
+                                <form action="{{ request.url_for('delete_user', user_id=user.id).path }}" method="post"
                                     onsubmit="return confirm('¡Atención! ¿Estás seguro de que quieres ELIMINAR a este usuario? Esta acción no se puede deshacer.');">
                                     <button type="submit"
                                         class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-xs">Eliminar</button>
