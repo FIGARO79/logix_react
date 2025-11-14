@@ -1696,16 +1696,165 @@ def logout(request: Request):
     response.delete_cookie("admin_logged_in")
     return response
 
-@app.get('/admin/users', response_class=HTMLResponse)
-async def admin_users_get(request: Request):
+def admin_login_required(request: Request):
     if not request.cookies.get("admin_logged_in"):
-        return templates.TemplateResponse("admin_login.html", {"request": request})
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+    return True
+
+@app.get('/admin/inventory', response_class=HTMLResponse, name='admin_inventory')
+async def admin_inventory_get(request: Request, admin: bool = Depends(admin_login_required)):
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute("SELECT * FROM app_state WHERE key = 'current_inventory_stage'")
+        stage = await cursor.fetchone()
+        if not stage:
+            # Si no existe, inicializamos a etapa 0 (inactivo)
+            await conn.execute("INSERT OR REPLACE INTO app_state (key, value) VALUES ('current_inventory_stage', '0')")
+            await conn.commit()
+            cursor = await conn.execute("SELECT * FROM app_state WHERE key = 'current_inventory_stage'")
+            stage = await cursor.fetchone()
+
+    message = request.query_params.get('message')
+    error = request.query_params.get('error')
+    
+    return templates.TemplateResponse('admin_inventory.html', {
+        "request": request, 
+        "stage": stage,
+        "message": message,
+        "error": error
+    })
+
+@app.post('/admin/inventory/start_stage_1', name='start_inventory_stage_1')
+async def start_inventory_stage_1(request: Request, admin: bool = Depends(admin_login_required)):
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+    
+    try:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            # Limpiar lista de reconteo
+            await conn.execute('DELETE FROM recount_list')
+            # Opcional: archivar o limpiar conteos y sesiones anteriores
+            # Por ahora, solo cambiaremos el estado
+            await conn.execute("UPDATE app_state SET value = '1' WHERE key = 'current_inventory_stage'")
+            await conn.commit()
+        
+        query_params = urlencode({"message": "Inventario iniciado en Etapa 1. Los contadores ya pueden empezar a escanear."})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+    except aiosqlite.Error as e:
+        query_params = urlencode({"error": f"Error de base de datos: {e}"})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+
+@app.post('/admin/inventory/advance/{next_stage}', name='advance_inventory_stage')
+async def advance_inventory_stage(request: Request, next_stage: int, admin: bool = Depends(admin_login_required)):
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+
+    prev_stage = next_stage - 1
+    
+    try:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+            
+            # 1. Obtener todos los conteos de la etapa anterior
+            query = """
+                SELECT 
+                    sc.item_code, 
+                    SUM(sc.counted_qty) as total_counted
+                FROM 
+                    stock_counts sc
+                JOIN 
+                    count_sessions cs ON sc.session_id = cs.id
+                WHERE 
+                    cs.inventory_stage = ?
+                GROUP BY 
+                    sc.item_code
+            """
+            cursor = await conn.execute(query, (prev_stage,))
+            counted_items = await cursor.fetchall()
+            
+            # 2. Limpiar la lista de reconteo para la *próxima* etapa
+            await conn.execute("DELETE FROM recount_list WHERE stage_to_count = ?", (next_stage,))
+
+            # 3. Comparar con el maestro y generar la nueva lista de reconteo
+            items_for_recount = []
+            for item in counted_items:
+                item_code = item['item_code']
+                total_counted = item['total_counted']
+                
+                system_qty = master_qty_map.get(item_code)
+                system_qty = int(system_qty) if system_qty is not None else 0
+
+                if total_counted != system_qty:
+                    items_for_recount.append((item_code, next_stage))
+
+            # 4. Insertar los items en la lista de reconteo
+            if items_for_recount:
+                await conn.executemany(
+                    "INSERT INTO recount_list (item_code, stage_to_count) VALUES (?, ?)",
+                    items_for_recount
+                )
+
+            # 5. Actualizar el estado global a la nueva etapa
+            await conn.execute("UPDATE app_state SET value = ? WHERE key = 'current_inventory_stage'", (str(next_stage),))
+            
+            await conn.commit()
+
+        message = f"Proceso completado. Etapa de inventario avanzada a {next_stage}. Se encontraron {len(items_for_recount)} items con diferencias."
+        query_params = urlencode({"message": message})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+
+    except aiosqlite.Error as e:
+        query_params = urlencode({"error": f"Error de base de datos: {e}"})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+    except Exception as e:
+        query_params = urlencode({"error": f"Error inesperado: {e}"})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+
+@app.post('/admin/inventory/finalize', name='finalize_inventory')
+async def finalize_inventory(request: Request, admin: bool = Depends(admin_login_required)):
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+    
+    try:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            # Cambiamos el estado a '0' para indicar que no hay un ciclo activo
+            await conn.execute("UPDATE app_state SET value = '0' WHERE key = 'current_inventory_stage'")
+            await conn.commit()
+        
+        query_params = urlencode({"message": "Ciclo de inventario finalizado y cerrado."})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+    except aiosqlite.Error as e:
+        query_params = urlencode({"error": f"Error de base de datos: {e}"})
+        return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
+
+
+
+@app.get('/admin/login', response_class=HTMLResponse, name='admin_login_get')
+def admin_login_get(request: Request):
+    return templates.TemplateResponse("admin_login.html", {"request": request})
+
+@app.post('/admin/login', response_class=HTMLResponse, name='admin_login_post')
+def admin_login_post(request: Request, password: str = Form(...)):
+    if password == UPDATE_PASSWORD:
+        response = RedirectResponse(url='/admin/inventory', status_code=status.HTTP_302_FOUND)
+        response.set_cookie(key="admin_logged_in", value="true", httponly=True, samesite='lax', secure=(request.url.scheme == 'https'))
+        return response
+    else:
+        return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Contraseña incorrecta"})
+
+@app.get('/admin/users', response_class=HTMLResponse, name='admin_users_get')
+async def admin_users_get(request: Request, admin: bool = Depends(admin_login_required)):
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
     
     async with aiosqlite.connect(DB_FILE_PATH) as conn:
         conn.row_factory = aiosqlite.Row
         cursor = await conn.execute("SELECT id, username, is_approved FROM users ORDER BY id DESC")
         users = await cursor.fetchall()
-    # Leer posibles parámetros para mostrar token de reset generado
+    
     reset_token = request.query_params.get('reset_token')
     reset_user = request.query_params.get('reset_user')
     return templates.TemplateResponse('admin_users.html', {"request": request, "users": users, "reset_token": reset_token, "reset_user": reset_user})
@@ -1727,16 +1876,6 @@ async def check_password(user_id: int, request: Request):
         return JSONResponse(content={"matches": True})
     else:
         return JSONResponse(content={"matches": False})
-
-@app.post('/admin/users', response_class=HTMLResponse)
-def admin_users_post(request: Request, password: str = Form(...)):
-    if password == UPDATE_PASSWORD:
-        response = RedirectResponse(url='/admin/users', status_code=status.HTTP_302_FOUND)
-        # Marcar secure sólo si la petición usa HTTPS
-        response.set_cookie(key="admin_logged_in", value="true", httponly=True, samesite='lax', secure=(request.url.scheme == 'https'))
-        return response
-    else:
-        return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Contraseña incorrecta"})
 
 @app.post('/admin/approve/{user_id}')
 async def approve_user(user_id: int, request: Request):
