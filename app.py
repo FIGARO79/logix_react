@@ -1477,60 +1477,7 @@ async def export_counts(username: str = Depends(login_required)):
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
-@app.get('/api/export_recount_list/{stage_number}', name='export_recount_list')
-async def export_recount_list(stage_number: int, admin: bool = Depends(admin_login_required)):
-    """Exporta la lista de items a recontar para una etapa específica."""
-    if not admin:
-        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
 
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        cursor = await conn.execute(
-            "SELECT item_code FROM recount_list WHERE stage_to_count = ?",
-            (stage_number,)
-        )
-        items_to_recount = await cursor.fetchall()
-
-    if not items_to_recount:
-        raise HTTPException(status_code=404, detail=f"No hay items en la lista de reconteo para la Etapa {stage_number}.")
-
-    enriched_data = []
-    for item in items_to_recount:
-        item_code = item['item_code']
-        details = await get_item_details_from_master_csv(item_code)
-        if details:
-            enriched_data.append({
-                'Código de Item': item_code,
-                'Descripción': details.get('Item_Description', 'N/A'),
-                'Ubicación en Sistema': details.get('Bin_1', 'N/A')
-            })
-        else:
-            # Para items "fantasma" que no están en el maestro
-            enriched_data.append({
-                'Código de Item': item_code,
-                'Descripción': 'ITEM NO ENCONTRADO EN MAESTRO',
-                'Ubicación en Sistema': 'N/A'
-            })
-
-    df = pd.DataFrame(enriched_data)
-    
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name=f'Reconteo_Etapa_{stage_number}')
-        worksheet = writer.sheets[f'Reconteo_Etapa_{stage_number}']
-        for i, col_name in enumerate(df.columns):
-            column_letter = get_column_letter(i + 1)
-            max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
-            worksheet.column_dimensions[column_letter].width = max_len
-    
-    output.seek(0)
-    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"lista_reconteo_etapa_{stage_number}_{timestamp_str}.xlsx"
-    return Response(
-        content=output.getvalue(),
-        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
 
 
 @app.get('/api/counts/stats')
@@ -1783,6 +1730,62 @@ def admin_login_required(request: Request):
     if not request.cookies.get("admin_logged_in"):
         return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
     return True
+
+@app.get('/api/export_recount_list/{stage_number}', name='export_recount_list')
+async def export_recount_list(request: Request, stage_number: int, admin: bool = Depends(admin_login_required)):
+    """Exporta la lista de items a recontar para una etapa específica."""
+    if not admin:
+        return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
+
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute(
+            "SELECT item_code FROM recount_list WHERE stage_to_count = ?",
+            (stage_number,)
+        )
+        items_to_recount = await cursor.fetchall()
+
+    if not items_to_recount:
+        raise HTTPException(status_code=404, detail=f"No hay items en la lista de reconteo para la Etapa {stage_number}.")
+
+    enriched_data = []
+    for item in items_to_recount:
+        item_code = item['item_code']
+        details = await get_item_details_from_master_csv(item_code)
+        if details:
+            enriched_data.append({
+                'Código de Item': item_code,
+                'Descripción': details.get('Item_Description', 'N/A'),
+                'Ubicación en Sistema': details.get('Bin_1', 'N/A')
+            })
+        else:
+            # Para items "fantasma" que no están en el maestro
+            enriched_data.append({
+                'Código de Item': item_code,
+                'Descripción': 'ITEM NO ENCONTRADO EN MAESTRO',
+                'Ubicación en Sistema': 'N/A'
+            })
+
+    df = pd.DataFrame(enriched_data)
+    
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name=f'Reconteo_Etapa_{stage_number}')
+        worksheet = writer.sheets[f'Reconteo_Etapa_{stage_number}']
+        for i, col_name in enumerate(df.columns):
+            column_letter = get_column_letter(i + 1)
+            max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
+            worksheet.column_dimensions[column_letter].width = max_len
+    
+    output.seek(0)
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"lista_reconteo_etapa_{stage_number}_{timestamp_str}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 @app.get('/admin/inventory', response_class=HTMLResponse, name='admin_inventory')
 async def admin_inventory_get(request: Request, admin: bool = Depends(admin_login_required)):
