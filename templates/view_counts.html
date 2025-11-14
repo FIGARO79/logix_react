@@ -100,6 +100,9 @@
                             <tr>
                                 <th
                                     class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+                                    Etapa</th>
+                                <th
+                                    class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
                                     ID Sesión</th>
                                 <th
                                     class="px-5 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
@@ -135,6 +138,7 @@
                             {% for count in counts %}
                             <tr class="hover:bg-gray-50"
                                 data-username="{{ count.username if count.username is not none else '' }}">
+                                <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.inventory_stage }}</td>
                                 <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.session_id }}</td>
                                 <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ count.username if
                                     count.username is not none else '-' }}</td>
