@@ -8,6 +8,7 @@
     <link rel="icon" type="image/svg+xml"
         href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -63,8 +64,8 @@
                         <form action="{{ request.url_for('start_inventory_stage_1') }}" method="post"
                             onsubmit="return confirm('¿Estás seguro de que quieres iniciar la Etapa 1? Esto archivará los conteos anteriores y comenzará un nuevo ciclo de inventario.');">
                             <button type="submit"
-                                class="w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value != '0' and stage.value != '4' %}disabled{% endif %}>
+                                class="w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded" {%
+                                if stage.value !='0' and stage.value !='4' %}disabled{% endif %}>
                                 Iniciar Inventario (Etapa 1)
                             </button>
                         </form>
@@ -79,14 +80,14 @@
                             onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 2? Se calcularán las diferencias y se creará la lista de reconteo.');">
                             <button type="submit"
                                 class="w-full bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value != '1' %}disabled{% endif %}>
+                                {% if stage.value !='1' %}disabled{% endif %}>
                                 Calcular Diferencias y Avanzar a Etapa 2
                             </button>
                         </form>
                         {% if stage.value == '2' %}
                         <a href="{{ request.url_for('export_recount_list', stage_number=2) }}"
-                           class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                           Exportar Lista de Reconteo (Etapa 2)
+                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
+                            Exportar Lista de Reconteo (Etapa 2)
                         </a>
                         {% endif %}
                     </div>
@@ -100,14 +101,14 @@
                             onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 3?');">
                             <button type="submit"
                                 class="w-full bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value != '2' %}disabled{% endif %}>
+                                {% if stage.value !='2' %}disabled{% endif %}>
                                 Calcular Diferencias y Avanzar a Etapa 3
                             </button>
                         </form>
                         {% if stage.value == '3' %}
                         <a href="{{ request.url_for('export_recount_list', stage_number=3) }}"
-                           class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                           Exportar Lista de Reconteo (Etapa 3)
+                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
+                            Exportar Lista de Reconteo (Etapa 3)
                         </a>
                         {% endif %}
                     </div>
@@ -121,23 +122,27 @@
                             onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 4 (Conteo Final)?');">
                             <button type="submit"
                                 class="w-full bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value != '3' %}disabled{% endif %}>
+                                {% if stage.value !='3' %}disabled{% endif %}>
                                 Avanzar a Etapa 4 (Conteo Definitivo)
                             </button>
                         </form>
                         {% if stage.value == '4' %}
                         <a href="{{ request.url_for('export_recount_list', stage_number=4) }}"
-                           class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                           Exportar Lista de Reconteo (Etapa 4)
+                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
+                            Exportar Lista de Reconteo (Etapa 4)
                         </a>
                         {% endif %}
                     </div>
-                     <!-- Finalizar Inventario -->
+                    <!-- Finalizar Inventario -->
                     <div class="p-4 border rounded-lg bg-green-50">
                         <h3 class="font-bold text-lg text-green-800">Finalizar Ciclo de Inventario</h3>
-                        <p class="text-sm text-gray-600 mb-3">Marca el ciclo de inventario como completado. Esto permitirá iniciar un nuevo ciclo en el futuro.</p>
-                        <form action="{{ request.url_for('finalize_inventory') }}" method="post" onsubmit="return confirm('¿Estás seguro de que quieres finalizar y cerrar el ciclo de inventario actual?');">
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded" {% if stage.value != '4' %}disabled{% endif %}>
+                        <p class="text-sm text-gray-600 mb-3">Marca el ciclo de inventario como completado. Esto
+                            permitirá iniciar un nuevo ciclo en el futuro.</p>
+                        <form action="{{ request.url_for('finalize_inventory') }}" method="post"
+                            onsubmit="return confirm('¿Estás seguro de que quieres finalizar y cerrar el ciclo de inventario actual?');">
+                            <button type="submit"
+                                class="w-full bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded" {%
+                                if stage.value !='4' %}disabled{% endif %}>
                                 Finalizar y Cerrar Inventario
                             </button>
                         </form>

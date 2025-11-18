@@ -1,71 +1,205 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrack - Consultar Inventario</title>
     <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        body { font-family: "Inter", sans-serif; background-color: #f9fafb; }
-        .container-wrapper { width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; }
-        input[type="text"], input[type="number"], select {
-            border: 1px solid #d1d5db; padding: 6px 12px; border-radius: 0.375rem; width: 100%;
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f9fafb;
+        }
+
+        .container-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 0.375rem;
+            width: 100%;
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        input:focus, select:focus {
-            outline: 2px solid transparent; outline-offset: 2px; border-color: #ffbf24ed;
+
+        input:focus,
+        select:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            border-color: #ffbf24ed;
             box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4);
         }
-        .form-label { font-weight: 500; margin-bottom: 3px; display: block; color: #374151; font-size: 0.875rem; }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 3px;
+            display: block;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
         .data-field {
-            background-color: #f3f4f6; padding: 8px 12px; border-radius: 0.375rem; min-height: 38px;
-            border: 1px solid #d1d5db; color: #374151; overflow-wrap: break-word; font-size: 0.875rem;
-            line-height: 1.5; display: flex; align-items: center;
+            background-color: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 0.375rem;
+            min-height: 38px;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            overflow-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
         }
-        button, .btn {
-            padding: 9px 15px; border-radius: 0.375rem; cursor: pointer;
+
+        button,
+        .btn {
+            padding: 9px 15px;
+            border-radius: 0.375rem;
+            cursor: pointer;
             transition: background-color 0.2s, box-shadow 0.2s;
-            font-weight: 500; font-size: 0.875rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
-        button:focus, .btn:focus {
-            outline: 2px solid transparent; outline-offset: 2px;
+
+        button:focus,
+        .btn:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
             box-shadow: 0 0 0 3px rgba(13, 11, 7, 0.53);
         }
-        button:disabled, .btn:disabled { cursor: not-allowed; opacity: 0.6; }
-        .btn-primary { background-color: #fbbf24; color: #1f2937; border: 1px solid transparent; text-decoration: none;}
-        .btn-primary:hover:not(:disabled) { background-color: #f59e0b; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        .btn-secondary { background-color: #6b7280; color: white; border: 1px solid transparent; text-decoration: none; }
-        .btn-secondary:hover:not(:disabled) { background-color: #4b5563; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        
-        /* Toast Notification Styles */
-        #toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
-        .toast { display: flex; align-items: center; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); max-width: 350px; opacity: 0; transform: translateX(100%); transition: opacity 0.3s ease, transform 0.3s ease; }
-        .toast.show { opacity: 1; transform: translateX(0); }
-        .toast-icon { margin-right: 0.75rem; flex-shrink: 0; }
-        .toast.success { background-color: #dcfce7; color: #166534; border: 1px solid #4ade80; }
-        .toast.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-        .toast.info { background-color: #e0f2fe; color: #0c4a6e; border: 1px solid #7dd3fc; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        button:disabled,
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-primary {
+            background-color: #fbbf24;
+            color: #1f2937;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #f59e0b;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #4b5563;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            max-width: 350px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .toast.success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #4ade80;
+        }
+
+        .toast.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .toast.info {
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            border: 1px solid #7dd3fc;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
+
 <body class="bg-gray-100">
     <header class="bg-white shadow-sm">
         <div class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-            <a href="/" class="btn btn-secondary"> 
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain"
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+            <a href="/" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
                 </svg>
                 INICIO
             </a>
@@ -75,25 +209,30 @@
     <main class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white p-6 rounded-lg shadow">
             <h1 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Consultar Inventario</h1>
-            
+
             <!-- Controles de Búsqueda -->
             <div class="flex items-end gap-2 mb-4">
                 <div class="flex-grow">
                     <label for="search-input" class="form-label">Ingrese el código del artículo</label>
-                    <input type="text" id="search-input" placeholder="Buscar por Item Code..." class="w-full" oninput="this.value = this.value.toUpperCase()" required />
+                    <input type="text" id="search-input" placeholder="Buscar por Item Code..." class="w-full"
+                        oninput="this.value = this.value.toUpperCase()" required />
                 </div>
-                <button id="scan-barcode-btn" title="Escanear código de barras" class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
-                        <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z"/>
-                        <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z"/>
-                        <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z"/>
-                        <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z"/>
-                        <path d="M12 9h2V8h-2z"/>
+                <button id="scan-barcode-btn" title="Escanear código de barras"
+                    class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-qr-code-scan" viewBox="0 0 16 16">
+                        <path
+                            d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                        <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                        <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                        <path
+                            d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                        <path d="M12 9h2V8h-2z" />
                     </svg>
                 </button>
                 <button id="search-btn" class="btn-secondary h-9 w-auto px-4 flex-shrink-0"><span>Buscar</span></button>
             </div>
-            
+
             <!-- Formulario de Resultados -->
             <div id="item-details-container" class="space-y-1 mt-6 grid grid-cols-1 gap-0">
                 <!-- Los campos se generarán aquí con JavaScript -->
@@ -102,18 +241,20 @@
     </main>
 
     <!-- Ventana Modal para el Escáner -->
-    <div id="scanner-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div id="scanner-modal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg p-4 max-w-lg w-full">
             <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
             <div id="reader" class="w-full rounded-md overflow-hidden border"></div>
-            <button id="close-scanner-btn" class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
+            <button id="close-scanner-btn"
+                class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
         </div>
     </div>
-    
+
     <div id="toast-container"></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const API_BASE_URL = "/api";
             const searchInput = document.getElementById('search-input');
             const searchButton = document.getElementById('search-btn');
@@ -169,7 +310,7 @@
                     </div>
                 `).join('');
             }
-            
+
             async function fetchAndDisplayItem(itemCode) {
                 if (!itemCode) {
                     showToast("Por favor, introduce un código de artículo.", "error");
@@ -238,5 +379,5 @@
         });
     </script>
 </body>
-</html>
 
+</html>

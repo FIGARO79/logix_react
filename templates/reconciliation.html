@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrack - Conciliación</title>
     <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <style>
         /* Estilos para la tabla generada por pandas */
         .dataframe {
             width: 100%;
             border-collapse: collapse;
         }
+
         .dataframe thead {
             background-color: #f9fafb;
             border-bottom: 2px solid #e5e7eb;
         }
+
         .dataframe th {
             padding: 12px 15px;
             text-align: left;
@@ -24,8 +28,10 @@
             color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            position: relative; /* Necesario para los iconos de ordenamiento */
+            position: relative;
+            /* Necesario para los iconos de ordenamiento */
         }
+
         /* Estilos para las columnas ordenables */
         .sortable {
             cursor: pointer;
@@ -33,6 +39,7 @@
             user-select: none;
             padding-right: 24px !important;
         }
+
         .sortable::after {
             content: "";
             position: absolute;
@@ -44,24 +51,31 @@
             pointer-events: none;
             transition: opacity 0.2s ease-in-out;
         }
+
         .sortable.asc::after {
             border-bottom-color: #4b5563;
             opacity: 1;
         }
+
         .sortable.desc::after {
-            content: ""; /* CORREGIDO: Flecha hacia abajo */
+            content: "";
+            /* CORREGIDO: Flecha hacia abajo */
             border-top-color: #4b5563;
             opacity: 1;
         }
+
         .dataframe tbody tr {
             border-bottom: 1px solid #e5e7eb;
         }
+
         .dataframe tbody tr:nth-child(even) {
             background-color: #f9fafb;
         }
+
         .dataframe tbody tr:hover {
             background-color: #f0f9ff;
         }
+
         .dataframe td {
             padding: 12px 15px;
             font-size: 0.875rem;
@@ -69,22 +83,26 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-100 font-sans">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Reporte de Conciliación</h1>
-            
+
             <div class="flex space-x-2">
-                <a href="/api/export_reconciliation" 
-                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                   download>
-                   &#x1F4E5; Exportar a Excel
+                <a href="/api/export_reconciliation"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors" download>
+                    &#x1F4E5; Exportar a Excel
                 </a>
-                
-                <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+
+                <a href="/"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
                     </svg>
                     INICIO
                 </a>
@@ -92,20 +110,20 @@
         </div>
 
         {% if error %}
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <strong class="font-bold">¡Error!</strong>
-                <span class="block sm:inline">Ocurrió un problema al generar el reporte: {{ error }}</span>
-            </div>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">¡Error!</strong>
+            <span class="block sm:inline">Ocurrió un problema al generar el reporte: {{ error }}</span>
+        </div>
         {% elif tables %}
-            <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-                {% for table in tables %}
-                    {{ table|safe }}
-                {% endfor %}
-            </div>
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+            {% for table in tables %}
+            {{ table|safe }}
+            {% endfor %}
+        </div>
         {% else %}
-            <div class="text-center py-10 bg-white rounded-lg shadow-md">
-                <p class="text-gray-500">No hay datos disponibles para generar la conciliación.</p>
-            </div>
+        <div class="text-center py-10 bg-white rounded-lg shadow-md">
+            <p class="text-gray-500">No hay datos disponibles para generar la conciliación.</p>
+        </div>
         {% endif %}
     </div>
 
@@ -116,8 +134,8 @@
             const rows = Array.from(tBody.querySelectorAll("tr"));
 
             const sortedRows = rows.sort((a, b) => {
-                const aColText = a.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
-                const bColText = b.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
+                const aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+                const bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
 
                 // Intenta convertir a número para ordenar numéricamente si es posible
                 const aVal = isNaN(parseFloat(aColText)) ? aColText : parseFloat(aColText);
@@ -133,8 +151,8 @@
             tBody.append(...sortedRows);
 
             table.querySelectorAll("th").forEach(th => th.classList.remove("asc", "desc"));
-            table.querySelector(`th:nth-child(${ column + 1 })`).classList.toggle("asc", asc);
-            table.querySelector(`th:nth-child(${ column + 1 })`).classList.toggle("desc", !asc);
+            table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("asc", asc);
+            table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("desc", !asc);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -153,4 +171,5 @@
     </script>
 
 </body>
+
 </html>

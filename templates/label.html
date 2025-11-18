@@ -1,198 +1,391 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrack - Etiqueta</title>
     <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Estilos generales */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f9fafb;
+        }
+
+        .container-wrapper {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .label-container {
+            border: 1px solid #d1d5db;
+            padding: 1rem;
+            background-color: white;
+            color: #1f2937;
+            width: 265px;
+            height: 378px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow:
+                0 1px 3px 0 rgba(0, 0, 0, 0.1),
+                0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border-radius: 0.375rem;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #qrCodeContainer {
+            width: 25mm;
+            height: 25mm;
+            min-height: 25mm;
+            border: none;
+            flex-shrink: 0;
+        }
+
+        #qrCodeContainer img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .qr-placeholder {
+            width: 100%;
+            height: 100%;
+            border: 1px dashed #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+            border-radius: 0.25rem;
+        }
+
+        .label-item-code {
+            font-size: 1.125rem;
+            /* 18px */
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 0.75rem;
+            /* 12px */
+        }
+
+        .label-item-description {
+            font-size: 1.125rem;
+            /* 18px */
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 2.5rem;
+            /* 40px - Aumentado para mayor espacio */
+        }
+
+        .label-data-field {
+            font-size: 0.875rem;
+            /* 14px */
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            /* 8px */
+        }
+
+        .label-data-field span:first-child {
+            font-weight: 400;
+            color: #4b5563;
+            text-align: left;
+        }
+
+        .label-data-field span:last-child {
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .label-disclaimer {
+            font-size: 0.625rem !important;
+            /* 10px */
+            font-weight: 400 !important;
+            line-height: 1.4 !important;
+            flex-grow: 1;
+            max-width: 60%;
+        }
+
+        .label-logo {
+            max-width: 45%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .label-bottom-section {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        /* --- ESTILOS GENERALES DEL FORMULARIO (SIN CAMBIOS) --- */
+        input[type="text"],
+        input[type="number"],
+        select {
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            border-radius: 0.375rem;
+            width: 100%;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4);
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: block;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .data-field {
+            background-color: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 0.375rem;
+            min-height: 38px;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            overflow-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+        }
+
+        button {
+            padding: 9px 15px;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-primary {
+            background-color: #fbbf24;
+            color: #1f2937;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            background-color: #f59e0b;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:not(:disabled):hover {
+            background-color: #4b5563;
+        }
+
+        .btn-print-label {
+            width: 265px;
+            margin-top: 1rem;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+
+        #feedbackArea {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: none;
+        }
+
+        #feedbackArea.show {
+            display: block;
+        }
+
+        #feedbackArea.success {
+            background-color: #dcfce7;
+            border-color: #4ade80;
+            color: #15803d;
+        }
+
+        #feedbackArea.error {
+            background-color: #fee2e2;
+            border-color: #f87171;
+            color: #b91c1c;
+        }
+
+        #feedbackArea.info {
+            background-color: #e0f2fe;
+            border-color: #7dd3fc;
+            color: #075985;
+        }
+
+        /* Estilos de Impresión */
+        @page {
+            size: 70mm 100mm;
+            margin: 3.5mm;
+        }
+
+        @media print {
+
+            html,
             body {
-                font-family: "Inter", sans-serif;
-                background-color: #f9fafb; 
-            }
-            .container-wrapper {
-                margin-left: auto;
-                margin-right: auto;
-            }
-            .label-container {
-                border: 1px solid #d1d5db; 
-                padding: 1rem; 
-                background-color: white;
-                color: #1f2937; 
-                width: 265px; 
-                height: 378px; 
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                box-shadow:
-                    0 1px 3px 0 rgba(0, 0, 0, 0.1),
-                    0 1px 2px 0 rgba(0, 0, 0, 0.06); 
-                border-radius: 0.375rem; 
-                margin-left: auto; 
-                margin-right: auto;
-                position: relative; 
-                overflow: hidden; 
-            }
-            #qrCodeContainer {
-                width: 25mm; 
-                height: 25mm; 
-                min-height: 25mm;
-                border: none; 
-                flex-shrink: 0;                    
+                width: 70mm;
+                height: 100mm;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background: transparent !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                font-family: "Arial", "Helvetica", sans-serif;
             }
 
-           #qrCodeContainer img { 
-                max-width: 100%; 
-                max-height: 100%; 
-                object-fit: contain; 
+            body * {
+                visibility: hidden;
+                color: #000 !important;
             }
 
-            .qr-placeholder {
+            .label-print-area,
+            .label-print-area * {
+                visibility: visible;
+            }
+
+            .label-print-area {
+                position: absolute;
+                top: 0;
+                left: 0;
                 width: 100%;
                 height: 100%;
-                border: 1px dashed #9ca3af; 
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                text-align: center;
-                font-size: 0.75rem; 
-                color: #6b7280; 
-                border-radius: 0.25rem;
             }
+
+            .label-container {
+                width: 63mm;
+                height: 93mm;
+                padding: 0;
+                margin: 0;
+                border: none !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+                background: white !important;
+            }
+
             .label-item-code {
-                font-size: 1.125rem; /* 18px */
-                font-weight: 700;
-                line-height: 1.25;
-                margin-top: 0.75rem; /* 12px */
+                font-size: 14pt !important;
+                font-weight: bold !important;
             }
+
             .label-item-description {
-                font-size: 1.125rem; /* 18px */
-                font-weight: 700;
-                line-height: 1.25;
-                margin-bottom: 2.5rem; /* 40px - Aumentado para mayor espacio */
+                font-size: 14pt !important;
+                font-weight: bold !important;
+                margin-bottom: 10mm !important;
             }
+
             .label-data-field {
-                font-size: 0.875rem; /* 14px */
-                display: grid;
-                grid-template-columns: 1fr auto; 
-                gap: 1rem; 
-                align-items: center; 
-                margin-bottom: 0.5rem; /* 8px */
+                margin-bottom: 1mm;
             }
-            .label-data-field span:first-child { 
-                font-weight: 400; 
-                color: #4b5563;
-                text-align: left;
+
+            .label-data-field span {
+                font-size: 10pt !important;
+                font-weight: normal !important;
             }
-            .label-data-field span:last-child { 
-                font-weight: 500; 
-                text-align: right;
-            }
+
             .label-disclaimer {
-                font-size: 0.625rem !important; /* 10px */
-                font-weight: 400 !important; 
-                line-height: 1.4 !important; 
-                flex-grow: 1;
-                max-width: 60%;
+                font-size: 7pt !important;
+                font-weight: normal !important;
             }
+
+            #qrCodeContainer {
+                width: 25mm;
+                height: 25mm;
+                min-height: 25mm;
+                border: none;
+            }
+
             .label-logo {
-                max-width: 45%; 
+                max-width: 50%;
                 height: auto;
-                object-fit: contain;
-                display: block;
+                margin-bottom: 3mm;
             }
+
             .label-bottom-section {
-                display: flex;
-                align-items: flex-end; 
-                justify-content: space-between; 
-                gap: 0.5rem; 
+                page-break-before: always;
+                position: absolute;
+                bottom: 0;
+                width: 100%;
             }
-            /* --- ESTILOS GENERALES DEL FORMULARIO (SIN CAMBIOS) --- */
-            input[type="text"], input[type="number"], select { border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 0.375rem; width: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s, box-shadow 0.2s; }
-            input:focus, select:focus { outline: 2px solid transparent; outline-offset: 2px; border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4); }
-            .form-label { font-weight: 500; margin-bottom: 4px; display: block; color: #374151; font-size: 0.875rem; }
-            .data-field { background-color: #f3f4f6; padding: 8px 12px; border-radius: 0.375rem; min-height: 38px; border: 1px solid #d1d5db; color: #374151; overflow-wrap: break-word; font-size: 0.875rem; line-height: 1.5; display: flex; align-items: center; }
-            button { padding: 9px 15px; border-radius: 0.375rem; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s; font-weight: 500; font-size: 0.875rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-            button:disabled { cursor: not-allowed; opacity: 0.5; }
-            .btn-primary { background-color: #fbbf24; color: #1f2937; }
-            .btn-primary:not(:disabled):hover { background-color: #f59e0b; }
-            .btn-secondary { background-color: #6b7280; color: white; }
-            .btn-secondary:not(:disabled):hover { background-color: #4b5563; }
-            .btn-print-label { width: 265px; margin-top: 1rem; margin-left: auto; margin-right: auto; display: block; }
-            #feedbackArea { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; display: none; }
-            #feedbackArea.show { display: block; }
-            #feedbackArea.success { background-color: #dcfce7; border-color: #4ade80; color: #15803d; }
-            #feedbackArea.error { background-color: #fee2e2; border-color: #f87171; color: #b91c1c; }
-            #feedbackArea.info { background-color: #e0f2fe; border-color: #7dd3fc; color: #075985; }
 
-        /* Estilos de Impresión */
-            @page {
-                    size: 70mm 100mm; 
-                    margin: 3.5mm; 
+            /* Ocultar elementos no deseados */
+            #printLabelBtn,
+            .form-label,
+            input,
+            select,
+            .data-field,
+            #feedbackArea,
+            h1,
+            h2,
+            .container-wrapper>img:first-of-type {
+                display: none !important;
             }
-            @media print {
-                html, body {
-                    width: 70mm; height: 100mm; 
-                    margin: 0; padding: 0;
-                    overflow: hidden; 
-                    background: transparent !important;
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    font-family: "Arial", "Helvetica", sans-serif;
-                }
-                body * { visibility: hidden; color: #000 !important; }
-                .label-print-area, .label-print-area * { visibility: visible; }
-                .label-print-area {
-                    position: absolute; top: 0; left: 0;
-                    width: 100%; height: 100%;
-                    display: flex; align-items: center; justify-content: center;                  
-                }
-                .label-container {
-                    width: 63mm; height: 93mm; 
-                    padding: 0; margin: 0;
-                    border: none !important;
-                    box-shadow: none !important;
-                    page-break-inside: avoid; 
-                    background: white !important;
-                }
-                .label-item-code { font-size: 14pt !important; font-weight: bold !important; }
-                .label-item-description { font-size: 14pt !important; font-weight: bold !important; margin-bottom: 10mm !important; }
-                .label-data-field { margin-bottom: 1mm; }
-                .label-data-field span { font-size: 10pt !important; font-weight: normal !important; }
-                .label-disclaimer { font-size: 7pt !important; font-weight: normal !important; }
-                #qrCodeContainer { width: 25mm; height: 25mm; min-height: 25mm; border: none; }
-                .label-logo { max-width: 50%; height: auto; margin-bottom: 3mm; }
-                .label-bottom-section { page-break-before: always; position: absolute; bottom: 0; width: 100%; }
-
-                /* Ocultar elementos no deseados */
-                #printLabelBtn, .form-label, input, select, .data-field, #feedbackArea, h1, h2, .container-wrapper > img:first-of-type {
-                    display: none !important;
-                }
-            }
+        }
     </style>
 </head>
+
 <body class="bg-gray-50 p-4">
-        <div class="container-wrapper max-w-5xl mx-auto px-4">
-            <div class="flex justify-between items-center mb-8">
-                
-                <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-                
-                <a href="/" class="inline-flex items-center gap-x-2 bg-slate-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    <span>INICIO</span>
-                </a>
-                
-            </div>
-    
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="container-wrapper max-w-5xl mx-auto px-4">
+        <div class="flex justify-between items-center mb-8">
+
+            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain"
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+
+            <a href="/"
+                class="inline-flex items-center gap-x-2 bg-slate-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                </svg>
+                <span>INICIO</span>
+            </a>
+
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 
             <!-- Columna del Formulario -->
             <div class="lg:col-span-2 space-y-5">
@@ -200,18 +393,20 @@
                 <div>
                     <label for="itemCode" class="form-label">Item Code</label>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="itemCode" name="itemCode" class="flex-grow" placeholder="Ingrese código y presione Enter" oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" id="itemCode" name="itemCode" class="flex-grow"
+                            placeholder="Ingrese código y presione Enter"
+                            oninput="this.value = this.value.toUpperCase()">
                         <button id="findItemBtn" class="btn-secondary px-4 py-2">Buscar</button>
                     </div>
                 </div>
-                 <div>
+                <div>
                     <label for="itemDescription" class="form-label">Item Description</label>
                     <div id="itemDescription" class="data-field"></div>
                 </div>
-                 <div>
-                     <label for="quantity" class="form-label">Quantity Received</label>
-                     <input type="number" id="quantity" name="quantity" min="1" value="1" class="w-1/3 sm:w-1/4">
-                 </div>
+                <div>
+                    <label for="quantity" class="form-label">Quantity Received</label>
+                    <input type="number" id="quantity" name="quantity" min="1" value="1" class="w-1/3 sm:w-1/4">
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                         <label for="binLocation" class="form-label">Bin Location</label>
@@ -222,7 +417,7 @@
                         <div id="aditionalBins" class="data-field"></div>
                     </div>
                 </div>
-                 <div id="feedbackArea"></div>
+                <div id="feedbackArea"></div>
             </div>
 
             <!-- Columna de la Etiqueta -->
@@ -232,13 +427,12 @@
                     <div class="label-container">
                         <!-- Parte Superior y Media -->
                         <div>
-                            <img src="/static/images/logoytpe_sandvik.png"
-                                alt="Logotipo Sandvik Etiqueta"
+                            <img src="/static/images/logoytpe_sandvik.png" alt="Logotipo Sandvik Etiqueta"
                                 class="label-logo"
                                 onerror="this.onerror=null; this.src='https://placehold.co/130x25/f3f4f6/6b7280?text=Error+Logo';" />
                             <p class="label-item-code" id="labelItemCode">ITEM CODE</p>
                             <p class="label-item-description" id="labelItemDescription">Item Description</p>
-                            
+
                             <div class="space-y-2">
                                 <div class="label-data-field">
                                     <span>Quantity Received</span>
@@ -260,7 +454,8 @@
                         </div>
                         <!-- Parte Inferior -->
                         <div class="label-bottom-section">
-                            <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                            <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned
+                                by Sandvik Group</p>
                             <div id="qrCodeContainer">
                                 <div class="qr-placeholder">QR Code</div>
                             </div>
@@ -295,12 +490,12 @@
         let currentItemData = null;
         let qrCodeInstance = null;
         let feedbackTimeout = null;
-        
+
         // --- Functions ---
         function showFeedback(message, type = "info") {
             if (!feedbackArea) return;
             clearTimeout(feedbackTimeout);
-            feedbackArea.className = 'show'; 
+            feedbackArea.className = 'show';
             feedbackArea.classList.add(type);
             feedbackArea.textContent = message;
             feedbackTimeout = setTimeout(() => {
@@ -317,24 +512,24 @@
                 return;
             }
             showFeedback(`Buscando "${itemCode}"...`, "info");
-            
+
             try {
                 const response = await fetch(`/api/get_item_details/${itemCode}`);
                 if (!response.ok) {
-                    const errorText = response.status === 404 
+                    const errorText = response.status === 404
                         ? `El artículo "${itemCode}" no fue encontrado.`
                         : `Error del servidor: ${response.status}`;
                     throw new Error(errorText);
                 }
-                
+
                 const data = await response.json();
                 currentItemData = data;
                 itemDescriptionDiv.textContent = data.description;
                 binLocationDiv.textContent = data.bin_location;
                 aditionalBinsDiv.textContent = data.additional_bins || 'N/A';
-                
+
                 updateLabel();
-                
+
                 printLabelBtn.disabled = false;
                 showFeedback(`Artículo "${itemCode}" encontrado.`, "success");
 
@@ -367,7 +562,7 @@
                 qrCodeInstance = null;
             }
         }
-        
+
         function updateLabel() {
             if (!currentItemData) return;
 
@@ -379,7 +574,7 @@
             labelItemCode.textContent = currentItemData.item_code;
             labelItemDescription.textContent = currentItemData.description;
             labelQtyPack.textContent = qty;
-            
+
             // --- INICIO DE LA CORRECCIÓN ---
             // 1. Convertimos el peso unitario a número
             const unitWeight = parseFloat(currentItemData.weight_kg);
@@ -398,7 +593,7 @@
 
             labelBinLocation.textContent = location;
             labelPackingDate.textContent = date;
-            
+
             const qrText = currentItemData.item_code;
             generateQRCode(qrText);
         }
@@ -420,7 +615,7 @@
                 qrCodeContainer.innerHTML = '<div class="qr-placeholder">Error QR</div>';
             }
         }
-        
+
         function printLabel() {
             if (!currentItemData) {
                 showFeedback("Debe buscar y cargar un artículo válido antes de imprimir.", "error");
@@ -432,19 +627,19 @@
         // --- Event Listeners ---
         findItemBtn.addEventListener('click', findItemData);
         itemCodeInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') { 
-                event.preventDefault(); 
-                findItemData(); 
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                findItemData();
             }
         });
         itemCodeInput.addEventListener('input', () => {
-            if(currentItemData && itemCodeInput.value.toUpperCase() !== currentItemData.item_code) {
+            if (currentItemData && itemCodeInput.value.toUpperCase() !== currentItemData.item_code) {
                 clearItemSpecificFields();
             }
         });
         quantityInput.addEventListener('input', updateLabel);
         printLabelBtn.addEventListener('click', printLabel);
-        
+
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             clearLabel();
@@ -453,4 +648,5 @@
         });
     </script>
 </body>
+
 </html>

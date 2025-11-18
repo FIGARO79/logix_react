@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrack - Admin Login</title>
     <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
 </head>
+
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 class="text-2xl font-bold text-center text-gray-900">Acceso de Administrador</h1>
@@ -14,21 +17,24 @@
         <form method="post" class="space-y-6">
             <div>
                 <label for="password" class="text-sm font-medium text-gray-700">Contraseña</label>
-                <input type="password" name="password" id="password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                <input type="password" name="password" id="password" required
+                    class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
             </div>
             <div class="flex items-center">
-                <input type="checkbox" id="show-password" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
+                <input type="checkbox" id="show-password"
+                    class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
                 <label for="show-password" class="ml-2 block text-sm text-gray-900">Mostrar contraseña</label>
             </div>
-            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">Acceder</button>
+            <button type="submit"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">Acceder</button>
         </form>
         {% if error %}
-            <p class="text-sm text-red-600 text-center">{{ error }}</p>
+        <p class="text-sm text-red-600 text-center">{{ error }}</p>
         {% endif %}
     </div>
 
     <script>
-        document.getElementById('show-password').addEventListener('change', function() {
+        document.getElementById('show-password').addEventListener('change', function () {
             var passwordInput = document.getElementById('password');
             if (this.checked) {
                 passwordInput.type = 'text';
@@ -38,4 +44,5 @@
         });
     </script>
 </body>
+
 </html>

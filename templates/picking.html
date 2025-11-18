@@ -1,49 +1,67 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chequeo de Picking</title>
     <!-- Carga de Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <!-- Carga de la biblioteca para escanear QR/códigos de barras -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" xintegrity="sha512-r6rL1TIIFRBcK7mB/G/R/vNzx0vXEOy/N0PNHvKMIUvAUlSAgP/gfb/T5A/L/m+LbpLWoI2C/a/CSJtMrjVd/A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"
+        xintegrity="sha512-r6rL1TIIFRBcK7mB/G/R/vNzx0vXEOy/N0PNHvKMIUvAUlSAgP/gfb/T5A/L/m+LbpLWoI2C/a/CSJtMrjVd/A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Carga de la biblioteca para sonidos (Tone.js) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js" xintegrity="sha512-S/v27I/vR/wI/vT4QGKJ1bcrPd/pQHYa1Kjln9qKqKG46tWp1/cvcGoR/Ag03T/oFzX/cI/Oa/v/Q/9S/0fJ/Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"
+        xintegrity="sha512-S/v27I/vR/wI/vT4QGKJ1bcrPd/pQHYa1Kjln9qKqKG46tWp1/cvcGoR/Ag03T/oFzX/cI/Oa/v/Q/9S/0fJ/Q=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- PapaParse ya no es necesario si se usa la API, pero lo mantenemos por si el código original lo usaba en otro lado, aunque lo ideal sería quitarlo si no se usa -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" xintegrity="sha512-dfbSBCFEJQG0evQ2/MdVf/DuObpMVPaT8FfX4UvhTfTqYmv/vuFwS4Lz0VqD_S/vQhZ+3E/pS/cmhMhK/N2S/A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"
+        xintegrity="sha512-dfbSBCFEJQG0evQ2/MdVf/DuObpMVPaT8FfX4UvhTfTqYmv/vuFwS4Lz0VqD_S/vQhZ+3E/pS/cmhMhK/N2S/A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* Estilo para la fuente Inter */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
         }
+
         /* Ocultar el 'spinner' de los inputs numéricos */
         input[type='number']::-webkit-inner-spin-button,
         input[type='number']::-webkit-outer-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
+
         input[type='number'] {
             -moz-appearance: textfield;
             appearance: textfield;
         }
+
         /* Estilo para el lector de QR */
         #qr-reader {
             border: 2px dashed #cbd5e0;
             border-radius: 8px;
             overflow: hidden;
-            background-color: #f7fafc; /* Fondo claro */
+            background-color: #f7fafc;
+            /* Fondo claro */
         }
     </style>
 </head>
+
 <body class="bg-gray-100 text-gray-800 flex justify-center p-4 pt-20">
     <header class="bg-white shadow-sm w-full fixed top-0 left-0 z-10">
         <div class="container mx-auto max-w-4xl p-4 flex justify-between items-center">
-                <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-6 w-135 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-            <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-6 w-135 object-contain"
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+            <a href="/"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd"
+                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
                 </svg>
                 INICIO
             </a>
@@ -51,316 +69,356 @@
     </header>
 
 
-        <!-- Contenedor Principal (Ajustado a max-w-3xl para parecerse a la imagen) -->
+    <!-- Contenedor Principal (Ajustado a max-w-3xl para parecerse a la imagen) -->
     <div class="container mx-auto max-w-3xl w-full">
         <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200">
 
-                <!-- Sección 1: Carga de Pedido -->
-                <section id="load-section" class="mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Auditoría de Picking</h1>
-                    <h2 class="text-xl font-semibold mb-4">1. Cargar Pedido</h2>
+            <!-- Sección 1: Carga de Pedido -->
+            <section id="load-section" class="mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Auditoría de Picking</h1>
+                <h2 class="text-xl font-semibold mb-4">1. Cargar Pedido</h2>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="order-number" class="block text-sm font-medium text-gray-700">Order Number</label>
-                            <input type="text" id="order-number" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ej: 0043785">
-                        </div>
-                        <div>
-                            <label for="despatch-number" class="block text-sm font-medium text-gray-700">Despatch Number</label>
-                            <input type="text" id="despatch-number" inputmode="numeric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ej: 00">
-                        </div>
-                    </div>
-
-                    <button id="load-order-btn" class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Cargar Pedido
-                    </button>
-                </section>
-
-                <!-- Sección 2: Auditoría (Oculta por defecto) -->
-                <section id="audit-section" class="hidden">
-                    <header class="mb-6">
-                        <h1 class="text-3xl font-bold text-gray-800">Chequeo de picking</h1>
-                    </header>
-
-                    <div class="mb-6 space-y-2">
-                        <p class="text-lg">Orden: <span id="order-number-display" class="font-bold text-gray-700"></span>/<span id="despatch-number-display" class_name="font-bold text-gray-700"></span></p>
-                        <p class="text-lg">Cliente: <span id="customer-name" class="font-bold text-gray-700"></span></p>
-                    </div>
-
-                    <!-- Escáner y Búsqueda de Items (Diseño de la imagen) -->
-                    <div class="mb-6">
-                        <label for="itemCode" class="block text-sm font-medium text-gray-700 mb-1">ITEM CODE:</label>
-                        <div class="flex items-center gap-2">
-                            <input type="text" id="itemCode" name="itemCode" class="flex-grow block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Escanee el código o ingrese el item" oninput="this.value = this.value.toUpperCase()" />
-
-                            <!-- Botón QR -->
-                            <button type="button" id="scanItemBtn" title="Escanear código de barras" class="flex-shrink-0 p-2 border border-gray-300 bg-gray-100 text-gray-600 rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
-                                    <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z"/>
-                                    <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z"/>
-                                    <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z"/>
-                                    <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z"/>
-                                    <path d="M12 9h2V8h-2z"/>
-                                </svg>
-                            </button>
-                            <!-- Botón Buscar -->
-                            <button type="button" id="findItemBtn" class="flex-shrink-0 bg-gray-600 text-white py-2 px-5 rounded-md font-semibold shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                                Buscar
-                            </button>
-                        </div>
-                    </div>
-
-
-
-                    <!-- Lista de Items -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <h3 class="text-xl font-semibold mb-4">Lista de items</h3>
-                        <div class="border rounded-md max-h-[400px] md:max-h-[500px] overflow-y-auto">
-                            <table class="w-full divide-y divide-gray-200 table-auto">
-                                <!-- ***** CORRECCIÓN APLICADA AQUÍ (thead) ***** -->
-                                <thead class="bg-gray-50 sticky top-0 z-10">
-                                    <tr>
-                                        <th scope="col" class="px-1 py-1 md:px-2 md:py-2 text-left text-xs font-small text-gray-500 uppercase tracking-wider">Item Code</th>
-                                        <th scope="col" class="px-2 py-1 md:px-2 md:py-2 text-left text-xs font-small text-gray-500 uppercase tracking-wider">Descripción</th>
-                                        <th scope="col" class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">Req.</th>
-                                        <th scope="col" class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">Scan.</th>
-                                        <th scope="col" class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">Dif.</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="items-table-body" class="bg-white divide-y divide-gray-200">
-                                    <!-- Filas de items se insertarán aquí -->
-                                </tbody>
-                            </table>
-                        </div>
+                        <label for="order-number" class="block text-sm font-medium text-gray-700">Order Number</label>
+                        <input type="text" id="order-number" inputmode="numeric"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Ej: 0043785">
                     </div>
+                    <div>
+                        <label for="despatch-number" class="block text-sm font-medium text-gray-700">Despatch
+                            Number</label>
+                        <input type="text" id="despatch-number" inputmode="numeric"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Ej: 00">
+                    </div>
+                </div>
 
-                    <!-- Acciones Finales (Diseño de la imagen) -->
-                    <div class="mt-8 flex flex-col md:flex-row gap-4">
-                        <button id="finalize-btn" class="flex-1 order-1 bg-green-600 text-white py-3 px-6 rounded-md font-semibold shadow-sm hover:bg-green-700 text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Finalizar Auditoría
+                <button id="load-order-btn"
+                    class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cargar Pedido
+                </button>
+            </section>
+
+            <!-- Sección 2: Auditoría (Oculta por defecto) -->
+            <section id="audit-section" class="hidden">
+                <header class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Chequeo de picking</h1>
+                </header>
+
+                <div class="mb-6 space-y-2">
+                    <p class="text-lg">Orden: <span id="order-number-display"
+                            class="font-bold text-gray-700"></span>/<span id="despatch-number-display"
+                            class_name="font-bold text-gray-700"></span></p>
+                    <p class="text-lg">Cliente: <span id="customer-name" class="font-bold text-gray-700"></span></p>
+                </div>
+
+                <!-- Escáner y Búsqueda de Items (Diseño de la imagen) -->
+                <div class="mb-6">
+                    <label for="itemCode" class="block text-sm font-medium text-gray-700 mb-1">ITEM CODE:</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="itemCode" name="itemCode"
+                            class="flex-grow block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Escanee el código o ingrese el item"
+                            oninput="this.value = this.value.toUpperCase()" />
+
+                        <!-- Botón QR -->
+                        <button type="button" id="scanItemBtn" title="Escanear código de barras"
+                            class="flex-shrink-0 p-2 border border-gray-300 bg-gray-100 text-gray-600 rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                                class="bi bi-qr-code-scan" viewBox="0 0 16 16">
+                                <path
+                                    d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                                <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                                <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                                <path
+                                    d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                                <path d="M12 9h2V8h-2z" />
+                            </svg>
                         </button>
-                        <button id="reset-btn" class="flex-1 order-2 md:order-2 bg-gray-200 text-gray-700 py-3 px-6 rounded-md font-semibold hover:bg-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-                            Cargar Otro Pedido
+                        <!-- Botón Buscar -->
+                        <button type="button" id="findItemBtn"
+                            class="flex-shrink-0 bg-gray-600 text-white py-2 px-5 rounded-md font-semibold shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            Buscar
                         </button>
                     </div>
-                </section>
-            </div>
-        </div>
-
-        <!-- Modal del Escáner -->
-        <div id="scanner-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-                <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
-                <div id="qr-reader" class="w-full rounded-md overflow-hidden border"></div>
-                <button id="close-scanner-btn" class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
-            </div>
-        </div>
-
-        <!-- Contenedor de Mensajes (Toast) -->
-        <div id="message-box" class="fixed top-5 right-5 z-50 p-4 rounded-md text-white font-semibold shadow-lg transition-all duration-300 opacity-0 translate-x-10 hidden">
-            <span id="message-text"></span>
-        </div>
-
-        <!-- Modal de Confirmación -->
-        <div id="confirmation-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-                <h3 class="text-xl font-bold text-yellow-600 mb-4">Confirmar Finalización</h3>
-                <p class="text-gray-700 mb-6">Se detectaron diferencias en el picking (faltantes o sobrantes). ¿Desea guardar y finalizar la auditoría de todos modos?</p>
-                <div class="flex justify-end gap-4">
-                    <button id="cancel-modal-btn" class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
-                    <button id="confirm-modal-btn" class="py-2 px-4 bg-yellow-500 text-white rounded-md font-semibold hover:bg-yellow-600">Confirmar y Guardar</button>
                 </div>
-            </div>
-        </div>
 
-        <!-- Modal de Cantidad -->
-        <div id="quantity-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4" id="quantity-modal-item-name"></h3>
-                <p class="text-gray-700 mb-4">Ingrese la cantidad alistada:</p>
-                <input type="number" id="quantity-input" inputmode="numeric" class="w-full text-center border border-gray-300 rounded-md shadow-sm py-2 text-2xl" />
-                <div class="flex justify-end gap-4 mt-6">
-                    <button id="cancel-quantity-btn" class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
-                    <button id="confirm-quantity-btn" class="py-2 px-4 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700">Confirmar</button>
+
+
+                <!-- Lista de Items -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Lista de items</h3>
+                    <div class="border rounded-md max-h-[400px] md:max-h-[500px] overflow-y-auto">
+                        <table class="w-full divide-y divide-gray-200 table-auto">
+                            <!-- ***** CORRECCIÓN APLICADA AQUÍ (thead) ***** -->
+                            <thead class="bg-gray-50 sticky top-0 z-10">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-1 py-1 md:px-2 md:py-2 text-left text-xs font-small text-gray-500 uppercase tracking-wider">
+                                        Item Code</th>
+                                    <th scope="col"
+                                        class="px-2 py-1 md:px-2 md:py-2 text-left text-xs font-small text-gray-500 uppercase tracking-wider">
+                                        Descripción</th>
+                                    <th scope="col"
+                                        class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                        Req.</th>
+                                    <th scope="col"
+                                        class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                        Scan.</th>
+                                    <th scope="col"
+                                        class="px-2 py-1 md:px-2 md:py-2 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                        Dif.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de items se insertarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+                <!-- Acciones Finales (Diseño de la imagen) -->
+                <div class="mt-8 flex flex-col md:flex-row gap-4">
+                    <button id="finalize-btn"
+                        class="flex-1 order-1 bg-green-600 text-white py-3 px-6 rounded-md font-semibold shadow-sm hover:bg-green-700 text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Finalizar Auditoría
+                    </button>
+                    <button id="reset-btn"
+                        class="flex-1 order-2 md:order-2 bg-gray-200 text-gray-700 py-3 px-6 rounded-md font-semibold hover:bg-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                        Cargar Otro Pedido
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal del Escáner -->
+    <div id="scanner-modal"
+        class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
+            <div id="qr-reader" class="w-full rounded-md overflow-hidden border"></div>
+            <button id="close-scanner-btn"
+                class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Contenedor de Mensajes (Toast) -->
+    <div id="message-box"
+        class="fixed top-5 right-5 z-50 p-4 rounded-md text-white font-semibold shadow-lg transition-all duration-300 opacity-0 translate-x-10 hidden">
+        <span id="message-text"></span>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirmation-modal"
+        class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <h3 class="text-xl font-bold text-yellow-600 mb-4">Confirmar Finalización</h3>
+            <p class="text-gray-700 mb-6">Se detectaron diferencias en el picking (faltantes o sobrantes). ¿Desea
+                guardar y finalizar la auditoría de todos modos?</p>
+            <div class="flex justify-end gap-4">
+                <button id="cancel-modal-btn"
+                    class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-modal-btn"
+                    class="py-2 px-4 bg-yellow-500 text-white rounded-md font-semibold hover:bg-yellow-600">Confirmar y
+                    Guardar</button>
             </div>
         </div>
+    </div>
+
+    <!-- Modal de Cantidad -->
+    <div id="quantity-modal"
+        class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4" id="quantity-modal-item-name"></h3>
+            <p class="text-gray-700 mb-4">Ingrese la cantidad alistada:</p>
+            <input type="number" id="quantity-input" inputmode="numeric"
+                class="w-full text-center border border-gray-300 rounded-md shadow-sm py-2 text-2xl" />
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancel-quantity-btn"
+                    class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-quantity-btn"
+                    class="py-2 px-4 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
 
-        <script>
-            // --- Variables Globales ---
-            let orderItems = []; // Almacenará los items del pedido filtrado
-            let customerName = "";
-            let html5QrCode;
-            let soundBeep, soundBoop;
-            let currentItemForQuantity = null;
+    <script>
+        // --- Variables Globales ---
+        let orderItems = []; // Almacenará los items del pedido filtrado
+        let customerName = "";
+        let html5QrCode;
+        let soundBeep, soundBoop;
+        let currentItemForQuantity = null;
 
-            // --- Selectores del DOM ---
-            const loadSection = document.getElementById('load-section');
-            const auditSection = document.getElementById('audit-section');
-            const loadOrderBtn = document.getElementById('load-order-btn');
-            const orderNumberInput = document.getElementById('order-number');
-            const despatchNumberInput = document.getElementById('despatch-number');
-            const customerNameEl = document.getElementById('customer-name');
-            const orderNumberDisplay = document.getElementById('order-number-display');
-            const despatchNumberDisplay = document.getElementById('despatch-number-display');
-            const itemsTableBody = document.getElementById('items-table-body');
-            const itemCodeInput = document.getElementById('itemCode');
-            const scanItemBtn = document.getElementById('scanItemBtn');
-            const findItemBtn = document.getElementById('findItemBtn');
-            const finalizeBtn = document.getElementById('finalize-btn');
-            const resetBtn = document.getElementById('reset-btn');
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            const confirmationModal = document.getElementById('confirmation-modal');
-            const cancelModalBtn = document.getElementById('cancel-modal-btn');
-            const confirmModalBtn = document.getElementById('confirm-modal-btn');
-            const quantityModal = document.getElementById('quantity-modal');
-            const quantityModalItemName = document.getElementById('quantity-modal-item-name');
-            const quantityInput = document.getElementById('quantity-input');
-            const cancelQuantityBtn = document.getElementById('cancel-quantity-btn');
-            const confirmQuantityBtn = document.getElementById('confirm-quantity-btn');
-            const scannerModal = document.getElementById('scanner-modal');
-            const closeScannerBtn = document.getElementById('close-scanner-btn');
+        // --- Selectores del DOM ---
+        const loadSection = document.getElementById('load-section');
+        const auditSection = document.getElementById('audit-section');
+        const loadOrderBtn = document.getElementById('load-order-btn');
+        const orderNumberInput = document.getElementById('order-number');
+        const despatchNumberInput = document.getElementById('despatch-number');
+        const customerNameEl = document.getElementById('customer-name');
+        const orderNumberDisplay = document.getElementById('order-number-display');
+        const despatchNumberDisplay = document.getElementById('despatch-number-display');
+        const itemsTableBody = document.getElementById('items-table-body');
+        const itemCodeInput = document.getElementById('itemCode');
+        const scanItemBtn = document.getElementById('scanItemBtn');
+        const findItemBtn = document.getElementById('findItemBtn');
+        const finalizeBtn = document.getElementById('finalize-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const cancelModalBtn = document.getElementById('cancel-modal-btn');
+        const confirmModalBtn = document.getElementById('confirm-modal-btn');
+        const quantityModal = document.getElementById('quantity-modal');
+        const quantityModalItemName = document.getElementById('quantity-modal-item-name');
+        const quantityInput = document.getElementById('quantity-input');
+        const cancelQuantityBtn = document.getElementById('cancel-quantity-btn');
+        const confirmQuantityBtn = document.getElementById('confirm-quantity-btn');
+        const scannerModal = document.getElementById('scanner-modal');
+        const closeScannerBtn = document.getElementById('close-scanner-btn');
 
-            // --- Inicialización ---
-            document.addEventListener('DOMContentLoaded', () => {
-                // Inicializar el objeto del escáner
-                try {
-                    html5QrCode = new Html5Qrcode("qr-reader");
-                    const Html5QrcodeScanType = {
-                        SCAN_TYPE_CAMERA: 0,
-                        SCAN_TYPE_FILE: 1
+        // --- Inicialización ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar el objeto del escáner
+            try {
+                html5QrCode = new Html5Qrcode("qr-reader");
+                const Html5QrcodeScanType = {
+                    SCAN_TYPE_CAMERA: 0,
+                    SCAN_TYPE_FILE: 1
+                }
+            } catch (e) {
+                console.error("No se pudo inicializar Html5Qrcode. Asegúrese de que el div 'qr-reader' existe.", e);
+                showMessage("Error al iniciar el componente de escáner.", "error");
+            }
+
+            // Inicializar sonidos (sólo si Tone.js se cargó)
+            try {
+                soundBeep = new Tone.Synth().toDestination();
+                soundBoop = new Tone.Synth({ oscillator: { type: "square" } }).toDestination();
+            } catch (e) {
+                console.warn("Tone.js no se pudo inicializar. Los sonidos estarán desactivados.");
+                soundBeep = { triggerAttackRelease: () => { } }; // Objetos 'dummy'
+                soundBoop = { triggerAttackRelease: () => { } };
+            }
+        });
+
+        // --- Event Listeners ---
+        loadOrderBtn.addEventListener('click', loadOrder); // Cambiado a la función original
+        scanItemBtn.addEventListener('click', startScanner);
+        closeScannerBtn.addEventListener('click', stopScanner);
+        findItemBtn.addEventListener('click', () => processScan(itemCodeInput.value));
+        itemCodeInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); processScan(itemCodeInput.value); } });
+        finalizeBtn.addEventListener('click', finalizeAudit);
+        resetBtn.addEventListener('click', resetApp);
+        cancelModalBtn.addEventListener('click', () => confirmationModal.classList.add('hidden'));
+        confirmModalBtn.addEventListener('click', confirmFinalizeWithDifferences);
+        cancelQuantityBtn.addEventListener('click', hideQuantityModal);
+        confirmQuantityBtn.addEventListener('click', confirmQuantity);
+        quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
+
+        // --- Funciones Principales ---
+
+        /**
+         * Carga el pedido desde la API (función original).
+         */
+        async function loadOrder() {
+            const orderNum = orderNumberInput.value.trim();
+            const despatchNum = despatchNumberInput.value.trim();
+
+            if (!orderNum || !despatchNum) {
+                showMessage("Por favor, ingrese 'Order Number' y 'Despatch Number'.", "error");
+                return;
+            }
+
+            try {
+                // Esta es la llamada a la API que tu código original tenía
+                const response = await fetch(`/api/picking/order/${orderNum}/${despatchNum}`);
+
+                if (!response.ok) {
+                    let errorMsg = `Error al cargar el pedido. Código: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.detail || errorMsg;
+                    } catch (e) {
+                        // No se pudo parsear el JSON de error, usar mensaje genérico
                     }
-                } catch (e) {
-                    console.error("No se pudo inicializar Html5Qrcode. Asegúrese de que el div 'qr-reader' existe.", e);
-                    showMessage("Error al iniciar el componente de escáner.", "error");
+                    throw new Error(errorMsg);
                 }
 
-                // Inicializar sonidos (sólo si Tone.js se cargó)
-                try {
-                    soundBeep = new Tone.Synth().toDestination();
-                    soundBoop = new Tone.Synth({ oscillator: { type: "square" } }).toDestination();
-                } catch (e) {
-                    console.warn("Tone.js no se pudo inicializar. Los sonidos estarán desactivados.");
-                    soundBeep = { triggerAttackRelease: () => {} }; // Objetos 'dummy'
-                    soundBoop = { triggerAttackRelease: () => {} };
-                }
-            });
+                const filteredItems = await response.json();
 
-            // --- Event Listeners ---
-            loadOrderBtn.addEventListener('click', loadOrder); // Cambiado a la función original
-            scanItemBtn.addEventListener('click', startScanner);
-            closeScannerBtn.addEventListener('click', stopScanner);
-            findItemBtn.addEventListener('click', () => processScan(itemCodeInput.value));
-            itemCodeInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); processScan(itemCodeInput.value); } });
-            finalizeBtn.addEventListener('click', finalizeAudit);
-            resetBtn.addEventListener('click', resetApp);
-            cancelModalBtn.addEventListener('click', () => confirmationModal.classList.add('hidden'));
-            confirmModalBtn.addEventListener('click', confirmFinalizeWithDifferences);
-            cancelQuantityBtn.addEventListener('click', hideQuantityModal);
-            confirmQuantityBtn.addEventListener('click', confirmQuantity);
-            quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
-
-            // --- Funciones Principales ---
-
-            /**
-             * Carga el pedido desde la API (función original).
-             */
-            async function loadOrder() {
-                const orderNum = orderNumberInput.value.trim();
-                const despatchNum = despatchNumberInput.value.trim();
-
-                if (!orderNum || !despatchNum) {
-                    showMessage("Por favor, ingrese 'Order Number' y 'Despatch Number'.", "error");
+                if (filteredItems.length === 0) {
+                    showMessage("Pedido no encontrado. Verifique los números.", "error");
                     return;
                 }
 
-                try {
-                    // Esta es la llamada a la API que tu código original tenía
-                    const response = await fetch(`/api/picking/order/${orderNum}/${despatchNum}`);
+                // Procesar los items encontrados
+                orderItems = filteredItems.map(item => ({
+                    code: item["Item Code"] ? item["Item Code"].trim() : '',
+                    description: item["Item Description"] ? item["Item Description"].trim() : 'Sin descripción',
+                    qty_req: parseInt(item["Qty"], 10) || 0,
+                    qty_scan: 0
+                }));
 
-                    if (!response.ok) {
-                        let errorMsg = `Error al cargar el pedido. Código: ${response.status}`;
-                        try {
-                            const errorData = await response.json();
-                            errorMsg = errorData.detail || errorMsg;
-                        } catch(e) {
-                            // No se pudo parsear el JSON de error, usar mensaje genérico
-                        }
-                        throw new Error(errorMsg);
-                    }
+                customerName = filteredItems[0]["Customer Name"] || "N/A";
 
-                    const filteredItems = await response.json();
+                // Actualizar la UI
+                customerNameEl.textContent = customerName;
+                orderNumberDisplay.textContent = orderNum;
+                despatchNumberDisplay.textContent = despatchNum;
+                updateTable();
+                loadSection.classList.add('hidden');
+                auditSection.classList.remove('hidden');
+                showMessage(`Pedido ${orderNum}/${despatchNum} cargado. Listo para escanear.`, "success");
+                itemCodeInput.focus(); // Poner foco en el input de item
 
-                    if (filteredItems.length === 0) {
-                        showMessage("Pedido no encontrado. Verifique los números.", "error");
-                        return;
-                    }
-
-                    // Procesar los items encontrados
-                    orderItems = filteredItems.map(item => ({
-                        code: item["Item Code"] ? item["Item Code"].trim() : '',
-                        description: item["Item Description"] ? item["Item Description"].trim() : 'Sin descripción',
-                        qty_req: parseInt(item["Qty"], 10) || 0,
-                        qty_scan: 0
-                    }));
-
-                    customerName = filteredItems[0]["Customer Name"] || "N/A";
-
-                    // Actualizar la UI
-                    customerNameEl.textContent = customerName;
-                    orderNumberDisplay.textContent = orderNum;
-                    despatchNumberDisplay.textContent = despatchNum;
-                    updateTable();
-                    loadSection.classList.add('hidden');
-                    auditSection.classList.remove('hidden');
-                    showMessage(`Pedido ${orderNum}/${despatchNum} cargado. Listo para escanear.`, "success");
-                    itemCodeInput.focus(); // Poner foco en el input de item
-
-                } catch (e) {
-                    showMessage(e.message, "error");
-                    console.error(e);
-                }
+            } catch (e) {
+                showMessage(e.message, "error");
+                console.error(e);
             }
+        }
 
 
-            /**
-             * Actualiza la tabla de items con los datos actuales de 'orderItems'.
-             */
-            function updateTable() {
-                itemsTableBody.innerHTML = '';
-                let allComplete = true;
+        /**
+         * Actualiza la tabla de items con los datos actuales de 'orderItems'.
+         */
+        function updateTable() {
+            itemsTableBody.innerHTML = '';
+            let allComplete = true;
 
-                if (orderItems.length === 0) return;
+            if (orderItems.length === 0) return;
 
-                orderItems.forEach((item, index) => {
-                    const diff = item.qty_scan - item.qty_req;
-                    let rowClass = 'bg-white';
-                    let diffClass = 'text-gray-700';
+            orderItems.forEach((item, index) => {
+                const diff = item.qty_scan - item.qty_req;
+                let rowClass = 'bg-white';
+                let diffClass = 'text-gray-700';
 
-                    if (diff === 0 && item.qty_scan > 0 && item.qty_scan === item.qty_req) {
-                        rowClass = 'bg-green-50'; // Completo
-                        diffClass = 'text-green-700 font-bold';
-                    } else if (diff < 0 && item.qty_scan > 0) {
-                        rowClass = 'bg-yellow-50'; // Parcial
-                        diffClass = 'text-yellow-700 font-bold';
-                    } else if (diff > 0) {
-                        rowClass = 'bg-red-50'; // Sobrante
-                        diffClass = 'text-red-700 font-bold';
-                    } else if (diff < 0) {
-                         diffClass = 'text-red-700 font-bold'; // Faltante (aún no escaneado)
-                    }
+                if (diff === 0 && item.qty_scan > 0 && item.qty_scan === item.qty_req) {
+                    rowClass = 'bg-green-50'; // Completo
+                    diffClass = 'text-green-700 font-bold';
+                } else if (diff < 0 && item.qty_scan > 0) {
+                    rowClass = 'bg-yellow-50'; // Parcial
+                    diffClass = 'text-yellow-700 font-bold';
+                } else if (diff > 0) {
+                    rowClass = 'bg-red-50'; // Sobrante
+                    diffClass = 'text-red-700 font-bold';
+                } else if (diff < 0) {
+                    diffClass = 'text-red-700 font-bold'; // Faltante (aún no escaneado)
+                }
 
-                    if (diff !== 0) {
-                        allComplete = false;
-                    }
+                if (diff !== 0) {
+                    allComplete = false;
+                }
 
-                    const row = document.createElement('tr');
-                    row.className = `${rowClass} transition-colors duration-200`;
-                    
-                    // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
-                    row.innerHTML = `
+                const row = document.createElement('tr');
+                row.className = `${rowClass} transition-colors duration-200`;
+
+                // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
+                row.innerHTML = `
                         <td class="px-2 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium text-gray-900">${item.code}</td>
                         <td class="px-2 py-2 md:px-4 md:py-3 text-xs md:text-sm text-gray-600">${item.description}</td>
                         <td class="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
@@ -369,264 +427,265 @@
                         </td>
                         <td class="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap text-xs md:text-sm font-semibold ${diffClass} text-center">${diff}</td>
                     `;
-                    itemsTableBody.appendChild(row);
+                itemsTableBody.appendChild(row);
+            });
+
+            // Añadir event listeners a los inputs numéricos de la tabla
+            itemsTableBody.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const index = e.target.dataset.index;
+                    let newQty = parseInt(e.target.value, 10);
+
+                    if (isNaN(newQty) || newQty < 0) {
+                        newQty = 0; // Resetear a 0 si es inválido
+                    }
+
+                    orderItems[index].qty_scan = newQty;
+                    updateTable(); // Re-dibujar la tabla para reflejar el cambio
                 });
+            });
 
-                // Añadir event listeners a los inputs numéricos de la tabla
-                itemsTableBody.querySelectorAll('input[type="number"]').forEach(input => {
-                    input.addEventListener('change', (e) => {
-                        const index = e.target.dataset.index;
-                        let newQty = parseInt(e.target.value, 10);
+            // Si todo está completo, mostrar mensaje
+            if (allComplete && orderItems.length > 0) {
+                showMessage("¡Picking Completo! Todos los items verificados.", "success");
+            }
+        }
 
-                        if (isNaN(newQty) || newQty < 0) {
-                            newQty = 0; // Resetear a 0 si es inválido
-                        }
-
-                        orderItems[index].qty_scan = newQty;
-                        updateTable(); // Re-dibujar la tabla para reflejar el cambio
-                    });
-                });
-
-                // Si todo está completo, mostrar mensaje
-                if (allComplete && orderItems.length > 0) {
-                    showMessage("¡Picking Completo! Todos los items verificados.", "success");
-                }
+        /**
+         * Inicia la cámara para escanear.
+         */
+        function startScanner() {
+            scannerModal.classList.remove('hidden');
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
             }
 
-            /**
-             * Inicia la cámara para escanear.
-             */
-            function startScanner() {
-                scannerModal.classList.remove('hidden');
-                if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode("qr-reader");
-                }
+            const config = {
+                fps: 10,
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    const qrboxSize = Math.floor(minEdge * 0.8); // 80% del borde más pequeño
+                    return { width: qrboxSize, height: qrboxSize };
+                },
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
+                ]
+            };
 
-                const config = {
-                    fps: 10,
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        const qrboxSize = Math.floor(minEdge * 0.8); // 80% del borde más pequeño
-                        return { width: qrboxSize, height: qrboxSize };
-                    },
-                    rememberLastUsedCamera: true,
-                    supportedScanTypes: [
-                        Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                    ]
-                };
-
-                html5QrCode.start(
-                    { facingMode: "environment" }, // Pedir cámara trasera
-                    config,
-                    (decodedText, decodedResult) => {
-                        stopScanner();
-                        processScan(decodedText);
-                    }, // onScanSuccess
-                    (error) => { /* onScanFailure (opcional) */ }
-                ).then(() => {
-                    showMessage("Cámara iniciada. Apunte al código.", "info");
-                }).catch(err => {
-                    showMessage("Error al iniciar la cámara. Verifique permisos.", "error");
-                    console.error(err);
+            html5QrCode.start(
+                { facingMode: "environment" }, // Pedir cámara trasera
+                config,
+                (decodedText, decodedResult) => {
                     stopScanner();
-                });
+                    processScan(decodedText);
+                }, // onScanSuccess
+                (error) => { /* onScanFailure (opcional) */ }
+            ).then(() => {
+                showMessage("Cámara iniciada. Apunte al código.", "info");
+            }).catch(err => {
+                showMessage("Error al iniciar la cámara. Verifique permisos.", "error");
+                console.error(err);
+                stopScanner();
+            });
+        }
+
+        /**
+         * Detiene el escáner de la cámara.
+         */
+        function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop()
+                    .then(() => {
+                        showMessage("Escáner detenido.", "info");
+                    })
+                    .catch(err => {
+                        console.error("Error al detener el escáner:", err);
+                    });
             }
+            scannerModal.classList.add('hidden');
+        }
 
-            /**
-             * Detiene el escáner de la cámara.
-             */
-            function stopScanner() {
-                if (html5QrCode && html5QrCode.isScanning) {
-                    html5QrCode.stop()
-                        .then(() => {
-                            showMessage("Escáner detenido.", "info");
-                        })
-                        .catch(err => {
-                            console.error("Error al detener el escáner:", err);
-                        });
-                }
-                scannerModal.classList.add('hidden');
-            }
+        /**
+         * Procesa un código escaneado (de cámara o manual).
+         */
+        function processScan(scannedCode) {
+            if (!scannedCode || scannedCode.trim() === '') return;
 
-            /**
-             * Procesa un código escaneado (de cámara o manual).
-             */
-            function processScan(scannedCode) {
-                if (!scannedCode || scannedCode.trim() === '') return;
+            scannedCode = scannedCode.trim().toUpperCase(); // Asegurarse de que esté en mayúsculas
+            const item = orderItems.find(i => i.code === scannedCode);
 
-                scannedCode = scannedCode.trim().toUpperCase(); // Asegurarse de que esté en mayúsculas
-                const item = orderItems.find(i => i.code === scannedCode);
-
-                if (item) {
-                    showQuantityModal(item);
-                    soundBeep.triggerAttackRelease("C5", "0.1"); // Sonido agudo OK
-                } else {
-                    soundBoop.triggerAttackRelease("C3", "0.2"); // Sonido grave ERROR
-                    showMessage(`ERROR: Item incorrecto (${scannedCode})`, "error");
-                    itemCodeInput.value = ''; // Limpiar input manual
-                    itemCodeInput.focus(); // Devolver el foco al input
-                }
-            }
-
-            function showQuantityModal(item) {
-                currentItemForQuantity = item;
-                quantityModalItemName.textContent = `${item.code} - ${item.description}`;
-                quantityInput.value = ''; // Clear previous value
-                quantityModal.classList.remove('hidden');
-                quantityInput.focus();
-            }
-
-            function hideQuantityModal() {
-                quantityModal.classList.add('hidden');
-                currentItemForQuantity = null;
+            if (item) {
+                showQuantityModal(item);
+                soundBeep.triggerAttackRelease("C5", "0.1"); // Sonido agudo OK
+            } else {
+                soundBoop.triggerAttackRelease("C3", "0.2"); // Sonido grave ERROR
+                showMessage(`ERROR: Item incorrecto (${scannedCode})`, "error");
                 itemCodeInput.value = ''; // Limpiar input manual
                 itemCodeInput.focus(); // Devolver el foco al input
             }
+        }
 
-            function confirmQuantity() {
-                if (!currentItemForQuantity) return;
+        function showQuantityModal(item) {
+            currentItemForQuantity = item;
+            quantityModalItemName.textContent = `${item.code} - ${item.description}`;
+            quantityInput.value = ''; // Clear previous value
+            quantityModal.classList.remove('hidden');
+            quantityInput.focus();
+        }
 
-                const quantity = parseInt(quantityInput.value, 10);
-                if (!isNaN(quantity) && quantity >= 0) {
-                    currentItemForQuantity.qty_scan = quantity;
-                    showMessage(`OK: ${currentItemForQuantity.description} - Cantidad: ${quantity}`, "success");
-                    updateTable();
-                    // Highlight row
-                    const row = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
-                    if(row) {
-                        row.closest('tr').classList.add('bg-blue-100');
-                        setTimeout(() => {
-                            const currentRow = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
-                            if (currentRow) {
-                                currentRow.closest('tr').classList.remove('bg-blue-100');
-                            }
-                        }, 1500);
-                    }
-                } else {
-                    showMessage('Por favor ingrese una cantidad válida.', 'error');
+        function hideQuantityModal() {
+            quantityModal.classList.add('hidden');
+            currentItemForQuantity = null;
+            itemCodeInput.value = ''; // Limpiar input manual
+            itemCodeInput.focus(); // Devolver el foco al input
+        }
+
+        function confirmQuantity() {
+            if (!currentItemForQuantity) return;
+
+            const quantity = parseInt(quantityInput.value, 10);
+            if (!isNaN(quantity) && quantity >= 0) {
+                currentItemForQuantity.qty_scan = quantity;
+                showMessage(`OK: ${currentItemForQuantity.description} - Cantidad: ${quantity}`, "success");
+                updateTable();
+                // Highlight row
+                const row = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
+                if (row) {
+                    row.closest('tr').classList.add('bg-blue-100');
+                    setTimeout(() => {
+                        const currentRow = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
+                        if (currentRow) {
+                            currentRow.closest('tr').classList.remove('bg-blue-100');
+                        }
+                    }, 1500);
                 }
-                hideQuantityModal();
+            } else {
+                showMessage('Por favor ingrese una cantidad válida.', 'error');
+            }
+            hideQuantityModal();
+        }
+
+        async function saveAuditData(status) {
+            const auditData = {
+                order_number: orderNumberDisplay.textContent,
+                despatch_number: despatchNumberDisplay.textContent,
+                customer_name: customerName,
+                status: status,
+                items: orderItems
+            };
+
+            try {
+                const response = await fetch('/api/save_picking_audit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(auditData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Error al guardar la auditoría.');
+                }
+
+                const result = await response.json();
+                console.log('Auditoría guardada:', result);
+                return true;
+
+            } catch (error) {
+                console.error('Error al guardar la auditoría:', error);
+                showMessage(error.message, 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Finaliza la auditoría. Comprueba diferencias.
+         */
+        async function finalizeAudit() {
+            // Asegurarse de que se haya cargado un pedido
+            if (orderItems.length === 0) {
+                showMessage("No hay ningún pedido cargado para finalizar.", "error");
+                return;
             }
 
-            async function saveAuditData(status) {
-                const auditData = {
-                    order_number: orderNumberDisplay.textContent,
-                    despatch_number: despatchNumberDisplay.textContent,
-                    customer_name: customerName,
-                    status: status,
-                    items: orderItems
-                };
+            const differencesExist = orderItems.some(item => item.qty_scan !== item.qty_req);
 
-                try {
-                    const response = await fetch('/api/save_picking_audit', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(auditData),
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.detail || 'Error al guardar la auditoría.');
-                    }
-
-                    const result = await response.json();
-                    console.log('Auditoría guardada:', result);
-                    return true;
-
-                } catch (error) {
-                    console.error('Error al guardar la auditoría:', error);
-                    showMessage(error.message, 'error');
-                    return false;
-                }
-            }
-
-            /**
-             * Finaliza la auditoría. Comprueba diferencias.
-             */
-            async function finalizeAudit() {
-                // Asegurarse de que se haya cargado un pedido
-                if (orderItems.length === 0) {
-                    showMessage("No hay ningún pedido cargado para finalizar.", "error");
-                    return;
-                }
-
-                const differencesExist = orderItems.some(item => item.qty_scan !== item.qty_req);
-
-                if (differencesExist) {
-                    // Hay diferencias, mostrar modal de confirmación
-                    confirmationModal.classList.remove('hidden');
-                } else {
-                    // Todo OK
-                    const saved = await saveAuditData('Completo');
-                    if (saved) {
-                        showMessage("¡Auditoría Finalizada! Picking OK y guardado.", "success", 5000);
-                        resetApp();
-                    }
-                }
-            }
-
-            /**
-             * Se llama si el usuario confirma guardar con diferencias.
-             */
-            async function confirmFinalizeWithDifferences() {
-                confirmationModal.classList.add('hidden');
-                const saved = await saveAuditData('Con Diferencia');
+            if (differencesExist) {
+                // Hay diferencias, mostrar modal de confirmación
+                confirmationModal.classList.remove('hidden');
+            } else {
+                // Todo OK
+                const saved = await saveAuditData('Completo');
                 if (saved) {
-                    showMessage("Auditoría finalizada y guardada con diferencias.", "warning", 5000);
+                    showMessage("¡Auditoría Finalizada! Picking OK y guardado.", "success", 5000);
                     resetApp();
                 }
             }
+        }
 
-            /**
-             * Resetea la aplicación a su estado inicial.
-             */
-            function resetApp() {
-                stopScanner();
-                orderItems = [];
-                customerName = "";
-                customerNameEl.textContent = "";
-                orderNumberDisplay.textContent = "";
-                despatchNumberDisplay.textContent = "";
-                itemsTableBody.innerHTML = '';
-                orderNumberInput.value = '';
-                despatchNumberInput.value = '';
+        /**
+         * Se llama si el usuario confirma guardar con diferencias.
+         */
+        async function confirmFinalizeWithDifferences() {
+            confirmationModal.classList.add('hidden');
+            const saved = await saveAuditData('Con Diferencia');
+            if (saved) {
+                showMessage("Auditoría finalizada y guardada con diferencias.", "warning", 5000);
+                resetApp();
+            }
+        }
 
-                auditSection.classList.add('hidden');
-                loadSection.classList.remove('hidden');
-                confirmationModal.classList.add('hidden');
+        /**
+         * Resetea la aplicación a su estado inicial.
+         */
+        function resetApp() {
+            stopScanner();
+            orderItems = [];
+            customerName = "";
+            customerNameEl.textContent = "";
+            orderNumberDisplay.textContent = "";
+            despatchNumberDisplay.textContent = "";
+            itemsTableBody.innerHTML = '';
+            orderNumberInput.value = '';
+            despatchNumberInput.value = '';
+
+            auditSection.classList.add('hidden');
+            loadSection.classList.remove('hidden');
+            confirmationModal.classList.add('hidden');
+        }
+
+        /**
+         * Muestra un mensaje temporal (toast) en pantalla.
+         */
+        function showMessage(message, type = "info", duration = 3000) {
+            messageText.textContent = message;
+
+            messageBox.classList.remove('bg-green-500', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'opacity-0', 'translate-x-10', 'hidden');
+
+            switch (type) {
+                case "success": messageBox.classList.add('bg-green-500'); break;
+                case "error": messageBox.classList.add('bg-red-500'); break;
+                case "warning": messageBox.classList.add('bg-yellow-500'); break;
+                default: messageBox.classList.add('bg-blue-500');
             }
 
-            /**
-             * Muestra un mensaje temporal (toast) en pantalla.
-             */
-            function showMessage(message, type = "info", duration = 3000) {
-                messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                messageBox.classList.remove('opacity-0', 'translate-x-10');
+            });
 
-                messageBox.classList.remove('bg-green-500', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'opacity-0', 'translate-x-10', 'hidden');
-
-                switch (type) {
-                    case "success": messageBox.classList.add('bg-green-500'); break;
-                    case "error": messageBox.classList.add('bg-red-500'); break;
-                    case "warning": messageBox.classList.add('bg-yellow-500'); break;
-                    default: messageBox.classList.add('bg-blue-500');
-                }
-
-                messageBox.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    messageBox.classList.remove('opacity-0', 'translate-x-10');
-                });
-
+            setTimeout(() => {
+                messageBox.classList.add('opacity-0', 'translate-x-10');
                 setTimeout(() => {
-                    messageBox.classList.add('opacity-0', 'translate-x-10');
-                    setTimeout(() => {
-                        messageBox.classList.add('hidden');
-                    }, 300); // Esperar que termine la transición de salida
-                }, duration);
-            }
+                    messageBox.classList.add('hidden');
+                }, 300); // Esperar que termine la transición de salida
+            }, duration);
+        }
 
-        </script>
+    </script>
 
-    </body>
-    </html>
+</body>
+
+</html>

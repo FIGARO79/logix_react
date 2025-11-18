@@ -1,1529 +1,1976 @@
 <!doctype html>
 <html lang="es">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>LogiTrack - Inbound</title>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogiTrack - Inbound</title>
     <link rel="icon" type="image/svg+xml" href="/static/images/gear-wide-connected.svg">
     <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <style>
-            /* General styles */
+    <link rel="stylesheet" href="/static/css/fallback.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* General styles */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f9fafb;
+        }
+
+        /* Adjust container-wrapper for more fluid behavior */
+        .container-wrapper {
+            width: 100%;
+            /* Make it take full width */
+            max-width: 1200px;
+            /* Max width for larger screens */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .label-container {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            background-color: white;
+            color: #1f2937;
+            width: 100%;
+            max-width: 265px;
+            height: auto;
+            aspect-ratio: 265 / 378;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow:
+                0 1px 3px 0 rgba(0, 0, 0, 0.1),
+                0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border-radius: 0.375rem;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #qrCodeContainer {
+            min-height: 96px;
+            width: 96px;
+            height: 96px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            flex-shrink: 0;
+        }
+
+        #qrCodeContainer img {
+            display: block;
+            margin: auto;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .qr-placeholder {
+            width: 100%;
+            height: 100%;
+            border: 1px dashed #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+            border-radius: 0.25rem;
+        }
+
+        .label-item-code,
+        .label-item-description {
+            font-size: 0.875rem;
+            font-weight: bold;
+            line-height: 1.25 !important;
+            word-break: normal;
+            margin-bottom: 0.25rem;
+        }
+
+        .label-item-description {
+            margin-bottom: 10mm;
+        }
+
+        .label-data-field {
+            font-size: 0.75rem;
+            font-weight: normal;
+            line-height: 1.2 !important;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem;
+            align-items: start;
+            margin-bottom: 0.5mm;
+        }
+
+        .label-data-field span:first-child {
+            font-weight: 500;
+            color: #4b5563;
+            white-space: normal;
+        }
+
+        .label-data-field span:last-child,
+        .label-data-field input[type="number"].label-qty-input {
+            font-weight: normal;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .label-qty-input {
+            -moz-appearance: textfield;
+            appearance: textfield;
+            border: none;
+            background-color: transparent;
+            padding: 0;
+            margin: 0;
+            max-width: 70px;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            text-align: right;
+            outline: none;
+            box-shadow: none;
+            justify-self: end;
+            line-height: 1.2;
+        }
+
+        .label-qty-input::-webkit-outer-spin-button,
+        .label-qty-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .label-disclaimer {
+            font-size: 7pt !important;
+            font-weight: normal !important;
+            line-height: 1.1 !important;
+            margin-right: 0.5rem;
+            flex-grow: 1;
+        }
+
+        .label-logo {
+            max-width: 40%;
+            max-height: 20px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 3.5mm;
+            display: block;
+        }
+
+        .label-bottom-section {
+            margin-top: auto;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 0.375rem;
+            width: 100%;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            border-color: #ffbf24ed;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4);
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 3px;
+            display: block;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .data-field {
+            background-color: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 0.375rem;
+            min-height: 38px;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            overflow-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+        }
+
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: middle;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6b7280;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+            position: relative;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        tbody tr:hover {
+            background-color: #f0f9ff;
+        }
+
+        button,
+        .btn-secondary {
+            padding: 9px 15px;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition:
+                background-color 0.2s,
+                box-shadow 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:focus,
+        .btn-secondary:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 3px rgba(13, 11, 7, 0.53);
+        }
+
+        button:disabled,
+        .btn-secondary:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-primary {
+            background-color: #fbbf24;
+            color: #1f2937;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #f59e0b;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #4b5563;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-print-label {
+            width: 100%;
+            max-width: 265px;
+            margin-top: 0.5rem;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+
+        .btn-export-log {
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-export-log:hover {
+            background-color: #1565C0;
+        }
+
+        /* --- Toast Notification Styles --- */
+        #toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            max-width: 350px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .toast.success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #4ade80;
+        }
+
+        .toast.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .toast.info {
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            border: 1px solid #7dd3fc;
+        }
+
+        /* --- Spinner --- */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .sortable-header {
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            padding-right: 24px !important;
+        }
+
+        .sortable-header::after {
+            content: "";
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            margin-top: -4px;
+            border: 4px solid transparent;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .sortable-header.sort-asc::after {
+            border-bottom-color: #4b5563;
+            opacity: 1;
+        }
+
+        .sortable-header.sort-desc::after {
+            border-top-color: #4b5563;
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            color: #6b7280;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+
+        .edit-btn:hover {
+            color: #2563eb;
+        }
+
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+
+
+        /* Estilos de Impresión */
+        @page {
+            size: 70mm 100mm;
+            margin: 3.5mm;
+        }
+
+        @media print {
+
+            html,
             body {
-                font-family: "Inter", sans-serif;
-                background-color: #f9fafb;
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                width: 70mm;
+                height: 100mm;
+                overflow: hidden;
             }
-            /* Adjust container-wrapper for more fluid behavior */
-            .container-wrapper {
-                width: 100%; /* Make it take full width */
-                max-width: 1200px; /* Max width for larger screens */
-                margin-left: auto;
-                margin-right: auto;
+
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: antialiased;
+                print-color-adjust: optimizeLegibility;
+                width: 70mm;
+                height: 100mm;
+                overflow: hidden;
+                font-family: "Arial", "Helvetica", sans-serif;
+                color: #000000 !important;
             }
-            .label-container {
-                border: 1px solid #d1d5db;
-                padding: 0.75rem;
-                background-color: white;
-                color: #1f2937;
+
+            body * {
+                visibility: hidden;
+            }
+
+            .label-print-area,
+            .label-print-area * {
+                visibility: visible;
+            }
+
+            .label-print-area {
+                position: absolute;
+                top: 0;
+                left: 0;
                 width: 100%;
-                max-width: 265px;
-                height: auto;
-                aspect-ratio: 265 / 378;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .label-container {
+                width: 100%;
+                height: 100% !important;
+                max-width: 63mm;
+                max-height: 93mm;
+                margin: 0;
+                padding: 0mm;
+                border: none;
+                box-shadow: none;
+                page-break-inside: avoid;
+                background: white !important;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                box-shadow:
-                    0 1px 3px 0 rgba(0, 0, 0, 0.1),
-                    0 1px 2px 0 rgba(0, 0, 0, 0.06);
-                border-radius: 0.375rem;
-                margin-left: auto;
-                margin-right: auto;
-                position: relative;
+                box-sizing: border-box;
                 overflow: hidden;
             }
-            #qrCodeContainer {
-                min-height: 96px;
-                width: 96px;
-                height: 96px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                overflow: hidden;
-                border: 1px solid #e5e7eb;
-                border-radius: 0.25rem;
-                flex-shrink: 0;
-            }
-            #qrCodeContainer img {
-                display: block;
-                margin: auto;
-                max-width: 100%;
-                max-height: 100%;
-            }
-            .qr-placeholder {
-                width: 100%;
-                height: 100%;
-                border: 1px dashed #9ca3af;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                font-size: 0.75rem;
-                color: #6b7280;
-                border-radius: 0.25rem;
-            }
-            .label-item-code,
-            .label-item-description {
-                font-size: 0.875rem;
-                font-weight: bold;
+
+            .label-item-code {
+                font-size: 12pt !important;
+                font-weight: bold !important;
                 line-height: 1.25 !important;
                 word-break: normal;
-                margin-bottom: 0.25rem;
+                margin-bottom: 0.5mm;
+                color: #000000 !important;
             }
+
             .label-item-description {
-                 margin-bottom: 10mm;
+                font-size: 12pt !important;
+                font-weight: bold !important;
+                line-height: 1.25 !important;
+                word-break: normal;
+                margin-bottom: 13mm;
+                color: #000000 !important;
             }
+
             .label-data-field {
-                font-size: 0.75rem;
-                font-weight: normal;
-                line-height: 1.2 !important;
-                display: grid;
-                grid-template-columns: auto 1fr;
-                gap: 0.5rem;
-                align-items: start;
                 margin-bottom: 0.5mm;
             }
+
+            .label-data-field span {
+                font-size: 9pt !important;
+                font-weight: normal !important;
+                line-height: 1.2 !important;
+                color: #000000 !important;
+            }
+
             .label-data-field span:first-child {
-                font-weight: 500;
-                color: #4b5563;
                 white-space: normal;
             }
-            .label-data-field span:last-child,
-            .label-data-field input[type="number"].label-qty-input {
-                font-weight: normal;
-                text-align: right;
-                word-break: break-all;
-            }
-            .label-qty-input {
-                -moz-appearance: textfield;
-                appearance: textfield;
-                border: none;
-                background-color: transparent;
-                padding: 0;
-                margin: 0;
-                max-width: 70px;
-                font-size: inherit;
-                font-weight: inherit;
-                color: inherit;
-                text-align: right;
-                outline: none;
-                box-shadow: none;
-                justify-self: end;
-                line-height: 1.2;
-            }
-            .label-qty-input::-webkit-outer-spin-button,
-            .label-qty-input::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
+
             .label-disclaimer {
                 font-size: 7pt !important;
                 font-weight: normal !important;
                 line-height: 1.1 !important;
-                margin-right: 0.5rem;
-                flex-grow: 1;
+                color: #000000 !important;
             }
+
+            #qrCodeContainer {
+                width: 25mm;
+                height: 25mm;
+                min-height: 25mm;
+                border: none;
+                flex-shrink: 0;
+            }
+
+            #qrCodeContainer img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+
+            .qr-placeholder {
+                border: 1px dashed;
+                color: #000000 !important;
+                font-size: 6pt;
+            }
+
             .label-logo {
-                max-width: 40%;
-                max-height: 20px;
+                max-width: 55%;
+                max-height: 7mm;
                 width: auto;
                 height: auto;
                 object-fit: contain;
-                margin-bottom: 3.5mm;
+                margin-bottom: 2mm;
                 display: block;
             }
-            .label-bottom-section {
-                margin-top: auto;
-                display: flex;
-                align-items: flex-end;
-                justify-content: space-between;
-                gap: 0.5rem;
-            }
-            input[type="text"],
-            input[type="number"],
-            select {
-                border: 1px solid #d1d5db;
-                padding: 6px 12px;
-                border-radius: 0.375rem;
-                width: 100%;
-                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-                transition:
-                    border-color 0.2s,
-                    box-shadow 0.2s;
-            }
-            input:focus,
-            select:focus {
-                outline: 2px solid transparent;
-                outline-offset: 2px;
-                border-color: #ffbf24ed;
-                box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4);
-            }
-            .form-label {
-                font-weight: 500;
-                margin-bottom: 3px;
-                display: block;
-                color: #374151;
-                font-size: 0.875rem;
-            }
-            .data-field {
-                background-color: #f3f4f6;
-                padding: 8px 12px;
-                border-radius: 0.375rem;
-                min-height: 38px;
-                border: 1px solid #d1d5db;
-                color: #374151;
-                overflow-wrap: break-word;
-                font-size: 0.875rem;
-                line-height: 1.5;
-                display: flex;
-                align-items: center;
-            }
-            th,
-            td {
-                border: 1px solid #e5e7eb;
-                padding: 10px 12px;
-                text-align: left;
-                vertical-align: middle;
-                font-size: 0.875rem;
-                line-height: 1.4;
-            }
-            th {
-                background-color: #f9fafb;
-                font-weight: 600;
-                font-size: 0.75rem;
-                text-transform: uppercase;
-                color: #6b7280;
-                white-space: nowrap;
-                letter-spacing: 0.05em;
-                position: relative;
-            }
-            tbody tr:nth-child(even) {
-                background-color: #f9fafb;
-            }
-            tbody tr:hover {
-                background-color: #f0f9ff;
-            }
-            button, .btn-secondary {
-                padding: 9px 15px;
-                border-radius: 0.375rem;
-                cursor: pointer;
-                transition:
-                    background-color 0.2s,
-                    box-shadow 0.2s;
-                font-weight: 500;
-                font-size: 0.875rem;
-                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.5rem;
-            }
-            button:focus, .btn-secondary:focus {
-                outline: 2px solid transparent;
-                outline-offset: 2px;
-                box-shadow: 0 0 0 3px rgba(13, 11, 7, 0.53);
-            }
-            button:disabled, .btn-secondary:disabled {
-                cursor: not-allowed;
-                opacity: 0.6;
-            }
-            .btn-primary {
-                background-color: #fbbf24;
-                color: #1f2937;
-                border: 1px solid transparent;
-            }
-            .btn-primary:hover:not(:disabled) {
-                background-color: #f59e0b;
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            }
-            .btn-secondary {
-                background-color: #6b7280;
-                color: white;
-                border: 1px solid transparent;
-                text-decoration: none;
-            }
-            .btn-secondary:hover:not(:disabled) {
-                background-color: #4b5563;
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            }
-            .btn-print-label {
-                width: 100%;
-                max-width: 265px;
-                margin-top: 0.5rem;
-                margin-left: auto;
-                margin-right: auto;
-                display: block;
-            }
-            .btn-export-log {
-              background-color: #4b5563;
-              color: white;
-              border: none;
-              padding: 10px 20px;
-              border-radius: 5px;
-              cursor: pointer;
-            }
-            .btn-export-log:hover {
-              background-color: #1565C0;
+
+            #labelQtyPackInput {
+                display: none !important;
+                visibility: hidden !important;
             }
 
-            /* --- Toast Notification Styles --- */
-            #toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
-            .toast { display: flex; align-items: center; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); max-width: 350px; opacity: 0; transform: translateX(100%); transition: opacity 0.2s ease, transform 0.2s ease; }
-            .toast.show { opacity: 1; transform: translateX(0); }
-            .toast-icon { margin-right: 0.75rem; flex-shrink: 0; }
-            .toast.success { background-color: #dcfce7; color: #166534; border: 1px solid #4ade80; }
-            .toast.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-            .toast.info { background-color: #e0f2fe; color: #0c4a6e; border: 1px solid #7dd3fc; }
-            /* --- Spinner --- */
-            .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-            .sortable-header {
-                cursor: pointer;
-                -webkit-user-select: none;
-                user-select: none;
-                padding-right: 24px !important;
-            }
-            .sortable-header::after {
-                content: "";
-                position: absolute;
-                right: 8px;
-                top: 50%;
-                margin-top: -4px;
-                border: 4px solid transparent;
-                opacity: 0.3;
-                pointer-events: none;
-                transition: opacity 0.2s ease-in-out;
-            }
-            .sortable-header.sort-asc::after {
-                border-bottom-color: #4b5563;
-                opacity: 1;
-            }
-            .sortable-header.sort-desc::after {
-                border-top-color: #4b5563;
-                opacity: 1;
-            }
-            .action-btn { background: none; border: none; padding: 0.25rem; border-radius: 9999px; color: #6b7280; transition: background-color 0.2s, color 0.2s; }
-            .action-btn:hover { background-color: #e5e7eb; color: #1f2937; }
-            .edit-btn:hover { color: #2563eb; }
-            .delete-btn:hover { color: #dc2626; }
-
-
-            /* Estilos de Impresión */
-            @page {
-                    size: 70mm 100mm;
-                    margin: 3.5mm;
-            }
-            @media print {
-                html, body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; width: 70mm; height: 100mm; overflow: hidden; }
-                body { margin: 0; padding: 0; -webkit-print-color-adjust: antialiased; print-color-adjust: optimizeLegibility; width: 70mm; height: 100mm; overflow: hidden; font-family: "Arial", "Helvetica", sans-serif; color: #000000 !important; }
-                body * { visibility: hidden; }
-                .label-print-area, .label-print-area * { visibility: visible; }
-                .label-print-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: none; box-shadow: none; display: flex; align-items: center; justify-content: center; }
-                .label-container { width: 100%; height: 100% !important; max-width: 63mm; max-height: 93mm; margin: 0; padding: 0mm; border: none; box-shadow: none; page-break-inside: avoid; background: white !important; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; overflow: hidden; }
-                .label-item-code { font-size: 12pt !important; font-weight: bold !important; line-height: 1.25 !important; word-break: normal; margin-bottom: 0.5mm; color: #000000 !important; }
-                .label-item-description { font-size: 12pt !important; font-weight: bold !important; line-height: 1.25 !important; word-break: normal; margin-bottom: 13mm; color: #000000 !important; }
-                .label-data-field { margin-bottom: 0.5mm; }
-                .label-data-field span { font-size: 9pt !important; font-weight: normal !important; line-height: 1.2 !important; color: #000000 !important; }
-                .label-data-field span:first-child { white-space: normal; }
-                .label-disclaimer { font-size: 7pt !important; font-weight: normal !important; line-height: 1.1 !important; color: #000000 !important; }
-                #qrCodeContainer { width: 25mm; height: 25mm; min-height: 25mm; border: none; flex-shrink: 0; }
-                #qrCodeContainer img { max-width: 100%; max-height: 100%; object-fit: contain; }
-                .qr-placeholder { border: 1px dashed; color: #000000 !important; font-size: 6pt; }
-                .label-logo { max-width: 55%; max-height: 7mm; width: auto; height: auto; object-fit: contain; margin-bottom: 2mm; display: block; }
-                #labelQtyPackInput { display: none !important; visibility: hidden !important; }
-                #labelQtyPackSpan { visibility: visible !important; display: inline !important; font-size: 9pt !important; font-weight: normal !important; text-align: right !important; color: #000000 !important; line-height: 1.2 !important; }
-                #printLabelBtn, .btn-print-label, .form-label, input:not(.label-qty-input), select, .data-field, #toast-container, h1, h2, table, #addLogEntryBtn, #exportLogBtn, #emptyTableMessage, .container-wrapper > img:first-of-type { display: none !important; visibility: hidden !important; }
-            }
-            @media screen {
-                #labelQtyPackSpan { display: none; }
-            }
-            /* 1. El body vuelve a usar flexbox */
-            /* 1. El body vuelve a usar flexbox */
-            body {
-                display: flex;
-                height: 100vh;
-                overflow: hidden;
+            #labelQtyPackSpan {
+                visibility: visible !important;
+                display: inline !important;
+                font-size: 9pt !important;
+                font-weight: normal !important;
+                text-align: right !important;
+                color: #000000 !important;
+                line-height: 1.2 !important;
             }
 
-            /* 2. Estilos de la barra lateral */
+            #printLabelBtn,
+            .btn-print-label,
+            .form-label,
+            input:not(.label-qty-input),
+            select,
+            .data-field,
+            #toast-container,
+            h1,
+            h2,
+            table,
+            #addLogEntryBtn,
+            #exportLogBtn,
+            #emptyTableMessage,
+            .container-wrapper>img:first-of-type {
+                display: none !important;
+                visibility: hidden !important;
+            }
+        }
+
+        @media screen {
+            #labelQtyPackSpan {
+                display: none;
+            }
+        }
+
+        /* 1. El body vuelve a usar flexbox */
+        /* 1. El body vuelve a usar flexbox */
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 2. Estilos de la barra lateral */
+        .sidebar {
+            width: 240px;
+            background-color: #0c0c0c;
+            color: #ffffff;
+            padding: 1rem;
+            flex-shrink: 0;
+            transition: width 0.3s ease-in-out;
+            will-change: width;
+            /* Hint para el navegador */
+            /* ----- CORRECCIÓN 1: Añadido para alinear el botón de logout al fondo ----- */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ----- CORRECCIÓN 2: Reglas nuevas para alinear iconos y texto ----- */
+        .sidebar .desktop-nav a,
+        .sidebar .desktop-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            /* 12px */
+        }
+
+        /* Ajustar padding solo para los enlaces de navegación (el botón de logout usa tailwind) */
+        .sidebar .desktop-nav a {
+            padding: 0.75rem 0.5rem;
+            /* 12px 8px */
+            border-radius: 0.375rem;
+            /* 6px */
+            margin-bottom: 0.25rem;
+            /* 4px */
+        }
+
+        /* --- FIN REGLAS NUEVAS --- */
+
+
+        /* 3. Cuando está colapsada, se reduce su ancho */
+        .sidebar.sidebar-collapsed {
+            width: 72px;
+        }
+
+        /* 4. El contenido principal crece para ocupar el espacio restante */
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            /* Permite scroll vertical en el contenido */
+        }
+
+        /* 5. Estilos para el texto y otros elementos que se ocultarán */
+        .sidebar .sidebar-text,
+        .sidebar .gadgets-heading,
+        .sidebar .text-xl.font-bold {
+            /* Modificado: transición simple */
+            transition: all 0.2s ease-in-out;
+            white-space: nowrap;
+        }
+
+        /* 6. Ocultar el texto cuando la barra está colapsada */
+        .sidebar.sidebar-collapsed .sidebar-text,
+        .sidebar.sidebar-collapsed .gadgets-heading,
+        .sidebar.sidebar-collapsed .text-xl.font-bold {
+            /* Modificado: Usamos display: none para ocultar completamente el texto */
+            display: none;
+        }
+
+        /* 7. Iconos */
+        .sidebar svg {
+            flex-shrink: 0;
+        }
+
+        /* MODIFICADO: Eliminadas las reglas de 'opacity' y 'visibility' para el SVG, ya no son necesarias */
+
+        /* 8. Centrar los iconos cuando la barra está colapsada */
+        /* ----- CORRECCIÓN 3: Modificada la regla para forzar el colapso del botón ----- */
+        .sidebar.sidebar-collapsed a,
+        .sidebar.sidebar-collapsed button {
+            justify-content: center;
+            padding-left: 0.5rem;
+            /* Añadido para anular padding de tailwind */
+            padding-right: 0.5rem;
+            /* Añadido para anular padding de tailwind */
+        }
+
+        /* --- FIN DE ESTILOS PARA LA BARRA LATERAL --- */
+
+        /* Specific column width adjustments for better fit */
+        #logTable th:nth-child(1),
+        #logTable td:nth-child(1) {
+            min-width: 140px;
+        }
+
+        /* Packing List Number */
+        #logTable th:nth-child(2),
+        #logTable td:nth-child(2) {
+            min-width: 100px;
+        }
+
+        /* Waybill */
+        #logTable th:nth-child(3),
+        #logTable td:nth-child(3) {
+            min-width: 100px;
+        }
+
+        /* Item Code */
+        #logTable th:nth-child(4),
+        #logTable td:nth-child(4) {
+            min-width: 200px;
+        }
+
+        /* Item Description */
+        #logTable th:nth-child(5),
+        #logTable td:nth-child(5) {
+            min-width: 120px;
+        }
+
+        /* Bin Location */
+        #logTable th:nth-child(6),
+        #logTable td:nth-child(6) {
+            min-width: 120px;
+        }
+
+        /* Relocated Bin */
+        #logTable th:nth-child(7),
+        #logTable td:nth-child(7) {
+            min-width: 90px;
+        }
+
+        /* Qty. Received */
+        #logTable th:nth-child(8),
+        #logTable td:nth-child(8) {
+            min-width: 90px;
+        }
+
+        /* Qty. Expected */
+        #logTable th:nth-child(9),
+        #logTable td:nth-child(9) {
+            min-width: 80px;
+        }
+
+        /* Difference */
+        #logTable th:nth-child(10),
+        #logTable td:nth-child(10) {
+            min-width: 150px;
+        }
+
+        /* Timestamp */
+        #logTable th:nth-child(11),
+        #logTable td:nth-child(11) {
+            min-width: 100px;
+        }
+
+        /* Acciones */
+
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 1023px) {
             .sidebar {
-                width: 240px;
-                background-color: #0c0c0c;
-                color: #ffffff;
-                padding: 1rem;
-                flex-shrink: 0;
-                transition: width 0.3s ease-in-out;
-                will-change: width; /* Hint para el navegador */
-                /* ----- CORRECCIÓN 1: Añadido para alinear el botón de logout al fondo ----- */
-                display: flex;
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding-bottom: 0;
+            }
+
+            .flex.h-screen.overflow-hidden {
                 flex-direction: column;
-            }
-            
-            /* ----- CORRECCIÓN 2: Reglas nuevas para alinear iconos y texto ----- */
-            .sidebar .desktop-nav a,
-            .sidebar .desktop-logout-btn {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem; /* 12px */
-            }
-            /* Ajustar padding solo para los enlaces de navegación (el botón de logout usa tailwind) */
-            .sidebar .desktop-nav a {
-                padding: 0.75rem 0.5rem; /* 12px 8px */
-                border-radius: 0.375rem; /* 6px */
-                margin-bottom: 0.25rem; /* 4px */
-            }
-            /* --- FIN REGLAS NUEVAS --- */
-
-
-            /* 3. Cuando está colapsada, se reduce su ancho */
-            .sidebar.sidebar-collapsed {
-                width: 72px;
+                height: auto;
+                overflow: visible;
             }
 
-            /* 4. El contenido principal crece para ocupar el espacio restante */
+            .flex.flex-col.flex-1.overflow-auto {
+                overflow: visible;
+            }
+
             .main-content {
-                flex-grow: 1;
-                overflow-y: auto; /* Permite scroll vertical en el contenido */
+                padding-left: 0;
+                padding-top: 1rem;
             }
 
-            /* 5. Estilos para el texto y otros elementos que se ocultarán */
-            .sidebar .sidebar-text,
-            .sidebar .gadgets-heading,
-            .sidebar .text-xl.font-bold {
-                /* Modificado: transición simple */
-                transition: all 0.2s ease-in-out;
-                white-space: nowrap;
+            .grid.grid-cols-1.lg\:grid-cols-3 {
+                grid-template-columns: 1fr;
             }
 
-            /* 6. Ocultar el texto cuando la barra está colapsada */
-            .sidebar.sidebar-collapsed .sidebar-text,
-            .sidebar.sidebar-collapsed .gadgets-heading,
-            .sidebar.sidebar-collapsed .text-xl.font-bold {
-                /* Modificado: Usamos display: none para ocultar completamente el texto */
+            .lg\:col-span-2,
+            .lg\:col-span-1 {
+                grid-column: span 1 / span 1;
+            }
+
+            .label-container {
+                max-width: 300px;
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+
+            #logTable th,
+            #logTable td {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 1023px) {
+
+            /* Ocultar la lógica de expandir/colapsar en móvil */
+            .sidebar.sidebar-collapsed {
+                width: 100%;
+            }
+
+            .sidebar.sidebar-collapsed .sidebar-text {
                 display: none;
             }
 
-            /* 7. Iconos */
-            .sidebar svg {
-                flex-shrink: 0;
-            }
-            
-            /* MODIFICADO: Eliminadas las reglas de 'opacity' y 'visibility' para el SVG, ya no son necesarias */
-
-            /* 8. Centrar los iconos cuando la barra está colapsada */
-            /* ----- CORRECCIÓN 3: Modificada la regla para forzar el colapso del botón ----- */
-            .sidebar.sidebar-collapsed a,
-            .sidebar.sidebar-collapsed button {
+            .sidebar:not(.sidebar-collapsed) a,
+            .sidebar:not(.sidebar-collapsed) button {
                 justify-content: center;
-                padding-left: 0.5rem;  /* Añadido para anular padding de tailwind */
-                padding-right: 0.5rem; /* Añadido para anular padding de tailwind */
-            }
-            /* --- FIN DE ESTILOS PARA LA BARRA LATERAL --- */
-
-            /* Specific column width adjustments for better fit */
-            #logTable th:nth-child(1), #logTable td:nth-child(1) { min-width: 140px; } /* Packing List Number */
-            #logTable th:nth-child(2), #logTable td:nth-child(2) { min-width: 100px; } /* Waybill */
-            #logTable th:nth-child(3), #logTable td:nth-child(3) { min-width: 100px; } /* Item Code */
-            #logTable th:nth-child(4), #logTable td:nth-child(4) { min-width: 200px; } /* Item Description */
-            #logTable th:nth-child(5), #logTable td:nth-child(5) { min-width: 120px; } /* Bin Location */
-            #logTable th:nth-child(6), #logTable td:nth-child(6) { min-width: 120px; } /* Relocated Bin */
-            #logTable th:nth-child(7), #logTable td:nth-child(7) { min-width: 90px; }  /* Qty. Received */
-            #logTable th:nth-child(8), #logTable td:nth-child(8) { min-width: 90px; }  /* Qty. Expected */
-            #logTable th:nth-child(9), #logTable td:nth-child(9) { min-width: 80px; }  /* Difference */
-            #logTable th:nth-child(10), #logTable td:nth-child(10) { min-width: 150px; } /* Timestamp */
-            #logTable th:nth-child(11), #logTable td:nth-child(11) { min-width: 100px; } /* Acciones */
-
-
-            /* Responsive adjustments for smaller screens */
-            @media (max-width: 1023px) {
-                .sidebar { width: 100%; height: auto; position: relative; padding-bottom: 0; }
-                .flex.h-screen.overflow-hidden { flex-direction: column; height: auto; overflow: visible; }
-                .flex.flex-col.flex-1.overflow-auto { overflow: visible; }
-                .main-content { padding-left: 0; padding-top: 1rem; }
-                .grid.grid-cols-1.lg\:grid-cols-3 { grid-template-columns: 1fr; }
-                .lg\:col-span-2, .lg\:col-span-1 { grid-column: span 1 / span 1; }
-                .label-container { max-width: 300px; margin-bottom: 1.5rem; }
             }
 
-            @media (max-width: 767px) {
-                #logTable th, #logTable td { padding: 8px 10px; font-size: 0.75rem; }
+            /* 1. La barra lateral se convierte en barra superior fija */
+            .sidebar {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 64px;
+                padding: 0 1rem;
+                z-index: 50;
+                border-bottom: 1px solid #4a5568;
             }
 
-            @media (max-width: 1023px) {
-                /* Ocultar la lógica de expandir/colapsar en móvil */
-                .sidebar.sidebar-collapsed {
-                    width: 100%;
-                }
-                .sidebar.sidebar-collapsed .sidebar-text {
-                    display: none;
-                }
-                .sidebar:not(.sidebar-collapsed) a, .sidebar:not(.sidebar-collapsed) button {
-                    justify-content: center;
-                }
-
-                /* 1. La barra lateral se convierte en barra superior fija */
-                .sidebar {
-                    flex-direction: row;
-                    justify-content: space-between;
-                    align-items: center;
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 64px;
-                    padding: 0 1rem;
-                    z-index: 50;
-                    border-bottom: 1px solid #4a5568;
-                }
-
-                /* 2. Ocultar la navegación de escritorio y otros elementos */
-                .sidebar .desktop-nav,
-                .sidebar .desktop-logout-btn,
-                .sidebar .gadgets-heading,
-                .sidebar .flex.items-center,
-                .sidebar .text-xl.font-bold {
-                    display: none;
-                }
-
-                /* 3. Ajustar logo y mostrar el botón de hamburguesa */
-                .sidebar img.mb-6 {
-                    margin-bottom: 0;
-                    height: 30px;
-                }
-
-                .hamburger-button {
-                    display: block; /* Mostrar el botón */
-                    background: none;
-                    border: none;
-                    color: white;
-                    cursor: pointer;
-                    padding: 0.5rem;
-                }
-
-                /* 4. Estilos para el menú desplegable */
-                .mobile-menu-container {
-                    display: none; /* Oculto por defecto */
-                    position: fixed;
-                    top: 64px; /* Justo debajo de la barra superior */
-                    left: 0;
-                    width: 100%;
-                    height: calc(100vh - 64px);
-                    background-color: #0c0c0c;
-                    padding: 1rem;
-                    overflow-y: auto;
-                }
-
-                .mobile-menu-container.is-open {
-                    display: block; /* Clase para mostrar el menú */
-                }
-
-                .mobile-menu-container a {
-                    justify-content: flex-start; /* Alinear texto e icono a la izquierda */
-                    padding: 1rem;
-                }
-                .mobile-menu-container .sidebar-text {
-                    display: inline; /* Asegurarse de que el texto es visible */
-                    font-size: 1.125rem;
-                }
-
-                /* 5. Ajustar el contenido principal para que no quede debajo de la barra */
-                .main-content {
-                    padding-top: 80px;
-                }
-
-                /* Quitar la funcionalidad de hover en la barra en móvil */
-                .sidebar:hover {
-                    width: 100%;
-                }
+            /* 2. Ocultar la navegación de escritorio y otros elementos */
+            .sidebar .desktop-nav,
+            .sidebar .desktop-logout-btn,
+            .sidebar .gadgets-heading,
+            .sidebar .flex.items-center,
+            .sidebar .text-xl.font-bold {
+                display: none;
             }
 
-            /* Ocultar el botón de hamburguesa en escritorio */
-            @media (min-width: 1024px) {
-                .hamburger-button {
-                    display: none;
-                }
+            /* 3. Ajustar logo y mostrar el botón de hamburguesa */
+            .sidebar img.mb-6 {
+                margin-bottom: 0;
+                height: 30px;
             }
 
-            /* --- REGLA AÑADIDA --- */
-            /* Oculta el contenedor del menú móvil en escritorio para evitar duplicados */
+            .hamburger-button {
+                display: block;
+                /* Mostrar el botón */
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                padding: 0.5rem;
+            }
+
+            /* 4. Estilos para el menú desplegable */
             .mobile-menu-container {
                 display: none;
+                /* Oculto por defecto */
+                position: fixed;
+                top: 64px;
+                /* Justo debajo de la barra superior */
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 64px);
+                background-color: #0c0c0c;
+                padding: 1rem;
+                overflow-y: auto;
             }
 
-        </style>
-    </head>
-    <body class="bg-white flex h-screen overflow-hidden">
-        <aside class="sidebar">
-            <!-- Logo (se mantiene igual) -->
-            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+            .mobile-menu-container.is-open {
+                display: block;
+                /* Clase para mostrar el menú */
+            }
 
-            <!-- =============================================================== -->
-            <!-- NUEVO: Botón de Hamburguesa (para ser visible solo en móviles) -->
-            <!-- =============================================================== -->
-            <button id="hamburger-btn" class="hamburger-button" aria-label="Abrir menú">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            .mobile-menu-container a {
+                justify-content: flex-start;
+                /* Alinear texto e icono a la izquierda */
+                padding: 1rem;
+            }
+
+            .mobile-menu-container .sidebar-text {
+                display: inline;
+                /* Asegurarse de que el texto es visible */
+                font-size: 1.125rem;
+            }
+
+            /* 5. Ajustar el contenido principal para que no quede debajo de la barra */
+            .main-content {
+                padding-top: 80px;
+            }
+
+            /* Quitar la funcionalidad de hover en la barra en móvil */
+            .sidebar:hover {
+                width: 100%;
+            }
+        }
+
+        /* Ocultar el botón de hamburguesa en escritorio */
+        @media (min-width: 1024px) {
+            .hamburger-button {
+                display: none;
+            }
+        }
+
+        /* --- REGLA AÑADIDA --- */
+        /* Oculta el contenedor del menú móvil en escritorio para evitar duplicados */
+        .mobile-menu-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-white flex h-screen overflow-hidden">
+    <aside class="sidebar">
+        <!-- Logo (se mantiene igual) -->
+        <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain"
+            onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+
+        <!-- =============================================================== -->
+        <!-- NUEVO: Botón de Hamburguesa (para ser visible solo en móviles) -->
+        <!-- =============================================================== -->
+        <button id="hamburger-btn" class="hamburger-button" aria-label="Abrir menú">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+
+
+
+        <h2 class="text-xl font-bold mb-6 text-yellow-400 sidebar-text">Menú Principal</h2>
+
+        <!-- MODIFICADO: Se añade la clase 'desktop-nav' para identificar la navegación de escritorio -->
+        <nav class="desktop-nav">
+            <a id="viewStockBtn" href="/stock" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-            </button>
-
-
-
-            <h2 class="text-xl font-bold mb-6 text-yellow-400 sidebar-text">Menú Principal</h2>
-
-            <!-- MODIFICADO: Se añade la clase 'desktop-nav' para identificar la navegación de escritorio -->
-            <nav class="desktop-nav">
-                <a id="viewStockBtn" href="/stock" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                    <span class="sidebar-text">Consultar Stock</span>
-                </a>
-                <a id="viewLabelBtn" href="/label" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
-                    </svg>
-                    <span class="sidebar-text">Etiquetado</span>
-                </a>
-                <a id="viewLogsLinkBtn" href="/view_logs#" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-text" viewBox="0 0 16 16">
-                        <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5M5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
-                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
-                    </svg>
-                    <span class="sidebar-text">Visualizar Logs</span>
-                </a>
-                <a id="viewReconciliationBtn" href="/reconciliation" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
-                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
-                    </svg>
-                    <span class="sidebar-text">Ver conciliación</span>
-                </a>
-                <a id="UpdateFilesBtn" href="/update"text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-arrow-up" viewBox="0 0 16 16">
-                        <path d="M8 11a.5.5 0 0 0 .5-.5V6.707l1.146 1.147a.5.5 0 0 0 .708-.708l-2-2a.5.5 0 0 0-.708 0l-2 2a.5.5 0 1 0 .708.708L7.5 6.707V10.5a.5.5 0 0 0 .5.5"/>
-                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/>
-                    </svg>
-                    <span class="sidebar-text">Actualizar Ficheros</span>
-                </a>
-                <a id="viewCountsBtn" href="/counts" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
-                        <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
-                        <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
-                    </svg>
-                    <span class="sidebar-text">Conteo de Items</span>
-                </a>
-                <a id="viewcountsbtn" href="/view_counts" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-spreadsheet" viewBox="0 0 16 16">
-                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v4h10V2a1 1 0 0 0-1-1zm9 6h-3v2h3zm0 3h-3v2h3zm0 3h-3v2h2a1 1 0 0 0 1-1zm-4 2v-2H6v2zm-4 0v-2H3v1a1 1 0 0 0 1 1zm-2-3h2v-2H3zm0-3h2V7H3zm3-2v2h3V7zm3 3H6v2h3z"/>
-                    </svg>
-                    <span class="sidebar-text">Validar conteos</span>
-                </a>
-                <a id="viewPickingBtn" href="/picking" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart" viewBox="0 0 16 16">
-                        <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2_0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
-                    </svg>
-                    <span class="sidebar-text">Auditoría de Picking</span>
-                </a>
-                <a id="viewPickingAuditsBtn" href="/view_picking_audits" class="text-white hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
-                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
-                    </svg>
-                    <span class="sidebar-text">Confirmación Picking</span>
-                </a>
-            </nav>
-
-            <!-- MODIFICADO: Se añade la clase 'desktop-logout-btn' y un icono para consistencia -->
-            <a href="/logout" class="desktop-logout-btn text-white hover:bg-gray-700 mt-auto">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-5 h-5" viewBox="0 0 16 16">
-                    <path d="M7.5 1v7h1V1z"/>
-                    <path d="M3 8.812a5 5 0 0 1 2.578-4.375l-.485-.874A6 6 0 1 0 11 3.616l-.501.865A5 5 0 1 1 3 8.812"/>
-                </svg>
-                <span class="sidebar-text">Cerrar Sesión</span>
+                <span class="sidebar-text">Consultar Stock</span>
             </a>
+            <a id="viewLabelBtn" href="/label" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                </svg>
+                <span class="sidebar-text">Etiquetado</span>
+            </a>
+            <a id="viewLogsLinkBtn" href="/view_logs#" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-file-text" viewBox="0 0 16 16">
+                    <path
+                        d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5M5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z" />
+                    <path
+                        d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1" />
+                </svg>
+                <span class="sidebar-text">Visualizar Logs</span>
+            </a>
+            <a id="viewReconciliationBtn" href="/reconciliation" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye"
+                    viewBox="0 0 16 16">
+                    <path
+                        d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                </svg>
+                <span class="sidebar-text">Ver conciliación</span>
+            </a>
+            <a id="UpdateFilesBtn" href="/update" text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-file-arrow-up" viewBox="0 0 16 16">
+                    <path
+                        d="M8 11a.5.5 0 0 0 .5-.5V6.707l1.146 1.147a.5.5 0 0 0 .708-.708l-2-2a.5.5 0 0 0-.708 0l-2 2a.5.5 0 1 0 .708.708L7.5 6.707V10.5a.5.5 0 0 0 .5.5" />
+                    <path
+                        d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1" />
+                </svg>
+                <span class="sidebar-text">Actualizar Ficheros</span>
+            </a>
+            <a id="viewCountsBtn" href="/counts" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-card-checklist" viewBox="0 0 16 16">
+                    <path
+                        d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z" />
+                    <path
+                        d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0" />
+                </svg>
+                <span class="sidebar-text">Conteo de Items</span>
+            </a>
+            <a id="viewcountsbtn" href="/view_counts" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-file-spreadsheet" viewBox="0 0 16 16">
+                    <path
+                        d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v4h10V2a1 1 0 0 0-1-1zm9 6h-3v2h3zm0 3h-3v2h3zm0 3h-3v2h2a1 1 0 0 0 1-1zm-4 2v-2H6v2zm-4 0v-2H3v1a1 1 0 0 0 1 1zm-2-3h2v-2H3zm0-3h2V7H3zm3-2v2h3V7zm3 3H6v2h3z" />
+                </svg>
+                <span class="sidebar-text">Validar conteos</span>
+            </a>
+            <a id="viewPickingBtn" href="/picking" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart"
+                    viewBox="0 0 16 16">
+                    <path
+                        d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2_0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2" />
+                </svg>
+                <span class="sidebar-text">Auditoría de Picking</span>
+            </a>
+            <a id="viewPickingAuditsBtn" href="/view_picking_audits" class="text-white hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-clipboard-check" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                    <path
+                        d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
+                    <path
+                        d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z" />
+                </svg>
+                <span class="sidebar-text">Confirmación Picking</span>
+            </a>
+        </nav>
 
-            <!-- =============================================================== -->
-            <!-- NUEVO: Contenedor para el menú que se desplegará en móviles   -->
-            <!-- =============================================================== -->
-            <div id="mobile-menu" class="mobile-menu-container"></div>
-        </aside>
+        <!-- MODIFICADO: Se añade la clase 'desktop-logout-btn' y un icono para consistencia -->
+        <a href="/logout" class="desktop-logout-btn text-white hover:bg-gray-700 mt-auto">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-5 h-5" viewBox="0 0 16 16">
+                <path d="M7.5 1v7h1V1z" />
+                <path d="M3 8.812a5 5 0 0 1 2.578-4.375l-.485-.874A6 6 0 1 0 11 3.616l-.501.865A5 5 0 1 1 3 8.812" />
+            </svg>
+            <span class="sidebar-text">Cerrar Sesión</span>
+        </a>
 
-        <main class="main-content flex flex-col flex-1 overflow-auto">
-            <div class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-2">
-                <form id="main-form">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 mb-2">
-                        <div class="lg:col-span-2 space-y-2 bg-white p-2 rounded-lg shadow">
-                            <h1 class="text-xl font-semibold text-gray-800 mb-2 border-b pb-1">Inbound</h1>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="importReference" class="form-label">Import Reference</label>
-                                    <input type="text" id="importReference" name="importReference" placeholder="Ej: PL-12345" oninput="this.value = this.value.toUpperCase()" required />
-                                </div>
-                                <div>
-                                    <label for="waybill" class="form-label">Waybill</label>
-                                    <input type="text" id="waybill" name="waybill" placeholder="Ej: WB-67890" oninput="this.value = this.value.toUpperCase()" required />
-                                </div>
+        <!-- =============================================================== -->
+        <!-- NUEVO: Contenedor para el menú que se desplegará en móviles   -->
+        <!-- =============================================================== -->
+        <div id="mobile-menu" class="mobile-menu-container"></div>
+    </aside>
+
+    <main class="main-content flex flex-col flex-1 overflow-auto">
+        <div class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-2">
+            <form id="main-form">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 mb-2">
+                    <div class="lg:col-span-2 space-y-2 bg-white p-2 rounded-lg shadow">
+                        <h1 class="text-xl font-semibold text-gray-800 mb-2 border-b pb-1">Inbound</h1>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="importReference" class="form-label">Import Reference</label>
+                                <input type="text" id="importReference" name="importReference"
+                                    placeholder="Ej: PL-12345" oninput="this.value = this.value.toUpperCase()"
+                                    required />
                             </div>
                             <div>
-                                <label for="itemCode" class="form-label">Item Code.</label>
-                                <div class="flex items-end gap-2">
-                                    <input type="text" id="itemCode" name="itemCode" class="flex-grow" placeholder="Ingrese código y presione Enter o Buscar" oninput="this.value = this.value.toUpperCase()" required />
-                                    <button type="button" id="scanItemBtn" title="Escanear código de barras" class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
-                                        <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z"/>
-                                        <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z"/>
-                                        <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z"/>
-                                        <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z"/>
-                                        <path d="M12 9h2V8h-2z"/>
-                                        </svg>
-                                    </button>
-                                    <button type="button" id="findItemBtn" class="btn-secondary h-9 w-auto px-4 flex-shrink-0"><span>Buscar</span></button>
-                                </div>
+                                <label for="waybill" class="form-label">Waybill</label>
+                                <input type="text" id="waybill" name="waybill" placeholder="Ej: WB-67890"
+                                    oninput="this.value = this.value.toUpperCase()" required />
                             </div>
-                            <div>
-                                <label for="itemDescription" class="form-label">Item Description.</label>
-                                <div id="itemDescription" class="data-field min-h-[38px]"></div>
+                        </div>
+                        <div>
+                            <label for="itemCode" class="form-label">Item Code.</label>
+                            <div class="flex items-end gap-2">
+                                <input type="text" id="itemCode" name="itemCode" class="flex-grow"
+                                    placeholder="Ingrese código y presione Enter o Buscar"
+                                    oninput="this.value = this.value.toUpperCase()" required />
+                                <button type="button" id="scanItemBtn" title="Escanear código de barras"
+                                    class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-qr-code-scan" viewBox="0 0 16 16">
+                                        <path
+                                            d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                                        <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                                        <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                                        <path
+                                            d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                                        <path d="M12 9h2V8h-2z" />
+                                    </svg>
+                                </button>
+                                <button type="button" id="findItemBtn"
+                                    class="btn-secondary h-9 w-auto px-4 flex-shrink-0"><span>Buscar</span></button>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        </div>
+                        <div>
+                            <label for="itemDescription" class="form-label">Item Description.</label>
+                            <div id="itemDescription" class="data-field min-h-[38px]"></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label for="quantity" class="form-label">Quantity Received.</label>
-                                <input type="number" id="quantity" name="quantity" min="1" class="w-full sm:w-1/2" required />
-                            </div>                            
-                                <div>
-                                    <label for="binLocation" class="form-label">Bin Location (Original).</label>
-                                    <div id="binLocation" class="data-field min-h-[38px]"></div>
-                                </div>
-                                <div>
-                                    <label for="aditionalBins" class="form-label">Aditional Bins.</label>
-                                    <div id="aditionalBins" class="data-field min-h-[38px]"></div>
-                                </div>
-                                        <div>
-                                        <label for="relocatedBin" class="form-label">Relocate Bin (New).</label>
-                                        <input type="text" id="relocatedBin" name="relocatedBin" class="w-full sm:w-1/2" placeholder="(Opcional)" oninput="this.value = this.value.toUpperCase()" />
-                                    </div>
+                                <input type="number" id="quantity" name="quantity" min="1" class="w-full sm:w-1/2"
+                                    required />
                             </div>
-                            
-                            <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
-                                <h3 class="text-base font-semibold text-gray-600 mb-3 uppercase tracking-wider">Resumen de Cantidades</h3>
-                                <div class="grid grid-cols-3 gap-4">
-                                    <div><label class="form-label text-xs">Qty. Received</label><div id="qtyReceived" class="data-field text-sm"></div></div>
-                                    <div><label class="form-label text-xs">Qty. GRN (Expected)</label><div id="qtyGrn" class="data-field text-sm"></div></div>
-                                    <div><label class="form-label text-xs">Difference.</label><div id="difference" class="data-field text-sm"></div></div>
-                                </div>
+                            <div>
+                                <label for="binLocation" class="form-label">Bin Location (Original).</label>
+                                <div id="binLocation" class="data-field min-h-[38px]"></div>
                             </div>
-                            <div class="flex flex-wrap justify-start items-center mt-6 gap-3">
-                                <button type="submit" id="addLogEntryBtn" class="btn-primary w-60 h-10"><span>Añadir Registro</span></button>
-                                <a id="exportLogBtn" href="#" class="btn-secondary w-60 h-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span>Exportar Log</span>
-                                </a>
+                            <div>
+                                <label for="aditionalBins" class="form-label">Aditional Bins.</label>
+                                <div id="aditionalBins" class="data-field min-h-[38px]"></div>
+                            </div>
+                            <div>
+                                <label for="relocatedBin" class="form-label">Relocate Bin (New).</label>
+                                <input type="text" id="relocatedBin" name="relocatedBin" class="w-full sm:w-1/2"
+                                    placeholder="(Opcional)" oninput="this.value = this.value.toUpperCase()" />
                             </div>
                         </div>
 
-                        <div class="lg:col-span-1">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Previa Etiqueta</h2>
+                        <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
+                            <h3 class="text-base font-semibold text-gray-600 mb-3 uppercase tracking-wider">Resumen de
+                                Cantidades</h3>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div><label class="form-label text-xs">Qty. Received</label>
+                                    <div id="qtyReceived" class="data-field text-sm"></div>
+                                </div>
+                                <div><label class="form-label text-xs">Qty. GRN (Expected)</label>
+                                    <div id="qtyGrn" class="data-field text-sm"></div>
+                                </div>
+                                <div><label class="form-label text-xs">Difference.</label>
+                                    <div id="difference" class="data-field text-sm"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap justify-start items-center mt-6 gap-3">
+                            <button type="submit" id="addLogEntryBtn" class="btn-primary w-60 h-10"><span>Añadir
+                                    Registro</span></button>
+                            <a id="exportLogBtn" href="#" class="btn-secondary w-60 h-10">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                <span>Exportar Log</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1">
+                        <h2 class="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Previa Etiqueta</h2>
                         <div class="label-print-area">
                             <div class="label-container">
                                 <div>
                                     <div class="mb-3">
-                                        <img src="/static/images/logoytpe_sandvik.png" alt="Logotipo Sandvik Etiqueta" class="label-logo" onerror="this.onerror=null; this.src='https://placehold.co/130x25/f3f4f6/6b7280?text=Error+Logo';" />
+                                        <img src="/static/images/logoytpe_sandvik.png" alt="Logotipo Sandvik Etiqueta"
+                                            class="label-logo"
+                                            onerror="this.onerror=null; this.src='https://placehold.co/130x25/f3f4f6/6b7280?text=Error+Logo';" />
                                         <p class="label-item-code" id="labelItemCode">ITEM CODE</p>
                                         <p class="label-item-description" id="labelItemDescription">Item Description</p>
                                     </div>
                                     <div class="mb-2 space-y-1">
-                                        <div class="label-data-field"><span>Quantity Received</span><input type="number" id="labelQtyPackInput" class="label-qty-input" value="1" min="0" /><span id="labelQtyPackSpan">1</span></div>
-                                        <div class="label-data-field"><span>Product weight</span><span id="labelWeight">N/A</span></div>
-                                        <div class="label-data-field"><span>Bin Location</span><span id="labelBinLocation">BIN</span></div>
-                                        <div class="label-data-field"><span>Reception Date</span><span id="labelReceptionDate">DD/MM/YY</span></div>
+                                        <div class="label-data-field"><span>Quantity Received</span><input type="number"
+                                                id="labelQtyPackInput" class="label-qty-input" value="1" min="0" /><span
+                                                id="labelQtyPackSpan">1</span></div>
+                                        <div class="label-data-field"><span>Product weight</span><span
+                                                id="labelWeight">N/A</span></div>
+                                        <div class="label-data-field"><span>Bin Location</span><span
+                                                id="labelBinLocation">BIN</span></div>
+                                        <div class="label-data-field"><span>Reception Date</span><span
+                                                id="labelReceptionDate">DD/MM/YY</span></div>
                                     </div>
                                 </div>
                                 <div class="label-bottom-section">
-                                    <p class="label-disclaimer" id="labelDisclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
-                                    <div id="qrCodeContainer"><div class="qr-placeholder">QR Code</div></div>
+                                    <p class="label-disclaimer" id="labelDisclaimer">All trademarks and logotypes
+                                        appearing on this label are owned by Sandvik Group</p>
+                                    <div id="qrCodeContainer">
+                                        <div class="qr-placeholder">QR Code</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                            <button type="button" id="printLabelBtn" class="btn-primary h-10 btn-print-label mt-4">Imprimir Etiqueta</button>
-                        </div>
+                        <button type="button" id="printLabelBtn" class="btn-primary h-10 btn-print-label mt-4">Imprimir
+                            Etiqueta</button>
                     </div>
-                </form>
+                </div>
+            </form>
 
-            </div>
+        </div>
 
         <div class="overflow-x-auto bg-white p-3 rounded-lg shadow">
             <table class="min-w-full" id="logTable">
                 <thead class="bg-gray-50">
                     <tr>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="0">Import Reference</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="1">Waybill</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="2">Item Code</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="3">Item Description</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="4">Bin Location (Original)</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="5">Relocated Bin (New)</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="6">Qty. Received</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="7">Qty. Expected</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="8">Difference</th>
-                            <th class="whitespace-nowrap sortable-header" data-column-index="9">Timestamp</th>
-                            <th class="whitespace-nowrap px-3 py-3">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logTableBody" class="divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-            <p id="emptyTableMessage" class="text-center text-gray-500 mt-4 hidden">No hay registros aún.</p>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="0">Import Reference</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="1">Waybill</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="2">Item Code</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="3">Item Description</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="4">Bin Location (Original)</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="5">Relocated Bin (New)</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="6">Qty. Received</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="7">Qty. Expected</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="8">Difference</th>
+                        <th class="whitespace-nowrap sortable-header" data-column-index="9">Timestamp</th>
+                        <th class="whitespace-nowrap px-3 py-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody" class="divide-y divide-gray-200"></tbody>
+            </table>
         </div>
-        </main>
-
-        <div id="scanner-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-lg p-4 max-w-lg w-full">
-                <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
-                <div id="reader" class="w-full rounded-md overflow-hidden border"></div>
-                <button id="close-scanner-btn" class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
-            </div>
+        <p id="emptyTableMessage" class="text-center text-gray-500 mt-4 hidden">No hay registros aún.</p>
         </div>
+    </main>
 
-        <div id="toast-container"></div>
+    <div id="scanner-modal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-4 max-w-lg w-full">
+            <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
+            <div id="reader" class="w-full rounded-md overflow-hidden border"></div>
+            <button id="close-scanner-btn"
+                class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
 
 
-        <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                // --- CÓDIGO NUEVO PARA LA BARRA LATERAL COLAPSABLE ---
-                const sidebar = document.querySelector(".sidebar");
-                if (sidebar) {
-                    // Colapsar la barra por defecto al cargar la página
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // --- CÓDIGO NUEVO PARA LA BARRA LATERAL COLAPSABLE ---
+            const sidebar = document.querySelector(".sidebar");
+            if (sidebar) {
+                // Colapsar la barra por defecto al cargar la página
+                sidebar.classList.add("sidebar-collapsed");
+
+                // Expandir la barra al pasar el mouse
+                sidebar.addEventListener("mouseenter", () => {
+                    sidebar.classList.remove("sidebar-collapsed");
+                });
+
+                // Colapsar la barra al quitar el mouse
+                sidebar.addEventListener("mouseleave", () => {
                     sidebar.classList.add("sidebar-collapsed");
+                });
+            }
+            // --- FIN DEL CÓDIGO NUEVO ---
+            // --- Constants and Configuration ---
+            const API_BASE_URL = "/api";
+            const dynamicUrls = {
+                updateFiles: "/update",
+                viewLogs: "/view_logs",
+                viewReconciliation: "/reconciliation",
+                stock: "/stock",
+                label: "/label",
+                counts: "/counts"
+            };
 
-                    // Expandir la barra al pasar el mouse
-                    sidebar.addEventListener("mouseenter", () => {
-                        sidebar.classList.remove("sidebar-collapsed");
-                    });
+            // --- DOM Elements ---
+            const mainForm = document.getElementById("main-form");
+            const importReferenceInput = document.getElementById("importReference");
+            const waybillInput = document.getElementById("waybill");
+            const itemCodeInput = document.getElementById("itemCode");
+            const quantityInput = document.getElementById("quantity");
+            const relocatedBinInput = document.getElementById("relocatedBin");
+            const itemDescriptionDiv = document.getElementById("itemDescription");
+            const binLocationDiv = document.getElementById("binLocation");
+            const aditionalBinsDiv = document.getElementById("aditionalBins");
+            const qtyReceivedDiv = document.getElementById("qtyReceived");
+            const qtyGrnDiv = document.getElementById("qtyGrn");
+            const differenceDiv = document.getElementById("difference");
+            const labelItemCode = document.getElementById("labelItemCode");
+            const labelItemDescription = document.getElementById("labelItemDescription");
+            const labelQtyPackInput = document.getElementById("labelQtyPackInput");
+            const labelQtyPackSpan = document.getElementById("labelQtyPackSpan");
+            const labelWeight = document.getElementById("labelWeight");
+            const labelReceptionDate = document.getElementById("labelReceptionDate");
+            const labelBinLocation = document.getElementById("labelBinLocation");
+            const qrCodeContainer = document.getElementById("qrCodeContainer");
+            const logTable = document.getElementById("logTable");
+            const logTableBody = document.getElementById("logTableBody");
+            const findItemBtn = document.getElementById("findItemBtn");
+            const printLabelBtn = document.getElementById("printLabelBtn");
+            const addLogEntryBtn = document.getElementById("addLogEntryBtn");
+            const exportLogBtn = document.getElementById("exportLogBtn");
+            const emptyTableMessage = document.getElementById("emptyTableMessage");
+            const toastContainer = document.getElementById("toast-container");
+            const updateFilesBtn = document.getElementById("UpdateFilesBtn");
+            const viewLogsLinkBtn = document.getElementById("viewLogsLinkBtn");
+            const viewReconciliationBtn = document.getElementById("viewReconciliationBtn");
+            // Scanner elements
+            const scanItemBtn = document.getElementById("scanItemBtn");
+            const scannerModal = document.getElementById('scanner-modal');
+            const closeScannerBtn = document.getElementById('close-scanner-btn');
 
-                    // Colapsar la barra al quitar el mouse
-                    sidebar.addEventListener("mouseleave", () => {
-                        sidebar.classList.add("sidebar-collapsed");
-                    });
+            // --- Global State Variables ---
+            let currentItemData = null;
+            let qrCodeInstance = null;
+            let currentSortColumnIndex = 9;
+            let currentSortDirection = "desc";
+            let editingLogId = null;
+            let html5QrCode = null;
+
+            // --- SVG Icons ---
+            const ICONS = {
+                spinner: '<div class="spinner"></div>',
+                search: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>',
+                edit: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>',
+                delete: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>',
+                success: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                error: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                info: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            };
+
+            // --- Functions ---
+
+            function showToast(message, type = "info") {
+                if (!toastContainer) return;
+                const toast = document.createElement("div");
+                toast.className = `toast ${type}`;
+                const icon = ICONS[type] || ICONS.info;
+                toast.innerHTML = `<div class="toast-icon">${icon}</div><span>${message}</span>`;
+                toastContainer.appendChild(toast);
+                setTimeout(() => toast.classList.add("show"), 10);
+                setTimeout(() => {
+                    toast.classList.remove("show");
+                    toast.addEventListener("transitionend", () => toast.remove());
+                }, 2000);
+            }
+
+            function toggleButtonSpinner(button, isLoading, defaultContent) {
+                if (!button) return;
+                if (isLoading) {
+                    button.disabled = true;
+                    button.innerHTML = ICONS.spinner;
+                } else {
+                    button.disabled = false;
+                    button.innerHTML = defaultContent;
                 }
-                // --- FIN DEL CÓDIGO NUEVO ---
-                // --- Constants and Configuration ---
-                const API_BASE_URL = "/api";
-                const dynamicUrls = {
-                    updateFiles: "/update",
-                    viewLogs: "/view_logs",
-                    viewReconciliation: "/reconciliation",
-                    stock: "/stock",
-                    label: "/label",
-                    counts: "/counts"
-                };
+            }
 
-                // --- DOM Elements ---
-                const mainForm = document.getElementById("main-form");
-                const importReferenceInput = document.getElementById("importReference");
-                const waybillInput = document.getElementById("waybill");
-                const itemCodeInput = document.getElementById("itemCode");
-                const quantityInput = document.getElementById("quantity");
-                const relocatedBinInput = document.getElementById("relocatedBin");
-                const itemDescriptionDiv = document.getElementById("itemDescription");
-                const binLocationDiv = document.getElementById("binLocation");
-                const aditionalBinsDiv = document.getElementById("aditionalBins");
-                const qtyReceivedDiv = document.getElementById("qtyReceived");
-                const qtyGrnDiv = document.getElementById("qtyGrn");
-                const differenceDiv = document.getElementById("difference");
-                const labelItemCode = document.getElementById("labelItemCode");
-                const labelItemDescription = document.getElementById("labelItemDescription");
-                const labelQtyPackInput = document.getElementById("labelQtyPackInput");
-                const labelQtyPackSpan = document.getElementById("labelQtyPackSpan");
-                const labelWeight = document.getElementById("labelWeight");
-                const labelReceptionDate = document.getElementById("labelReceptionDate");
-                const labelBinLocation = document.getElementById("labelBinLocation");
-                const qrCodeContainer = document.getElementById("qrCodeContainer");
-                const logTable = document.getElementById("logTable");
-                const logTableBody = document.getElementById("logTableBody");
-                const findItemBtn = document.getElementById("findItemBtn");
-                const printLabelBtn = document.getElementById("printLabelBtn");
-                const addLogEntryBtn = document.getElementById("addLogEntryBtn");
-                const exportLogBtn = document.getElementById("exportLogBtn");
-                const emptyTableMessage = document.getElementById("emptyTableMessage");
-                const toastContainer = document.getElementById("toast-container");
-                const updateFilesBtn = document.getElementById("UpdateFilesBtn");
-                const viewLogsLinkBtn = document.getElementById("viewLogsLinkBtn");
-                const viewReconciliationBtn = document.getElementById("viewReconciliationBtn");
-                // Scanner elements
-                const scanItemBtn = document.getElementById("scanItemBtn");
-                const scannerModal = document.getElementById('scanner-modal');
-                const closeScannerBtn = document.getElementById('close-scanner-btn');
+            async function findItemData(isEditing = false) {
+                const code = itemCodeInput.value.trim().toUpperCase();
+                const packingList = importReferenceInput.value.trim().toUpperCase();
 
-                // --- Global State Variables ---
-                let currentItemData = null;
-                let qrCodeInstance = null;
-                let currentSortColumnIndex = 9;
-                let currentSortDirection = "desc";
-                let editingLogId = null;
-                let html5QrCode = null;
-
-                // --- SVG Icons ---
-                const ICONS = {
-                    spinner: '<div class="spinner"></div>',
-                    search: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>',
-                    edit: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>',
-                    delete: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>',
-                    success: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
-                    error: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
-                    info: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
-                };
-
-                // --- Functions ---
-
-                function showToast(message, type = "info") {
-                    if (!toastContainer) return;
-                    const toast = document.createElement("div");
-                    toast.className = `toast ${type}`;
-                    const icon = ICONS[type] || ICONS.info;
-                    toast.innerHTML = `<div class="toast-icon">${icon}</div><span>${message}</span>`;
-                    toastContainer.appendChild(toast);
-                    setTimeout(() => toast.classList.add("show"), 10);
-                    setTimeout(() => {
-                        toast.classList.remove("show");
-                        toast.addEventListener("transitionend", () => toast.remove());
-                    }, 2000);
-                }
-
-                function toggleButtonSpinner(button, isLoading, defaultContent) {
-                    if (!button) return;
-                    if (isLoading) {
-                        button.disabled = true;
-                        button.innerHTML = ICONS.spinner;
-                    } else {
-                        button.disabled = false;
-                        button.innerHTML = defaultContent;
-                    }
-                }
-
-                async function findItemData(isEditing = false) {
-                    const code = itemCodeInput.value.trim().toUpperCase();
-                    const packingList = importReferenceInput.value.trim().toUpperCase();
-
-                    if (!code) {
-                        if (!isEditing) {
-                            showToast("Por favor, ingrese un código de artículo.", "error");
-                        }
-                        return;
-                    }
-                    if (!packingList) {
-                        showToast("Por favor, ingrese el Import Reference antes de buscar.", "error");
-                        return;
-                    }
-
+                if (!code) {
                     if (!isEditing) {
-                        showToast("Buscando artículo...", "info");
-                        currentItemData = null;
+                        showToast("Por favor, ingrese un código de artículo.", "error");
                     }
-                    toggleButtonSpinner(findItemBtn, true, `<span>Buscar</span>${ICONS.search}`);
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/find_item/${encodeURIComponent(code)}/${encodeURIComponent(packingList)}`);
-                        const data = await response.json();
-                        if (response.ok) {
-                            currentItemData = isEditing ? { ...currentItemData, ...data } : data;
-                            itemDescriptionDiv.textContent = currentItemData.description || "N/A";
-                            binLocationDiv.textContent = currentItemData.binLocation || "N/A";
-                            aditionalBinsDiv.textContent = currentItemData.aditionalBins || "N/A";
-                            if (!isEditing) qtyReceivedDiv.textContent = quantityInput.value || "0";
-                            qtyGrnDiv.textContent = currentItemData.defaultQtyGrn !== undefined ? currentItemData.defaultQtyGrn : "N/A";
-                            showToast(`Artículo "${currentItemData.description || code}" encontrado.`, "success");
-                            calculateDifference();
-                            updateLabel(currentItemData);
-                            if (!isEditing) {
-                                quantityInput.focus();
-                                quantityInput.select();
-                            }
-                        } else {
-                            showToast(data.error, "error");
-                            if (!isEditing) clearItemSpecificFields();
+                    return;
+                }
+                if (!packingList) {
+                    showToast("Por favor, ingrese el Import Reference antes de buscar.", "error");
+                    return;
+                }
+
+                if (!isEditing) {
+                    showToast("Buscando artículo...", "info");
+                    currentItemData = null;
+                }
+                toggleButtonSpinner(findItemBtn, true, `<span>Buscar</span>${ICONS.search}`);
+                try {
+                    const response = await fetch(`${API_BASE_URL}/find_item/${encodeURIComponent(code)}/${encodeURIComponent(packingList)}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        currentItemData = isEditing ? { ...currentItemData, ...data } : data;
+                        itemDescriptionDiv.textContent = currentItemData.description || "N/A";
+                        binLocationDiv.textContent = currentItemData.binLocation || "N/A";
+                        aditionalBinsDiv.textContent = currentItemData.aditionalBins || "N/A";
+                        if (!isEditing) qtyReceivedDiv.textContent = quantityInput.value || "0";
+                        qtyGrnDiv.textContent = currentItemData.defaultQtyGrn !== undefined ? currentItemData.defaultQtyGrn : "N/A";
+                        showToast(`Artículo "${currentItemData.description || code}" encontrado.`, "success");
+                        calculateDifference();
+                        updateLabel(currentItemData);
+                        if (!isEditing) {
+                            quantityInput.focus();
+                            quantityInput.select();
                         }
-                    } catch (error) {
-                        showToast("Error de conexión al buscar.", "error");
-                        if (!isEditing) clearItemSpecificFields();
-                    } finally {
-                        toggleButtonSpinner(findItemBtn, false, `<span>Buscar</span>`);
-                        checkFormValidity();
-                    }
-                }
-
-                function clearItemSpecificFields() {
-                    try {
-                        if (itemCodeInput) itemCodeInput.value = "";
-                        if (quantityInput) quantityInput.value = "";
-                        if (relocatedBinInput) relocatedBinInput.value = "";
-                        if (itemDescriptionDiv) itemDescriptionDiv.textContent = "";
-                        if (binLocationDiv) binLocationDiv.textContent = "";
-                        if (aditionalBinsDiv) aditionalBinsDiv.textContent = "";
-                        if (qtyReceivedDiv) qtyReceivedDiv.textContent = "";
-                        if (qtyGrnDiv) qtyGrnDiv.textContent = "";
-                        if (differenceDiv) {
-                            differenceDiv.textContent = "";
-                            differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
-                        }
-                        clearLabel();
-                        currentItemData = null;
-                        if (itemCodeInput && !editingLogId) itemCodeInput.focus();
-                        checkFormValidity();
-                    } catch (error) {
-                        console.error("Error crítico en clearItemSpecificFields:", error);
-                    }
-                }
-
-                function clearLabel() {
-                    if (labelItemCode) labelItemCode.textContent = "ITEM CODE";
-                    if (labelItemDescription) labelItemDescription.textContent = "Item Description";
-                    if (labelQtyPackInput) labelQtyPackInput.value = "1";
-                    if (labelQtyPackSpan) labelQtyPackSpan.textContent = "1";
-                    if (labelWeight) labelWeight.textContent = "N/A";
-                    if (labelReceptionDate) labelReceptionDate.textContent = "DD/MM/YY";
-                    if (labelBinLocation) labelBinLocation.textContent = "BIN";
-                    if (qrCodeContainer) qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
-                    qrCodeInstance = null;
-                }
-
-                function calculateDifference() {
-                    const received = parseInt(quantityInput.value || "0", 10);
-                    const grn = parseInt(qtyGrnDiv.textContent || "0", 10);
-                    if (qtyReceivedDiv) qtyReceivedDiv.textContent = isNaN(received) ? "0" : received;
-                    if (isNaN(received) || isNaN(grn) || !differenceDiv) return;
-                    const diff = received - grn;
-                    differenceDiv.textContent = diff;
-                    differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
-                    if (diff < 0) differenceDiv.classList.add("text-red-600", "font-bold");
-                    else if (diff > 0) differenceDiv.classList.add("text-blue-600", "font-bold");
-                }
-
-                function updateLabel(item) {
-                    const itemToDisplay = item || currentItemData || {};
-                    const currentQuantity = quantityInput.value || "1";
-                    if (labelItemCode) labelItemCode.textContent = itemToDisplay.itemCode || "ITEM CODE";
-                    if (labelItemDescription) labelItemDescription.textContent = itemToDisplay.description || "Item Description";
-                    if (labelQtyPackInput) labelQtyPackInput.value = currentQuantity;
-                    if (labelQtyPackSpan) labelQtyPackSpan.textContent = currentQuantity;
-                    if (labelWeight) labelWeight.textContent = !isNaN(parseFloat(itemToDisplay.weight)) ? parseFloat(itemToDisplay.weight).toFixed(2) : "N/A";
-                    if (labelReceptionDate) {
-                        const today = new Date();
-                        labelReceptionDate.textContent = today.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" });
-                    }
-                    if (labelBinLocation) labelBinLocation.textContent = relocatedBinInput.value.trim().toUpperCase() || itemToDisplay.binLocation || "BIN";
-                    generateQRCode(itemToDisplay.itemCode || "");
-                }
-
-                function generateQRCode(text) {
-                    if (!qrCodeContainer) return;
-                    qrCodeContainer.innerHTML = "";
-                    if (text) {
-                        try {
-                            qrCodeInstance = new QRCode(qrCodeContainer, { text, width: 96, height: 96, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
-                        } catch (e) { qrCodeContainer.innerHTML = '<div class="qr-placeholder">Error QR</div>'; }
                     } else {
-                        qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
+                        showToast(data.error, "error");
+                        if (!isEditing) clearItemSpecificFields();
                     }
+                } catch (error) {
+                    showToast("Error de conexión al buscar.", "error");
+                    if (!isEditing) clearItemSpecificFields();
+                } finally {
+                    toggleButtonSpinner(findItemBtn, false, `<span>Buscar</span>`);
+                    checkFormValidity();
                 }
+            }
 
-                async function addLogEntry() {
-                    if (!mainForm.checkValidity()) {
-                        showToast("Verifique todos los campos obligatorios antes de añadir.", "error");
-                        mainForm.reportValidity(); // Muestra validaciones del navegador
-                        return;
+            function clearItemSpecificFields() {
+                try {
+                    if (itemCodeInput) itemCodeInput.value = "";
+                    if (quantityInput) quantityInput.value = "";
+                    if (relocatedBinInput) relocatedBinInput.value = "";
+                    if (itemDescriptionDiv) itemDescriptionDiv.textContent = "";
+                    if (binLocationDiv) binLocationDiv.textContent = "";
+                    if (aditionalBinsDiv) aditionalBinsDiv.textContent = "";
+                    if (qtyReceivedDiv) qtyReceivedDiv.textContent = "";
+                    if (qtyGrnDiv) qtyGrnDiv.textContent = "";
+                    if (differenceDiv) {
+                        differenceDiv.textContent = "";
+                        differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
                     }
-                    const logData = {
-                        importReference: importReferenceInput.value.trim().toUpperCase(),
-                        waybill: waybillInput.value.trim().toUpperCase(),
-                        itemCode: currentItemData.itemCode,
-                        quantity: parseInt(quantityInput.value),
-                        relocatedBin: relocatedBinInput.value.trim().toUpperCase(),
-                    };
-                    showToast("Añadiendo registro...", "info");
-                    toggleButtonSpinner(addLogEntryBtn, true, '<span>Añadir Registro</span>');
+                    clearLabel();
+                    currentItemData = null;
+                    if (itemCodeInput && !editingLogId) itemCodeInput.focus();
+                    checkFormValidity();
+                } catch (error) {
+                    console.error("Error crítico en clearItemSpecificFields:", error);
+                }
+            }
+
+            function clearLabel() {
+                if (labelItemCode) labelItemCode.textContent = "ITEM CODE";
+                if (labelItemDescription) labelItemDescription.textContent = "Item Description";
+                if (labelQtyPackInput) labelQtyPackInput.value = "1";
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = "1";
+                if (labelWeight) labelWeight.textContent = "N/A";
+                if (labelReceptionDate) labelReceptionDate.textContent = "DD/MM/YY";
+                if (labelBinLocation) labelBinLocation.textContent = "BIN";
+                if (qrCodeContainer) qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
+                qrCodeInstance = null;
+            }
+
+            function calculateDifference() {
+                const received = parseInt(quantityInput.value || "0", 10);
+                const grn = parseInt(qtyGrnDiv.textContent || "0", 10);
+                if (qtyReceivedDiv) qtyReceivedDiv.textContent = isNaN(received) ? "0" : received;
+                if (isNaN(received) || isNaN(grn) || !differenceDiv) return;
+                const diff = received - grn;
+                differenceDiv.textContent = diff;
+                differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
+                if (diff < 0) differenceDiv.classList.add("text-red-600", "font-bold");
+                else if (diff > 0) differenceDiv.classList.add("text-blue-600", "font-bold");
+            }
+
+            function updateLabel(item) {
+                const itemToDisplay = item || currentItemData || {};
+                const currentQuantity = quantityInput.value || "1";
+                if (labelItemCode) labelItemCode.textContent = itemToDisplay.itemCode || "ITEM CODE";
+                if (labelItemDescription) labelItemDescription.textContent = itemToDisplay.description || "Item Description";
+                if (labelQtyPackInput) labelQtyPackInput.value = currentQuantity;
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = currentQuantity;
+                if (labelWeight) labelWeight.textContent = !isNaN(parseFloat(itemToDisplay.weight)) ? parseFloat(itemToDisplay.weight).toFixed(2) : "N/A";
+                if (labelReceptionDate) {
+                    const today = new Date();
+                    labelReceptionDate.textContent = today.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" });
+                }
+                if (labelBinLocation) labelBinLocation.textContent = relocatedBinInput.value.trim().toUpperCase() || itemToDisplay.binLocation || "BIN";
+                generateQRCode(itemToDisplay.itemCode || "");
+            }
+
+            function generateQRCode(text) {
+                if (!qrCodeContainer) return;
+                qrCodeContainer.innerHTML = "";
+                if (text) {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/add_log`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(logData) });
-                        if (!response.ok) {
-                             const errorResult = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
-                             throw new Error(errorResult.error);
-                        }
-                        const result = await response.json();
-                        showToast(result.message || "Registro añadido.", "success");
-                        await loadInitialLogs();
-                        clearItemSpecificFields();
-                        itemCodeInput.focus();
+                        qrCodeInstance = new QRCode(qrCodeContainer, { text, width: 96, height: 96, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+                    } catch (e) { qrCodeContainer.innerHTML = '<div class="qr-placeholder">Error QR</div>'; }
+                } else {
+                    qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
+                }
+            }
 
-                    } catch (error) {
-                        // --- MODIFICACIÓN: Lógica para manejar el "error de conexión" ---
-                        console.error("Ocurrió un error de conexión, se verificará recargando la tabla:", error);
-                        showToast("Verificando registro...", "info"); // Mensaje neutral
-                        await loadInitialLogs(); // Recarga para confirmar si el dato se guardó
-                        clearItemSpecificFields();
-                        itemCodeInput.focus();
-                        // Ya no se muestra un toast de error aquí. El toast de loadInitialLogs dará el feedback final.
-                    } finally {
-                        toggleButtonSpinner(addLogEntryBtn, false, '<span>Añadir Registro</span>');
+            async function addLogEntry() {
+                if (!mainForm.checkValidity()) {
+                    showToast("Verifique todos los campos obligatorios antes de añadir.", "error");
+                    mainForm.reportValidity(); // Muestra validaciones del navegador
+                    return;
+                }
+                const logData = {
+                    importReference: importReferenceInput.value.trim().toUpperCase(),
+                    waybill: waybillInput.value.trim().toUpperCase(),
+                    itemCode: currentItemData.itemCode,
+                    quantity: parseInt(quantityInput.value),
+                    relocatedBin: relocatedBinInput.value.trim().toUpperCase(),
+                };
+                showToast("Añadiendo registro...", "info");
+                toggleButtonSpinner(addLogEntryBtn, true, '<span>Añadir Registro</span>');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/add_log`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(logData) });
+                    if (!response.ok) {
+                        const errorResult = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
+                        throw new Error(errorResult.error);
                     }
+                    const result = await response.json();
+                    showToast(result.message || "Registro añadido.", "success");
+                    await loadInitialLogs();
+                    clearItemSpecificFields();
+                    itemCodeInput.focus();
+
+                } catch (error) {
+                    // --- MODIFICACIÓN: Lógica para manejar el "error de conexión" ---
+                    console.error("Ocurrió un error de conexión, se verificará recargando la tabla:", error);
+                    showToast("Verificando registro...", "info"); // Mensaje neutral
+                    await loadInitialLogs(); // Recarga para confirmar si el dato se guardó
+                    clearItemSpecificFields();
+                    itemCodeInput.focus();
+                    // Ya no se muestra un toast de error aquí. El toast de loadInitialLogs dará el feedback final.
+                } finally {
+                    toggleButtonSpinner(addLogEntryBtn, false, '<span>Añadir Registro</span>');
+                }
+            }
+
+            function addLogRowToTable(entry) {
+                if (!logTableBody || entry?.id === undefined) return;
+
+                // Evitar duplicados
+                if (logTableBody.querySelector(`tr[data-log-id='${entry.id}']`)) {
+                    return;
                 }
 
-                function addLogRowToTable(entry) {
-                    if (!logTableBody || entry?.id === undefined) return;
+                const newRow = logTableBody.insertRow(0);
+                newRow.setAttribute('data-log-id', entry.id);
+                newRow.className = "hover:bg-gray-100 transition-colors duration-150";
 
-                    // Evitar duplicados
-                    if (logTableBody.querySelector(`tr[data-log-id='${entry.id}']`)) {
-                        return;
+                const createCell = (text) => {
+                    const cell = newRow.insertCell();
+                    cell.textContent = text || "-";
+                    cell.classList.add('whitespace-nowrap');
+                    return cell;
+                };
+
+                createCell(entry.importReference);
+                createCell(entry.waybill);
+                createCell(entry.itemCode);
+                const descCell = createCell(entry.itemDescription);
+                descCell.classList.remove('whitespace-nowrap');
+                descCell.classList.add('whitespace-normal');
+                createCell(entry.binLocation);
+                createCell(entry.relocatedBin);
+                createCell(entry.qtyReceived);
+                createCell(entry.qtyGrn);
+                const diffCell = createCell(entry.difference);
+                if (entry.difference < 0) diffCell.classList.add("text-red-600", "font-bold");
+                else if (entry.difference > 0) diffCell.classList.add("text-blue-600", "font-bold");
+                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString("es-CO", { hour12: false }) : "-";
+                createCell(timestamp);
+
+                const actionsCell = newRow.insertCell();
+                actionsCell.className = "text-center whitespace-nowrap";
+                const editButton = document.createElement("button");
+                editButton.className = "action-btn edit-btn";
+                editButton.innerHTML = ICONS.edit;
+                editButton.onclick = () => populateFormForEdit(entry);
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "action-btn delete-btn ml-2";
+                deleteButton.innerHTML = ICONS.delete;
+                deleteButton.onclick = () => deleteLog(entry.id);
+
+                actionsCell.appendChild(editButton);
+                actionsCell.appendChild(deleteButton);
+
+                checkTableEmpty();
+            }
+
+            async function deleteLog(logId) {
+                if (!confirm(`¿Está seguro de que desea eliminar el registro ID: ${logId}?`)) return;
+
+                showToast(`Eliminando registro ${logId}...`, "info");
+                try {
+                    const response = await fetch(`${API_BASE_URL}/delete_log/${logId}`, { method: "DELETE" });
+                    const result = await response.json();
+                    if (response.ok) {
+                        showToast(result.message || "Registro eliminado.", "success");
+                        const row = logTableBody.querySelector(`tr[data-log-id='${logId}']`);
+                        if (row) row.remove();
+                        checkTableEmpty();
+                    } else {
+                        showToast(result.error || `Error ${response.status}`, "error");
                     }
+                } catch (error) {
+                    showToast("Error de conexión al eliminar.", "error");
+                }
+            }
 
-                    const newRow = logTableBody.insertRow(0);
-                    newRow.setAttribute('data-log-id', entry.id);
-                    newRow.className = "hover:bg-gray-100 transition-colors duration-150";
+            async function populateFormForEdit(logEntry) {
+                editingLogId = logEntry.id;
+                importReferenceInput.readOnly = true;
+                itemCodeInput.readOnly = true;
+                importReferenceInput.value = logEntry.importReference;
+                itemCodeInput.value = logEntry.itemCode;
+                await findItemData(true);
+                waybillInput.value = logEntry.waybill || "";
+                quantityInput.value = logEntry.qtyReceived;
+                relocatedBinInput.value = logEntry.relocatedBin || "";
+                qtyReceivedDiv.textContent = logEntry.qtyReceived;
+                if (!qtyGrnDiv.textContent || qtyGrnDiv.textContent === "N/A") {
+                    qtyGrnDiv.textContent = logEntry.qtyGrn !== undefined ? logEntry.qtyGrn : "N/A";
+                }
+                calculateDifference();
+                addLogEntryBtn.querySelector("span").textContent = "Guardar Cambios";
+                let cancelBtn = document.getElementById("cancelEditBtn");
+                if (!cancelBtn) {
+                    cancelBtn = document.createElement("button");
+                    cancelBtn.type = "button";
+                    cancelBtn.id = "cancelEditBtn";
+                    cancelBtn.textContent = "Cancelar Edición";
+                    cancelBtn.className = "btn-secondary w-60 h-10";
+                    // ##### LÍNEA DE CORRECCIÓN AÑADIDA AQUÍ #####
+                    cancelBtn.onclick = () => cancelEditMode(false);
+                    // Insertar después del botón de exportar para mantener el orden
+                    addLogEntryBtn.parentNode.insertBefore(cancelBtn, exportLogBtn.nextSibling);
+                }
+                cancelBtn.style.display = "inline-flex";
+                showToast(`Editando registro ID: ${editingLogId}`, "info");
+                window.scrollTo(0, 0);
+                checkFormValidity();
+            }
 
-                    const createCell = (text) => {
-                        const cell = newRow.insertCell();
-                        cell.textContent = text || "-";
-                        cell.classList.add('whitespace-nowrap');
-                        return cell;
-                    };
+            function cancelEditMode(isAfterUpdate = false) {
+                try {
+                    editingLogId = null;
+                    if (addLogEntryBtn.querySelector("span")) {
+                        addLogEntryBtn.querySelector("span").textContent = "Añadir Registro";
+                    }
+                    importReferenceInput.readOnly = false;
+                    itemCodeInput.readOnly = false;
+                    const cancelBtn = document.getElementById("cancelEditBtn");
+                    if (cancelBtn) cancelBtn.style.display = "none";
 
-                    createCell(entry.importReference);
-                    createCell(entry.waybill);
-                    createCell(entry.itemCode);
-                    const descCell = createCell(entry.itemDescription);
-                    descCell.classList.remove('whitespace-nowrap');
-                    descCell.classList.add('whitespace-normal');
-                    createCell(entry.binLocation);
-                    createCell(entry.relocatedBin);
-                    createCell(entry.qtyReceived);
-                    createCell(entry.qtyGrn);
-                    const diffCell = createCell(entry.difference);
-                    if (entry.difference < 0) diffCell.classList.add("text-red-600", "font-bold");
-                    else if (entry.difference > 0) diffCell.classList.add("text-blue-600", "font-bold");
-                    const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString("es-CO", { hour12: false }) : "-";
-                    createCell(timestamp);
+                    // MODIFICACIÓN: Se añade mainForm.reset() para limpiar
+                    // completamente el formulario después de editar.
+                    mainForm.reset();
+                    clearItemSpecificFields();
 
-                    const actionsCell = newRow.insertCell();
-                    actionsCell.className = "text-center whitespace-nowrap";
-                    const editButton = document.createElement("button");
-                    editButton.className = "action-btn edit-btn";
-                    editButton.innerHTML = ICONS.edit;
-                    editButton.onclick = () => populateFormForEdit(entry);
+                    if (!isAfterUpdate) showToast("Edición cancelada.", "info");
+                    importReferenceInput.focus();
+                } catch (error) {
+                    console.error("Error crítico en cancelEditMode:", error);
+                    showToast("Error al limpiar el formulario.", "error");
+                }
+            }
 
-                    const deleteButton = document.createElement("button");
-                    deleteButton.className = "action-btn delete-btn ml-2";
-                    deleteButton.innerHTML = ICONS.delete;
-                    deleteButton.onclick = () => deleteLog(entry.id);
+            async function handleFormSubmit(event) {
+                event.preventDefault();
+                if (editingLogId) await handleUpdateLogEntry();
+                else await addLogEntry();
+            }
 
-                    actionsCell.appendChild(editButton);
-                    actionsCell.appendChild(deleteButton);
+            // =================================================================================
+            // FUNCIÓN MODIFICADA - handleUpdateLogEntry
+            // Se reemplaza la lógica de manipulación de una sola fila por una llamada
+            // a `loadInitialLogs()`. Esto fuerza una recarga completa de la tabla desde
+            // el servidor, simulando un refresco de página y garantizando la consistencia
+            // de los datos visualizados.
+            // =================================================================================
+            async function handleUpdateLogEntry() {
+                if (!editingLogId) return;
+                const quantityVal = parseInt(quantityInput.value);
+                if (isNaN(quantityVal) || quantityVal < 0) {
+                    showToast("La cantidad debe ser un número válido.", "error");
+                    return;
+                }
+                const logDataToUpdate = {
+                    waybill: waybillInput.value.trim().toUpperCase(),
+                    qtyReceived: quantityVal,
+                    relocatedBin: relocatedBinInput.value.trim().toUpperCase()
+                };
+                showToast(`Actualizando registro ID: ${editingLogId}...`, "info");
+                toggleButtonSpinner(addLogEntryBtn, true, '<span>Guardar Cambios</span>');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/update_log/${editingLogId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(logDataToUpdate)
+                    });
+                    if (!response.ok) {
+                        const errorResult = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
+                        throw new Error(errorResult.error);
+                    }
+                    const result = await response.json();
+                    showToast(result.message || "Registro actualizado.", "success");
+                    await loadInitialLogs();
+                    cancelEditMode(true);
 
+                } catch (error) {
+                    // --- MODIFICACIÓN: Lógica para manejar el "error de conexión" ---
+                    console.error("Ocurrió un error de conexión, se verificará recargando la tabla:", error);
+                    showToast("Verificando actualización...", "info"); // Mensaje neutral
+                    await loadInitialLogs(); // Recarga para confirmar si el dato se guardó
+                    cancelEditMode(true);
+                    // Ya no se muestra un toast de error aquí. El toast de loadInitialLogs dará el feedback final.
+                } finally {
+                    toggleButtonSpinner(addLogEntryBtn, false, '<span>Guardar Cambios</span>');
+                }
+            }
+
+
+            /*
+                            function updateTableRow(logId, updatedEntry) {
+                                try {
+                                    const row = logTableBody.querySelector(`tr[data-log-id='${logId}']`);
+                                    if (row && row.cells.length >= 10) {
+                                        row.cells[1].textContent = updatedEntry.waybill || "-";
+                                        row.cells[5].textContent = updatedEntry.relocatedBin || "-";
+                                        row.cells[6].textContent = updatedEntry.qtyReceived;
+                                        row.cells[7].textContent = updatedEntry.qtyGrn;
+                                        const diffCell = row.cells[8];
+                                        diffCell.textContent = updatedEntry.difference;
+                                        diffCell.classList.remove("text-red-600", "text-blue-600", "font-bold");
+                                        if (updatedEntry.difference < 0) diffCell.classList.add("text-red-600", "font-bold");
+                                        else if (updatedEntry.difference > 0) diffCell.classList.add("text-blue-600", "font-bold");
+                                        row.cells[9].textContent = new Date(updatedEntry.timestamp).toLocaleString("es-CO", { hour12: false });
+                                    } else {
+                                        console.error(`No se encontró la fila con ID ${logId} o su estructura es incorrecta. Recargando tabla.`);
+                                        loadInitialLogs();
+                                    }
+                                } catch (error) {
+                                    console.error("Error al actualizar la fila en la tabla:", error);
+                                    showToast(`Error al refrescar la fila ID ${logId}.`, "error");
+                                    loadInitialLogs();
+                                }
+                            }
+            */
+            async function loadInitialLogs() {
+                showToast("Cargando registros...", "info");
+                try {
+                    // MODIFICACIÓN: Se añade { cache: 'no-cache' } para evitar que el navegador
+                    // muestre datos viejos guardados en memoria.
+                    const response = await fetch(`${API_BASE_URL}/get_logs`, { cache: 'no-cache' });
+                    if (response.ok) {
+                        const logs = await response.json();
+                        logTableBody.innerHTML = "";
+                        logs.forEach(addLogRowToTable);
+                        updateSortIndicators(currentSortColumnIndex, currentSortDirection);
+                        sortTableByColumn(currentSortColumnIndex, currentSortDirection, true);
+                        showToast("Registros cargados.", "success");
+                    } else {
+                        const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
+                        showToast(errorData.error, "error");
+                    }
+                } catch (error) {
+                    showToast("Error de conexión al cargar registros.", "error");
+                } finally {
                     checkTableEmpty();
                 }
+            }
 
-                async function deleteLog(logId) {
-                    if (!confirm(`¿Está seguro de que desea eliminar el registro ID: ${logId}?`)) return;
+            function checkTableEmpty() {
+                if (emptyTableMessage) emptyTableMessage.classList.toggle("hidden", logTableBody.rows.length > 0);
+            }
 
-                    showToast(`Eliminando registro ${logId}...`, "info");
+            function printLabel() {
+                if (!currentItemData) { showToast("Busque un artículo para imprimir.", "error"); return; }
+                if (labelQtyPackInput && labelQtyPackSpan) labelQtyPackSpan.textContent = labelQtyPackInput.value || "1";
+                window.print();
+                showToast("Diálogo de impresión abierto.", "info");
+            }
+
+            function getCellValue(cell, columnIndex) {
+                const value = cell.textContent.trim();
+                if ([6, 7, 8].includes(columnIndex)) {
+                    return parseFloat(value) || -Infinity;
+                }
+                if (columnIndex === 9) {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/delete_log/${logId}`, { method: "DELETE" });
-                        const result = await response.json();
-                        if (response.ok) {
-                            showToast(result.message || "Registro eliminado.", "success");
-                            const row = logTableBody.querySelector(`tr[data-log-id='${logId}']`);
-                            if (row) row.remove();
-                            checkTableEmpty();
-                        } else {
-                            showToast(result.error || `Error ${response.status}`, "error");
-                        }
-                    } catch (error) {
-                        showToast("Error de conexión al eliminar.", "error");
+                        const [datePart] = value.split(',');
+                        const [day, month, year] = datePart.split('/');
+                        const isoDateString = `${month}/${day}/${year}${value.substring(value.indexOf(','))}`;
+                        return new Date(isoDateString).getTime() || 0;
+                    } catch (e) {
+                        return 0;
                     }
                 }
+                return value.toLowerCase();
+            }
 
-                async function populateFormForEdit(logEntry) {
-                    editingLogId = logEntry.id;
-                    importReferenceInput.readOnly = true;
-                    itemCodeInput.readOnly = true;
-                    importReferenceInput.value = logEntry.importReference;
-                    itemCodeInput.value = logEntry.itemCode;
-                    await findItemData(true);
-                    waybillInput.value = logEntry.waybill || "";
-                    quantityInput.value = logEntry.qtyReceived;
-                    relocatedBinInput.value = logEntry.relocatedBin || "";
-                    qtyReceivedDiv.textContent = logEntry.qtyReceived;
-                    if (!qtyGrnDiv.textContent || qtyGrnDiv.textContent === "N/A") {
-                        qtyGrnDiv.textContent = logEntry.qtyGrn !== undefined ? logEntry.qtyGrn : "N/A";
-                    }
-                    calculateDifference();
-                    addLogEntryBtn.querySelector("span").textContent = "Guardar Cambios";
-                    let cancelBtn = document.getElementById("cancelEditBtn");
-                    if (!cancelBtn) {
-                        cancelBtn = document.createElement("button");
-                        cancelBtn.type = "button";
-                        cancelBtn.id = "cancelEditBtn";
-                        cancelBtn.textContent = "Cancelar Edición";
-                        cancelBtn.className = "btn-secondary w-60 h-10";
-                        // ##### LÍNEA DE CORRECCIÓN AÑADIDA AQUÍ #####
-                        cancelBtn.onclick = () => cancelEditMode(false);
-                        // Insertar después del botón de exportar para mantener el orden
-                        addLogEntryBtn.parentNode.insertBefore(cancelBtn, exportLogBtn.nextSibling);
-                    }
-                    cancelBtn.style.display = "inline-flex";
-                    showToast(`Editando registro ID: ${editingLogId}`, "info");
-                    window.scrollTo(0, 0);
-                    checkFormValidity();
+            function sortTableByColumn(columnIndex, initialDirection = "asc", forceDirection = false) {
+                let direction = initialDirection;
+                if (!forceDirection && columnIndex === currentSortColumnIndex) {
+                    direction = currentSortDirection === "asc" ? "desc" : "asc";
                 }
-
-                function cancelEditMode(isAfterUpdate = false) {
-                    try {
-                        editingLogId = null;
-                        if (addLogEntryBtn.querySelector("span")) {
-                            addLogEntryBtn.querySelector("span").textContent = "Añadir Registro";
-                        }
-                        importReferenceInput.readOnly = false;
-                        itemCodeInput.readOnly = false;
-                        const cancelBtn = document.getElementById("cancelEditBtn");
-                        if (cancelBtn) cancelBtn.style.display = "none";
-
-                        // MODIFICACIÓN: Se añade mainForm.reset() para limpiar
-                        // completamente el formulario después de editar.
-                        mainForm.reset();
-                        clearItemSpecificFields();
-
-                        if (!isAfterUpdate) showToast("Edición cancelada.", "info");
-                        importReferenceInput.focus();
-                    } catch (error) {
-                        console.error("Error crítico en cancelEditMode:", error);
-                        showToast("Error al limpiar el formulario.", "error");
-                    }
-                }
-
-                async function handleFormSubmit(event) {
-                    event.preventDefault();
-                    if (editingLogId) await handleUpdateLogEntry();
-                    else await addLogEntry();
-                }
-
-                // =================================================================================
-                // FUNCIÓN MODIFICADA - handleUpdateLogEntry
-                // Se reemplaza la lógica de manipulación de una sola fila por una llamada
-                // a `loadInitialLogs()`. Esto fuerza una recarga completa de la tabla desde
-                // el servidor, simulando un refresco de página y garantizando la consistencia
-                // de los datos visualizados.
-                // =================================================================================
-                async function handleUpdateLogEntry() {
-                    if (!editingLogId) return;
-                    const quantityVal = parseInt(quantityInput.value);
-                    if (isNaN(quantityVal) || quantityVal < 0) {
-                        showToast("La cantidad debe ser un número válido.", "error");
-                        return;
-                    }
-                    const logDataToUpdate = {
-                        waybill: waybillInput.value.trim().toUpperCase(),
-                        qtyReceived: quantityVal,
-                        relocatedBin: relocatedBinInput.value.trim().toUpperCase()
-                    };
-                    showToast(`Actualizando registro ID: ${editingLogId}...`, "info");
-                    toggleButtonSpinner(addLogEntryBtn, true, '<span>Guardar Cambios</span>');
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/update_log/${editingLogId}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(logDataToUpdate)
-                        });
-                         if (!response.ok) {
-                             const errorResult = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
-                             throw new Error(errorResult.error);
-                        }
-                        const result = await response.json();
-                        showToast(result.message || "Registro actualizado.", "success");
-                        await loadInitialLogs();
-                        cancelEditMode(true);
-
-                    } catch (error) {
-                         // --- MODIFICACIÓN: Lógica para manejar el "error de conexión" ---
-                        console.error("Ocurrió un error de conexión, se verificará recargando la tabla:", error);
-                        showToast("Verificando actualización...", "info"); // Mensaje neutral
-                        await loadInitialLogs(); // Recarga para confirmar si el dato se guardó
-                        cancelEditMode(true);
-                        // Ya no se muestra un toast de error aquí. El toast de loadInitialLogs dará el feedback final.
-                    } finally {
-                        toggleButtonSpinner(addLogEntryBtn, false, '<span>Guardar Cambios</span>');
-                    }
-                }
-
-
-/*
-                function updateTableRow(logId, updatedEntry) {
-                    try {
-                        const row = logTableBody.querySelector(`tr[data-log-id='${logId}']`);
-                        if (row && row.cells.length >= 10) {
-                            row.cells[1].textContent = updatedEntry.waybill || "-";
-                            row.cells[5].textContent = updatedEntry.relocatedBin || "-";
-                            row.cells[6].textContent = updatedEntry.qtyReceived;
-                            row.cells[7].textContent = updatedEntry.qtyGrn;
-                            const diffCell = row.cells[8];
-                            diffCell.textContent = updatedEntry.difference;
-                            diffCell.classList.remove("text-red-600", "text-blue-600", "font-bold");
-                            if (updatedEntry.difference < 0) diffCell.classList.add("text-red-600", "font-bold");
-                            else if (updatedEntry.difference > 0) diffCell.classList.add("text-blue-600", "font-bold");
-                            row.cells[9].textContent = new Date(updatedEntry.timestamp).toLocaleString("es-CO", { hour12: false });
-                        } else {
-                            console.error(`No se encontró la fila con ID ${logId} o su estructura es incorrecta. Recargando tabla.`);
-                            loadInitialLogs();
-                        }
-                    } catch (error) {
-                        console.error("Error al actualizar la fila en la tabla:", error);
-                        showToast(`Error al refrescar la fila ID ${logId}.`, "error");
-                        loadInitialLogs();
-                    }
-                }
-*/
-                async function loadInitialLogs() {
-                    showToast("Cargando registros...", "info");
-                    try {
-                        // MODIFICACIÓN: Se añade { cache: 'no-cache' } para evitar que el navegador
-                        // muestre datos viejos guardados en memoria.
-                        const response = await fetch(`${API_BASE_URL}/get_logs`, { cache: 'no-cache' });
-                        if (response.ok) {
-                            const logs = await response.json();
-                            logTableBody.innerHTML = "";
-                            logs.forEach(addLogRowToTable);
-                            updateSortIndicators(currentSortColumnIndex, currentSortDirection);
-                            sortTableByColumn(currentSortColumnIndex, currentSortDirection, true);
-                            showToast("Registros cargados.", "success");
-                        } else {
-                            const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
-                            showToast(errorData.error, "error");
-                        }
-                    } catch (error) {
-                        showToast("Error de conexión al cargar registros.", "error");
-                    } finally {
-                        checkTableEmpty();
-                    }
-                }
-
-                function checkTableEmpty() {
-                    if (emptyTableMessage) emptyTableMessage.classList.toggle("hidden", logTableBody.rows.length > 0);
-                }
-
-                function printLabel() {
-                    if (!currentItemData) { showToast("Busque un artículo para imprimir.", "error"); return; }
-                    if (labelQtyPackInput && labelQtyPackSpan) labelQtyPackSpan.textContent = labelQtyPackInput.value || "1";
-                    window.print();
-                    showToast("Diálogo de impresión abierto.", "info");
-                }
-
-                function getCellValue(cell, columnIndex) {
-                    const value = cell.textContent.trim();
-                    if ([6, 7, 8].includes(columnIndex)) {
-                        return parseFloat(value) || -Infinity;
-                    }
-                    if (columnIndex === 9) {
-                        try {
-                            const [datePart] = value.split(',');
-                            const [day, month, year] = datePart.split('/');
-                            const isoDateString = `${month}/${day}/${year}${value.substring(value.indexOf(','))}`;
-                            return new Date(isoDateString).getTime() || 0;
-                        } catch (e) {
-                            return 0;
-                        }
-                    }
-                    return value.toLowerCase();
-                }
-
-                function sortTableByColumn(columnIndex, initialDirection = "asc", forceDirection = false) {
-                    let direction = initialDirection;
-                    if (!forceDirection && columnIndex === currentSortColumnIndex) {
-                        direction = currentSortDirection === "asc" ? "desc" : "asc";
-                    }
-                    currentSortColumnIndex = columnIndex;
-                    currentSortDirection = direction;
-                    const rows = Array.from(logTableBody.rows);
-                    rows.sort((rowA, rowB) => {
-                        const valA = getCellValue(rowA.cells[columnIndex], columnIndex);
-                        const valB = getCellValue(rowB.cells[columnIndex], columnIndex);
-                        const comparison = valA > valB ? 1 : (valA < valB ? -1 : 0);
-                        return direction === "desc" ? comparison * -1 : comparison;
-                    });
-                    logTableBody.innerHTML = "";
-                    rows.forEach(row => logTableBody.appendChild(row));
-                    updateSortIndicators(columnIndex, direction);
-                }
-
-                function updateSortIndicators(activeIndex, direction) {
-                    logTable.querySelectorAll("thead th.sortable-header").forEach((header, index) => {
-                        header.classList.remove("sort-asc", "sort-desc");
-                        if (index === activeIndex) header.classList.add(direction === "asc" ? "sort-asc" : "sort-desc");
-                    });
-                }
-
-                async function exportLogToExcel() {
-                    if (logTableBody.rows.length === 0) { showToast("No hay datos para exportar.", "error"); return; }
-                    showToast("Generando Excel...", "info");
-                    try {
-                        const response = await fetch(`${API_BASE_URL}/export_log`);
-                        if (response.ok) {
-                            const blob = await response.blob();
-                            const disposition = response.headers.get("Content-Disposition");
-                            let filename = "inbound_log.xlsx";
-                            if (disposition) {
-                                const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                                if (match?.[1]) filename = match[1].replace(/['"]/g, "");
-                            }
-                            triggerDownload(blob, filename);
-                            showToast("Excel listo para descarga.", "success");
-                        } else {
-                            const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
-                            showToast(errorData.error, "error");
-                        }
-                    } catch (error) { showToast("Error de conexión al exportar.", "error"); }
-                }
-
-                function triggerDownload(blob, filename) {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.style.display = "none";
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
-                }
-
-                function checkFormValidity() {
-                    const isItemDataPresent = !!currentItemData;
-                    const isPackingList = !!importReferenceInput.value.trim();
-                    const isWaybill = !!waybillInput.value.trim();
-                    const isQuantity = parseInt(quantityInput.value) > 0;
-
-                    addLogEntryBtn.disabled = !(isItemDataPresent && isPackingList && isWaybill && isQuantity);
-                    printLabelBtn.disabled = !isItemDataPresent;
-                }
-
-                // --- Barcode Scanner Logic ---
-                function onScanSuccess(decodedText, decodedResult) {
-                    stopScanning();
-                    itemCodeInput.value = decodedText;
-                    findItemData();
-                }
-
-                function onScanFailure(error) {
-                    // Ignorar errores continuos del escáner
-                }
-
-                function stopScanning() {
-                    if (html5QrCode && html5QrCode.isScanning) {
-                        html5QrCode.stop().catch(err => console.error("Fallo al detener el escáner.", err));
-                    }
-                    scannerModal.classList.add('hidden');
-                }
-
-                // --- Event Listeners Setup ---
-                findItemBtn?.addEventListener("click", () => findItemData(false));
-                itemCodeInput?.addEventListener("keypress", e => { if (e.key === 'Enter') { e.preventDefault(); findItemData(false); } });
-                quantityInput?.addEventListener("input", () => {
-                    calculateDifference();
-                    if (labelQtyPackInput) labelQtyPackInput.value = quantityInput.value || "1";
-                    if (labelQtyPackSpan) labelQtyPackSpan.textContent = quantityInput.value || "1";
-                    checkFormValidity();
+                currentSortColumnIndex = columnIndex;
+                currentSortDirection = direction;
+                const rows = Array.from(logTableBody.rows);
+                rows.sort((rowA, rowB) => {
+                    const valA = getCellValue(rowA.cells[columnIndex], columnIndex);
+                    const valB = getCellValue(rowB.cells[columnIndex], columnIndex);
+                    const comparison = valA > valB ? 1 : (valA < valB ? -1 : 0);
+                    return direction === "desc" ? comparison * -1 : comparison;
                 });
-                relocatedBinInput?.addEventListener("input", () => {
-                    if (currentItemData && labelBinLocation) {
-                        labelBinLocation.textContent = relocatedBinInput.value.trim().toUpperCase() || currentItemData.binLocation || "N/A";
+                logTableBody.innerHTML = "";
+                rows.forEach(row => logTableBody.appendChild(row));
+                updateSortIndicators(columnIndex, direction);
+            }
+
+            function updateSortIndicators(activeIndex, direction) {
+                logTable.querySelectorAll("thead th.sortable-header").forEach((header, index) => {
+                    header.classList.remove("sort-asc", "sort-desc");
+                    if (index === activeIndex) header.classList.add(direction === "asc" ? "sort-asc" : "sort-desc");
+                });
+            }
+
+            async function exportLogToExcel() {
+                if (logTableBody.rows.length === 0) { showToast("No hay datos para exportar.", "error"); return; }
+                showToast("Generando Excel...", "info");
+                try {
+                    const response = await fetch(`${API_BASE_URL}/export_log`);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const disposition = response.headers.get("Content-Disposition");
+                        let filename = "inbound_log.xlsx";
+                        if (disposition) {
+                            const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                            if (match?.[1]) filename = match[1].replace(/['"]/g, "");
+                        }
+                        triggerDownload(blob, filename);
+                        showToast("Excel listo para descarga.", "success");
+                    } else {
+                        const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
+                        showToast(errorData.error, "error");
                     }
-                });
-                mainForm?.addEventListener("submit", handleFormSubmit);
-                printLabelBtn?.addEventListener("click", printLabel);
-                exportLogBtn?.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    exportLogToExcel();
-                });
-                viewReconciliationBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.viewReconciliation; });
-                updateFilesBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.updateFiles; });
-                viewLogsLinkBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.viewLogs; });
-                const viewCountsBtn = document.getElementById("viewCountsBtn");
-                viewCountsBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.counts; });
-                labelQtyPackInput?.addEventListener("input", () => { if (labelQtyPackSpan) labelQtyPackSpan.textContent = labelQtyPackInput.value || "1"; });
-                logTable?.querySelector("thead")?.addEventListener("click", e => {
-                    const header = e.target.closest("th.sortable-header");
-                    if (header) sortTableByColumn(parseInt(header.dataset.columnIndex));
-                });
+                } catch (error) { showToast("Error de conexión al exportar.", "error"); }
+            }
 
-                scanItemBtn?.addEventListener('click', () => {
-                    scannerModal.classList.remove('hidden');
-                    if (!html5QrCode) {
-                        html5QrCode = new Html5Qrcode("reader");
-                    }
-                    html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 10 },
-                        onScanSuccess,
-                        onScanFailure
-                    ).catch(err => {
-                        showToast("No se pudo iniciar la cámara. Asegúrate de dar los permisos necesarios.", "error");
-                        stopScanning();
-                    });
-                });
+            function triggerDownload(blob, filename) {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            }
 
-                closeScannerBtn?.addEventListener('click', stopScanning);
+            function checkFormValidity() {
+                const isItemDataPresent = !!currentItemData;
+                const isPackingList = !!importReferenceInput.value.trim();
+                const isWaybill = !!waybillInput.value.trim();
+                const isQuantity = parseInt(quantityInput.value) > 0;
 
-                // Initial setup
-                [importReferenceInput, waybillInput, itemCodeInput, quantityInput].forEach(input => {
-                    input?.addEventListener('input', checkFormValidity);
-                });
-                clearLabel();
-                itemCodeInput?.focus();
-                loadInitialLogs();
+                addLogEntryBtn.disabled = !(isItemDataPresent && isPackingList && isWaybill && isQuantity);
+                printLabelBtn.disabled = !isItemDataPresent;
+            }
+
+            // --- Barcode Scanner Logic ---
+            function onScanSuccess(decodedText, decodedResult) {
+                stopScanning();
+                itemCodeInput.value = decodedText;
+                findItemData();
+            }
+
+            function onScanFailure(error) {
+                // Ignorar errores continuos del escáner
+            }
+
+            function stopScanning() {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(err => console.error("Fallo al detener el escáner.", err));
+                }
+                scannerModal.classList.add('hidden');
+            }
+
+            // --- Event Listeners Setup ---
+            findItemBtn?.addEventListener("click", () => findItemData(false));
+            itemCodeInput?.addEventListener("keypress", e => { if (e.key === 'Enter') { e.preventDefault(); findItemData(false); } });
+            quantityInput?.addEventListener("input", () => {
+                calculateDifference();
+                if (labelQtyPackInput) labelQtyPackInput.value = quantityInput.value || "1";
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = quantityInput.value || "1";
                 checkFormValidity();
+            });
+            relocatedBinInput?.addEventListener("input", () => {
+                if (currentItemData && labelBinLocation) {
+                    labelBinLocation.textContent = relocatedBinInput.value.trim().toUpperCase() || currentItemData.binLocation || "N/A";
+                }
+            });
+            mainForm?.addEventListener("submit", handleFormSubmit);
+            printLabelBtn?.addEventListener("click", printLabel);
+            exportLogBtn?.addEventListener("click", (e) => {
+                e.preventDefault();
+                exportLogToExcel();
+            });
+            viewReconciliationBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.viewReconciliation; });
+            updateFilesBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.updateFiles; });
+            viewLogsLinkBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.viewLogs; });
+            const viewCountsBtn = document.getElementById("viewCountsBtn");
+            viewCountsBtn?.addEventListener("click", e => { e.preventDefault(); window.location.href = dynamicUrls.counts; });
+            labelQtyPackInput?.addEventListener("input", () => { if (labelQtyPackSpan) labelQtyPackSpan.textContent = labelQtyPackInput.value || "1"; });
+            logTable?.querySelector("thead")?.addEventListener("click", e => {
+                const header = e.target.closest("th.sortable-header");
+                if (header) sortTableByColumn(parseInt(header.dataset.columnIndex));
+            });
 
-                // ===============================================================
-                // NUEVO: LÓGICA PARA EL MENÚ MÓVIL
-                // ===============================================================
-                const hamburgerBtn = document.getElementById('hamburger-btn');
-                const mobileMenu = document.getElementById('mobile-menu');
-                const desktopNav = document.querySelector('.desktop-nav');
-                const desktopLogoutBtn = document.querySelector('.desktop-logout-btn');
+            scanItemBtn?.addEventListener('click', () => {
+                scannerModal.classList.remove('hidden');
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10 },
+                    onScanSuccess,
+                    onScanFailure
+                ).catch(err => {
+                    showToast("No se pudo iniciar la cámara. Asegúrate de dar los permisos necesarios.", "error");
+                    stopScanning();
+                });
+            });
 
-                if (hamburgerBtn && mobileMenu && desktopNav && desktopLogoutBtn) {
-                    // Clona los enlaces de navegación y el botón de logout al contenedor del menú móvil
-                    mobileMenu.innerHTML = desktopNav.innerHTML;
-                    mobileMenu.appendChild(desktopLogoutBtn.cloneNode(true));
+            closeScannerBtn?.addEventListener('click', stopScanning);
 
-                    // Añade el evento de click al botón de hamburguesa
-                    hamburgerBtn.addEventListener('click', () => {
-                        const isOpen = mobileMenu.classList.toggle('is-open');
+            // Initial setup
+            [importReferenceInput, waybillInput, itemCodeInput, quantityInput].forEach(input => {
+                input?.addEventListener('input', checkFormValidity);
+            });
+            clearLabel();
+            itemCodeInput?.focus();
+            loadInitialLogs();
+            checkFormValidity();
 
-                        // Cambia el icono de hamburguesa a una 'X' y viceversa
-                        if (isOpen) {
-                            hamburgerBtn.innerHTML = `
+            // ===============================================================
+            // NUEVO: LÓGICA PARA EL MENÚ MÓVIL
+            // ===============================================================
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const desktopNav = document.querySelector('.desktop-nav');
+            const desktopLogoutBtn = document.querySelector('.desktop-logout-btn');
+
+            if (hamburgerBtn && mobileMenu && desktopNav && desktopLogoutBtn) {
+                // Clona los enlaces de navegación y el botón de logout al contenedor del menú móvil
+                mobileMenu.innerHTML = desktopNav.innerHTML;
+                mobileMenu.appendChild(desktopLogoutBtn.cloneNode(true));
+
+                // Añade el evento de click al botón de hamburguesa
+                hamburgerBtn.addEventListener('click', () => {
+                    const isOpen = mobileMenu.classList.toggle('is-open');
+
+                    // Cambia el icono de hamburguesa a una 'X' y viceversa
+                    if (isOpen) {
+                        hamburgerBtn.innerHTML = `
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>`;
-                        } else {
-                            hamburgerBtn.innerHTML = `
+                    } else {
+                        hamburgerBtn.innerHTML = `
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                                 </svg>`;
-                        }
-                    });
-                }
-            });
-        </script>
-    </body>
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
 </html>

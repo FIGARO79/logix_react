@@ -1,21 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auditorías de Picking</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .details-row { display: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .details-row {
+            display: none;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 text-gray-800">
     <header class="bg-white shadow-sm w-full fixed top-0 left-0 z-10">
         <div class="container mx-auto max-w-7xl p-4 flex justify-between items-center">
-            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
-            <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700">INICIO</a>
+            <img src="/static/images/logo-clear.png" alt="Logitrack Logo" class="h-16 w-32 object-contain"
+                onerror="this.onerror=null; this.src='https://placehold.co/64x64/fBBF24/1F2937?text=Logo';">
+            <a href="/"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700">INICIO</a>
         </div>
     </header>
 
@@ -27,28 +38,37 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pedido</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Pedido</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Cliente</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Usuario</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for audit in audits %}
                         <tr id="audit-{{ audit.id }}">
-                            <td class="px-6 py-4 whitespace-nowrap">{{ audit.order_number }}/{{ audit.despatch_number }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ audit.order_number }}/{{ audit.despatch_number }}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ audit.customer_name }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ audit.username }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ audit.timestamp }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ 'bg-green-100 text-green-800' if audit.status == 'Completo' else 'bg-yellow-100 text-yellow-800' }}">
+                                <span
+                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ 'bg-green-100 text-green-800' if audit.status == 'Completo' else 'bg-yellow-100 text-yellow-800' }}">
                                     {{ audit.status }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <button onclick="toggleDetails({{ audit.id }})" class="text-blue-600 hover:text-blue-900">Ver Detalles</button>
+                                <button onclick="toggleDetails({{ audit.id }})"
+                                    class="text-blue-600 hover:text-blue-900">Ver Detalles</button>
                             </td>
                         </tr>
                         <tr class="details-row" id="details-{{ audit.id }}">
@@ -67,7 +87,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                            {% for item in audit['items'] %}
+                                                {% for item in audit['items'] %}
                                                 {% if item.difference != 0 %}
                                                 <tr class="bg-red-50">
                                                     <td>{{ item.item_code }}</td>
@@ -77,7 +97,7 @@
                                                     <td class="font-bold">{{ item.difference }}</td>
                                                 </tr>
                                                 {% endif %}
-                                            {% endfor %}
+                                                {% endfor %}
                                             </tbody>
                                         </table>
                                     </div>
@@ -93,7 +113,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                            {% for item in audit['items'] %}
+                                                {% for item in audit['items'] %}
                                                 {% if item.difference == 0 %}
                                                 <tr class="bg-green-50">
                                                     <td>{{ item.item_code }}</td>
@@ -102,7 +122,7 @@
                                                     <td>{{ item.qty_scan }}</td>
                                                 </tr>
                                                 {% endif %}
-                                            {% endfor %}
+                                                {% endfor %}
                                             </tbody>
                                         </table>
                                     </div>
@@ -111,7 +131,8 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center py-10 text-gray-500">No hay auditorías de picking guardadas.</td>
+                            <td colspan="6" class="text-center py-10 text-gray-500">No hay auditorías de picking
+                                guardadas.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -130,4 +151,5 @@
         }
     </script>
 </body>
+
 </html>
