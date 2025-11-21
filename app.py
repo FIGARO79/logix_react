@@ -24,6 +24,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 from urllib.parse import urlencode
 import shutil
+import json
 
 # --- Cache para DataFrames ---
 df_master_cache = None
@@ -1143,7 +1144,8 @@ async def update_files_post(
     item_master: UploadFile = File(None), 
     grn_file: UploadFile = File(None), 
     picking_file: UploadFile = File(None),
-    update_option_280: str = Form(None),  # Opción para el archivo 280
+    update_option_280: str = Form(None),  
+    selected_grns_280: str = Form(None), # <--- NUEVO CAMPO RECIBIDO
     username: str = Depends(login_required)
 ):
     if not isinstance(username, str):
@@ -1153,7 +1155,7 @@ async def update_files_post(
     message = ""
     error = ""
 
-    # Manejo del maestro de items (sin cambios)
+    # Manejo del maestro de items (Igual que antes...)
     if item_master and item_master.filename:
         if item_master.filename == os.path.basename(ITEM_MASTER_CSV_PATH):
             with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
@@ -1163,31 +1165,39 @@ async def update_files_post(
         else:
             error += f'Nombre incorrecto para maestro de items. Se esperaba "{os.path.basename(ITEM_MASTER_CSV_PATH)}". '
 
-    # Manejo del archivo GRN (con lógica de combinar/reemplazar)
+    # --- MANEJO DEL ARCHIVO GRN (MODIFICADO) ---
     if grn_file and grn_file.filename:
         if grn_file.filename == os.path.basename(GRN_CSV_FILE_PATH):
             try:
-                # Opción de combinar los archivos CSV
+                # 1. Leer el archivo nuevo a un DataFrame
+                new_data_df = pd.read_csv(grn_file.file, dtype=str)
+                
+                # 2. Filtrar por GRNs seleccionadas (si se enviaron)
+                if selected_grns_280:
+                    try:
+                        selected_list = json.loads(selected_grns_280)
+                        if selected_list: # Si la lista no está vacía
+                            original_count = len(new_data_df)
+                            new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
+                            message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
+                    except json.JSONDecodeError:
+                        pass # Si falla el parseo, usamos todo el archivo
+
+                # 3. Lógica de Combinar o Reemplazar
                 if update_option_280 == 'combine':
-                    # Leer el archivo subido en un DataFrame
-                    new_data_df = pd.read_csv(grn_file.file)
-                    
-                    # Si el archivo existente está, leerlo y combinarlo
                     if os.path.exists(GRN_CSV_FILE_PATH):
-                        existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH)
+                        existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
+                        # Filtrar duplicados si es necesario, o simplemente concatenar
                         combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
                     else:
-                        # Si no hay archivo existente, el nuevo es el combinado
                         combined_df = new_data_df
                     
-                    # Guardar el DataFrame combinado
                     combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
                     message += f'Archivo "{grn_file.filename}" combinado con éxito. '
                 
-                # Opción de reemplazar (comportamiento por defecto)
-                else:
-                    with open(GRN_CSV_FILE_PATH, "wb") as buffer:
-                        shutil.copyfileobj(grn_file.file, buffer)
+                else: # Opción 'replace'
+                    # Guardamos solo el DataFrame (potencialmente filtrado)
+                    new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
                     message += f'Archivo "{grn_file.filename}" reemplazado con éxito. '
                 
                 files_uploaded = True
@@ -1196,7 +1206,7 @@ async def update_files_post(
         else:
             error += f'Nombre incorrecto para archivo GRN. Se esperaba "{os.path.basename(GRN_CSV_FILE_PATH)}". '
 
-    # Manejo del archivo de picking (sin cambios)
+    # Manejo del archivo de picking (Igual que antes...)
     if picking_file and picking_file.filename:
         if picking_file.filename == 'AURRSGLBD0240 - Unconfirmed Picking Notes.csv':
             picking_path = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240 - Unconfirmed Picking Notes.csv')
@@ -1217,6 +1227,31 @@ async def update_files_post(
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": error})
     
     return JSONResponse(content={"message": message})
+
+@app.post("/api/preview_grn_file")
+async def preview_grn_file(file: UploadFile = File(...)):
+    """Lee el CSV subido y devuelve una lista de números de GRN únicos."""
+    try:
+        # Leemos el archivo en memoria
+        contents = await file.read()
+        df = pd.read_csv(BytesIO(contents), dtype=str, keep_default_na=True)
+        
+        # Verificar si existe la columna de GRN
+        if GRN_COLUMN_NAME_IN_CSV not in df.columns:
+            return JSONResponse(
+                status_code=400, 
+                content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV} en el archivo."}
+            )
+        
+        # Obtener valores únicos y limpiarlos
+        grns = df[GRN_COLUMN_NAME_IN_CSV].dropna().unique().tolist()
+        grns.sort()
+        
+        return JSONResponse(content={"grns": grns})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 
 @app.get('/view_logs', response_class=HTMLResponse)
 async def view_logs(request: Request, username: str = Depends(login_required)):
