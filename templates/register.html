@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>LogiTrack - Crear Cuenta</title>
-    <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/fallback.css">
 </head>
@@ -32,7 +33,7 @@
 
             <button type="submit">Registrar</button>
         </form>
-        <p>¿Ya tienes una cuenta? <a href="{{ request.url_for('login') }}">Inicia sesión aquí</a>.</p>
+        <p>¿Ya tienes una cuenta? <a href="{{ secure_url_for(request, 'login') }}">Inicia sesión aquí</a>.</p>
     </div>
 </body>
 

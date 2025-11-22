@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - LogiTrack</title>
-    <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/fallback.css">
@@ -86,13 +87,14 @@
             </div>
         </form>
         <p class="mt-4 text-center text-sm">
-            ¿No tienes una cuenta? <a href="{{ request.url_for('register_get') }}"
+            ¿No tienes una cuenta? <a href="{{ secure_url_for(request, 'register_get') }}"
                 class="font-medium text-amber-600 hover:text-amber-500">Regístrate aquí</a>.
         </p>
         <div class="mt-3 text-xs text-gray-600">
             <p><strong>¿Te han reseteado la contraseña?</strong> Si el administrador ha reseteado tu contraseña,
                 solicita el <em>token de restablecimiento</em> al administrador. Luego visita <a
-                    href="{{ request.url_for('set_password').path }}" class="text-amber-600 hover:underline">Modificar
+                    href="{{ secure_url_for(request, 'set_password').path }}"
+                    class="text-amber-600 hover:underline">Modificar
                     contraseña</a> (asegúrate de usar HTTPS) y pega el token para establecer una nueva contraseña
                 segura.</p>
         </div>

@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrack - Registros</title>
-    <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/gear-wide-connected.svg') }}">
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/fallback.css">
 </head>
