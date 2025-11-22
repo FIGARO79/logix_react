@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logix - Admin Panel</title>
+    <title>LogiTrack - Admin Panel</title>
     <link rel="icon" type="image/svg+xml"
         href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,35 +96,52 @@
                             <span class="bg-yellow-200 text-yellow-700 py-1 px-3 rounded-full text-xs">Pendiente</span>
                             {% endif %}
                         </td>
-                        class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
-                        Pass</button>
-                        </form>
-                        <form action="{{ request.url_for('reset_count_sessions', user_id=user.id).path }}" method="post"
-                            onsubmit="return confirm('¿Seguro que quieres resetear las sesiones de conteo de este usuario?');">
-                            <button type="submit"
-                                class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
-                                Conteos</button>
-                        </form>
-                        <form action="{{ request.url_for('delete_user', user_id=user.id).path }}" method="post"
-                            onsubmit="return confirm('¡Atención! ¿Estás seguro de que quieres ELIMINAR a este usuario? Esta acción no se puede deshacer.');">
-                            <button type="submit"
-                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-xs">Eliminar</button>
-                        </form>
+                        <td class="py-3 px-6 text-center">
+                            <div class="flex item-center justify-center space-x-2">
+                                <button onclick="openModal('{{ user.id }}')"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-xs">Verificar
+                                    Pass</button>
+                                {% if not user.is_approved %}
+                                <form action="{{ request.url_for('approve_user', user_id=user.id).path }}" method="post"
+                                    onsubmit="return confirm('¿Seguro que quieres aprobar a este usuario?');">
+                                    <button type="submit"
+                                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-xs">Aprobar</button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ request.url_for('reset_password', user_id=user.id).path }}"
+                                    method="post"
+                                    onsubmit="return confirm('¿Seguro que quieres resetear la contraseña de este usuario?');">
+                                    <button type="submit"
+                                        class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
+                                        Pass</button>
+                                </form>
+                                <form action="{{ request.url_for('reset_count_sessions', user_id=user.id).path }}"
+                                    method="post"
+                                    onsubmit="return confirm('¿Seguro que quieres resetear las sesiones de conteo de este usuario?');">
+                                    <button type="submit"
+                                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-xs">Reset
+                                        Conteos</button>
+                                </form>
+                                <form action="{{ request.url_for('delete_user', user_id=user.id).path }}" method="post"
+                                    onsubmit="return confirm('¡Atención! ¿Estás seguro de que quieres ELIMINAR a este usuario? Esta acción no se puede deshacer.');">
+                                    <button type="submit"
+                                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-xs">Eliminar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4">No hay usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center py-4">No hay usuarios registrados.</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-        </table>
-    </div>
-    <div class="mt-6">
-        <a href="{{ secure_url_for(request, 'home_page') }}" class="text-blue-600 hover:underline">&larr; Volver a
-            la aplicación</a>
-    </div>
+        <div class="mt-6">
+            <a href="{{ secure_url_for(request, 'home_page') }}" class="text-blue-600 hover:underline">&larr; Volver a
+                la aplicación</a>
+        </div>
     </div>
 
     <!-- Password Modal -->

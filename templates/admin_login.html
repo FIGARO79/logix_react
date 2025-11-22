@@ -18,13 +18,21 @@
         <form method="post" class="space-y-6">
             <div>
                 <label for="password" class="text-sm font-medium text-gray-700">Contraseña</label>
-                <input type="password" name="password" id="password" required
-                    class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
-            </div>
-            <div class="flex items-center">
-                <input type="checkbox" id="show-password"
-                    class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
-                <label for="show-password" class="ml-2 block text-sm text-gray-900">Mostrar contraseña</label>
+                <div class="relative mt-1">
+                    <input type="password" name="password" id="password" required
+                        class="block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <svg id="eyeIcon" class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <svg id="eyeOffIcon" class="h-5 w-5 text-gray-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7 .95-3.11 3.824-5.585 7.44-6.325"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.94 17.94A1.5 1.5 0 0116.5 15a1.5 1.5 0 01-1.44-1.06M21 21l-6-6m-3.5-3.5L3 3"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l22 22"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <button type="submit"
                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-black bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">Acceder</button>
@@ -35,13 +43,19 @@
     </div>
 
     <script>
-        document.getElementById('show-password').addEventListener('change', function () {
-            var passwordInput = document.getElementById('password');
-            if (this.checked) {
-                passwordInput.type = 'text';
-            } else {
-                passwordInput.type = 'password';
-            }
+        const togglePassword = document.getElementById('togglePassword');
+        const password = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const eyeOffIcon = document.getElementById('eyeOffIcon');
+
+        togglePassword.addEventListener('click', function (e) {
+            // toggle the type attribute
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            
+            // toggle the eye / eye off icon
+            eyeIcon.classList.toggle('hidden');
+            eyeOffIcon.classList.toggle('hidden');
         });
     </script>
 </body>
