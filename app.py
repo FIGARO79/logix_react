@@ -2031,8 +2031,7 @@ async def generate_inventory_report(request: Request, admin: bool = Depends(admi
         return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
 
     try:
-        async with aiosqlite.connect(DB_FILE_PATH) as conn:
-            conn.row_factory = aiosqlite.Row
+        async with async_engine.connect() as conn:
             # Get all counts from all stages of the current inventory cycle
             query = """
                 SELECT
