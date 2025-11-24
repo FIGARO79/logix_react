@@ -1,5 +1,5 @@
 @echo off
-echo Iniciando LogiTrack...
+echo Iniciando Logix...
 
 :: Intentar activar el entorno virtual (probando ambas ubicaciones posibles)
 set "VENV_ACTIVATED=0"
@@ -45,5 +45,5 @@ echo.
 echo Iniciando servidor web...
 echo Presiona Ctrl+C para detener el servidor
 echo.
-uvicorn app:app --reload --host 127.0.0.1 --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 pause
