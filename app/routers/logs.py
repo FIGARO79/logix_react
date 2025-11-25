@@ -2,8 +2,12 @@
 Router para endpoints de logs (inbound).
 """
 import datetime
+import pandas as pd
+from io import BytesIO
+import openpyxl
+from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from app.models.schemas import LogEntry
 from app.services import db_logs, csv_handler
 from app.utils.auth import login_required
@@ -76,14 +80,14 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
     
     waybill = data.get('waybill', existing_log.get('waybill'))
     relocated_bin = data.get('relocatedBin', existing_log.get('relocatedBin'))
-    qty_received = data.get('qtyReceived', existing_log.get('qtyReceived'))
+    qty_received = int(data.get('qtyReceived', existing_log.get('qtyReceived')))
     
     import_reference = existing_log['importReference']
     item_code = existing_log['itemCode']
     
     # Recalcular diferencia
     total_received_others = await db_logs.get_total_received_for_import_reference_async(import_reference, item_code)
-    total_received_others -= existing_log.get('qtyReceived', 0)
+    total_received_others -= int(existing_log.get('qtyReceived', 0))
     total_received_now = total_received_others + qty_received
     total_expected = await csv_handler.get_total_expected_quantity_for_item(item_code)
     difference = total_received_now - total_expected
@@ -106,7 +110,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
 async def get_logs(username: str = Depends(login_required)):
     """Obtiene todos los registros de entrada."""
     logs = await db_logs.load_log_data_db_async()
-    return JSONResponse(logs)
+    return JSONResponse(content=logs)
 
 
 @router.delete('/delete_log/{log_id}')
@@ -116,3 +120,40 @@ async def delete_log_api(log_id: int, username: str = Depends(login_required)):
     if success:
         return JSONResponse({'message': f'Registro {log_id} eliminado con éxito.'})
     raise HTTPException(status_code=404, detail=f"Registro con ID {log_id} no encontrado.")
+
+
+@router.get('/export_log')
+async def export_log(username: str = Depends(login_required)):
+    """Exporta todos los registros de inbound a un archivo Excel."""
+    logs_data = await db_logs.load_log_data_db_async()
+    if not logs_data:
+        raise HTTPException(status_code=404, detail="No hay registros para exportar")
+
+    df = pd.DataFrame(logs_data)
+    df_export = df[[
+        'timestamp', 'importReference', 'waybill', 'itemCode', 'itemDescription',
+        'binLocation', 'relocatedBin', 'qtyReceived', 'qtyGrn', 'difference'
+    ]].rename(columns={
+        'timestamp': 'Timestamp', 'importReference': 'Import Reference', 'waybill': 'Waybill',
+        'itemCode': 'Item Code', 'itemDescription': 'Item Description',
+        'binLocation': 'Bin Location (Original)', 'relocatedBin': 'Relocated Bin (New)',
+        'qtyReceived': 'Qty. Received', 'qtyGrn': 'Qty. Expected (Total)', 'difference': 'Difference'
+    })
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_export.to_excel(writer, index=False, sheet_name='InboundLogCompleto')
+        worksheet = writer.sheets['InboundLogCompleto']
+        for i, col_name in enumerate(df_export.columns):
+            column_letter = get_column_letter(i + 1)
+            max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+            worksheet.column_dimensions[column_letter].width = max_len
+
+    output.seek(0)
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"inbound_log_completo_{timestamp_str}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
