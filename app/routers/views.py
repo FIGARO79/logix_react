@@ -31,18 +31,6 @@ def inbound_page(request: Request, username: str = Depends(login_required)):
     return templates.TemplateResponse("inbound.html", {"request": request})
 
 
-@router.get('/update', response_class=HTMLResponse)
-def update_files_get(request: Request, username: str = Depends(login_required)):
-    """Página de actualización de archivos."""
-    if not isinstance(username, str):
-        return username
-    return templates.TemplateResponse("update.html", {
-        "request": request,
-        "error": request.query_params.get('error'),
-        "message": request.query_params.get('message')
-    })
-
-
 @router.get('/view_logs', response_class=HTMLResponse)
 def view_logs(request: Request, username: str = Depends(login_required)):
     """Página de visualización de logs."""

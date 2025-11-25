@@ -1,82 +1,98 @@
-"""
-Servicio de manejo de archivos CSV.
-"""
 import os
-import numpy as np
 import pandas as pd
+import numpy as np
 from starlette.concurrency import run_in_threadpool
-from app.core import config
+from fastapi import HTTPException
 
+# Importaciones de configuración del proyecto
+from app.core.config import (
+    ITEM_MASTER_CSV_PATH,
+    GRN_CSV_FILE_PATH,
+    COLUMNS_TO_READ_MASTER,
+    COLUMNS_TO_READ_GRN
+)
 
-async def load_csv_data():
-    """Carga los archivos CSV en caché."""
-    print("Cargando datos CSV en caché...")
-    config.df_master_cache = await read_csv_safe(config.ITEM_MASTER_CSV_PATH, columns=config.COLUMNS_TO_READ_MASTER)
-    config.df_grn_cache = await read_csv_safe(config.GRN_CSV_FILE_PATH, columns=config.COLUMNS_TO_READ_GRN)
-    
-    if config.df_master_cache is not None:
-        print(f"Cargados {len(config.df_master_cache)} registros del maestro de items.")
-        # Construir mapa en memoria item_code -> Physical_Qty (int o None)
-        try:
-            config.master_qty_map.clear()
-            for _, row in config.df_master_cache.iterrows():
-                code = row.get('Item_Code')
-                raw_qty = row.get('Physical_Qty')
-                qty_val = None
-                if raw_qty not in (None, ''):
-                    try:
-                        qty_val = int(float(raw_qty))
-                    except (ValueError, TypeError):
-                        qty_val = None
-                if code:
-                    config.master_qty_map[code] = qty_val
-        except Exception as e:
-            print(f"Warning: no se pudo construir master_qty_map: {e}")
-    
-    if config.df_grn_cache is not None:
-        print(f"Cargados {len(config.df_grn_cache)} registros del archivo GRN.")
+# --- Cache de DataFrames en memoria para este módulo ---
+df_master_cache = None
+df_grn_cache = None
+master_qty_map = {}
 
+# --- Funciones de Manejo de CSV ---
 
-async def read_csv_safe(file_path, columns=None):
-    """Lee un archivo CSV de forma segura."""
+async def read_csv_safe(file_path: str, columns: list = None):
+    """
+    Lee un archivo CSV de forma segura en un subproceso para no bloquear el bucle de eventos.
+    Devuelve un DataFrame de pandas o None si hay un error.
+    """
     if not os.path.exists(file_path):
         print(f"Error CSV: Archivo no encontrado en {file_path}")
         return None
     try:
-        df = await run_in_threadpool(
-            pd.read_csv, file_path, usecols=columns, dtype=str, keep_default_na=True
-        )
+        # Usa run_in_threadpool para operaciones de I/O bloqueantes
+        df = await run_in_threadpool(pd.read_csv, file_path, usecols=columns, dtype=str, keep_default_na=True)
+        # Reemplaza NaN/NaT de pandas con None nativo de Python para compatibilidad con JSON/DB
         df = df.replace({np.nan: None})
         return df
     except Exception as e:
         print(f"Error CSV: Error inesperado leyendo CSV {file_path}: {e}")
         return None
 
-
-async def get_item_details_from_master_csv(item_code):
-    """Obtiene detalles de un item desde el maestro CSV."""
-    from fastapi import HTTPException
+async def load_csv_data():
+    """
+    Carga (o recarga) los datos de los archivos CSV principales en la caché del módulo.
+    También construye un mapa en memoria para acceso rápido a las cantidades de stock.
+    """
+    global df_master_cache, df_grn_cache, master_qty_map
+    print("Cargando datos CSV en caché...")
     
-    if config.df_master_cache is None:
+    df_master_cache = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
+    df_grn_cache = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
+    
+    if df_master_cache is not None:
+        print(f"Cargados {len(df_master_cache)} registros del maestro de items.")
+        # Reconstruir el mapa de cantidades en memoria
+        try:
+            master_qty_map.clear()
+            # Vectorización para un rendimiento óptimo
+            items = df_master_cache['Item_Code'].values
+            quantities = pd.to_numeric(df_master_cache['Physical_Qty'], errors='coerce').fillna(0).astype(int).values
+            master_qty_map = dict(zip(items, quantities))
+        except Exception as e:
+            print(f"Warning: no se pudo construir master_qty_map: {e}")
+            master_qty_map = {} # Asegurarse que el mapa esté vacío si falla
+
+    if df_grn_cache is not None:
+        print(f"Cargados {len(df_grn_cache)} registros del archivo GRN.")
+
+async def get_item_details_from_master_csv(item_code: str):
+    """Busca detalles de un item en el maestro de items cacheado."""
+    if df_master_cache is None:
         raise HTTPException(status_code=500, detail="El maestro de items no está cargado.")
-    result = config.df_master_cache[config.df_master_cache['Item_Code'] == item_code]
-    return result.iloc[0].fillna('').to_dict() if not result.empty else None
+    
+    result = df_master_cache[df_master_cache['Item_Code'] == item_code]
+    if not result.empty:
+        # .fillna('') asegura que no haya valores NaN que den problemas en JSON
+        return result.iloc[0].fillna('').to_dict()
+    return None
 
-
-async def get_total_expected_quantity_for_item(item_code_form):
-    """Obtiene la cantidad esperada total para un item desde el archivo GRN."""
-    if config.df_grn_cache is None:
+async def get_total_expected_quantity_for_item(item_code_form: str):
+    """Suma la cantidad esperada para un item desde el archivo GRN cacheado."""
+    if df_grn_cache is None:
         return 0
+    
     total_expected_quantity = 0
-    result_df = config.df_grn_cache[config.df_grn_cache['Item_Code'] == item_code_form]
+    result_df = df_grn_cache[df_grn_cache['Item_Code'] == item_code_form]
+    
     if not result_df.empty:
+        # Convierte la columna 'Quantity' a numérico, tratando errores como 0
         numeric_quantities = pd.to_numeric(result_df['Quantity'], errors='coerce').fillna(0)
         total_expected_quantity = int(numeric_quantities.sum())
+        
     return total_expected_quantity
 
-
 async def get_stock_data():
-    """Obtiene los datos de stock desde el caché."""
-    if config.df_master_cache is not None:
-        return config.df_master_cache[config.COLUMNS_TO_READ_MASTER]
+    """Devuelve el DataFrame completo del maestro de items cacheado."""
+    if df_master_cache is not None:
+        # Devuelve solo las columnas relevantes
+        return df_master_cache[COLUMNS_TO_READ_MASTER]
     return None
