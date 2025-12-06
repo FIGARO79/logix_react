@@ -5,9 +5,16 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.utils.auth import login_required, get_current_user
 from app.core.templates import templates
-from app.services import db_logs
+from app.services import db_logs, csv_handler
+from app.core.config import ASYNC_DB_URL
+from sqlalchemy.ext.asyncio import create_async_engine
+import pandas as pd
+import numpy as np
 
 router = APIRouter(tags=["views"])
+
+# Crear engine asíncrono para reconciliación
+async_engine = create_async_engine(ASYNC_DB_URL, echo=False)
 
 
 @router.get('/', response_class=HTMLResponse, name='home_page')
@@ -72,11 +79,75 @@ def view_counts_page(request: Request, username: str = Depends(login_required)):
 
 
 @router.get('/reconciliation', response_class=HTMLResponse)
-def reconciliation_page(request: Request, username: str = Depends(login_required)):
-    """Página de reconciliación."""
+async def reconciliation_page(request: Request, username: str = Depends(login_required)):
+    """Página de reconciliación con procesamiento de datos."""
     if not isinstance(username, str):
         return username
-    return templates.TemplateResponse("reconciliation.html", {"request": request})
+    try:
+        async with async_engine.connect() as conn:
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query('SELECT * FROM logs', sync_conn))
+
+        grn_df = csv_handler.df_grn_cache
+
+        if logs_df.empty or grn_df is None:
+            return templates.TemplateResponse('reconciliation.html', {"request": request, "tables": []})
+
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
+
+        item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
+        item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
+
+        grn_totals = grn_df.groupby(['GRN_Number', 'Item_Code', 'Item_Description'])['Quantity'].sum().reset_index()
+        grn_totals = grn_totals.rename(columns={'Quantity': 'Total_Esperado'})
+
+        merged_df = pd.merge(grn_totals, item_totals, on='Item_Code', how='outer')
+
+        # Obtener ubicación desde el LOG
+        if not logs_df.empty:
+            logs_df['id'] = pd.to_numeric(logs_df['id'])
+            latest_logs = logs_df.sort_values('id', ascending=False).drop_duplicates('itemCode')
+            
+            latest_logs['Ubicacion_Log'] = np.where(
+                latest_logs['relocatedBin'].notna() & (latest_logs['relocatedBin'] != ''),
+                latest_logs['relocatedBin'],
+                latest_logs['binLocation']
+            )
+            
+            locations_df = latest_logs[['itemCode', 'Ubicacion_Log']].rename(columns={'itemCode': 'Item_Code'})
+            merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
+
+        merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
+        merged_df['Total_Esperado'] = merged_df['Total_Esperado'].fillna(0)
+        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Total_Esperado']
+        
+        merged_df.fillna({'Ubicacion_Log': 'N/A'}, inplace=True)
+
+        merged_df['Total_Recibido'] = merged_df['Total_Recibido'].astype(int)
+        merged_df['Total_Esperado'] = merged_df['Total_Esperado'].astype(int)
+        merged_df['Diferencia'] = merged_df['Diferencia'].astype(int)
+
+        merged_df = merged_df.rename(columns={
+            'GRN_Number': 'GRN',
+            'Item_Code': 'Código de Ítem',
+            'Item_Description': 'Descripción',
+            'Ubicacion_Log': 'Ubicación (Log)',
+            'Total_Esperado': 'Cant. Esperada',
+            'Total_Recibido': 'Cant. Recibida',
+            'Diferencia': 'Diferencia'
+        })
+
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación (Log)', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        merged_df = merged_df[cols_order]
+
+        return templates.TemplateResponse('reconciliation.html', {
+            "request": request,
+            "tables": [merged_df.to_html(classes='min-w-full leading-normal dataframe', border=0, index=False)],
+            "titles": merged_df.columns.values
+        })
+
+    except Exception as e:
+        return templates.TemplateResponse('reconciliation.html', {"request": request, "error": str(e)})
 
 
 @router.get('/picking', response_class=HTMLResponse)
