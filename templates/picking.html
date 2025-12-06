@@ -960,10 +960,10 @@
 
                     // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
                     row.innerHTML = `
-                        <td class="px-2 py-1 md:px-4 md:py-1 text-xs md:text-sm font-medium text-gray-900">${item.code}${isEdited ? ' <span class="text-orange-600 text-xs">✎</span>' : ''}</td>
-                        <td class="px-2 py-1 md:px-4 md:py-1 text-xs md:text-sm text-gray-600">${item.description}</td>
-                        <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
-                        <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-center">
+                        <td class="px-1 py-1 md:px-2 md:py-1 text-xs md:text-sm font-medium text-gray-900 max-w-[70px] truncate" title="${item.code}">${item.code}${isEdited ? ' <span class="text-orange-600 text-xs">✎</span>' : ''}</td>
+                        <td class="px-1 py-1 md:px-2 md:py-1 text-xs md:text-sm text-gray-600 max-w-[150px] truncate" title="${item.description}">${item.description}</td>
+                        <td class="px-1  py-1 md:px-2 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
+                        <td class="px-1 py-1 md:px-2 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-center">
                             <input type="number" value="${item.qty_scan}" min="0" class="w-12 text-center text-base md:text-sm ${editedClass} rounded-md shadow-sm py-1" data-index="${index}" data-item-code="${item.code}">
                         </td>
                         <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-semibold ${diffClass} text-center">${diff}</td>
