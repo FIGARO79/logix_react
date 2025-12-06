@@ -47,6 +47,10 @@ async def register_post(request: Request, username: str = Form(...), password: s
 @router.get('/login', response_class=HTMLResponse, name='login')
 async def login_get(request: Request, message: Optional[str] = None, error: Optional[str] = None):
     """Muestra el formulario de login."""
+    # Si el usuario ya tiene sesión activa, redirigir a la página de inicio
+    username = get_current_user(request)
+    if username:
+        return RedirectResponse(url='/', status_code=302)
     return templates.TemplateResponse('login.html', {'request': request, 'message': message, 'error': error})
 
 
@@ -56,8 +60,8 @@ async def login_post(request: Request, username: str = Form(...), password: str 
     valid, status_msg = await verify_user(username, password)
     
     if status_msg == "approved":
-        home_url = request.app.url_path_for('home_page')
-        response = RedirectResponse(url=f"{home_url}?from_login=true", status_code=status.HTTP_302_FOUND)
+        # Redirigir a la página raíz (que mostrará inicio.html si hay sesión)
+        response = RedirectResponse(url='/', status_code=status.HTTP_302_FOUND)
         response.set_cookie(key="username", value=username, httponly=True, samesite='lax')
         return response
     elif status_msg == "pending":

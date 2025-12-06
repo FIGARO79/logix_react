@@ -19,16 +19,14 @@ async_engine = create_async_engine(ASYNC_DB_URL, echo=False)
 
 @router.get('/', response_class=HTMLResponse, name='home_page')
 def home_page(request: Request):
-    """Ruta raíz condicional: si hay sesión -> redirige a /inbound, si no -> render `inicio.html`."""
-    # Si venimos del login con el parámetro `from_login`, mostramos inicio aunque haya sesión.
-    from_login = request.query_params.get('from_login')
-    if from_login:
-        return templates.TemplateResponse("inicio.html", {"request": request})
-
+    """Ruta raíz condicional: si hay sesión -> muestra inicio.html, si no -> redirige a /login."""
     username = get_current_user(request)
     if username:
-        return RedirectResponse(url='/inbound', status_code=302)
-    return templates.TemplateResponse("inicio.html", {"request": request})
+        # Usuario con sesión activa: mostrar página de inicio
+        return templates.TemplateResponse("inicio.html", {"request": request})
+    else:
+        # Usuario sin sesión: redirigir a login
+        return RedirectResponse(url='/login', status_code=302)
 
 
 @router.get('/inbound', response_class=HTMLResponse)
