@@ -56,10 +56,12 @@ async def load_csv_data():
             # Vectorización para un rendimiento óptimo
             items = df_master_cache['Item_Code'].values
             quantities = pd.to_numeric(df_master_cache['Physical_Qty'], errors='coerce').fillna(0).astype(int).values
-            master_qty_map = dict(zip(items, quantities))
+            # Usar update() en lugar de reasignar para mantener la referencia
+            master_qty_map.update(dict(zip(items, quantities)))
+            print(f"master_qty_map construido con {len(master_qty_map)} items, {sum(1 for q in master_qty_map.values() if q > 0)} con stock > 0")
         except Exception as e:
             print(f"Warning: no se pudo construir master_qty_map: {e}")
-            master_qty_map = {} # Asegurarse que el mapa esté vacío si falla
+            master_qty_map.clear()  # Limpiar en lugar de reasignar
 
     if df_grn_cache is not None:
         print(f"Cargados {len(df_grn_cache)} registros del archivo GRN.")

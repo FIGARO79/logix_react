@@ -69,11 +69,69 @@ def stock_page(request: Request, username: str = Depends(login_required)):
 
 
 @router.get('/view_counts', response_class=HTMLResponse)
-def view_counts_page(request: Request, username: str = Depends(login_required)):
+async def view_counts_page(request: Request, username: str = Depends(login_required)):
     """Página de visualización de conteos."""
     if not isinstance(username, str):
         return username
-    return templates.TemplateResponse("view_counts.html", {"request": request})
+    
+    # Cargar todos los conteos desde la base de datos
+    from app.services import db_counts
+    from app.services.csv_handler import master_qty_map
+    import aiosqlite
+    from app.core.config import DB_FILE_PATH
+    
+    all_counts = await db_counts.load_all_counts_db_async()
+    
+    # Obtener información de sesiones (usuario y etapa)
+    session_map = {}
+    session_ids = list({c.get('session_id') for c in all_counts if c.get('session_id') is not None})
+    if session_ids:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+            placeholders = ','.join('?' * len(session_ids))
+            query = f"SELECT id, user_username, inventory_stage FROM count_sessions WHERE id IN ({placeholders})"
+            cursor = await conn.execute(query, tuple(session_ids))
+            rows = await cursor.fetchall()
+            session_map = {r['id']: {'user': r['user_username'], 'stage': r['inventory_stage']} for r in rows}
+    
+    # Enriquecer los conteos con información del sistema y sesión
+    enriched_counts = []
+    usernames_set = set()
+    
+    for count in all_counts:
+        item_code = count.get('item_code')
+        system_qty_raw = master_qty_map.get(item_code)
+        system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
+        counted_qty = int(count.get('counted_qty', 0))
+        difference = (counted_qty - system_qty) if system_qty is not None else None
+        
+        session_info = session_map.get(count.get('session_id'), {})
+        user = count.get('username') or session_info.get('user')
+        
+        if user:
+            usernames_set.add(user)
+        
+        enriched = {
+            'id': count.get('id'),
+            'session_id': count.get('session_id'),
+            'inventory_stage': session_info.get('stage'),
+            'username': user,
+            'timestamp': count.get('timestamp'),
+            'item_code': item_code,
+            'item_description': count.get('item_description'),
+            'counted_location': count.get('counted_location'),
+            'counted_qty': counted_qty,
+            'system_qty': system_qty,
+            'difference': difference,
+            'bin_location_system': count.get('bin_location_system')
+        }
+        enriched_counts.append(enriched)
+    
+    return templates.TemplateResponse("view_counts.html", {
+        "request": request,
+        "counts": enriched_counts,
+        "usernames": sorted(list(usernames_set))
+    })
 
 
 @router.get('/reconciliation', response_class=HTMLResponse)

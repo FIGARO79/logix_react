@@ -168,19 +168,91 @@ async def export_counts(username: str = Depends(login_required)):
 @router.get('/counts/stats')
 async def get_count_stats(username: str = Depends(login_required)):
     """Devuelve estadísticas sobre los conteos de stock."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        cursor = await conn.execute("SELECT COUNT(DISTINCT counted_location) FROM stock_counts")
-        counted_locations = (await cursor.fetchone())[0]
-        cursor = await conn.execute("SELECT COUNT(DISTINCT item_code) FROM stock_counts")
-        total_items_counted = (await cursor.fetchone())[0]
+    try:
+        async with aiosqlite.connect(DB_FILE_PATH) as conn:
+            conn.row_factory = aiosqlite.Row
+            
+            # 1. Total de ubicaciones contadas (global)
+            cursor = await conn.execute("SELECT COUNT(DISTINCT counted_location) FROM stock_counts")
+            counted_locations = (await cursor.fetchone())[0] or 0
+            
+            # 2. Total de items contados (solo items únicos, global)
+            cursor = await conn.execute("SELECT COUNT(DISTINCT item_code) FROM stock_counts")
+            total_items_counted = (await cursor.fetchone())[0] or 0
+            
+            # 3. Total de items con stock (del maestro de items)
+            total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
+            
+            # 4. Items con diferencias
+            query = """
+                SELECT 
+                    item_code, 
+                    SUM(counted_qty) as total_counted
+                FROM 
+                    stock_counts
+                GROUP BY 
+                    item_code
+            """
+            cursor = await conn.execute(query)
+            all_counted_items = await cursor.fetchall()
+            counted_qty_map = {item['item_code']: item['total_counted'] for item in all_counted_items}
 
-    total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
+            items_with_differences = 0
+            items_with_positive_differences = 0
+            items_with_negative_differences = 0
+
+            for item_code, total_counted in counted_qty_map.items():
+                system_qty_raw = master_qty_map.get(item_code)
+                system_qty = 0
+                if system_qty_raw is not None:
+                    try:
+                        system_qty = int(float(system_qty_raw))
+                    except (ValueError, TypeError):
+                        system_qty = 0
+                
+                if total_counted != system_qty:
+                    items_with_differences += 1
+                    if total_counted > system_qty:
+                        items_with_positive_differences += 1
+                    else:
+                        items_with_negative_differences += 1
+
+            # 5. Total de ubicaciones con stock (del maestro de items)
+            total_locations_with_stock = 0
+            if csv_handler.df_master_cache is not None and not csv_handler.df_master_cache.empty:
+                stock_items = csv_handler.df_master_cache[pd.to_numeric(csv_handler.df_master_cache['Physical_Qty'], errors='coerce').fillna(0) > 0]
+                if not stock_items.empty:
+                    bin_1_locations = stock_items['Bin_1'].dropna().unique()
+                    total_locations_with_stock = len(bin_1_locations)
+
+            return JSONResponse(content={
+                "total_items_with_stock": total_items_with_stock,
+                "counted_locations": counted_locations,
+                "total_items_counted": total_items_counted,
+                "items_with_differences": items_with_differences,
+                "items_with_positive_differences": items_with_positive_differences,
+                "items_with_negative_differences": items_with_negative_differences,
+                "total_locations_with_stock": total_locations_with_stock
+            })
+    
+    except aiosqlite.Error as e:
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {e}")
+
+
+@router.get('/counts/debug/master_qty_map')
+async def debug_master_qty_map(username: str = Depends(login_required)):
+    """Endpoint de debug para verificar el estado del master_qty_map."""
+    total_items = len(master_qty_map)
+    items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
+    sample_items = dict(list(master_qty_map.items())[:10])  # Primeros 10 items
     
     return JSONResponse(content={
-        "total_items_with_stock": total_items_with_stock,
-        "counted_locations": counted_locations,
-        "total_items_counted": total_items_counted,
+        "total_items_in_map": total_items,
+        "items_with_stock": items_with_stock,
+        "sample_items": sample_items,
+        "map_is_empty": len(master_qty_map) == 0
     })
 
 
