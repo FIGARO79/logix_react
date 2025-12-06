@@ -431,6 +431,14 @@ async def init_db():
                 await conn.execute("ALTER TABLE picking_audits ADD COLUMN packages INTEGER DEFAULT 0;")
                 print("Columna 'packages' agregada exitosamente.")
 
+            # --- Migración: Agregar columna 'edited' a picking_audit_items si no existe ---
+            cursor = await conn.execute("PRAGMA table_info(picking_audit_items);")
+            items_columns = [row['name'] for row in await cursor.fetchall()]
+            if 'edited' not in items_columns:
+                print("Agregando columna 'edited' a la tabla picking_audit_items...")
+                await conn.execute("ALTER TABLE picking_audit_items ADD COLUMN edited INTEGER DEFAULT 0;")
+                print("Columna 'edited' agregada exitosamente.")
+
             await conn.commit()
             print("Esquema de la base de datos verificado/actualizado con éxito.")
     except aiosqlite.Error as e:

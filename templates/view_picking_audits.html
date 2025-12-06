@@ -354,8 +354,11 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <button data-audit-id="{{ audit.id }}"
-                                        class="toggle-details-btn text-blue-600 hover:text-blue-900">Ver
+                                        class="toggle-details-btn text-blue-600 hover:text-blue-900 mr-3">Ver
                                         Detalles</button>
+                                    <button data-audit-id="{{ audit.id }}" data-audit-date="{{ audit.timestamp }}"
+                                        class="edit-audit-btn text-green-600 hover:text-green-900"
+                                        style="display: none;">Editar</button>
                                 </td>
                             </tr>
                             <tr class="details-row" id="details-{{ audit.id }}">
@@ -376,8 +379,10 @@
                                                 <tbody>
                                                     {% for item in audit['items'] %}
                                                     {% if item.difference != 0 %}
-                                                    <tr class="bg-red-50">
-                                                        <td>{{ item.item_code }}</td>
+                                                    <tr
+                                                        class="bg-red-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.item_code }}{% if item.edited %} <span
+                                                                class="text-orange-600 text-xs">✎</span>{% endif %}</td>
                                                         <td>{{ item.description }}</td>
                                                         <td>{{ item.qty_req }}</td>
                                                         <td>{{ item.qty_scan }}</td>
@@ -402,8 +407,10 @@
                                                 <tbody>
                                                     {% for item in audit['items'] %}
                                                     {% if item.difference == 0 %}
-                                                    <tr class="bg-green-50">
-                                                        <td>{{ item.item_code }}</td>
+                                                    <tr
+                                                        class="bg-green-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.item_code }}{% if item.edited %} <span
+                                                                class="text-orange-600 text-xs">✎</span>{% endif %}</td>
                                                         <td>{{ item.description }}</td>
                                                         <td>{{ item.qty_req }}</td>
                                                         <td>{{ item.qty_scan }}</td>
@@ -471,6 +478,28 @@
                     detailsRow.style.display = 'none';
                 }
             }
+
+            // Handle edit button clicks
+            if (e.target.classList.contains('edit-audit-btn')) {
+                const auditId = e.target.getAttribute('data-audit-id');
+                window.location.href = '/picking?edit=' + auditId;
+            }
+        });
+
+        // Show edit buttons only for audits from today
+        document.addEventListener('DOMContentLoaded', function () {
+            const today = new Date().toISOString().split('T')[0];
+            const editButtons = document.querySelectorAll('.edit-audit-btn');
+
+            editButtons.forEach(button => {
+                const auditDate = button.getAttribute('data-audit-date');
+                if (auditDate) {
+                    const auditDay = auditDate.split('T')[0];
+                    if (auditDay === today) {
+                        button.style.display = 'inline-block';
+                    }
+                }
+            });
         });
     </script>
 </body>

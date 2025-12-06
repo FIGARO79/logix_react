@@ -719,6 +719,9 @@
             let soundBeep, soundBoop;
             let currentItemForQuantity = null;
             let packagesQuantity = 0; // Cantidad de bultos/paquetes
+            let editMode = false; // Modo edición
+            let editAuditId = null; // ID de auditoría en edición
+            let originalItemValues = {}; // Valores originales para detectar cambios
 
             // --- Selectores del DOM ---
             const loadSection = document.getElementById('load-section');
@@ -794,7 +797,67 @@
             packagesInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmPackages(); } });
             quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
 
+            // --- Detectar modo edición al cargar la página ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('edit');
+            if (editId) {
+                editMode = true;
+                editAuditId = parseInt(editId);
+                loadAuditForEdit(editAuditId);
+            }
+
             // --- Funciones Principales ---
+
+            /**
+             * Carga una auditoría existente para edición.
+             */
+            async function loadAuditForEdit(auditId) {
+                try {
+                    const response = await fetch(`/api/picking_audit/${auditId}`);
+                    if (!response.ok) {
+                        const error = await response.json();
+                        showMessage(error.detail || 'Error al cargar la auditoría', 'error');
+                        return;
+                    }
+
+                    const audit = await response.json();
+
+                    // Pre-llenar datos del pedido
+                    orderNumberInput.value = audit.order_number;
+                    despatchNumberInput.value = audit.despatch_number;
+                    customerName = audit.customer_name;
+                    packagesQuantity = audit.packages;
+
+                    // Cargar items
+                    orderItems = audit.items.map(item => ({
+                        code: item.code,
+                        description: item.description,
+                        qty_req: item.qty_req,
+                        qty_scan: item.qty_scan
+                    }));
+
+                    // Guardar valores originales
+                    orderItems.forEach(item => {
+                        originalItemValues[item.code] = item.qty_scan;
+                    });
+
+                    // Mostrar sección de auditoría
+                    loadSection.classList.add('hidden');
+                    auditSection.classList.remove('hidden');
+                    customerNameEl.textContent = customerName;
+                    orderNumberDisplay.textContent = audit.order_number;
+                    despatchNumberDisplay.textContent = audit.despatch_number;
+
+                    // Cambiar texto del botón
+                    finalizeBtn.textContent = 'Actualizar Auditoría';
+
+                    renderItemsTable();
+                    showMessage('Auditoría cargada para edición', 'success');
+                } catch (error) {
+                    console.error('Error loading audit:', error);
+                    showMessage('Error al cargar la auditoría', 'error');
+                }
+            }
 
             /**
              * Carga el pedido desde la API (función original).
@@ -891,13 +954,17 @@
                     const row = document.createElement('tr');
                     row.className = `${rowClass} transition-colors duration-200`;
 
+                    // Detectar si el item fue editado (comparar con valor original)
+                    const isEdited = editMode && originalItemValues[item.code] !== undefined && originalItemValues[item.code] !== item.qty_scan;
+                    const editedClass = isEdited ? 'border-2 border-orange-500' : 'border border-gray-300';
+
                     // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
                     row.innerHTML = `
-                        <td class="px-2 py-1 md:px-4 md:py-1 text-xs md:text-sm font-medium text-gray-900">${item.code}</td>
+                        <td class="px-2 py-1 md:px-4 md:py-1 text-xs md:text-sm font-medium text-gray-900">${item.code}${isEdited ? ' <span class="text-orange-600 text-xs">✎</span>' : ''}</td>
                         <td class="px-2 py-1 md:px-4 md:py-1 text-xs md:text-sm text-gray-600">${item.description}</td>
                         <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
                         <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-bold text-center">
-                            <input type="number" value="${item.qty_scan}" min="0" class="w-12 text-center text-base md:text-sm border border-gray-300 rounded-md shadow-sm py-1" data-index="${index}">
+                            <input type="number" value="${item.qty_scan}" min="0" class="w-12 text-center text-base md:text-sm ${editedClass} rounded-md shadow-sm py-1" data-index="${index}" data-item-code="${item.code}">
                         </td>
                         <td class="px-2 py-1 md:px-4 md:py-1 whitespace-nowrap text-xs md:text-sm font-semibold ${diffClass} text-center">${diff}</td>
                     `;
@@ -908,6 +975,7 @@
                 itemsTableBody.querySelectorAll('input[type="number"]').forEach(input => {
                     input.addEventListener('change', (e) => {
                         const index = e.target.dataset.index;
+                        const itemCode = e.target.dataset.itemCode;
                         let newQty = parseInt(e.target.value, 10);
 
                         if (isNaN(newQty) || newQty < 0) {
@@ -915,6 +983,18 @@
                         }
 
                         orderItems[index].qty_scan = newQty;
+
+                        // Actualizar clase visual si está en modo edición
+                        if (editMode && originalItemValues[itemCode] !== undefined) {
+                            if (originalItemValues[itemCode] !== newQty) {
+                                e.target.classList.remove('border-gray-300');
+                                e.target.classList.add('border-2', 'border-orange-500');
+                            } else {
+                                e.target.classList.remove('border-2', 'border-orange-500');
+                                e.target.classList.add('border', 'border-gray-300');
+                            }
+                        }
+
                         updateTable(); // Re-dibujar la tabla para reflejar el cambio
                     });
                 });
@@ -1046,12 +1126,24 @@
                     despatch_number: despatchNumberDisplay.textContent,
                     customer_name: customerName,
                     status: status,
-                    items: orderItems
+                    items: orderItems,
+                    packages: packagesQuantity
                 };
 
                 try {
-                    const response = await fetch('/api/save_picking_audit', {
-                        method: 'POST',
+                    let url, method;
+                    if (editMode && editAuditId) {
+                        // Modo edición: usar PUT
+                        url = `/api/update_picking_audit/${editAuditId}`;
+                        method = 'PUT';
+                    } else {
+                        // Modo nuevo: usar POST
+                        url = '/api/save_picking_audit';
+                        method = 'POST';
+                    }
+
+                    const response = await fetch(url, {
+                        method: method,
                         headers: {
                             'Content-Type': 'application/json',
                         },
@@ -1064,7 +1156,7 @@
                     }
 
                     const result = await response.json();
-                    console.log('Auditoría guardada:', result);
+                    console.log(editMode ? 'Auditoría actualizada:' : 'Auditoría guardada:', result);
                     return true;
 
                 } catch (error) {
