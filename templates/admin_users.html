@@ -258,6 +258,10 @@
             <img src="/static/images/gear-wide-connected.svg" alt="Logo" class="h-6 w-6 opacity-80">
             <h1 class="fiori-shell-title">Panel de Administración</h1>
             <div class="ml-auto flex gap-2">
+                <a href="/admin/inventory"
+                    class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
+                    Gestionar Inventario
+                </a>
                 <a href="{{ secure_url_for(request, 'admin_logout') }}"
                     class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
                     Cerrar Sesión
