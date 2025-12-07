@@ -14,40 +14,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/fallback.css">
     <style>
-        /* ===== SAP Business One Inspired Styles ===== */
+        /* ===== SAP Fiori Inspired Styles (Quartz Light / Belize) ===== */
         :root {
-            --sap-primary: #0070d2;
-            --sap-primary-dark: #005fb2;
-            --sap-header-bg: #2c3e50;
-            --sap-header-text: #ffffff;
-            --sap-border: #d0d7de;
+            --sap-primary: #0a6ed1;
+            /* Belize Blue */
+            --sap-primary-dark: #005483;
+            --sap-accent: #eebf22;
+            /* Gold/Yellow for highlights */
+            --sap-bg: #f7f7f7;
+            /* Quartz Light Background */
+            --sap-surface: #ffffff;
+            --sap-text: #32363a;
+            --sap-text-light: #6a6d70;
+            --sap-border: #d9d9d9;
+            --sap-input-border: #89919a;
+            --sap-success: #107e3e;
+            --sap-warning: #e9730c;
+            --sap-error: #bb0000;
+            --sap-shell-bg: #354a5f;
+            --sap-shell-text: #ffffff;
             --sap-hover: #f3f6f9;
-            --sap-text: #32383e;
-            --sap-table-header: #4a5f7f;
-            --sap-yellow: #fbbf24;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            font-family: '72', 'Roboto', 'Segoe UI', sans-serif;
+            background-color: var(--sap-bg);
             color: var(--sap-text);
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
             margin: 0;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Header superior - SAP Fiori Shell Bar */
         .top-header {
-            background-color: var(--sap-header-bg);
-            color: white;
+            background-color: var(--sap-shell-bg);
+            color: var(--sap-shell-text);
             padding: 0 1rem;
-            height: 44px;
+            height: 48px;
             display: flex;
             align-items: center;
             gap: 1rem;
-            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
 
@@ -78,20 +88,21 @@
         }
 
         .header-title {
-            font-size: 1rem;
-            font-weight: 400;
+            font-size: 1.125rem;
+            font-weight: 700;
             margin: 0;
-            color: #fff;
+            color: var(--sap-shell-text);
+            letter-spacing: 0.5px;
         }
 
         /* Menú desplegable - SAP Fiori Side Navigation */
         .dropdown-menu {
             position: fixed;
-            top: 44px;
+            top: 48px;
             left: 0;
             width: 15rem;
-            max-height: calc(100vh - 44px);
-            background-color: var(--sap-header-bg);
+            max-height: calc(100vh - 48px);
+            background-color: var(--sap-shell-bg);
             box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
             transform: translateX(-100%);
             transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
@@ -246,26 +257,27 @@
         }
 
         .btn-primary {
-            background-color: var(--sap-yellow);
-            color: #1f2937;
-            border: 1px solid #f59e0b;
+            background-color: var(--sap-primary);
+            color: white;
+            border: 1px solid var(--sap-primary);
             text-decoration: none;
         }
 
         .btn-primary:hover:not(:disabled) {
-            background-color: #f59e0b;
-            box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+            background-color: var(--sap-primary-dark);
+            border-color: var(--sap-primary-dark);
+            box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.15);
         }
 
         .btn-secondary {
-            background-color: #6b7280;
-            color: white;
-            border: 1px solid #4b5563;
+            background-color: var(--sap-surface);
+            color: var(--sap-text);
+            border: 1px solid var(--sap-border);
             text-decoration: none;
         }
 
         .btn-secondary:hover:not(:disabled) {
-            background-color: #4b5563;
+            background-color: var(--sap-hover);
             box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
         }
 
@@ -303,21 +315,21 @@
         }
 
         .toast.success {
-            background-color: #dcfce7;
-            color: #166534;
-            border: 1px solid #4ade80;
+            background-color: #e8f5e9;
+            color: var(--sap-success);
+            border: 1px solid var(--sap-success);
         }
 
         .toast.error {
-            background-color: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #f87171;
+            background-color: #ffebee;
+            color: var(--sap-error);
+            border: 1px solid var(--sap-error);
         }
 
         .toast.info {
             background-color: #e0f2fe;
-            color: #0c4a6e;
-            border: 1px solid #7dd3fc;
+            color: var(--sap-primary);
+            border: 1px solid var(--sap-primary);
         }
 
         .spinner {
@@ -514,9 +526,8 @@
                 <!-- Left Column: Counting Form -->
                 <div class="md:col-span-2 bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center border-b pb-2 mb-4">
-                        <h1 class="text-xl font-semibold text-gray-800">Realizar Conteo (<span
-                                id="username-display"></span>
-                            - Sesión: <span id="session-id-display"></span>)</h1>
+                        <h1 class="text-xl font-semibold text-gray-800">Conteo <span id="username-display"></span>
+                            - Sesión: <span id="session-id-display"></span></h1>
                         <button id="end-session-btn" class="btn btn-secondary text-xs py-1.5 px-3">Finalizar
                             Sesión</button>
                     </div>
@@ -566,8 +577,14 @@
                                     <path d="M12 9h2V8h-2z" />
                                 </svg>
                             </button>
-                            <button id="search-btn" type="button"
-                                class="btn-secondary h-9 w-auto px-4 flex-shrink-0"><span>Buscar</span></button>
+                            <button id="search-btn" type="button" title="Buscar"
+                                class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    viewBox="0 0 16 16">
+                                    <path
+                                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                </svg>
+                            </button>
                         </div>
 
                         <div>
@@ -575,27 +592,27 @@
                             <div id="description" class="data-field"></div>
                         </div>
 
-                        <div>
-                            <label class="form-label">Ubicación en Sistema</label>
-                            <div id="bin_location" class="data-field"></div>
-                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="form-label">Ubicación en Sistema</label>
+                                <div id="bin_location" class="data-field"></div>
+                            </div>
 
-
-
-                        <hr class="my-6">
-
-                        <div>
-                            <label for="counted_qty" class="form-label">Cantidad Contada*</label>
-                            <div class="mt-1 flex items-center">
-                                <button type="button" id="minus-btn"
-                                    class="px-3 py-1.5 border border-gray-300 bg-gray-50 rounded-l-md hover:bg-gray-100">-</button>
-                                <input type="number" id="counted_qty"
-                                    class="flex-grow text-center border-t border-b border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    value="" min="0">
-                                <button type="button" id="plus-btn"
-                                    class="px-3 py-1.5 border border-gray-300 bg-gray-50 rounded-r-md hover:bg-gray-100">+</button>
+                            <div>
+                                <label for="counted_qty" class="form-label">Cantidad Contada*</label>
+                                <div class="mt-1 flex items-center">
+                                    <button type="button" id="minus-btn"
+                                        class="px-3 py-1.5 border border-gray-300 bg-gray-50 rounded-l-md hover:bg-gray-100">-</button>
+                                    <input type="number" id="counted_qty"
+                                        class="flex-grow text-center border-t border-b border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        value="" min="0">
+                                    <button type="button" id="plus-btn"
+                                        class="px-3 py-1.5 border border-gray-300 bg-gray-50 rounded-r-md hover:bg-gray-100">+</button>
+                                </div>
                             </div>
                         </div>
+
+                        <hr class="my-6">
 
                         <div class="flex justify-end gap-4 pt-4">
                             <button type="button" id="cancel-btn" class="btn btn-secondary">Cancelar</button>
