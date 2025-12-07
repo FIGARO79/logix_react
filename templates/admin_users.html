@@ -258,10 +258,6 @@
             <img src="/static/images/gear-wide-connected.svg" alt="Logo" class="h-6 w-6 opacity-80">
             <h1 class="fiori-shell-title">Panel de Administración</h1>
             <div class="ml-auto flex gap-2">
-                <a href="{{ secure_url_for(request, 'admin_inventory') }}"
-                    class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
-                    Gestionar Inventario
-                </a>
                 <a href="{{ secure_url_for(request, 'admin_logout') }}"
                     class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
                     Cerrar Sesión
@@ -379,8 +375,7 @@
                                     </button>
 
                                     {% if not user.is_approved %}
-                                    <form action="{{ request.url_for('approve_user', user_id=user.id).path }}"
-                                        method="post"
+                                    <form action="/admin/approve/{{ user.id }}" method="post"
                                         onsubmit="return confirm('¿Seguro que quieres aprobar a este usuario?');"
                                         class="inline">
                                         <button type="submit"
@@ -388,24 +383,14 @@
                                     </form>
                                     {% endif %}
 
-                                    <form action="{{ request.url_for('reset_password', user_id=user.id).path }}"
-                                        method="post"
+                                    <form action="/admin/reset_password/{{ user.id }}" method="post"
                                         onsubmit="return confirm('¿Seguro que quieres resetear la contraseña de este usuario?');"
                                         class="inline">
                                         <button type="submit" class="fiori-button fiori-button-secondary text-xs">Reset
                                             Pass</button>
                                     </form>
 
-                                    <form action="{{ request.url_for('reset_count_sessions', user_id=user.id).path }}"
-                                        method="post"
-                                        onsubmit="return confirm('¿Seguro que quieres resetear las sesiones de conteo de este usuario?');"
-                                        class="inline">
-                                        <button type="submit" class="fiori-button fiori-button-secondary text-xs">Reset
-                                            Conteos</button>
-                                    </form>
-
-                                    <form action="{{ request.url_for('delete_user', user_id=user.id).path }}"
-                                        method="post"
+                                    <form action="/admin/delete/{{ user.id }}" method="post"
                                         onsubmit="return confirm('¡Atención! ¿Estás seguro de que quieres ELIMINAR a este usuario? Esta acción no se puede deshacer.');"
                                         class="inline">
                                         <button type="submit" class="fiori-button fiori-button-negative text-xs"
