@@ -21,7 +21,7 @@ ls -la  # Verificar archivos
 
 ```bash
 cd ~/main
-python3.14 -m venv venv
+cd
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
