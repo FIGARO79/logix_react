@@ -450,7 +450,7 @@
         /* Estilos de Impresión - CORRECCIÓN DEFINITIVA */
         @page {
             size: 70mm 100mm;
-            margin: 3.5mm;
+            margin: 3mm;
         }
 
         @media print {
@@ -508,8 +508,8 @@
             .label-container {
                 width: 100%;
                 height: 100% !important;
-                max-width: 63mm;
-                max-height: 93mm;
+                max-width: 64mm;
+                max-height: 94mm;
                 margin: 0;
                 padding: 1mm;
 
@@ -1415,7 +1415,7 @@
                     showToast("Buscando artículo...", "info");
                     currentItemData = null;
                 }
-                toggleButtonSpinner(findItemBtn, true, `<span>Buscar</span>${ICONS.search}`);
+                toggleButtonSpinner(findItemBtn, true, ICONS.search);
                 try {
                     const response = await fetch(`${API_BASE_URL}/find_item/${encodeURIComponent(code)}/${encodeURIComponent(packingList)}`);
                     const data = await response.json();
@@ -1443,7 +1443,7 @@
                     showToast("Error de conexión al buscar.", "error");
                     if (!isEditing) clearItemSpecificFields();
                 } finally {
-                    toggleButtonSpinner(findItemBtn, false, `<span>Buscar</span>`);
+                    toggleButtonSpinner(findItemBtn, false, ICONS.search);
                     checkFormValidity();
                 }
             }
