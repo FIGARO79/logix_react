@@ -58,6 +58,56 @@ async def get_picking_order(order_number: str, despatch_number: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get('/picking_audit/{audit_id}/print')
+async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required)):
+    """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        try:
+            conn.row_factory = aiosqlite.Row
+            
+            # Obtener la auditoría
+            cursor = await conn.execute(
+                "SELECT * FROM picking_audits WHERE id = ?",
+                (audit_id,)
+            )
+            audit = await cursor.fetchone()
+            
+            if not audit:
+                raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
+            
+            # Obtener los items
+            cursor = await conn.execute(
+                "SELECT * FROM picking_audit_items WHERE audit_id = ?",
+                (audit_id,)
+            )
+            items = await cursor.fetchall()
+            
+            # Construir respuesta
+            response = {
+                "id": audit['id'],
+                "order_number": audit['order_number'],
+                "despatch_number": audit['despatch_number'],
+                "customer_name": audit['customer_name'],
+                "packages": audit['packages'] if audit['packages'] else 0,
+                "items": [
+                    {
+                        "code": item['item_code'],
+                        "description": item['description'],
+                        "qty_req": item['qty_req'],
+                        "qty_scan": item['qty_scan'],
+                        "edited": item['edited'] if 'edited' in item.keys() else 0
+                    }
+                    for item in items
+                ]
+            }
+            
+            return JSONResponse(content=response)
+            
+        except aiosqlite.Error as e:
+            print(f"Database error in get_picking_audit_for_print: {e}")
+            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+
+
 @router.get('/picking_audit/{audit_id}')
 async def get_picking_audit(audit_id: int, username: str = Depends(login_required)):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""

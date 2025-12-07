@@ -660,8 +660,8 @@
                     const packages = this.getAttribute('data-packages');
 
                     try {
-                        // Obtener los detalles completos de la auditoría
-                        const response = await fetch(`/api/picking_audit/${auditId}`);
+                        // Obtener los detalles completos de la auditoría (endpoint sin restricción de fecha)
+                        const response = await fetch(`/api/picking_audit/${auditId}/print`);
                         if (!response.ok) {
                             throw new Error('Error al cargar los detalles de la auditoría');
                         }
