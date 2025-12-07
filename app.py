@@ -144,8 +144,8 @@ def secure_url_for(request: Request, name: str, **path_params):
 templates.env.globals['secure_url_for'] = secure_url_for
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
-SECRET_KEY = 'una-clave-secreta-muy-dificil-de-adivinar'
-UPDATE_PASSWORD = 'warehouse_admin_2025'
+SECRET_KEY = '*******************************'
+UPDATE_PASSWORD = '000000000000000000000000'
 
 # --- Modelos Pydantic ---
 class LogEntry(BaseModel):
