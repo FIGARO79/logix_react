@@ -1076,13 +1076,12 @@
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                             <div>
                                 <label for="importReference" class="form-label">Import Reference</label>
-                                <input type="text" id="importReference" name="importReference"
-                                    placeholder="Ej: PL-12345" oninput="this.value = this.value.toUpperCase()"
-                                    required />
+                                <input type="text" id="importReference" name="importReference" placeholder="I.R."
+                                    oninput="this.value = this.value.toUpperCase()" required />
                             </div>
                             <div>
                                 <label for="waybill" class="form-label">Waybill</label>
-                                <input type="text" id="waybill" name="waybill" placeholder="Ej: WB-67890"
+                                <input type="text" id="waybill" name="waybill" placeholder="W.B."
                                     oninput="this.value = this.value.toUpperCase()" required />
                             </div>
                             <div class="sm:col-span-2">
@@ -1104,8 +1103,14 @@
                                             <path d="M12 9h2V8h-2z" />
                                         </svg>
                                     </button>
-                                    <button type="button" id="findItemBtn"
-                                        class="btn-secondary h-9 w-auto px-4 flex-shrink-0"><span>Buscar</span></button>
+                                    <button type="button" id="findItemBtn" title="Buscar"
+                                        class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            fill="currentColor" viewBox="0 0 16 16">
+                                            <path
+                                                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
