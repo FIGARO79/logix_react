@@ -178,6 +178,13 @@
             display: none;
         }
 
+
+        /* Configuración de márgenes de página para impresión */
+        @page {
+            margin: 0mm;
+            size: auto;
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -198,7 +205,7 @@
                 left: 0;
                 top: 0;
                 width: 100%;
-                padding: 20px;
+                padding: 1mm 1mm 1mm 1mm;
             }
 
             .no-print {
@@ -223,13 +230,13 @@
 
         .packing-list-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 2px;
             border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+            padding-bottom: 2px;
         }
 
         .packing-list-info {
-            margin-bottom: 20px;
+            margin-bottom: 2px;
         }
 
         .packing-list-table {
@@ -783,8 +790,8 @@
             printContainer.innerHTML = `
                 <div class="packing-list-container">
                     <div class="packing-list-header">
-                        <h1 style="margin: 0; font-size: 24px;">PACKING LIST</h1>
-                        <p style="margin: 5px 0;">Fecha: ${currentDate}</p>
+                        <h1 style="margin: 0; font-size: 18px;">PACKING LIST</h1>
+                        <p style="margin: 2px 0 0 0;">Fecha: ${currentDate}</p>
                     </div>
                     
                     <div class="packing-list-info">
