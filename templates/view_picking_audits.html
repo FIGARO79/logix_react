@@ -9,6 +9,7 @@
         href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/fallback.css">
+    <script src="/static/js/zebra-bluetooth.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -468,10 +469,23 @@
                                                border-radius: 4px; 
                                                cursor: pointer;
                                                font-size: 10px;
+                                               margin-right: 8px;
                                                transition: all 0.2s ease;"
                                         onmouseover="this.style.backgroundColor='#107e3e'; this.style.color='white';"
                                         onmouseout="this.style.backgroundColor='transparent'; this.style.color='#107e3e';"
                                         title="Imprimir Packing List">🖨️</button>
+                                    <button data-audit-id="{{ audit.id }}" class="print-bluetooth-btn" style="background-color: transparent; 
+                                               border: 1px solid #0066cc; 
+                                               color: #0066cc; 
+                                               padding: 4px 8px; 
+                                               border-radius: 4px; 
+                                               cursor: pointer;
+                                               font-size: 10px;
+                                               transition: all 0.2s ease;
+                                               display: none;"
+                                        onmouseover="this.style.backgroundColor='#0066cc'; this.style.color='white';"
+                                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='#0066cc';"
+                                        title="Imprimir con Bluetooth (Zebra)">📲</button>
                                 </td>
                             </tr>
                             <tr class="details-row" id="details-{{ audit.id }}">
@@ -678,6 +692,59 @@
                     } catch (error) {
                         console.error('Error:', error);
                         alert('Error al generar el packing list');
+                    }
+                });
+            });
+        });
+
+        // Funcionalidad de impresión Bluetooth
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verificar si el navegador soporta Bluetooth
+            const zebraPrinter = new ZebraPrinter();
+            const bluetoothSupported = zebraPrinter.isBluetoothSupported();
+
+            if (bluetoothSupported) {
+                // Mostrar botones de Bluetooth
+                const bluetoothButtons = document.querySelectorAll('.print-bluetooth-btn');
+                bluetoothButtons.forEach(btn => btn.style.display = 'inline-block');
+                console.log('✅ Bluetooth soportado - Botones de impresión Bluetooth habilitados');
+            } else {
+                console.log('❌ Bluetooth no soportado en este navegador');
+            }
+
+            // Event listeners para botones de Bluetooth
+            const printBluetoothButtons = document.querySelectorAll('.print-bluetooth-btn');
+            printBluetoothButtons.forEach(button => {
+                button.addEventListener('click', async function () {
+                    const auditId = this.getAttribute('data-audit-id');
+
+                    // Mostrar mensaje de carga
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '⏳';
+                    this.disabled = true;
+
+                    try {
+                        // Obtener los detalles completos de la auditoría
+                        const response = await fetch(`/api/picking_audit/${auditId}/print`);
+                        if (!response.ok) {
+                            throw new Error('Error al cargar los detalles de la auditoría');
+                        }
+
+                        const auditData = await response.json();
+
+                        // Imprimir con Zebra
+                        const printer = new ZebraPrinter();
+                        await printer.printPackingList(auditData);
+
+                        alert('✅ Packing List impreso exitosamente en Zebra ZT411');
+
+                    } catch (error) {
+                        console.error('Error al imprimir:', error);
+                        alert('❌ Error: ' + error.message);
+                    } finally {
+                        // Restaurar botón
+                        this.innerHTML = originalText;
+                        this.disabled = false;
                     }
                 });
             });
