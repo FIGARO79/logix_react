@@ -9,238 +9,470 @@
         href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ secure_url_for(request, 'static', path='css/fallback.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* --- SAP Fiori Inspired Theme (Quartz Light / Belize) --- */
+        :root {
+            --sap-primary: #0a6ed1;
+            --sap-primary-dark: #005483;
+            --sap-accent: #eebf22;
+            --sap-bg: #f7f7f7;
+            --sap-surface: #ffffff;
+            --sap-text: #32363a;
+            --sap-text-light: #6a6d70;
+            --sap-border: #d9d9d9;
+            --sap-input-border: #89919a;
+            --sap-success: #107e3e;
+            --sap-warning: #e9730c;
+            --sap-error: #bb0000;
+            --sap-shell-bg: #354a5f;
+            --sap-shell-text: #ffffff;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: '72', 'Roboto', sans-serif;
+            background-color: var(--sap-bg);
+            color: var(--sap-text);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Shell Bar (Header) --- */
+        .fiori-shell-bar {
+            background-color: var(--sap-shell-bg);
+            color: var(--sap-shell-text);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .fiori-shell-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Main Layout --- */
+        .fiori-page {
+            padding-top: 80px;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-bottom: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- Tiles (Cards) --- */
+        .fiori-tile {
+            background-color: var(--sap-surface);
+            border-radius: 0.25rem;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .fiori-tile:hover {
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .fiori-tile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--sap-border);
+            padding-bottom: 1rem;
+        }
+
+        .fiori-tile-title {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--sap-text);
+        }
+
+        /* --- Buttons --- */
+        .fiori-button {
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .fiori-button-primary {
+            background-color: var(--sap-primary);
+            color: white;
+            border-color: var(--sap-primary);
+        }
+
+        .fiori-button-primary:hover:not(:disabled) {
+            background-color: var(--sap-primary-dark);
+        }
+
+        .fiori-button-success {
+            background-color: var(--sap-success);
+            color: white;
+        }
+
+        .fiori-button-success:hover:not(:disabled) {
+            background-color: #0d6b34;
+        }
+
+        .fiori-button-warning {
+            background-color: var(--sap-warning);
+            color: white;
+        }
+
+        .fiori-button-warning:hover:not(:disabled) {
+            background-color: #c76200;
+        }
+
+        .fiori-button-ghost {
+            background-color: transparent;
+            border-color: var(--sap-border);
+            color: var(--sap-text);
+        }
+
+        .fiori-button-ghost:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .fiori-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* --- Stage Indicator --- */
+        .stage-indicator {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--sap-primary), var(--sap-primary-dark));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(10, 110, 209, 0.3);
+        }
+
+        /* --- Alert Messages --- */
+        .fiori-alert {
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .fiori-alert-success {
+            background-color: #e8f5e9;
+            border-color: var(--sap-success);
+            color: var(--sap-success);
+        }
+
+        .fiori-alert-error {
+            background-color: #ffebee;
+            border-color: var(--sap-error);
+            color: var(--sap-error);
+        }
+
+        /* --- Stats Display --- */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--sap-border);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--sap-text-light);
+            font-size: 0.875rem;
+        }
+
+        .stat-value {
+            font-weight: 500;
+            color: var(--sap-text);
+        }
+
+        /* --- Stage Cards --- */
+        .stage-card {
+            background-color: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stage-card-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--sap-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .stage-card-desc {
+            font-size: 0.813rem;
+            color: var(--sap-text-light);
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 
-<body class="bg-gray-100">
-    <div class="container mx-auto mt-10 p-5 bg-white rounded-lg shadow-lg max-w-9xl">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h1 class="text-2xl font-bold text-gray-800">Panel de Administración de Inventario</h1>
-            <div class="flex items-center space-x-4">
-                <a href="{{ secure_url_for(request, 'admin_users_get') }}"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
-                    Gestionar Usuarios
-                </a>
-                <a href="{{ secure_url_for(request, 'admin_logout') }}"
-                    class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded">
-                    Cerrar Sesión de Admin
-                </a>
-            </div>
+<body>
+    <!-- Shell Bar (Header) -->
+    <header class="fiori-shell-bar">
+        <img src="/static/images/gear-wide-connected.svg" alt="Logo" class="h-6 w-6 opacity-80">
+        <h1 class="fiori-shell-title ml-3">Administración de Inventario</h1>
+        <div class="ml-auto flex gap-2">
+            <a href="{{ secure_url_for(request, 'admin_users_get') }}"
+                class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
+                Gestionar Usuarios
+            </a>
+            <a href="{{ secure_url_for(request, 'admin_logout') }}"
+                class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
+                Cerrar Sesión
+            </a>
         </div>
+    </header>
 
+    <!-- Main Content -->
+    <main class="fiori-page">
+        <!-- Alert Messages -->
         {% if message %}
-        <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 text-green-700">
+        <div class="fiori-alert fiori-alert-success">
             <p>{{ message }}</p>
         </div>
         {% endif %}
         {% if error %}
-        <div class="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+        <div class="fiori-alert fiori-alert-error">
             <p>{{ error }}</p>
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Two Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column: Control del Ciclo -->
             <div>
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Control del Ciclo de Inventario</h2>
-                <div class="p-4 border rounded-lg bg-gray-50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-lg">Etapa de Inventario Actual:</p>
-                        <span class="text-2xl font-bold text-blue-600" id="current-stage">{{ stage.value }}</span>
+                <!-- Current Stage Indicator -->
+                <div class="fiori-tile">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600 mb-2">Etapa de Inventario Actual</p>
+                        <div class="stage-indicator">
+                            Etapa {{ stage.value }}
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-6 space-y-4">
-                    <div class="p-4 border rounded-lg">
-                        <h3 class="font-bold text-lg">Etapa 1: Conteo Total</h3>
-                        <p class="text-sm text-gray-600 mb-3">Inicia un nuevo ciclo de inventario. Esto limpiará los
-                            conteos anteriores y preparará el sistema para un conteo completo (100% de los items).</p>
-                        <form action="{{ secure_url_for(request, 'start_inventory_stage_1') }}" method="post"
-                            onsubmit="return confirm('¿Estás seguro de que quieres iniciar la Etapa 1? Esto archivará los conteos anteriores y comenzará un nuevo ciclo de inventario.');">
-                            <button type="submit"
-                                class="w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded" {%
-                                if stage.value !='0' and stage.value !='4' %}disabled{% endif %}>
-                                Iniciar Inventario (Etapa 1)
-                            </button>
-                        </form>
-                    </div>
+                <!-- Stage 1 -->
+                <div class="stage-card">
+                    <h3 class="stage-card-title">Etapa 1: Conteo Total</h3>
+                    <p class="stage-card-desc">Inicia un nuevo ciclo de inventario. Esto limpiará los conteos anteriores
+                        y preparará el sistema para un conteo completo (100% de los items).</p>
+                    <form action="{{ secure_url_for(request, 'start_inventory_stage_1') }}" method="post"
+                        onsubmit="return confirm('¿Estás seguro de que quieres iniciar la Etapa 1? Esto archivará los conteos anteriores y comenzará un nuevo ciclo de inventario.');">
+                        <button type="submit" class="fiori-button fiori-button-primary w-full" {% if stage.value !='0'
+                            and stage.value !='4' %}disabled{% endif %}>
+                            Iniciar Inventario (Etapa 1)
+                        </button>
+                    </form>
+                </div>
 
-                    <div class="p-4 border rounded-lg">
-                        <h3 class="font-bold text-lg">Etapa 2: Primer Recuento de Diferencias</h3>
-                        <p class="text-sm text-gray-600 mb-3">Calcula las diferencias de la Etapa 1 y genera una lista
-                            de reconteo. Solo los items con discrepancias podrán ser contados.</p>
-                        <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=2) }}"
-                            method="post"
-                            onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 2? Se calcularán las diferencias y se creará la lista de reconteo.');">
-                            <button type="submit"
-                                class="w-full bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value !='1' %}disabled{% endif %}>
-                                Calcular Diferencias y Avanzar a Etapa 2
-                            </button>
-                        </form>
-                        {% if stage.value == '2' %}
-                        <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=2) }}"
-                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                            Exportar Lista de Reconteo (Etapa 2)
-                        </a>
-                        {% endif %}
-                    </div>
+                <!-- Stage 2 -->
+                <div class="stage-card">
+                    <h3 class="stage-card-title">Etapa 2: Primer Recuento de Diferencias</h3>
+                    <p class="stage-card-desc">Calcula las diferencias de la Etapa 1 y genera una lista de reconteo.
+                        Solo los items con discrepancias podrán ser contados.</p>
+                    <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=2) }}" method="post"
+                        onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 2? Se calcularán las diferencias y se creará la lista de reconteo.');">
+                        <button type="submit" class="fiori-button fiori-button-warning w-full mb-2" {% if stage.value
+                            !='1' %}disabled{% endif %}>
+                            Calcular Diferencias y Avanzar a Etapa 2
+                        </button>
+                    </form>
+                    {% if stage.value == '2' %}
+                    <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=2) }}"
+                        class="fiori-button fiori-button-success w-full">
+                        Exportar Lista de Reconteo (Etapa 2)
+                    </a>
+                    {% endif %}
+                </div>
 
-                    <div class="p-4 border rounded-lg">
-                        <h3 class="font-bold text-lg">Etapa 3: Segundo Recuento de Diferencias</h3>
-                        <p class="text-sm text-gray-600 mb-3">Calcula las diferencias de la Etapa 2 y genera una nueva
-                            lista de reconteo para los items que aún presentan discrepancias.</p>
-                        <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=3) }}"
-                            method="post"
-                            onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 3?');">
-                            <button type="submit"
-                                class="w-full bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value !='2' %}disabled{% endif %}>
-                                Calcular Diferencias y Avanzar a Etapa 3
-                            </button>
-                        </form>
-                        {% if stage.value == '3' %}
-                        <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=3) }}"
-                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                            Exportar Lista de Reconteo (Etapa 3)
-                        </a>
-                        {% endif %}
-                    </div>
+                <!-- Stage 3 -->
+                <div class="stage-card">
+                    <h3 class="stage-card-title">Etapa 3: Segundo Recuento de Diferencias</h3>
+                    <p class="stage-card-desc">Calcula las diferencias de la Etapa 2 y genera una nueva lista de
+                        reconteo para los items que aún presentan discrepancias.</p>
+                    <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=3) }}" method="post"
+                        onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 3?');">
+                        <button type="submit" class="fiori-button fiori-button-warning w-full mb-2" {% if stage.value
+                            !='2' %}disabled{% endif %}>
+                            Calcular Diferencias y Avanzar a Etapa 3
+                        </button>
+                    </form>
+                    {% if stage.value == '3' %}
+                    <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=3) }}"
+                        class="fiori-button fiori-button-success w-full">
+                        Exportar Lista de Reconteo (Etapa 3)
+                    </a>
+                    {% endif %}
+                </div>
 
-                    <div class="p-4 border rounded-lg">
-                        <h3 class="font-bold text-lg">Etapa 4: Conteo Definitivo</h3>
-                        <p class="text-sm text-gray-600 mb-3">Realiza un último conteo de las diferencias restantes. El
-                            resultado de este conteo será considerado final.</p>
-                        <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=4) }}"
-                            method="post"
-                            onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 4 (Conteo Final)?');">
-                            <button type="submit"
-                                class="w-full bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
-                                {% if stage.value !='3' %}disabled{% endif %}>
-                                Avanzar a Etapa 4 (Conteo Definitivo)
-                            </button>
-                        </form>
-                        {% if stage.value == '4' %}
-                        <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=4) }}"
-                            class="mt-2 w-full block text-center bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-                            Exportar Lista de Reconteo (Etapa 4)
-                        </a>
-                        {% endif %}
-                    </div>
-                    <div class="p-4 border rounded-lg bg-green-50">
-                        <h3 class="font-bold text-lg text-green-800">Finalizar Ciclo de Inventario</h3>
-                        <p class="text-sm text-gray-600 mb-3">Marca el ciclo de inventario como completado. Esto
-                            permitirá iniciar un nuevo ciclo en el futuro.</p>
+                <!-- Stage 4 -->
+                <div class="stage-card">
+                    <h3 class="stage-card-title">Etapa 4: Conteo Definitivo</h3>
+                    <p class="stage-card-desc">Realiza un último conteo de las diferencias restantes. El resultado de
+                        este conteo será considerado final.</p>
+                    <form action="{{ secure_url_for(request, 'advance_inventory_stage', next_stage=4) }}" method="post"
+                        onsubmit="return confirm('¿Estás seguro de que quieres avanzar a la Etapa 4 (Conteo Final)?');">
+                        <button type="submit" class="fiori-button fiori-button-warning w-full mb-2" {% if stage.value
+                            !='3' %}disabled{% endif %}>
+                            Avanzar a Etapa 4 (Conteo Definitivo)
+                        </button>
+                    </form>
+                    {% if stage.value == '4' %}
+                    <a href="{{ secure_url_for(request, 'export_recount_list', stage_number=4) }}"
+                        class="fiori-button fiori-button-success w-full">
+                        Exportar Lista de Reconteo (Etapa 4)
+                    </a>
+                    {% endif %}
+                </div>
 
-                        {% if stage.value == '4' %}
-                        <a href="{{ secure_url_for(request, 'generate_inventory_report') }}"
-                            class="w-full block text-center bg-teal-600 hover:bg-teal-800 text-white font-bold py-2 px-4 rounded mb-3">
-                            Generar Informe de Conteos
-                        </a>
-                        {% endif %}
+                <!-- Finalize -->
+                <div class="stage-card" style="background-color: #e8f5e9; border-color: var(--sap-success);">
+                    <h3 class="stage-card-title" style="color: var(--sap-success);">Finalizar Ciclo de Inventario</h3>
+                    <p class="stage-card-desc">Marca el ciclo de inventario como completado. Esto permitirá iniciar un
+                        nuevo ciclo en el futuro.</p>
 
-                        <form action="{{ secure_url_for(request, 'finalize_inventory') }}" method="post"
-                            onsubmit="return confirm('¿Estás seguro de que quieres finalizar y cerrar el ciclo de inventario actual?');">
-                            <button type="submit"
-                                class="w-full bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded" {%
-                                if stage.value !='4' %}disabled{% endif %}>
-                                Finalizar y Cerrar Inventario
-                            </button>
-                        </form>
-                    </div>
+                    {% if stage.value == '4' %}
+                    <a href="{{ secure_url_for(request, 'generate_inventory_report') }}"
+                        class="fiori-button fiori-button-primary w-full mb-2">
+                        Generar Informe de Conteos
+                    </a>
+                    {% endif %}
+
+                    <form action="{{ secure_url_for(request, 'finalize_inventory') }}" method="post"
+                        onsubmit="return confirm('¿Estás seguro de que quieres finalizar y cerrar el ciclo de inventario actual?');">
+                        <button type="submit" class="fiori-button fiori-button-success w-full" {% if stage.value !='4'
+                            %}disabled{% endif %}>
+                            Finalizar y Cerrar Inventario
+                        </button>
+                    </form>
                 </div>
             </div>
 
+            <!-- Right Column: Resumen del Inventario -->
             <div>
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Resumen del Inventario</h2>
+                <div class="fiori-tile">
+                    <div class="fiori-tile-header">
+                        <h2 class="fiori-tile-title">Resumen del Inventario</h2>
+                    </div>
 
-                <div class="p-4 border rounded-lg bg-gray-50 space-y-6">
                     {% if summary and summary.general %}
-                    <div>
-                        <h3 class="font-semibold text-lg text-gray-800 border-b pb-2 mb-3">Resumen General</h3>
-                        <div class="flex justify-between items-center text-gray-700">
-                            <span>Total de Ítems en Maestro:</span>
-                            <span class="font-bold text-lg">{{ summary.general.total_items_master }}</span>
+                    <!-- General Summary -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium mb-3 pb-2 border-b border-gray-200">Resumen General</h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Total de Ítems en Maestro:</span>
+                            <span class="stat-value text-lg">{{ summary.general.total_items_master }}</span>
                         </div>
                     </div>
                     {% endif %}
+
                     {% if summary.stages %}
+                    <!-- Stage Results -->
                     <div>
-                        <h3 class="font-semibold text-lg text-gray-800 border-b pb-2 mb-3">Resultados por Etapa</h3>
+                        <h3 class="text-lg font-medium mb-3 pb-2 border-b border-gray-200">Resultados por Etapa</h3>
                         <div class="space-y-4">
                             {% for stage_num in range(1, 5) %}
                             {% if stage_num in summary.stages %}
-                            <div class="p-3 border rounded-md bg-white">
-                                <p class="font-bold text-md text-blue-700 mb-2">Etapa {{ stage_num }}</p>
-                                <ul class="text-sm space-y-1 text-gray-600">
+                            <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                                <p class="font-medium text-blue-700 mb-2">Etapa {{ stage_num }}</p>
+                                <div class="space-y-1 text-sm">
                                     {% if 'items_counted' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between">
-                                        <span>Ítems Contados:</span>
-                                        <span class="font-medium">{{ summary.stages[stage_num].items_counted }}</span>
-                                    </li>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Ítems Contados:</span>
+                                        <span class="stat-value">{{ summary.stages[stage_num].items_counted }}</span>
+                                    </div>
                                     {% endif %}
                                     {% if 'total_units_counted' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between">
-                                        <span>Unidades Totales Contadas:</span>
-                                        <span class="font-medium">{{ summary.stages[stage_num].total_units_counted
+                                    <div class="stat-row">
+                                        <span class="stat-label">Unidades Totales:</span>
+                                        <span class="stat-value">{{ summary.stages[stage_num].total_units_counted
                                             }}</span>
-                                    </li>
+                                    </div>
                                     {% endif %}
                                     {% if 'items_with_discrepancy' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between">
-                                        <span>Ítems con Diferencia:</span>
-                                        <span class="font-medium text-red-600">{{
+                                    <div class="stat-row">
+                                        <span class="stat-label">Ítems con Diferencia:</span>
+                                        <span class="stat-value" style="color: var(--sap-error);">{{
                                             summary.stages[stage_num].items_with_discrepancy }}</span>
-                                    </li>
+                                    </div>
                                     {% endif %}
                                     {% if 'accuracy' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between">
-                                        <span>Precisión de Conteo:</span>
-                                        <span
-                                            class="font-medium {% if summary.stages[stage_num].items_with_discrepancy > 0 %}text-yellow-600{% else %}text-green-600{% endif %}">{{
-                                            summary.stages[stage_num].accuracy }}</span>
-                                    </li>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Precisión de Conteo:</span>
+                                        <span class="stat-value"
+                                            style="color: {% if summary.stages[stage_num].items_with_discrepancy > 0 %}var(--sap-warning){% else %}var(--sap-success){% endif %};">
+                                            {{ summary.stages[stage_num].accuracy }}
+                                        </span>
+                                    </div>
                                     {% endif %}
                                     {% if 'coverage_effectiveness' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between">
-                                        <span>Efectividad de Cobertura:</span>
-                                        <span class="font-medium text-blue-600">{{
+                                    <div class="stat-row">
+                                        <span class="stat-label">Efectividad de Cobertura:</span>
+                                        <span class="stat-value" style="color: var(--sap-primary);">{{
                                             summary.stages[stage_num].coverage_effectiveness }}</span>
-                                    </li>
+                                    </div>
                                     {% endif %}
                                     {% if 'items_in_recount_list' in summary.stages[stage_num] %}
-                                    <li class="flex justify-between mt-2 pt-2 border-t">
-                                        <span>Ítems para Reconteo (Etapa {{ stage_num + 1 }}):</span>
-                                        <span class="font-medium">{{ summary.stages[stage_num].items_in_recount_list
+                                    <div class="stat-row"
+                                        style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--sap-border);">
+                                        <span class="stat-label">Ítems para Reconteo (Etapa {{ stage_num + 1 }}):</span>
+                                        <span class="stat-value">{{ summary.stages[stage_num].items_in_recount_list
                                             }}</span>
-                                    </li>
+                                    </div>
                                     {% endif %}
-                                </ul>
+                                </div>
                             </div>
                             {% endif %}
                             {% endfor %}
                         </div>
                     </div>
                     {% endif %}
+
                     {% if not summary or not summary.general %}
-                    <p class="text-gray-600">No hay datos de inventario para mostrar. Inicie un nuevo ciclo para ver las
-                        estadísticas.</p>
+                    <p class="text-gray-600 text-center py-8">No hay datos de inventario para mostrar. Inicie un nuevo
+                        ciclo para ver las estadísticas.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-
-
-        <div class="mt-8 border-t pt-4">
-            <a href="{{ secure_url_for(request, 'home_page') }}" class="text-blue-600 hover:underline">&larr; Volver a
-                la aplicación</a>
+        <!-- Back Link -->
+        <div class="mt-6">
+            <a href="{{ secure_url_for(request, 'home_page') }}" class="fiori-button fiori-button-ghost">
+                ← Volver a la aplicación
+            </a>
         </div>
-    </div>
+    </main>
 </body>
 
 </html>
