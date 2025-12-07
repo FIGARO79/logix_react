@@ -510,18 +510,51 @@
 
         // Show edit buttons only for audits from today
         document.addEventListener('DOMContentLoaded', function () {
-            const today = new Date().toISOString().split('T')[0];
-            const editButtons = document.querySelectorAll('.edit-audit-btn');
+            console.log('🔍 Inicializando lógica de botones de edición de picking...');
 
-            editButtons.forEach(button => {
-                const auditDate = button.getAttribute('data-audit-date');
-                if (auditDate) {
-                    const auditDay = auditDate.split('T')[0];
-                    if (auditDay === today) {
-                        button.style.display = 'inline-block';
+            // Obtener la fecha de hoy en formato local (YYYY-MM-DD)
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            console.log('📅 Fecha de hoy (local):', today.toISOString().split('T')[0]);
+
+            const editButtons = document.querySelectorAll('.edit-audit-btn');
+            console.log(`📊 Total de botones de edición encontrados: ${editButtons.length}`);
+
+            editButtons.forEach((button, index) => {
+                const auditDateStr = button.getAttribute('data-audit-date');
+                console.log(`\n🔎 Botón ${index + 1}:`);
+                console.log('  - Timestamp de auditoría:', auditDateStr);
+
+                if (auditDateStr) {
+                    try {
+                        // Parsear la fecha de la auditoría (formato ISO: YYYY-MM-DDTHH:MM:SS)
+                        const auditDateTime = new Date(auditDateStr);
+                        const auditDate = new Date(
+                            auditDateTime.getFullYear(),
+                            auditDateTime.getMonth(),
+                            auditDateTime.getDate()
+                        );
+
+                        console.log('  - Fecha de auditoría (local):', auditDate.toISOString().split('T')[0]);
+                        console.log('  - ¿Es del día actual?:', auditDate.getTime() === today.getTime());
+
+                        // Comparar solo las fechas (sin hora)
+                        if (auditDate.getTime() === today.getTime()) {
+                            button.style.display = 'inline-block';
+                            console.log('  ✅ Botón de edición MOSTRADO');
+                        } else {
+                            console.log('  ❌ Botón de edición OCULTO (auditoría de otro día)');
+                        }
+                    } catch (error) {
+                        console.error('  ⚠️ Error al parsear fecha:', error);
                     }
+                } else {
+                    console.log('  ⚠️ No se encontró atributo data-audit-date');
                 }
             });
+
+            console.log('\n✅ Inicialización de botones de edición completada\n');
         });
     </script>
 </body>
