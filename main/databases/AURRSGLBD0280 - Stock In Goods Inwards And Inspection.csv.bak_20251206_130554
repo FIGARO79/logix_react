@@ -1,0 +1,2 @@
+Stockroom,Location,Item_Code,Item_Description,Quantity,Serial_Number,Arrival_Date,SIC_Code,GRN_Number,Supplier_Code,Order_Number,Order_Line,Cost_Per_Unit,Value,Fiscal_Document_Type,Tax_Engine_Status
+01,Goods Inwards,77005278,SEAL KIT,1.00,,20251206,K,21965,SMCDI,N027453,4,229.43,229.43,,
