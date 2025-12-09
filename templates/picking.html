@@ -1132,9 +1132,26 @@
 
                 const quantity = parseInt(quantityInput.value, 10);
                 if (!isNaN(quantity) && quantity >= 0) {
-                    currentItemForQuantity.qty_scan = quantity;
-                    showMessage(`OK: ${currentItemForQuantity.description} - Cantidad: ${quantity}`, "success");
+                    const previousQty = currentItemForQuantity.qty_scan;
+                    const required = currentItemForQuantity.qty_req;
+                    const newTotal = previousQty + quantity;
+
+                    // VALIDAR: Si la nueva cantidad excede lo requerido, NO permitir
+                    if (newTotal > required) {
+                        soundBoop.triggerAttackRelease(); // Pitido de error
+                        const excess = newTotal - required;
+                        showMessage(`❌ ERROR: La cantidad ingresada (${quantity}) excede lo requerido. Ya tienes ${previousQty}/${required}. Sobrante: ${excess}`, "error");
+                        quantityInput.value = ''; // Limpiar el input
+                        quantityInput.focus(); // Mantener el foco en el modal
+                        return; // NO cerrar el modal, NO registrar
+                    }
+
+                    // SUMAR la cantidad ingresada a la cantidad ya escaneada
+                    currentItemForQuantity.qty_scan = newTotal;
+
+                    showMessage(`OK: ${currentItemForQuantity.description} - Cantidad: ${quantity} (Total: ${newTotal}/${required})`, "success");
                     updateTable();
+
                     // Highlight row
                     const row = itemsTableBody.querySelector(`input[data-index="${orderItems.indexOf(currentItemForQuantity)}"]`);
                     if (row) {
@@ -1145,6 +1162,14 @@
                                 currentRow.closest('tr').classList.remove('bg-blue-100');
                             }
                         }, 1500);
+                    }
+
+                    // Verificar si el item está completo
+                    if (newTotal === required) {
+                        soundBeep.triggerAttackRelease(); // Pitido de éxito
+                        setTimeout(() => {
+                            showMessage(`✅ COMPLETO: ${currentItemForQuantity.code} - Cantidad alistada: ${newTotal}/${required}`, "success");
+                        }, 200);
                     }
                 } else {
                     showMessage('Por favor ingrese una cantidad válida.', 'error');
