@@ -785,6 +785,8 @@
 
             // --- Event Listeners ---
             loadOrderBtn.addEventListener('click', loadOrder); // Cambiado a la función original
+            orderNumberInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); loadOrder(); } });
+            despatchNumberInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); loadOrder(); } });
             scanItemBtn.addEventListener('click', startScanner);
             closeScannerBtn.addEventListener('click', stopScanner);
             findItemBtn.addEventListener('click', () => processScan(itemCodeInput.value));
