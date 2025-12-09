@@ -599,22 +599,22 @@
                                 <thead class="bg-gray-50 sticky top-0 z-10">
                                     <tr>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider w-12">
                                             Línea</th>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-left text-xs font-small text-gray-500 uppercase tracking-wider">
-                                            Item Code</th>
+                                            class="px-0.5 py-1 text-left text-xs font-small text-gray-500 uppercase tracking-wider w-28">
+                                            Item</th>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-left text-xs font-small text-gray-500 uppercase tracking-wider">
+                                            class="px-0.5 py-1 text-left text-xs font-small text-gray-500 uppercase tracking-wider w-45">
                                             Descripción</th>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider w-12">
                                             Req.</th>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider w-14">
                                             Scan.</th>
                                         <th scope="col"
-                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider">
+                                            class="px-0.5 py-1 text-center text-xs font-small text-gray-500 uppercase tracking-wider w-12">
                                             Dif.</th>
                                     </tr>
                                 </thead>
@@ -991,8 +991,8 @@
 
                     // ***** CORRECCIÓN APLICADA AQUÍ (tbody) *****
                     row.innerHTML = `
-                        <td class="px-1 py-1 text-xs md:text-sm text-gray-700 text-center">${item.order_line || ''}</td>
-                        <td class="px-1 py-1 text-xs md:text-sm font-medium text-gray-900" title="${item.code}">${item.code}${isEdited ? ' <span class="text-orange-600 text-xs">✎</span>' : ''}</td>
+                        <td class="px-0.5 py-1 text-xs md:text-sm text-gray-700 text-center">${item.order_line || ''}</td>
+                        <td class="px-1 py-1 text-xs md:text-sm font-medium text-gray-900 max-w-[120px] truncate" title="${item.code}">${item.code}${isEdited ? ' <span class="text-orange-600 text-xs">✎</span>' : ''}</td>
                         <td class="px-1 py-1 text-xs md:text-sm text-gray-600 max-w-[150px] truncate" title="${item.description}">${item.description}</td>
                         <td class="px-1 py-1 whitespace-nowrap text-xs md:text-sm font-bold text-blue-700 text-center">${item.qty_req}</td>
                         <td class="px-0.5 py-1 whitespace-nowrap text-xs md:text-sm font-bold text-center">
