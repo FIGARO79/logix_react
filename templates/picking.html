@@ -11,8 +11,6 @@
     <link rel="stylesheet" href="/static/css/fallback.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js" crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -772,15 +770,41 @@
                     showMessage("Error al iniciar el componente de escáner.", "error");
                 }
 
-                // Inicializar sonidos (sólo si Tone.js se cargó)
-                try {
-                    soundBeep = new Tone.Synth().toDestination();
-                    soundBoop = new Tone.Synth({ oscillator: { type: "square" } }).toDestination();
-                } catch (e) {
-                    console.warn("Tone.js no se pudo inicializar. Los sonidos estarán desactivados.");
-                    soundBeep = { triggerAttackRelease: () => { } }; // Objetos 'dummy'
-                    soundBoop = { triggerAttackRelease: () => { } };
+                // Inicializar sonidos con HTML5 Audio (compatible con móviles)
+                // Crear sonidos usando data URIs con frecuencias generadas
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                let audioInitialized = false;
+
+                // Función para crear un beep con Web Audio API
+                function createBeep(frequency, duration) {
+                    if (!audioInitialized) {
+                        // Inicializar el contexto de audio con la primera interacción
+                        audioContext.resume();
+                        audioInitialized = true;
+                    }
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = frequency > 600 ? 'sine' : 'square';
+
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration);
                 }
+
+                // Objetos de sonido compatibles con la interfaz anterior
+                soundBeep = {
+                    triggerAttackRelease: () => createBeep(800, 0.1) // Sonido agudo
+                };
+                soundBoop = {
+                    triggerAttackRelease: () => createBeep(200, 0.2) // Sonido grave
+                };
             });
 
             // --- Event Listeners ---
