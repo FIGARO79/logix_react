@@ -29,7 +29,7 @@ async def get_picking_order(order_number: str, despatch_number: str):
 
         df = pd.read_csv(picking_file_path, dtype=str)
         
-        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME"]
+        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
@@ -47,7 +47,8 @@ async def get_picking_order(order_number: str, despatch_number: str):
             "ITEM": "Item Code",
             "DESCRIPTION": "Item Description",
             "QTY": "Qty",
-            "CUSTOMER_NAME": "Customer Name"
+            "CUSTOMER_NAME": "Customer Name",
+            "ORDER_LINE": "Order Line"
         })
 
         order_data = order_data.where(pd.notnull(order_data), None)
@@ -93,6 +94,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(log
                     {
                         "code": item['item_code'],
                         "description": item['description'],
+                        "order_line": item['order_line'] if 'order_line' in item.keys() else '',
                         "qty_req": item['qty_req'],
                         "qty_scan": item['qty_scan'],
                         "edited": item['edited'] if 'edited' in item.keys() else 0
@@ -282,6 +284,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
                     audit_id,
                     item.code,
                     item.description,
+                    item.order_line if hasattr(item, 'order_line') else '',
                     item.qty_req,
                     item.qty_scan,
                     difference,
@@ -290,8 +293,8 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
 
             await conn.executemany(
                 '''
-                INSERT INTO picking_audit_items (audit_id, item_code, description, qty_req, qty_scan, difference, edited)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO picking_audit_items (audit_id, item_code, description, order_line, qty_req, qty_scan, difference, edited)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
                 items_to_insert
             )

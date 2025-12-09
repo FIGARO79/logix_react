@@ -146,12 +146,22 @@ async def init_db():
                     audit_id INTEGER NOT NULL,
                     item_code TEXT NOT NULL,
                     description TEXT,
+                    order_line TEXT,
                     qty_req INTEGER NOT NULL,
                     qty_scan INTEGER NOT NULL,
                     difference INTEGER NOT NULL,
                     FOREIGN KEY(audit_id) REFERENCES picking_audits(id)
                 )
             ''')
+
+            # Añadir columna 'order_line' si no existe
+            cursor = await conn.execute("PRAGMA table_info(picking_audit_items);")
+            existing_cols_picking = [row['name'] for row in await cursor.fetchall()]
+            if 'order_line' not in existing_cols_picking:
+                try:
+                    await conn.execute("ALTER TABLE picking_audit_items ADD COLUMN order_line TEXT;")
+                except aiosqlite.Error as e:
+                    print(f"DB Warning: no se pudo añadir columna 'order_line' a picking_audit_items: {e}")
 
             # --- Tabla de tokens de restablecimiento de contraseña ---
             await conn.execute('''

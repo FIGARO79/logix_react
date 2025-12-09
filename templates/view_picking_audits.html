@@ -503,6 +503,7 @@
                                             <table class="min-w-full divide-y divide-gray-200">
                                                 <thead class="bg-gray-100">
                                                     <tr>
+                                                        <th>Línea</th>
                                                         <th>Item</th>
                                                         <th>Desc.</th>
                                                         <th>Req.</th>
@@ -515,6 +516,7 @@
                                                     {% if item.difference != 0 %}
                                                     <tr
                                                         class="bg-red-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.order_line if item.order_line else '' }}</td>
                                                         <td>{{ item.item_code }}{% if item.edited %} <span
                                                                 class="text-orange-600 text-xs">✎</span>{% endif %}</td>
                                                         <td>{{ item.description }}</td>
@@ -532,6 +534,7 @@
                                             <table class="min-w-full divide-y divide-gray-200">
                                                 <thead class="bg-gray-100">
                                                     <tr>
+                                                        <th>Línea</th>
                                                         <th>Item</th>
                                                         <th>Desc.</th>
                                                         <th>Req.</th>
@@ -543,6 +546,7 @@
                                                     {% if item.difference == 0 %}
                                                     <tr
                                                         class="bg-green-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.order_line if item.order_line else '' }}</td>
                                                         <td>{{ item.item_code }}{% if item.edited %} <span
                                                                 class="text-orange-600 text-xs">✎</span>{% endif %}</td>
                                                         <td>{{ item.description }}</td>
