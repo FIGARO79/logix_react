@@ -473,6 +473,16 @@
             color: var(--sapInformativeColor);
             border-left: 0.25rem solid var(--sapInformativeColor);
         }
+
+        /* Estilos para columnas de ubicación - ancho reducido solo en celdas de datos */
+        .dataframe td:nth-child(4),
+        .dataframe td:nth-child(5) {
+            max-width: 80px;
+            width: 80px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 

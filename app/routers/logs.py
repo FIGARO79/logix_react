@@ -210,20 +210,17 @@ async def export_reconciliation(username: str = Depends(login_required)):
             logs_df['id'] = pd.to_numeric(logs_df['id'])
             latest_logs = logs_df.sort_values('id', ascending=False).drop_duplicates('itemCode')
             
-            latest_logs['Ubicacion_Log'] = np.where(
-                latest_logs['relocatedBin'].notna() & (latest_logs['relocatedBin'] != ''),
-                latest_logs['relocatedBin'],
-                latest_logs['binLocation']
+            # Extraer tanto binLocation como relocatedBin por separado
+            locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
+                columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
             )
-            
-            locations_df = latest_logs[['itemCode', 'Ubicacion_Log']].rename(columns={'itemCode': 'Item_Code'})
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
         merged_df['Total_Esperado'] = merged_df['Total_Esperado'].fillna(0)
         merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Total_Esperado']
 
-        merged_df.fillna({'Ubicacion_Log': 'N/A'}, inplace=True)
+        merged_df.fillna({'Bin_Original': 'N/A', 'Bin_Reubicado': ''}, inplace=True)
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].astype(int)
         merged_df['Total_Esperado'] = merged_df['Total_Esperado'].astype(int)
@@ -233,13 +230,14 @@ async def export_reconciliation(username: str = Depends(login_required)):
             'GRN_Number': 'GRN',
             'Item_Code': 'Código de Ítem',
             'Item_Description': 'Descripción',
-            'Ubicacion_Log': 'Ubicación (Log)',
+            'Bin_Original': 'Ubicación Original',
+            'Bin_Reubicado': 'Ubicación Reubicada',
             'Total_Esperado': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
         })
         
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación (Log)', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación Original', 'Ubicación Reubicada', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
         df_for_export = df_for_export[cols_order]
 
         output = BytesIO()
