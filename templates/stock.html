@@ -10,6 +10,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/fallback.css">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
     <!-- SAP '72' Font -->
     <link rel="stylesheet" href="https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/library.css">
     <style>
@@ -680,6 +682,17 @@
             let html5QrCode = null;
             let currentStream = null;
             let isFlashOn = false;
+            let soundBeep, soundBoop;
+
+            // Inicializar sonidos (sólo si Tone.js se cargó)
+            try {
+                soundBeep = new Tone.Synth().toDestination();
+                soundBoop = new Tone.Synth({ oscillator: { type: "square" } }).toDestination();
+            } catch (e) {
+                console.warn("Tone.js no se pudo inicializar. Los sonidos estarán desactivados.");
+                soundBeep = { triggerAttackRelease: () => { } }; // Objetos 'dummy'
+                soundBoop = { triggerAttackRelease: () => { } };
+            }
 
             const ICONS = {
                 spinner: '<div class="spinner"></div>',
@@ -758,12 +771,15 @@
                     const data = await response.json();
 
                     if (response.ok && !data.error) {
+                        soundBeep.triggerAttackRelease("C5", "0.1"); // Sonido agudo OK
                         showMessage("Artículo encontrado.", "success");
                         renderForm(data);
                     } else {
+                        soundBoop.triggerAttackRelease("C3", "0.2"); // Sonido grave ERROR
                         showMessage(data.error || "Artículo no encontrado.", "error");
                     }
                 } catch (error) {
+                    soundBoop.triggerAttackRelease("C3", "0.2"); // Sonido grave ERROR
                     showMessage("Error de conexión al buscar el artículo.", "error");
                 } finally {
                     toggleButtonSpinner(searchButton, false, '<span>Buscar</span>');
