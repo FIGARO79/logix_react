@@ -202,12 +202,17 @@ async def export_reconciliation(username: str = Depends(login_required)):
         item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
         item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
 
+        # Calcular totales esperados por ítem (sumando todas las líneas del GRN para ese ítem)
+        item_expected_totals = grn_df.groupby(['Item_Code'])['Quantity'].sum().reset_index()
+        item_expected_totals = item_expected_totals.rename(columns={'Quantity': 'Total_Esperado_Item'})
+
         # NO agrupar el GRN - mantener todas las líneas individuales
         grn_lines = grn_df[['GRN_Number', 'Item_Code', 'Item_Description', 'Quantity']].copy()
         grn_lines = grn_lines.rename(columns={'Quantity': 'Cant_Esperada_Linea'})
 
-        # Combinar cada línea del GRN con los totales recibidos del log
+        # Combinar cada línea del GRN con los totales recibidos y esperados del ítem
         merged_df = pd.merge(grn_lines, item_totals, on='Item_Code', how='left')
+        merged_df = pd.merge(merged_df, item_expected_totals, on='Item_Code', how='left')
 
         if not logs_df.empty:
             logs_df['id'] = pd.to_numeric(logs_df['id'])
@@ -221,12 +226,14 @@ async def export_reconciliation(username: str = Depends(login_required)):
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
         merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].fillna(0)
-        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Cant_Esperada_Linea']
+        merged_df['Total_Esperado_Item'] = merged_df['Total_Esperado_Item'].fillna(0)
+        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Total_Esperado_Item']
 
         merged_df.fillna({'Bin_Original': 'N/A', 'Bin_Reubicado': ''}, inplace=True)
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].astype(int)
         merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].astype(int)
+        merged_df['Total_Esperado_Item'] = merged_df['Total_Esperado_Item'].astype(int)
         merged_df['Diferencia'] = merged_df['Diferencia'].astype(int)
 
         # Ordenar por GRN ascendente
