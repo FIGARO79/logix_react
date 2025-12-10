@@ -605,9 +605,42 @@
             }
         }
 
+        /* Contenedor del filtro con input y borrador */
+        .filter-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Icono de borrador para limpiar filtro */
+        .clear-filter-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            color: var(--sapNeutralColor);
+            flex-shrink: 0;
+        }
+
+        .clear-filter-icon:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--sapNegativeColor);
+        }
+
+        .clear-filter-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
         /* Input dentro del dropdown */
         .filter-dropdown input {
-            width: 100%;
+            flex: 1;
             padding: 8px 32px 8px 12px;
             border: 1px solid #d9d9d9;
             background-color: white;
@@ -908,11 +941,30 @@
                     // Crear dropdown de filtro
                     const dropdown = document.createElement("div");
                     dropdown.className = "filter-dropdown";
+
+                    // Crear contenedor para input y borrador
+                    const inputContainer = document.createElement("div");
+                    inputContainer.className = "filter-input-container";
+
                     const input = document.createElement("input");
                     input.type = "text";
                     input.placeholder = "Filtrar...";
                     input.dataset.columnIndex = index;
-                    dropdown.appendChild(input);
+                    inputContainer.appendChild(input);
+
+                    // Crear icono de borrador
+                    const clearIcon = document.createElement("button");
+                    clearIcon.className = "clear-filter-icon";
+                    clearIcon.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828zm2.121.707a1 1 0 0 0-1.414 0L4.16 7.547l5.293 5.293 4.633-4.633a1 1 0 0 0 0-1.414zM8.746 13.547 3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293z"/>
+                        </svg>
+                    `;
+                    clearIcon.title = "Limpiar filtro";
+                    clearIcon.style.display = "none"; // Oculto por defecto
+                    inputContainer.appendChild(clearIcon);
+
+                    dropdown.appendChild(inputContainer);
                     header.appendChild(dropdown);
 
                     // Evento click en el icono de filtro
@@ -943,10 +995,23 @@
                         // Marcar icono como activo si hay filtro
                         if (this.value.trim()) {
                             filterIcon.classList.add("active");
+                            clearIcon.style.display = "flex"; // Mostrar icono de borrador
                         } else {
                             filterIcon.classList.remove("active");
+                            clearIcon.style.display = "none"; // Ocultar icono de borrador
                             delete activeFilters[index];
                         }
+                    });
+
+                    // Evento click en el icono de borrador
+                    clearIcon.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        input.value = "";
+                        delete activeFilters[index];
+                        filterIcon.classList.remove("active");
+                        clearIcon.style.display = "none";
+                        filterTable(table);
+                        dropdown.classList.remove("show");
                     });
 
                     // Prevenir que el click en el dropdown lo cierre
