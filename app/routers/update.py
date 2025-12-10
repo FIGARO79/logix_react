@@ -86,17 +86,24 @@ async def update_files_post(
                 if update_option_280 == 'combine':
                     if os.path.exists(GRN_CSV_FILE_PATH):
                         existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
-                        combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
                         
+                        # Crear backup antes de modificar
                         try:
                             timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
                             backup_path = GRN_CSV_FILE_PATH + f'.bak_{timestamp}'
                             shutil.copy2(GRN_CSV_FILE_PATH, backup_path)
                         except Exception:
                             pass
-
-                        key_cols = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code']
-                        combined_df = combined_df.drop_duplicates(subset=key_cols, keep='last')
+                        
+                        # Obtener las GRNs que vienen en el archivo nuevo
+                        new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
+                        
+                        # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
+                        # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
+                        existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
+                        
+                        # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
+                        combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
                     else:
                         combined_df = new_data_df
 
@@ -109,6 +116,9 @@ async def update_files_post(
                 
                 files_uploaded = True
             except Exception as e:
+                import traceback
+                print(f"ERROR procesando archivo GRN: {str(e)}")
+                print(traceback.format_exc())
                 error += f'Error procesando archivo GRN: {str(e)}. '
         else:
             error += f'Nombre incorrecto para archivo GRN. Se esperaba "{os.path.basename(GRN_CSV_FILE_PATH)}". '

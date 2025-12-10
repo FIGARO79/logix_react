@@ -151,13 +151,17 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
         grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
 
+        # Calcular totales recibidos por ítem desde el log
         item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
         item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
 
-        grn_totals = grn_df.groupby(['GRN_Number', 'Item_Code', 'Item_Description'])['Quantity'].sum().reset_index()
-        grn_totals = grn_totals.rename(columns={'Quantity': 'Total_Esperado'})
+        # NO agrupar el GRN - mantener todas las líneas individuales
+        # Solo seleccionar y renombrar las columnas necesarias
+        grn_lines = grn_df[['GRN_Number', 'Item_Code', 'Item_Description', 'Quantity']].copy()
+        grn_lines = grn_lines.rename(columns={'Quantity': 'Cant_Esperada_Linea'})
 
-        merged_df = pd.merge(grn_totals, item_totals, on='Item_Code', how='outer')
+        # Combinar cada línea del GRN con los totales recibidos del log
+        merged_df = pd.merge(grn_lines, item_totals, on='Item_Code', how='left')
 
         # Obtener ubicación desde el LOG
         if not logs_df.empty:
@@ -170,23 +174,31 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
             )
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
+        # Rellenar valores nulos
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
-        merged_df['Total_Esperado'] = merged_df['Total_Esperado'].fillna(0)
-        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Total_Esperado']
+        merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].fillna(0)
+        
+        # Calcular diferencia: Total recibido del ítem - Cantidad esperada en esta línea
+        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Cant_Esperada_Linea']
         
         merged_df.fillna({'Bin_Original': 'N/A', 'Bin_Reubicado': ''}, inplace=True)
 
+        # Convertir a enteros
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].astype(int)
-        merged_df['Total_Esperado'] = merged_df['Total_Esperado'].astype(int)
+        merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].astype(int)
         merged_df['Diferencia'] = merged_df['Diferencia'].astype(int)
 
+        # Ordenar por GRN ascendente
+        merged_df = merged_df.sort_values('GRN_Number', ascending=True)
+
+        # Renombrar columnas para la vista
         merged_df = merged_df.rename(columns={
             'GRN_Number': 'GRN',
             'Item_Code': 'Código de Ítem',
             'Item_Description': 'Descripción',
             'Bin_Original': 'Ubicación',
             'Bin_Reubicado': 'Reubicada',
-            'Total_Esperado': 'Cant. Esperada',
+            'Cant_Esperada_Linea': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
         })
