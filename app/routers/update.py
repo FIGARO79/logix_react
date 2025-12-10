@@ -87,14 +87,6 @@ async def update_files_post(
                     if os.path.exists(GRN_CSV_FILE_PATH):
                         existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
                         
-                        # Crear backup antes de modificar
-                        try:
-                            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-                            backup_path = GRN_CSV_FILE_PATH + f'.bak_{timestamp}'
-                            shutil.copy2(GRN_CSV_FILE_PATH, backup_path)
-                        except Exception:
-                            pass
-                        
                         # Obtener las GRNs que vienen en el archivo nuevo
                         new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
                         
