@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api", tags=["stock"])
 
 
 @router.get('/stock')
-async def get_stock(username: str = Depends(login_required)):
+async def get_stock():
     """Obtiene datos de stock desde el CSV."""
     stock_data = await csv_handler.get_stock_data()
     if stock_data is not None:
@@ -28,7 +28,7 @@ async def get_stock_item(item_code: str, username: str = Depends(login_required)
 
 
 @router.get('/get_item_details/{item_code}')
-async def get_item_details_for_label(item_code: str, username: str = Depends(login_required)):
+async def get_item_details_for_label(item_code: str):
     """Obtiene detalles de un item para generar etiquetas."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if not item_details:
