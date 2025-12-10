@@ -475,13 +475,179 @@
         }
 
         /* Estilos para columnas de ubicación - ancho reducido solo en celdas de datos */
+        /* Columnas de ubicación */
         .dataframe td:nth-child(4),
-        .dataframe td:nth-child(5) {
-            max-width: 80px;
-            width: 80px;
+        .dataframe td:nth-child(5),
+        .dataframe td:nth-child(6),
+        .dataframe td:nth-child(7),
+        .dataframe td:nth-child(8),
+        {
+        max-width: 80px;
+        width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        }
+
+        .dataframe td:nth-child(3) {
+            max-width: 350px;
+            width: 350px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        /* Anchos mínimos para encabezados - para que título + icono quepan en una línea */
+        .dataframe th:nth-child(1) {
+            min-width: 120px;
+        }
+
+        .dataframe th:nth-child(2) {
+            min-width: 120px;
+        }
+
+        .dataframe th:nth-child(3) {
+            min-width: 350px;
+        }
+
+        .dataframe th:nth-child(4) {
+            min-width: 160px;
+        }
+
+        .dataframe th:nth-child(5) {
+            min-width: 160px;
+        }
+
+        .dataframe th:nth-child(6) {
+            min-width: 130px;
+        }
+
+        .dataframe th:nth-child(7) {
+            min-width: 100px;
+        }
+
+        .dataframe th:nth-child(8) {
+            min-width: 100px;
+        }
+
+
+        /* Contenedor de tabla con scroll */
+        .table-container {
+            max-height: calc(100vh - 150px);
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Encabezados sticky (inmovilizados) */
+        .dataframe thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .dataframe thead tr:first-child th {
+            position: sticky;
+            top: 0;
+            z-index: 11;
+        }
+
+        /* Icono de filtro en el encabezado */
+        .filter-icon {
+            display: inline-block;
+            margin-left: 8px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+            vertical-align: middle;
+        }
+
+        .filter-icon:hover {
+            opacity: 1;
+        }
+
+        .filter-icon.active {
+            opacity: 1;
+            color: var(--sapBrandColor);
+        }
+
+        .filter-icon svg {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        /* Dropdown del filtro */
+        .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            background-color: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            z-index: 100;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .filter-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Input dentro del dropdown */
+        .filter-dropdown input {
+            width: 100%;
+            padding: 8px 32px 8px 12px;
+            border: 1px solid #d9d9d9;
+            background-color: white;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='%23666'%3E%3Cpath d='M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px 16px;
+            color: var(--sapTextColor);
+            font-size: 12px;
+            border-radius: 3px;
+            font-family: var(--sapFontFamily);
+            transition: all 0.2s ease;
+        }
+
+        .filter-dropdown input::placeholder {
+            color: #89919a;
+        }
+
+        .filter-dropdown input:focus {
+            outline: none;
+            border-color: var(--sapBrandColor);
+            box-shadow: 0 0 0 1px var(--sapBrandColor);
+        }
+
+        .filter-dropdown input:hover {
+            border-color: #89919a;
+        }
+
+        /* Posición relativa para los th */
+        .dataframe th {
+            position: relative;
+        }
+
+        /* Fila oculta por filtro */
+        .dataframe tbody tr.hidden-by-filter {
+            display: none;
         }
     </style>
 </head>
@@ -641,11 +807,13 @@
                 <span class="block sm:inline">Ocurrió un problema al generar el reporte: {{ error }}</span>
             </div>
             {% elif tables %}
-            <div class="shadow-md rounded-lg overflow-x-auto"
+            <div class="shadow-md rounded-lg overflow-hidden"
                 style="background-color: var(--sapTileBackground); border: 1px solid var(--sapTileBorder);">
-                {% for table in tables %}
-                {{ table|safe }}
-                {% endfor %}
+                <div class="table-container">
+                    {% for table in tables %}
+                    {{ table|safe }}
+                    {% endfor %}
+                </div>
             </div>
             {% else %}
             <div class="text-center py-10 rounded-lg shadow-md" style="background-color: var(--sapTileBackground);">
@@ -713,19 +881,134 @@
             table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("desc", !asc);
         }
 
+        // Almacenar filtros activos
+        const activeFilters = {};
+
         document.addEventListener("DOMContentLoaded", () => {
             const table = document.querySelector(".dataframe");
             if (table) {
-                const headers = table.querySelectorAll("th");
+                // Añadir iconos de filtro a los encabezados
+                const headers = table.querySelectorAll("thead th");
                 headers.forEach((header, index) => {
+                    // Añadir funcionalidad de ordenamiento
+                    const headerText = header.textContent.trim();
                     header.classList.add("sortable");
-                    header.addEventListener("click", () => {
+
+                    // Crear contenedor para el texto y el icono
+                    header.innerHTML = '';
+                    const textSpan = document.createElement("span");
+                    textSpan.textContent = headerText;
+                    header.appendChild(textSpan);
+
+                    // Añadir icono de filtro
+                    const filterIcon = document.createElement("span");
+                    filterIcon.className = "filter-icon";
+                    filterIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+                    </svg>`;
+                    filterIcon.dataset.columnIndex = index;
+                    header.appendChild(filterIcon);
+
+                    // Crear dropdown de filtro
+                    const dropdown = document.createElement("div");
+                    dropdown.className = "filter-dropdown";
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.placeholder = "Filtrar...";
+                    input.dataset.columnIndex = index;
+                    dropdown.appendChild(input);
+                    header.appendChild(dropdown);
+
+                    // Evento click en el icono de filtro
+                    filterIcon.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        // Cerrar otros dropdowns
+                        document.querySelectorAll(".filter-dropdown").forEach(d => {
+                            if (d !== dropdown) d.classList.remove("show");
+                        });
+                        document.querySelectorAll(".filter-icon").forEach(i => {
+                            if (i !== filterIcon) i.classList.remove("active");
+                        });
+
+                        // Toggle este dropdown
+                        dropdown.classList.toggle("show");
+                        filterIcon.classList.toggle("active");
+
+                        if (dropdown.classList.contains("show")) {
+                            input.focus();
+                        }
+                    });
+
+                    // Evento input para filtrar
+                    input.addEventListener("input", function () {
+                        activeFilters[index] = this.value;
+                        filterTable(table);
+
+                        // Marcar icono como activo si hay filtro
+                        if (this.value.trim()) {
+                            filterIcon.classList.add("active");
+                        } else {
+                            filterIcon.classList.remove("active");
+                            delete activeFilters[index];
+                        }
+                    });
+
+                    // Prevenir que el click en el dropdown lo cierre
+                    dropdown.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                    });
+
+                    // Evento click en el header para ordenar (solo en el texto)
+                    textSpan.addEventListener("click", () => {
                         const currentIsAsc = header.classList.contains("asc");
                         sortTable(table, index, !currentIsAsc);
                     });
                 });
             }
         });
+
+        // Cerrar dropdowns al hacer click fuera
+        document.addEventListener("click", () => {
+            document.querySelectorAll(".filter-dropdown").forEach(d => d.classList.remove("show"));
+            document.querySelectorAll(".filter-icon").forEach(i => {
+                // Solo remover active si no hay filtro activo
+                const input = i.parentElement.querySelector("input");
+                if (!input || !input.value.trim()) {
+                    i.classList.remove("active");
+                }
+            });
+        });
+
+        // Función para filtrar la tabla
+        function filterTable(table) {
+            const tbody = table.querySelector("tbody");
+            const rows = tbody.querySelectorAll("tr");
+
+            rows.forEach(row => {
+                let shouldShow = true;
+
+                // Verificar todos los filtros activos
+                for (const [columnIndex, filterValue] of Object.entries(activeFilters)) {
+                    const filterVal = filterValue.toLowerCase().trim();
+                    if (filterVal) {
+                        const cell = row.querySelector(`td:nth-child(${parseInt(columnIndex) + 1})`);
+                        if (cell) {
+                            const cellText = cell.textContent.toLowerCase().trim();
+                            if (!cellText.includes(filterVal)) {
+                                shouldShow = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (shouldShow) {
+                    row.classList.remove("hidden-by-filter");
+                } else {
+                    row.classList.add("hidden-by-filter");
+                }
+            });
+        }
     </script>
 
 </body>
