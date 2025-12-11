@@ -497,13 +497,6 @@
                 </svg>
                 <span>Confirmación Picking</span>
             </a>
-            <a href="/planner">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd"
-                        d="M6 2a.5.5 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2Z" />
-                </svg>
-                <span>Planificador</span>
-            </a>
             <button class="logout-btn" onclick="window.location.href='/logout'">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M7.5 1v7h1V1z" />
@@ -520,15 +513,15 @@
 
     <!-- Contenido principal -->
     <main class="main-content">
-        <div class="container mx-auto max-w-3xl w-full px-2 pb-2 pt-2 md:px-4 md:pb-4">
+        <div class="container mx-auto max-w-3xl w-full px-2 pb-2 pt-4 md:px-4 md:pb-4">
             <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200">
 
                 <!-- Sección 1: Carga de Pedido -->
-                <section id="load-section" class="mb-0">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Chequeo de Picking</h1>
-                    <h2 class="text-xl font-semibold mb-1">1. Cargar Pedido</h2>
+                <section id="load-section" class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Chequeo de Picking</h1>
+                    <h2 class="text-xl font-semibold mb-4">1. Cargar Pedido</h2>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="order-number" class="block text-sm font-medium text-gray-700">Order
                                 Number</label>
@@ -546,9 +539,59 @@
                     </div>
 
                     <button id="load-order-btn"
-                        class="mt-1 w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         Cargar Pedido
                     </button>
+
+                    <!-- Tabla de Seguimiento de Pedidos -->
+                    <div class="mt-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Seguimiento de Pedidos</h3>
+                            <button id="refresh-tracking-btn"
+                                class="bg-gray-600 text-white py-1 px-3 rounded-md font-semibold shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="inline-block w-4 h-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Actualizar
+                            </button>
+                        </div>
+                        <div class="border rounded-md overflow-hidden">
+                            <div class="max-h-[300px] overflow-y-auto">
+                                <table class="w-full divide-y divide-gray-200 table-auto">
+                                    <thead class="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">
+                                                Order Number</th>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">
+                                                Despatch Number</th>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                Cliente</th>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-15">
+                                                Líneas</th>
+                                            <th scope="col"
+                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                Fecha Impresión</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tracking-table-body" class="bg-white divide-y divide-gray-200">
+                                        <!-- Las filas se insertarán aquí dinámicamente -->
+                                        <tr>
+                                            <td colspan="5" class="px-3 py-4 text-center text-sm text-gray-500">
+                                                Cargando datos...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                 </section>
 
                 <!-- Sección 2: Chequeo (Oculta por defecto) -->
@@ -645,56 +688,6 @@
                     </div>
                 </section>
             </div>
-
-            <!-- Sección: Pedidos Disponibles (Archivo 240) -->
-            <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200 mt-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Pedidos Disponibles (Archivo 240)</h2>
-                    <button id="refresh-orders-btn" class="text-blue-600 hover:text-blue-800" title="Actualizar lista">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                            class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd"
-                                d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-                            <path
-                                d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div class="overflow-x-auto max-h-[400px] border rounded-md">
-                    <table class="w-full divide-y divide-gray-200 table-auto text-sm" id="available-orders-table">
-                        <thead class="bg-gray-50 sticky top-0 z-10 text-xs text-gray-500 uppercase bg-gray-100">
-                            <tr>
-                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200"
-                                    data-sort="order_number">
-                                    Order # <span class="sort-indicator"></span>
-                                </th>
-                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200"
-                                    data-sort="despatch_number">
-                                    Desp. <span class="sort-indicator"></span>
-                                </th>
-                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200"
-                                    data-sort="customer_name">
-                                    Cliente <span class="sort-indicator"></span>
-                                </th>
-                                <th scope="col" class="px-3 py-2 text-center font-bold cursor-pointer hover:bg-gray-200"
-                                    data-sort="lines_count">
-                                    Líneas <span class="sort-indicator"></span>
-                                </th>
-                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200"
-                                    data-sort="printed_date">
-                                    Fecha Imp. <span class="sort-indicator"></span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="available-orders-body" class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td colspan="5" class="px-3 py-4 text-center text-gray-500">Cargando pedidos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
         <!-- Modal del Escáner -->
@@ -753,31 +746,17 @@
         <!-- Modal de Cantidad de Bultos/Paquetes -->
         <div id="packages-modal"
             class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Asignación de Artículos por Bulto</h3>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad total de bultos:</label>
-                    <input type="number" id="packages-input" inputmode="numeric" aria-label="Cantidad de bultos"
-                        placeholder="0" min="1"
-                        class="w-32 text-center border border-gray-300 rounded-md shadow-sm py-2 text-lg" />
-                    <button id="generate-packages-btn"
-                        class="ml-2 py-2 px-4 bg-blue-500 text-white rounded-md font-semibold hover:bg-blue-600">
-                        Generar Bultos
-                    </button>
-                </div>
-
-                <div id="packages-assignment-container" class="hidden">
-                    <p class="text-sm text-gray-600 mb-4">Asigne los artículos a cada bulto arrastrando o seleccionando:
-                    </p>
-                    <div id="packages-list" class="space-y-4"></div>
-                </div>
-
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Cantidad de Bultos</h3>
+                <p class="text-gray-700 mb-4">Ingrese la cantidad total de bultos o paquetes del pedido:</p>
+                <input type="number" id="packages-input" inputmode="numeric" aria-label="Cantidad de bultos"
+                    placeholder="0" min="1"
+                    class="w-full text-center border border-gray-300 rounded-md shadow-sm py-2 text-2xl" />
                 <div class="flex justify-end gap-4 mt-6">
                     <button id="cancel-packages-btn"
                         class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
                     <button id="confirm-packages-btn"
-                        class="py-2 px-4 btn-success text-white rounded-md font-semibold">Confirmar y Guardar</button>
+                        class="py-2 px-4 btn-success text-white rounded-md font-semibold">Confirmar</button>
                 </div>
             </div>
         </div>
@@ -791,7 +770,6 @@
             let soundBeep, soundBoop;
             let currentItemForQuantity = null;
             let packagesQuantity = 0; // Cantidad de bultos/paquetes
-            let packagesAssignment = {}; // Asignación: { package_number: [{code, description, qty}] }
             let editMode = false; // Modo edición
             let editAuditId = null; // ID de auditoría en edición
             let originalItemValues = {}; // Valores originales para detectar cambios
@@ -827,9 +805,6 @@
             const packagesInput = document.getElementById('packages-input');
             const cancelPackagesBtn = document.getElementById('cancel-packages-btn');
             const confirmPackagesBtn = document.getElementById('confirm-packages-btn');
-            const generatePackagesBtn = document.getElementById('generate-packages-btn');
-            const packagesAssignmentContainer = document.getElementById('packages-assignment-container');
-            const packagesList = document.getElementById('packages-list');
 
             // --- Inicialización ---
             document.addEventListener('DOMContentLoaded', () => {
@@ -846,8 +821,6 @@
                 }
 
                 // Inicializar sonidos con HTML5 Audio (compatible con móviles)
-                loadAvailableOrders();
-
                 // Crear sonidos usando data URIs con frecuencias generadas
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 let audioInitialized = false;
@@ -882,6 +855,74 @@
                 soundBoop = {
                     triggerAttackRelease: () => createBeep(200, 0.2) // Sonido grave
                 };
+
+                // Cargar datos de seguimiento al iniciar
+                loadTrackingData();
+            });
+
+            // --- Funciones para Tabla de Seguimiento ---
+
+            /**
+             * Carga los datos de seguimiento desde la API.
+             */
+            async function loadTrackingData() {
+                const trackingTableBody = document.getElementById('tracking-table-body');
+                const refreshBtn = document.getElementById('refresh-tracking-btn');
+
+                try {
+                    const response = await fetch('/api/picking/tracking');
+
+                    if (!response.ok) {
+                        throw new Error('Error al cargar datos de seguimiento');
+                    }
+
+                    const trackingData = await response.json();
+
+                    // Limpiar tabla
+                    trackingTableBody.innerHTML = '';
+
+                    if (trackingData.length === 0) {
+                        trackingTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-3 py-4 text-center text-sm text-gray-500">
+                                    No hay pedidos disponibles
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    // Agregar filas
+                    trackingData.forEach(order => {
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-gray-50 transition-colors duration-150';
+                        row.innerHTML = `
+                            <td class="px-3 py-2 text-sm font-medium text-gray-900">${order.order_number}</td>
+                            <td class="px-3 py-2 text-sm text-gray-700">${order.despatch_number}</td>
+                            <td class="px-3 py-2 text-sm text-gray-700">${order.customer_name}</td>
+                            <td class="px-3 py-2 text-sm text-center font-semibold text-blue-600">${order.total_lines}</td>
+                            <td class="px-3 py-2 text-sm text-center text-gray-600">${order.print_date}</td>
+                        `;
+                        trackingTableBody.appendChild(row);
+                    });
+
+                } catch (error) {
+                    console.error('Error loading tracking data:', error);
+                    trackingTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-3 py-4 text-center text-sm text-red-500">
+                                Error al cargar datos de seguimiento
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            // Event listener para el botón de actualizar
+            document.getElementById('refresh-tracking-btn').addEventListener('click', () => {
+                loadTrackingData();
+                showMessage('Datos de seguimiento actualizados', 'success');
+
             });
 
             // --- Event Listeners ---
@@ -900,9 +941,6 @@
             confirmQuantityBtn.addEventListener('click', confirmQuantity);
             cancelPackagesBtn.addEventListener('click', hidePackagesModal);
             confirmPackagesBtn.addEventListener('click', confirmPackages);
-            console.log('Registering generatePackagesBtn listener', generatePackagesBtn);
-            generatePackagesBtn.addEventListener('click', generatePackagesUI);
-            console.log('generatePackagesBtn listener registered');
             packagesInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmPackages(); } });
             quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
 
@@ -1264,8 +1302,7 @@
                     customer_name: customerName,
                     status: status,
                     items: orderItems,
-                    packages: packagesQuantity,
-                    packages_assignment: packagesAssignment
+                    packages: packagesQuantity
                 };
 
                 try {
@@ -1339,9 +1376,6 @@
              */
             function showPackagesModal() {
                 packagesInput.value = '';
-                packagesAssignmentContainer.classList.add('hidden');
-                packagesList.innerHTML = '';
-                packagesAssignment = {};
                 packagesModal.classList.remove('hidden');
                 packagesInput.focus();
             }
@@ -1351,163 +1385,10 @@
              */
             function hidePackagesModal() {
                 packagesModal.classList.add('hidden');
-                packagesAssignmentContainer.classList.add('hidden');
-                packagesList.innerHTML = '';
             }
 
             /**
-             * Genera la interfaz para asignar artículos a bultos.
-             */
-            function generatePackagesUI() {
-                console.log('generatePackagesUI called');
-                const packages = parseInt(packagesInput.value, 10);
-                console.log('Packages value:', packages);
-
-                if (isNaN(packages) || packages < 1) {
-
-                    if (orderItems.length === 0) {
-                        showMessage('No hay artículos para asignar a bultos.', 'error');
-                        return;
-                    }
-                    showMessage('Por favor ingrese una cantidad válida de bultos (mínimo 1).', 'error');
-                    return;
-                }
-
-                packagesQuantity = packages;
-                packagesAssignment = {};
-
-                // Inicializar bultos vacíos
-                for (let i = 1; i <= packages; i++) {
-                    packagesAssignment[i] = [];
-                }
-
-                // Generar UI para cada bulto
-                packagesList.innerHTML = '';
-                for (let i = 1; i <= packages; i++) {
-                    const packageDiv = document.createElement('div');
-                    packageDiv.className = 'border border-gray-300 rounded-lg p-4 bg-gray-50';
-                    packageDiv.innerHTML = `
-                        <h4 class="font-bold text-lg mb-3 text-gray-800">Bulto #${i}</h4>
-                        <div class="space-y-2" id="package-${i}-items"></div>
-                        <div class="mt-3">
-                            <select id="package-${i}-select" class="w-full border border-gray-300 rounded-md p-2 text-sm">
-                                <option value="">-- Seleccionar artículo --</option>
-                                ${orderItems.map(item => `
-                                    <option value="${item.code}">
-                                        ${item.code} - ${item.description} (Cant: ${item.qty_scan})
-                                    </option>
-                                `).join('')}
-                            </select>
-                            <input type="number" id="package-${i}-qty" min="1" placeholder="Cantidad" class="mt-2 w-full border border-gray-300 rounded-md p-2 text-sm" />
-                            <button onclick="addItemToPackage(${i})" class="mt-2 w-full bg-blue-500 text-white py-1 px-3 rounded text-sm hover:bg-blue-600">
-                                Agregar Artículo
-                            </button>
-                        </div>
-                    `;
-                    packagesList.appendChild(packageDiv);
-                }
-
-                console.log('Showing packages assignment container');
-                console.log('Container element:', packagesAssignmentContainer);
-                packagesAssignmentContainer.classList.remove('hidden');
-                console.log('Container classes after remove hidden:', packagesAssignmentContainer.className);
-            }
-
-            /**
-             * Agrega un artículo a un bulto específico.
-             */
-            function getTotalAssignedQty(itemCode, excludePackage = null) {
-                // Suma asignada del item en todos los bultos (opcionalmente excluyendo uno)
-                let total = 0;
-                Object.entries(packagesAssignment).forEach(([pkg, items]) => {
-                    if (excludePackage !== null && Number(pkg) === Number(excludePackage)) return;
-                    items.forEach(it => {
-                        if (it.code === itemCode) total += (it.qty || 0);
-                    });
-                });
-                return total;
-            }
-
-            window.addItemToPackage = function (packageNumber) {
-                const selectEl = document.getElementById(`package-${packageNumber}-select`);
-                const qtyEl = document.getElementById(`package-${packageNumber}-qty`);
-                const itemCode = selectEl.value;
-                const qtyValue = parseInt(qtyEl.value, 10);
-
-                if (!itemCode) {
-                    showMessage('Seleccione un artículo', 'warning');
-                    return;
-                }
-
-                if (isNaN(qtyValue) || qtyValue <= 0) {
-                    showMessage('Ingrese una cantidad mayor a 0 para el bulto', 'warning');
-                    return;
-                }
-
-                const item = orderItems.find(i => i.code === itemCode);
-                if (!item) return;
-
-                const assignedElsewhere = getTotalAssignedQty(itemCode, packageNumber);
-                const maxAvailable = item.qty_scan - assignedElsewhere;
-                if (qtyValue > maxAvailable) {
-                    showMessage(`Cantidad supera lo escaneado. Disponible: ${maxAvailable}`, 'error');
-                    return;
-                }
-
-                const existingIndex = packagesAssignment[packageNumber].findIndex(i => i.code === itemCode);
-                if (existingIndex >= 0) {
-                    packagesAssignment[packageNumber][existingIndex].qty = qtyValue;
-                } else {
-                    packagesAssignment[packageNumber].push({
-                        code: item.code,
-                        description: item.description,
-                        qty: qtyValue
-                    });
-                }
-
-                // Actualizar UI
-                updatePackageItemsUI(packageNumber);
-                selectEl.value = '';
-                qtyEl.value = '';
-            }
-
-            /**
-             * Actualiza la visualización de artículos en un bulto.
-             */
-            function updatePackageItemsUI(packageNumber) {
-                const container = document.getElementById(`package-${packageNumber}-items`);
-                const items = packagesAssignment[packageNumber];
-
-                if (items.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm italic">Sin artículos asignados</p>';
-                    return;
-                }
-
-                container.innerHTML = items.map(item => `
-                    <div class="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
-                        <div class="flex-1">
-                            <span class="font-semibold text-sm">${item.code}</span>
-                            <span class="text-xs text-gray-600 ml-2">${item.description}</span>
-                            <span class="text-xs text-blue-600 ml-2">(${item.qty})</span>
-                        </div>
-                        <button onclick="removeItemFromPackage(${packageNumber}, '${item.code}')" 
-                            class="text-red-500 hover:text-red-700 text-sm font-bold">
-                            ✕
-                        </button>
-                    </div>
-                `).join('');
-            }
-
-            /**
-             * Remueve un artículo de un bulto.
-             */
-            window.removeItemFromPackage = function (packageNumber, itemCode) {
-                packagesAssignment[packageNumber] = packagesAssignment[packageNumber].filter(i => i.code !== itemCode);
-                updatePackageItemsUI(packageNumber);
-            }
-
-            /**
-             * Confirma la asignación de bultos y procede a guardar.
+             * Confirma la cantidad de bultos y procede a guardar.
              */
             async function confirmPackages() {
                 const packages = parseInt(packagesInput.value, 10);
@@ -1578,123 +1459,6 @@
                         messageBox.classList.add('hidden');
                     }, 300); // Esperar que termine la transición de salida
                 }, duration);
-            }
-
-            // --- Funciones para Pedidos Disponibles (Archivo 240) ---
-            let availableOrders = [];
-            let currentSort = { column: 'printed_date', direction: 'desc' }; // Default sort
-
-            const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
-            if (refreshOrdersBtn) refreshOrdersBtn.addEventListener('click', loadAvailableOrders);
-
-            // Add click listeners to headers
-            document.querySelectorAll('#available-orders-table th[data-sort]').forEach(th => {
-                th.addEventListener('click', () => {
-                    sortOrders(th.dataset.sort);
-                });
-            });
-
-            async function loadAvailableOrders() {
-                const tbody = document.getElementById('available-orders-body');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">Cargando pedidos...</td></tr>';
-
-                try {
-                    const response = await fetch('/api/picking/orders');
-                    if (!response.ok) throw new Error('Error al cargar pedidos');
-
-                    availableOrders = await response.json();
-
-                    // Sort by date desc by default if available, otherwise just render
-                    sortOrders(currentSort.column, currentSort.direction, false);
-                    renderAvailableOrdersTable();
-
-                } catch (error) {
-                    console.error(error);
-                    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-red-500">Error al cargar la lista de pedidos.</td></tr>';
-                }
-            }
-
-            function renderAvailableOrdersTable() {
-                const tbody = document.getElementById('available-orders-body');
-                if (!tbody) return;
-                tbody.innerHTML = '';
-
-                if (availableOrders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">No hay pedidos disponibles.</td></tr>';
-                    return;
-                }
-
-                availableOrders.forEach(order => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-blue-50 cursor-pointer transition-colors duration-150';
-
-                    // Click to load order
-                    row.addEventListener('click', () => {
-                        orderNumberInput.value = order.order_number;
-                        despatchNumberInput.value = order.despatch_number;
-                        // Optional: Scroll to top and load
-                        document.getElementById('load-section').scrollIntoView({ behavior: 'smooth' });
-                        // Highlight inputs
-                        orderNumberInput.focus();
-                        // We could auto-load, but maybe safer to let user press button?
-                        // loadOrder(); 
-                    });
-
-                    row.innerHTML = `
-                        <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">${order.order_number}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-600">${order.despatch_number}</td>
-                        <td class="px-3 py-2 text-gray-600 max-w-[150px] truncate" title="${order.customer_name}">${order.customer_name}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-center text-gray-600 font-semibold">${order.lines_count}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-500 text-xs">${order.printed_date || '-'}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
-
-            function sortOrders(column, forceDirection = null, render = true) {
-                // Toggle direction if clicking same column
-                if (!forceDirection) {
-                    if (currentSort.column === column) {
-                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        currentSort.column = column;
-                        currentSort.direction = 'desc'; // Default to newest/highest first usually
-                    }
-                } else {
-                    currentSort.column = column;
-                    currentSort.direction = forceDirection;
-                }
-
-                // Update Header UI
-                document.querySelectorAll('#available-orders-table th[data-sort]').forEach(th => {
-                    const indicator = th.querySelector('.sort-indicator');
-                    if (th.dataset.sort === currentSort.column) {
-                        th.classList.add('bg-gray-200');
-                        if (indicator) indicator.textContent = currentSort.direction === 'asc' ? ' ▲' : ' ▼';
-                    } else {
-                        th.classList.remove('bg-gray-200');
-                        if (indicator) indicator.textContent = '';
-                    }
-                });
-
-                // Sort Data
-                availableOrders.sort((a, b) => {
-                    let valA = a[column] || '';
-                    let valB = b[column] || '';
-
-                    // Handle numbers
-                    if (column === 'lines_count') {
-                        valA = Number(valA);
-                        valB = Number(valB);
-                    }
-
-                    // Handle dates (strings) or normal strings
-                    if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
-                    if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
-                    return 0;
-                });
-
-                if (render) renderAvailableOrdersTable();
             }
 
         </script>
