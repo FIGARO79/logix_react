@@ -36,6 +36,12 @@ async def close_location(data: CloseLocationRequest, username: str = Depends(log
     return await db_counts.close_location_in_session(data.session_id, data.location_code, username)
 
 
+@router.post("/locations/reopen", name="reopen_location")
+async def reopen_location(data: CloseLocationRequest, username: str = Depends(login_required)):
+    """Reabre una ubicación para permitir más conteos."""
+    return await db_counts.reopen_location_in_session(data.session_id, data.location_code, username)
+
+
 @router.get("/sessions/{session_id}/locations")
 async def get_session_locations(session_id: int, username: str = Depends(login_required)):
     """Obtiene el estado de todas las ubicaciones para una sesión."""

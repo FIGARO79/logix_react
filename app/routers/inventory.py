@@ -26,7 +26,7 @@ async_engine = create_async_engine(ASYNC_DB_URL)
 
 def admin_login_required(request: Request):
     """Middleware para verificar que el usuario admin esté autenticado."""
-    if not request.cookies.get("admin_logged_in"):
+    if not request.session.get("admin_logged_in"):
         return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
     return True
 

@@ -108,11 +108,52 @@ async def close_location_in_session(session_id: int, location_code: str, usernam
             """
             INSERT INTO session_locations (session_id, location_code, status, closed_at)
             VALUES (?, ?, 'closed', ?)
+            ON CONFLICT(id) DO UPDATE SET status='closed', closed_at=excluded.closed_at
             """,
             (session_id, location_code, datetime.datetime.now().isoformat(timespec='seconds'))
         )
+        # Nota: La tabla session_locations no tiene UNIQUE constraint en (session_id, location_code) en el schema init_db.
+        # Si no tiene UNIQUE, el INSERT puede duplicar.
+        # Revisando init_db: "CREATE TABLE IF NOT EXISTS session_locations ... id INTEGER PRIMARY KEY ..."
+        # No hay UNIQUE(session_id, location_code). 
+        # Pero lógica anterior usaba INSERT sin verificación de existencia previa en 'session_locations' para UPDATE.
+        # Voy a asumir que debemos chequear si existe y hacer UPDATE, o INSERT.
+        
+        # Mejor implementación segura dado el esquema actual (sin unique constraint explicito conocido, pero asumiendo):
+        cursor_loc = await conn.execute("SELECT id FROM session_locations WHERE session_id = ? AND location_code = ?", (session_id, location_code))
+        row = await cursor_loc.fetchone()
+        if row:
+            await conn.execute("UPDATE session_locations SET status = 'closed', closed_at = ? WHERE id = ?", 
+                               (datetime.datetime.now().isoformat(timespec='seconds'), row[0]))
+        else:
+            await conn.execute("INSERT INTO session_locations (session_id, location_code, status, closed_at) VALUES (?, ?, 'closed', ?)",
+                               (session_id, location_code, datetime.datetime.now().isoformat(timespec='seconds')))
+        
         await conn.commit()
         return {"message": f"Ubicación {location_code} cerrada para la sesión {session_id}."}
+
+
+async def reopen_location_in_session(session_id: int, location_code: str, username: str):
+    """Reabre una ubicación en una sesión."""
+    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+        # Verificar que la sesión existe y pertenece al usuario
+        cursor = await conn.execute(
+            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ? AND status = 'in_progress'",
+            (session_id, username)
+        )
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
+
+        # Verificar si existe la ubicación
+        cursor_loc = await conn.execute("SELECT id FROM session_locations WHERE session_id = ? AND location_code = ?", (session_id, location_code))
+        row = await cursor_loc.fetchone()
+        
+        if row:
+            await conn.execute("UPDATE session_locations SET status = 'open', closed_at = NULL WHERE id = ?", (row[0],))
+            await conn.commit()
+            return {"message": f"Ubicación {location_code} reabierta."}
+        else:
+            raise HTTPException(status_code=404, detail="La ubicación no estaba cerrada.")
 
 
 async def get_locations_for_session(session_id: int, username: str):
