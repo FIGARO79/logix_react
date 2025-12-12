@@ -1,232 +1,261 @@
 """
-Servicio de base de datos - Operaciones de conteos y sesiones.
+Servicio de base de datos - Operaciones de conteos y sesiones (Migrado a ORM).
 """
-import aiosqlite
 import datetime
 from fastapi import HTTPException, status
-from app.core.config import DB_FILE_PATH
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete
+from app.models.sql_models import StockCount, CountSession, AppState, SessionLocation
+from typing import List, Dict, Any, Optional
 
-
-async def load_all_counts_db_async():
+async def load_all_counts_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
     """Carga todos los conteos de stock."""
-    counts = []
     try:
-        async with aiosqlite.connect(DB_FILE_PATH) as conn:
-            conn.row_factory = aiosqlite.Row
-            async with conn.cursor() as cursor:
-                await cursor.execute("SELECT * FROM stock_counts ORDER BY id DESC")
-                rows = await cursor.fetchall()
-                for row in rows:
-                    counts.append(dict(row))
-        return counts
-    except aiosqlite.Error as e:
+        result = await db.execute(select(StockCount).order_by(StockCount.id.desc()))
+        counts = result.scalars().all()
+        # Convertir a diccionarios
+        return [
+            {
+                "id": c.id,
+                "session_id": c.session_id,
+                "timestamp": c.timestamp,
+                "item_code": c.item_code,
+                "item_description": c.item_description,
+                "counted_qty": c.counted_qty,
+                "counted_location": c.counted_location,
+                "bin_location_system": c.bin_location_system,
+                "username": c.username
+            }
+            for c in counts
+        ]
+    except Exception as e:
         print(f"DB Error (load_all_counts_db_async): {e}")
         return []
 
 
-async def create_count_session(username: str):
+async def create_count_session(db: AsyncSession, username: str) -> Dict[str, Any]:
     """Crea una nueva sesión de conteo para un usuario."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        try:
-            # Obtener la etapa de inventario global actual
-            cursor_stage = await conn.execute("SELECT value FROM app_state WHERE key = 'current_inventory_stage'")
-            stage_row = await cursor_stage.fetchone()
-            current_stage = int(stage_row['value']) if (stage_row and stage_row['value']) else 0
+    try:
+        # Obtener la etapa de inventario global actual
+        result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
+        stage_row = result.scalar_one_or_none()
+        current_stage = int(stage_row.value) if (stage_row and stage_row.value) else 0
 
-            # Validación de etapa
-            if current_stage == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="No se puede iniciar sesión: El administrador aún no ha generado la Etapa 1 del inventario."
-                )
-
-            # Finalizar sesiones anteriores del mismo usuario
-            await conn.execute(
-                "UPDATE count_sessions SET status = 'completed', end_time = ? WHERE user_username = ? AND status = 'in_progress'",
-                (datetime.datetime.now().isoformat(timespec='seconds'), username)
+        # Validación de etapa
+        if current_stage == 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No se puede iniciar sesión: El administrador aún no ha generado la Etapa 1 del inventario."
             )
 
-            # Crear nueva sesión
-            cursor = await conn.execute(
-                "INSERT INTO count_sessions (user_username, start_time, status, inventory_stage) VALUES (?, ?, ?, ?)",
-                (username, datetime.datetime.now().isoformat(timespec='seconds'), 'in_progress', current_stage)
-            )
-            await conn.commit()
-            session_id = cursor.lastrowid
-            
-            return {"session_id": session_id, "inventory_stage": current_stage, "message": f"Sesión {session_id} (Etapa {current_stage}) iniciada."}
+        # Finalizar sesiones anteriores del mismo usuario
+        stmt = update(CountSession).where(
+            CountSession.user_username == username,
+            CountSession.status == 'in_progress'
+        ).values(
+            status='completed',
+            end_time=datetime.datetime.now().isoformat(timespec='seconds')
+        )
+        await db.execute(stmt)
+
+        # Crear nueva sesión
+        new_session = CountSession(
+            user_username=username,
+            start_time=datetime.datetime.now().isoformat(timespec='seconds'),
+            status='in_progress',
+            inventory_stage=current_stage
+        )
+        db.add(new_session)
+        await db.commit()
+        await db.refresh(new_session)
         
-        except aiosqlite.Error as e:
-            print(f"Database error in create_count_session: {e}")
-            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+        return {"session_id": new_session.id, "inventory_stage": current_stage, "message": f"Sesión {new_session.id} (Etapa {current_stage}) iniciada."}
+    
+    except Exception as e:
+        print(f"Database error in create_count_session: {e}")
+        await db.rollback()
+        # Re-lanzar excepciones HTTP para que lleguen al cliente
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
-async def get_active_session_for_user(username: str):
+async def get_active_session_for_user(db: AsyncSession, username: str) -> Optional[Dict[str, Any]]:
     """Obtiene la sesión activa de un usuario."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        cursor = await conn.execute(
-            "SELECT * FROM count_sessions WHERE user_username = ? AND status = 'in_progress' ORDER BY start_time DESC LIMIT 1",
-            (username,)
-        )
-        session = await cursor.fetchone()
-        return dict(session) if session else None
+    result = await db.execute(
+        select(CountSession)
+        .where(CountSession.user_username == username, CountSession.status == 'in_progress')
+        .order_by(CountSession.start_time.desc())
+        .limit(1)
+    )
+    session = result.scalar_one_or_none()
+    if session:
+        return {
+            "id": session.id,
+            "user_username": session.user_username,
+            "start_time": session.start_time,
+            "end_time": session.end_time,
+            "status": session.status,
+            "inventory_stage": session.inventory_stage
+        }
+    return None
 
 
-async def close_count_session(session_id: int, username: str):
+async def close_count_session(db: AsyncSession, session_id: int, username: str) -> Dict[str, str]:
     """Cierra una sesión de conteo."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        # Verificar que la sesión pertenece al usuario
-        cursor = await conn.execute(
-            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ?", (session_id, username)
-        )
-        if not await cursor.fetchone():
-            raise HTTPException(status_code=403, detail="No tienes permiso para cerrar esta sesión.")
+    # Verificar que la sesión pertenece al usuario
+    result = await db.execute(select(CountSession).where(CountSession.id == session_id, CountSession.user_username == username))
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        raise HTTPException(status_code=403, detail="No tienes permiso para cerrar esta sesión o no existe.")
 
-        await conn.execute(
-            "UPDATE count_sessions SET status = 'completed', end_time = ? WHERE id = ?",
-            (datetime.datetime.now().isoformat(timespec='seconds'), session_id)
-        )
-        await conn.commit()
-        return {"message": f"Sesión {session_id} cerrada con éxito."}
+    session.status = 'completed'
+    session.end_time = datetime.datetime.now().isoformat(timespec='seconds')
+    await db.commit()
+    
+    return {"message": f"Sesión {session_id} cerrada con éxito."}
 
 
-async def close_location_in_session(session_id: int, location_code: str, username: str):
+async def close_location_in_session(db: AsyncSession, session_id: int, location_code: str, username: str) -> Dict[str, str]:
     """Marca una ubicación como cerrada en una sesión."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        # Verificar que la sesión existe y pertenece al usuario
-        cursor = await conn.execute(
-            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ? AND status = 'in_progress'",
-            (session_id, username)
+    # Verificar que la sesión existe y pertenece al usuario y está activa
+    result = await db.execute(
+        select(CountSession)
+        .where(CountSession.id == session_id, CountSession.user_username == username, CountSession.status == 'in_progress')
+    )
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
+
+    # Verificar si ya existe el registro de ubicación
+    result_loc = await db.execute(
+        select(SessionLocation).where(SessionLocation.session_id == session_id, SessionLocation.location_code == location_code)
+    )
+    location_entry = result_loc.scalar_one_or_none()
+
+    now_ts = datetime.datetime.now().isoformat(timespec='seconds')
+
+    if location_entry:
+        location_entry.status = 'closed'
+        location_entry.closed_at = now_ts
+    else:
+        new_location = SessionLocation(
+            session_id=session_id,
+            location_code=location_code,
+            status='closed',
+            closed_at=now_ts
         )
-        if not await cursor.fetchone():
-            raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
-
-        # Insertar o actualizar el estado de la ubicación
-        await conn.execute(
-            """
-            INSERT INTO session_locations (session_id, location_code, status, closed_at)
-            VALUES (?, ?, 'closed', ?)
-            ON CONFLICT(id) DO UPDATE SET status='closed', closed_at=excluded.closed_at
-            """,
-            (session_id, location_code, datetime.datetime.now().isoformat(timespec='seconds'))
-        )
-        # Nota: La tabla session_locations no tiene UNIQUE constraint en (session_id, location_code) en el schema init_db.
-        # Si no tiene UNIQUE, el INSERT puede duplicar.
-        # Revisando init_db: "CREATE TABLE IF NOT EXISTS session_locations ... id INTEGER PRIMARY KEY ..."
-        # No hay UNIQUE(session_id, location_code). 
-        # Pero lógica anterior usaba INSERT sin verificación de existencia previa en 'session_locations' para UPDATE.
-        # Voy a asumir que debemos chequear si existe y hacer UPDATE, o INSERT.
-        
-        # Mejor implementación segura dado el esquema actual (sin unique constraint explicito conocido, pero asumiendo):
-        cursor_loc = await conn.execute("SELECT id FROM session_locations WHERE session_id = ? AND location_code = ?", (session_id, location_code))
-        row = await cursor_loc.fetchone()
-        if row:
-            await conn.execute("UPDATE session_locations SET status = 'closed', closed_at = ? WHERE id = ?", 
-                               (datetime.datetime.now().isoformat(timespec='seconds'), row[0]))
-        else:
-            await conn.execute("INSERT INTO session_locations (session_id, location_code, status, closed_at) VALUES (?, ?, 'closed', ?)",
-                               (session_id, location_code, datetime.datetime.now().isoformat(timespec='seconds')))
-        
-        await conn.commit()
-        return {"message": f"Ubicación {location_code} cerrada para la sesión {session_id}."}
+        db.add(new_location)
+    
+    await db.commit()
+    return {"message": f"Ubicación {location_code} cerrada para la sesión {session_id}."}
 
 
-async def reopen_location_in_session(session_id: int, location_code: str, username: str):
+async def reopen_location_in_session(db: AsyncSession, session_id: int, location_code: str, username: str) -> Dict[str, str]:
     """Reabre una ubicación en una sesión."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        # Verificar que la sesión existe y pertenece al usuario
-        cursor = await conn.execute(
-            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ? AND status = 'in_progress'",
-            (session_id, username)
-        )
-        if not await cursor.fetchone():
-            raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
+    # Verificar sesión
+    result = await db.execute(
+        select(CountSession)
+        .where(CountSession.id == session_id, CountSession.user_username == username, CountSession.status == 'in_progress')
+    )
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        raise HTTPException(status_code=403, detail="La sesión no es válida o no te pertenece.")
 
-        # Verificar si existe la ubicación
-        cursor_loc = await conn.execute("SELECT id FROM session_locations WHERE session_id = ? AND location_code = ?", (session_id, location_code))
-        row = await cursor_loc.fetchone()
-        
-        if row:
-            await conn.execute("UPDATE session_locations SET status = 'open', closed_at = NULL WHERE id = ?", (row[0],))
-            await conn.commit()
-            return {"message": f"Ubicación {location_code} reabierta."}
-        else:
-            raise HTTPException(status_code=404, detail="La ubicación no estaba cerrada.")
+    # Buscar ubicación
+    result_loc = await db.execute(
+        select(SessionLocation).where(SessionLocation.session_id == session_id, SessionLocation.location_code == location_code)
+    )
+    location_entry = result_loc.scalar_one_or_none()
+    
+    if location_entry:
+        location_entry.status = 'open'
+        location_entry.closed_at = None
+        await db.commit()
+        return {"message": f"Ubicación {location_code} reabierta."}
+    else:
+        raise HTTPException(status_code=404, detail="La ubicación no estaba cerrada.")
 
 
-async def get_locations_for_session(session_id: int, username: str):
+async def get_locations_for_session(db: AsyncSession, session_id: int, username: str) -> List[Dict[str, Any]]:
     """Obtiene todas las ubicaciones de una sesión."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        # Verificar que la sesión pertenece al usuario
-        cursor = await conn.execute(
-            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ?", (session_id, username)
-        )
-        if not await cursor.fetchone():
-            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta sesión.")
+    # Verificar permiso
+    result = await db.execute(select(CountSession).where(CountSession.id == session_id, CountSession.user_username == username))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta sesión.")
 
-        cursor = await conn.execute(
-            "SELECT location_code, status FROM session_locations WHERE session_id = ?", (session_id,)
-        )
-        locations = await cursor.fetchall()
-        return [dict(row) for row in locations]
+    result_locs = await db.execute(select(SessionLocation).where(SessionLocation.session_id == session_id))
+    locations = result_locs.scalars().all()
+    
+    return [{"location_code": loc.location_code, "status": loc.status} for loc in locations]
 
 
-async def get_counts_for_location(session_id: int, location_code: str, username: str):
+async def get_counts_for_location(db: AsyncSession, session_id: int, location_code: str, username: str) -> List[Dict[str, Any]]:
     """Obtiene todos los conteos para una ubicación específica."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        # Verificar permiso
-        cursor = await conn.execute(
-            "SELECT id FROM count_sessions WHERE id = ? AND user_username = ?", (session_id, username)
-        )
-        if not await cursor.fetchone():
-            raise HTTPException(status_code=403, detail="No tienes permiso para ver estos datos.")
+    # Verificar permiso
+    result = await db.execute(select(CountSession).where(CountSession.id == session_id, CountSession.user_username == username))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estos datos.")
 
-        cursor = await conn.execute(
-            "SELECT * FROM stock_counts WHERE session_id = ? AND counted_location = ? ORDER BY timestamp DESC",
-            (session_id, location_code)
-        )
-        counts = await cursor.fetchall()
-        return [dict(row) for row in counts]
+    result_counts = await db.execute(
+        select(StockCount)
+        .where(StockCount.session_id == session_id, StockCount.counted_location == location_code)
+        .order_by(StockCount.timestamp.desc())
+    )
+    counts = result_counts.scalars().all()
+    
+    return [
+        {
+            "id": c.id,
+            "session_id": c.session_id,
+            "timestamp": c.timestamp,
+            "item_code": c.item_code,
+            "item_description": c.item_description,
+            "counted_qty": c.counted_qty,
+            "counted_location": c.counted_location,
+            "bin_location_system": c.bin_location_system,
+            "username": c.username
+        } 
+        for c in counts
+    ]
 
 
-async def save_stock_count(session_id: int, item_code: str, counted_qty: int, 
+async def save_stock_count(db: AsyncSession, session_id: int, item_code: str, counted_qty: int, 
                            counted_location: str, description: str, 
-                           bin_location_system: str, username: str):
+                           bin_location_system: str, username: str) -> Optional[int]:
     """Guarda un conteo de stock."""
     try:
-        async with aiosqlite.connect(DB_FILE_PATH, timeout=10) as conn:
-            sql = '''INSERT INTO stock_counts (session_id, timestamp, item_code, item_description,
-                                              counted_qty, counted_location, bin_location_system, username)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)'''
-            values = (
-                session_id,
-                datetime.datetime.now().isoformat(timespec='seconds'),
-                item_code,
-                description,
-                counted_qty,
-                counted_location,
-                bin_location_system,
-                username
-            )
-            cursor = await conn.execute(sql, values)
-            await conn.commit()
-            return cursor.lastrowid
-    except aiosqlite.Error as e:
+        new_count = StockCount(
+            session_id=session_id,
+            timestamp=datetime.datetime.now().isoformat(timespec='seconds'),
+            item_code=item_code,
+            item_description=description,
+            counted_qty=counted_qty,
+            counted_location=counted_location,
+            bin_location_system=bin_location_system,
+            username=username
+        )
+        db.add(new_count)
+        await db.commit()
+        await db.refresh(new_count)
+        return new_count.id
+    except Exception as e:
         print(f"DB Error (save_stock_count): {e}")
+        await db.rollback()
         return None
 
 
-async def delete_stock_count(count_id: int):
+async def delete_stock_count(db: AsyncSession, count_id: int) -> bool:
     """Elimina un conteo de stock."""
     try:
-        async with aiosqlite.connect(DB_FILE_PATH, timeout=10) as conn:
-            cursor = await conn.execute("DELETE FROM stock_counts WHERE id = ?", (count_id,))
-            await conn.commit()
-            return cursor.rowcount > 0
-    except aiosqlite.Error as e:
+        stmt = delete(StockCount).where(StockCount.id == count_id)
+        result = await db.execute(stmt)
+        await db.commit()
+        return result.rowcount > 0
+    except Exception as e:
         print(f"DB Error (delete_stock_count) para ID {count_id}: {e}")
+        await db.rollback()
         return False

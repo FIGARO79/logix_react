@@ -7,7 +7,10 @@ import json
 import datetime
 from urllib.parse import urlencode
 from io import BytesIO
-import aiosqlite
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+from app.core.db import get_db
+from app.models.sql_models import Log
 
 # Importaciones relativas desde la estructura del proyecto
 from app.core.config import (
@@ -160,7 +163,7 @@ async def preview_grn_file(file: UploadFile = File(...)):
 
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
 @router.post('/clear_database')
-async def clear_database(request: Request, password: str = Form(...)):
+async def clear_database(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     # La URL de redirección debe ser construida correctamente
     redirect_url = request.url_for('update_files_get')
 
@@ -169,15 +172,12 @@ async def clear_database(request: Request, password: str = Form(...)):
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
     
     try:
-        async with aiosqlite.connect(DB_FILE_PATH) as conn:
-            # Se limpia solo la tabla de logs como en el archivo original
-            await conn.execute('DELETE FROM logs')
-            await conn.execute('DELETE FROM sqlite_sequence WHERE name="logs"')
-            await conn.commit()
+        await db.execute(delete(Log))
+        await db.commit()
         
         query_params = urlencode({'message': 'Base de datos de logs limpiada'})
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
     
-    except aiosqlite.Error as e:
+    except Exception as e:
         query_params = urlencode({'error': str(e)})
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)

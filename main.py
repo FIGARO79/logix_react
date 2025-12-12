@@ -15,7 +15,7 @@ from app.core.config import PROJECT_ROOT, SECRET_KEY
 from app.middleware.security import SchemeMiddleware, HSTSMiddleware
 
 # Importar servicios
-from app.services.database import init_db
+from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
 # Importar routers
@@ -27,7 +27,10 @@ async def lifespan(app: FastAPI):
     """Maneja el ciclo de vida de la aplicación (inicio y cierre)."""
     # Startup
     print("Iniciando aplicación Logix...")
-    await init_db()
+    
+    # Ejecutar migraciones de base de datos (síncrono pero rápido)
+    run_migrations()
+    
     await load_csv_data()
     print("Aplicación Logix iniciada correctamente.")
     yield

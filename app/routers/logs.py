@@ -8,20 +8,24 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse, Response
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.db import get_db
 from app.models.schemas import LogEntry
 from app.services import db_logs, csv_handler
 from app.utils.auth import login_required
-from app.core.config import DB_FILE_PATH, ASYNC_DB_URL
+from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
 import numpy as np
 
+# Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
 async_engine = create_async_engine(ASYNC_DB_URL)
 
 router = APIRouter(prefix="/api", tags=["logs"])
 
 
 @router.get('/find_item/{item_code}/{import_reference}')
-async def find_item(item_code: str, import_reference: str, username: str = Depends(login_required)):
+async def find_item(item_code: str, import_reference: str, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Busca un item en el maestro y calcula cantidades."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
@@ -29,7 +33,7 @@ async def find_item(item_code: str, import_reference: str, username: str = Depen
     
     expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
     original_bin = item_details.get('Bin_1', 'N/A')
-    latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(item_code)
+    latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
     response_data = {
@@ -46,7 +50,7 @@ async def find_item(item_code: str, import_reference: str, username: str = Depen
 
 
 @router.post('/add_log')
-async def add_log(data: LogEntry, username: str = Depends(login_required)):
+async def add_log(data: LogEntry, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Añade un registro de entrada."""
     if data.quantity <= 0:
         raise HTTPException(status_code=400, detail="Cantidad debe ser > 0")
@@ -61,10 +65,10 @@ async def add_log(data: LogEntry, username: str = Depends(login_required)):
     
     # Obtener la ubicación efectiva (reubicada si existe, o la original del maestro)
     original_bin_from_master = item_details.get('Bin_1', 'N/A')
-    latest_relocated_bin_for_item = await db_logs.get_latest_relocated_bin_async(item_code_form)
+    latest_relocated_bin_for_item = await db_logs.get_latest_relocated_bin_async(db, item_code_form)
     bin_to_log_as_original = latest_relocated_bin_for_item if latest_relocated_bin_for_item else original_bin_from_master
     
-    total_received_before = await db_logs.get_total_received_for_import_reference_async(import_reference, item_code_form)
+    total_received_before = await db_logs.get_total_received_for_import_reference_async(db, import_reference, item_code_form)
     total_expected = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
     total_received_now = total_received_before + quantity_received_form
     difference = total_received_now - total_expected
@@ -82,7 +86,7 @@ async def add_log(data: LogEntry, username: str = Depends(login_required)):
         'difference': difference
     }
     
-    log_id = await db_logs.save_log_entry_db_async(entry_data)
+    log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     if log_id:
         log_entry_data_for_response = {"id": log_id, **entry_data}
         return JSONResponse({'message': 'Registro añadido con éxito.', 'entry': log_entry_data_for_response}, status_code=201)
@@ -90,9 +94,9 @@ async def add_log(data: LogEntry, username: str = Depends(login_required)):
 
 
 @router.put('/update_log/{log_id}')
-async def update_log(log_id: int, data: dict, username: str = Depends(login_required)):
+async def update_log(log_id: int, data: dict, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Actualiza un registro de entrada existente."""
-    existing_log = await db_logs.get_log_entry_by_id_async(log_id)
+    existing_log = await db_logs.get_log_entry_by_id_async(db, log_id)
     if not existing_log:
         raise HTTPException(status_code=404, detail=f"Registro con ID {log_id} no encontrado.")
     
@@ -104,7 +108,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
     item_code = existing_log['itemCode']
     
     # Recalcular diferencia
-    total_received_others = await db_logs.get_total_received_for_import_reference_async(import_reference, item_code)
+    total_received_others = await db_logs.get_total_received_for_import_reference_async(db, import_reference, item_code)
     total_received_others -= int(existing_log.get('qtyReceived', 0))
     total_received_now = total_received_others + qty_received
     total_expected = await csv_handler.get_total_expected_quantity_for_item(item_code)
@@ -118,32 +122,32 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
     }
     
-    success = await db_logs.update_log_entry_db_async(log_id, entry_data_for_db)
+    success = await db_logs.update_log_entry_db_async(db, log_id, entry_data_for_db)
     if success:
         return JSONResponse({'message': f'Registro {log_id} actualizado con éxito.'})
     raise HTTPException(status_code=500, detail="Error al actualizar el registro.")
 
 
 @router.get('/get_logs')
-async def get_logs(username: str = Depends(login_required)):
+async def get_logs(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene todos los registros de entrada."""
-    logs = await db_logs.load_log_data_db_async()
+    logs = await db_logs.load_log_data_db_async(db)
     return JSONResponse(content=logs)
 
 
 @router.delete('/delete_log/{log_id}')
-async def delete_log_api(log_id: int, username: str = Depends(login_required)):
+async def delete_log_api(log_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Elimina un registro de entrada."""
-    success = await db_logs.delete_log_entry_db_async(log_id)
+    success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
         return JSONResponse({'message': f'Registro {log_id} eliminado con éxito.'})
     raise HTTPException(status_code=404, detail=f"Registro con ID {log_id} no encontrado.")
 
 
 @router.get('/export_log')
-async def export_log(username: str = Depends(login_required)):
+async def export_log(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Exporta todos los registros de inbound a un archivo Excel."""
-    logs_data = await db_logs.load_log_data_db_async()
+    logs_data = await db_logs.load_log_data_db_async(db)
     if not logs_data:
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
@@ -182,14 +186,11 @@ async def export_reconciliation(username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
     try:
         async with async_engine.connect() as conn:
-            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query('SELECT * FROM logs', sync_conn))
+            # Pandas read_sql doesn't support AsyncSession directly easily, using connection is standard
+            # We use text() for the raw SQL
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
 
-        # Accedemos al caché de GRN a través del handler (necesitamos exponerlo o acceder a la variable global si es posible,
-        # pero mejor usamos una función del servicio si existe. En app.py era global.
-        # Aquí asumimos que csv_handler tiene una forma de darnos el DF o lo leemos de nuevo si es necesario.
-        # Revisando csv_handler (no visible aquí pero asumido), si no tiene getter, lo leemos.
-        # Pero app.py usaba df_grn_cache. Vamos a intentar usar csv_handler.df_grn_cache si es accesible
-        # o re-leerlo. Para seguridad y consistencia con app.py original que usaba caché:
+        # Accedemos al caché de GRN
         grn_df = csv_handler.df_grn_cache 
 
         if logs_df.empty or grn_df is None:
