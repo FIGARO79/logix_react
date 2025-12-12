@@ -3,6 +3,8 @@ Router para endpoints de stock/inventario.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.db import get_db
 from app.services import csv_handler, db_logs
 from app.utils.auth import login_required
 
@@ -28,7 +30,7 @@ async def get_stock_item(item_code: str, username: str = Depends(login_required)
 
 
 @router.get('/get_item_details/{item_code}')
-async def get_item_details_for_label(item_code: str):
+async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(get_db)):
     """Obtiene detalles de un item para generar etiquetas."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if not item_details:
@@ -36,7 +38,7 @@ async def get_item_details_for_label(item_code: str):
     
     # Obtener la ubicación efectiva (reubicada si existe, o la original del maestro)
     original_bin = item_details.get('Bin_1', 'N/A')
-    latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(item_code)
+    latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
     response_data = {
