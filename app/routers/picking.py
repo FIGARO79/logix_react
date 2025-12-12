@@ -59,6 +59,54 @@ async def get_picking_order(order_number: str, despatch_number: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/picking/orders")
+async def get_picking_orders_summary():
+    """Obtiene un resumen de los pedidos disponibles en el archivo 240."""
+    try:
+        from app.core.config import DATABASE_FOLDER
+    except ImportError:
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        DATABASE_FOLDER = os.path.join(current_dir, 'databases')
+
+    try:
+        picking_file_path = os.path.join(DATABASE_FOLDER, "AURRSGLBD0240 - Unconfirmed Picking Notes.csv")
+        if not os.path.exists(picking_file_path):
+            return JSONResponse(content=[])
+
+        df = pd.read_csv(picking_file_path, dtype=str)
+        
+        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME"]
+        if not all(col in df.columns for col in required_columns):
+             # Si faltan columnas, retornamos lista vacía o error, pero mejor lista vacía para no romper el front
+             return JSONResponse(content=[])
+
+        # Agrupar por Orden y Despatch
+        # Tomamos el primer customer_name y fecha de impresión (asumiendo que son iguales para el mismo pedido)
+        # Contamos las líneas
+        summary = df.groupby(["ORDER_", "DESPATCH_"]).agg({
+            "CUSTOMER_NAME": "first",
+            "PICK_LIST_PRINTED_TIME": "first",
+            "ORDER_": "count" # Usamos cualquier columna para contar
+        }).rename(columns={"ORDER_": "lines_count"}).reset_index()
+
+        # Formatear respuesta
+        result = []
+        for _, row in summary.iterrows():
+            result.append({
+                "order_number": row["ORDER_"],
+                "despatch_number": row["DESPATCH_"],
+                "customer_name": row["CUSTOMER_NAME"],
+                "lines_count": int(row["lines_count"]),
+                "printed_date": row["PICK_LIST_PRINTED_TIME"]
+            })
+            
+        return JSONResponse(content=result)
+
+    except Exception as e:
+        print(f"Error getting picking orders: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get('/picking_audit/{audit_id}/print')
 async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""

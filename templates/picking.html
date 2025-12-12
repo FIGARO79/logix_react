@@ -638,6 +638,48 @@
                     </div>
                 </section>
             </div>
+
+            <!-- Sección: Pedidos Disponibles (Archivo 240) -->
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Pedidos Disponibles (Archivo 240)</h2>
+                    <button id="refresh-orders-btn" class="text-blue-600 hover:text-blue-800" title="Actualizar lista">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto max-h-[400px] border rounded-md">
+                    <table class="w-full divide-y divide-gray-200 table-auto text-sm" id="available-orders-table">
+                        <thead class="bg-gray-50 sticky top-0 z-10 text-xs text-gray-500 uppercase bg-gray-100">
+                            <tr>
+                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" data-sort="order_number">
+                                    Order # <span class="sort-indicator"></span>
+                                </th>
+                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" data-sort="despatch_number">
+                                    Desp. <span class="sort-indicator"></span>
+                                </th>
+                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" data-sort="customer_name">
+                                    Cliente <span class="sort-indicator"></span>
+                                </th>
+                                <th scope="col" class="px-3 py-2 text-center font-bold cursor-pointer hover:bg-gray-200" data-sort="lines_count">
+                                    Líneas <span class="sort-indicator"></span>
+                                </th>
+                                <th scope="col" class="px-3 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" data-sort="printed_date">
+                                    Fecha Imp. <span class="sort-indicator"></span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="available-orders-body" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-3 py-4 text-center text-gray-500">Cargando pedidos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Modal del Escáner -->
@@ -771,6 +813,8 @@
                 }
 
                 // Inicializar sonidos con HTML5 Audio (compatible con móviles)
+                loadAvailableOrders();
+
                 // Crear sonidos usando data URIs con frecuencias generadas
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 let audioInitialized = false;
@@ -1341,6 +1385,123 @@
                         messageBox.classList.add('hidden');
                     }, 300); // Esperar que termine la transición de salida
                 }, duration);
+            }
+
+            // --- Funciones para Pedidos Disponibles (Archivo 240) ---
+            let availableOrders = [];
+            let currentSort = { column: 'printed_date', direction: 'desc' }; // Default sort
+
+            const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
+            if(refreshOrdersBtn) refreshOrdersBtn.addEventListener('click', loadAvailableOrders);
+
+            // Add click listeners to headers
+            document.querySelectorAll('#available-orders-table th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => {
+                    sortOrders(th.dataset.sort);
+                });
+            });
+
+            async function loadAvailableOrders() {
+                const tbody = document.getElementById('available-orders-body');
+                if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">Cargando pedidos...</td></tr>';
+                
+                try {
+                    const response = await fetch('/api/picking/orders');
+                    if (!response.ok) throw new Error('Error al cargar pedidos');
+                    
+                    availableOrders = await response.json();
+                    
+                    // Sort by date desc by default if available, otherwise just render
+                    sortOrders(currentSort.column, currentSort.direction, false); 
+                    renderAvailableOrdersTable();
+                    
+                } catch (error) {
+                    console.error(error);
+                    if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-red-500">Error al cargar la lista de pedidos.</td></tr>';
+                }
+            }
+
+            function renderAvailableOrdersTable() {
+                const tbody = document.getElementById('available-orders-body');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+
+                if (availableOrders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">No hay pedidos disponibles.</td></tr>';
+                    return;
+                }
+
+                availableOrders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-blue-50 cursor-pointer transition-colors duration-150';
+                    
+                    // Click to load order
+                    row.addEventListener('click', () => {
+                         orderNumberInput.value = order.order_number;
+                         despatchNumberInput.value = order.despatch_number;
+                         // Optional: Scroll to top and load
+                         document.getElementById('load-section').scrollIntoView({ behavior: 'smooth' });
+                         // Highlight inputs
+                         orderNumberInput.focus();
+                         // We could auto-load, but maybe safer to let user press button?
+                         // loadOrder(); 
+                    });
+
+                    row.innerHTML = `
+                        <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">${order.order_number}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-600">${order.despatch_number}</td>
+                        <td class="px-3 py-2 text-gray-600 max-w-[150px] truncate" title="${order.customer_name}">${order.customer_name}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-center text-gray-600 font-semibold">${order.lines_count}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-500 text-xs">${order.printed_date || '-'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            function sortOrders(column, forceDirection = null, render = true) {
+                // Toggle direction if clicking same column
+                if (!forceDirection) {
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'desc'; // Default to newest/highest first usually
+                    }
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = forceDirection;
+                }
+
+                // Update Header UI
+                document.querySelectorAll('#available-orders-table th[data-sort]').forEach(th => {
+                    const indicator = th.querySelector('.sort-indicator');
+                    if (th.dataset.sort === currentSort.column) {
+                        th.classList.add('bg-gray-200');
+                        if (indicator) indicator.textContent = currentSort.direction === 'asc' ? ' ▲' : ' ▼';
+                    } else {
+                        th.classList.remove('bg-gray-200');
+                        if (indicator) indicator.textContent = '';
+                    }
+                });
+
+                // Sort Data
+                availableOrders.sort((a, b) => {
+                    let valA = a[column] || '';
+                    let valB = b[column] || '';
+
+                    // Handle numbers
+                    if (column === 'lines_count') {
+                        valA = Number(valA);
+                        valB = Number(valB);
+                    }
+                    
+                    // Handle dates (strings) or normal strings
+                    if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                if (render) renderAvailableOrdersTable();
             }
 
         </script>
