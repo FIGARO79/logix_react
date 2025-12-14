@@ -17,7 +17,6 @@ from app.core.config import (
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
-    DB_FILE_PATH,
     GRN_COLUMN_NAME_IN_CSV,
     UPDATE_PASSWORD
 )
