@@ -41,6 +41,7 @@ class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
     code: str
     description: str
+    order_line: Optional[str] = ''
     qty_req: int
     qty_scan: int
 

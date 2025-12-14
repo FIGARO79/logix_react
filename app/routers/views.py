@@ -261,7 +261,8 @@ async def view_picking_audits(request: Request, username: str = Depends(login_re
                 "order_line": item.order_line,
                 "qty_req": item.qty_req,
                 "qty_scan": item.qty_scan,
-                "difference": item.difference
+                "difference": item.difference,
+                "edited": item.edited if item.edited else 0
             } for item in items_orm
         ]
         audits.append(audit_dict)
