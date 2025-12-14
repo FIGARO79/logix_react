@@ -210,11 +210,16 @@
         .main-content {
             flex-grow: 1;
             overflow-y: auto;
+            overflow-x: auto;
+            padding: 0;
+            margin: 0;
         }
 
         .table-container {
             max-height: 70vh;
             overflow-y: auto;
+            overflow-x: auto;
+            width: 100%;
         }
 
         /* SAP Fiori Table Styles */
@@ -223,6 +228,7 @@
             font-size: var(--sapFontSize);
             border-collapse: collapse;
             width: 100%;
+            min-width: max-content;
         }
 
         thead th {
@@ -569,8 +575,8 @@
                 </div>
             </div>
 
-            <div class="bg-white shadow-md rounded overflow-hidden"
-                style="border: 0.0625rem solid var(--sapTileBorder); box-shadow: 0 0 0.125rem 0 rgba(0, 0, 0, 0.1);">
+            <div class="bg-white shadow-md rounded overflow-hidden w-full"
+                style="border: 0.0625rem solid var(--sapTileBorder); box-shadow: 0 0 0.125rem 0 rgba(0, 0, 0, 0.1); margin-right: 0; margin-left: 0;">
                 <div
                     style="background-color: var(--sapList_HeaderBackground); color: var(--sapTextColor); padding: 0.75rem 1rem; border-bottom: 0.0625rem solid var(--sapList_BorderColor);">
                     <div class="flex items-center">

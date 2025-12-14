@@ -258,6 +258,16 @@
             <img src="/static/images/gear-wide-connected.svg" alt="Logo" class="h-6 w-6 opacity-80">
             <h1 class="fiori-shell-title">Panel de Administración</h1>
             <div class="ml-auto flex gap-2">
+                <button onclick="reloadCsvData()"
+                    class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm flex items-center gap-2"
+                    title="Recargar datos maestros desde CSV sin reiniciar">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Recargar CSVs
+                </button>
                 <a href="/admin/inventory"
                     class="fiori-button fiori-button-ghost text-white hover:text-white hover:bg-white/10 text-sm">
                     Gestionar Inventario
@@ -274,6 +284,8 @@
     <main class="fiori-page">
 
         <!-- Messages -->
+        <div id="systemMessage" class="hidden mb-6 p-4 border-l-4 rounded-r shadow-sm flex items-center gap-3"></div>
+
         {% if message %}
         <div
             class="mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3">
@@ -575,6 +587,45 @@
                 closeModal();
             }
         });
+
+        async function reloadCsvData() {
+            if (!confirm('¿Quieres recargar los datos maestros (CSV) en memoria? Esto actualizará el stock disponible sin reiniciar.')) {
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="reloadCsvData()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Recargando...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/admin/system/reload-data', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                const msgDiv = document.getElementById('systemMessage');
+                
+                if (response.ok) {
+                    msgDiv.className = 'mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3';
+                    msgDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> ${data.message}`;
+                } else {
+                    throw new Error(data.detail || 'Error desconocido');
+                }
+                msgDiv.classList.remove('hidden');
+                
+                // Auto-ocultar mensaje después de 5 segundos
+                setTimeout(() => {
+                    msgDiv.classList.add('hidden');
+                }, 5000);
+
+            } catch (error) {
+                alert('Error al recargar datos: ' + error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 

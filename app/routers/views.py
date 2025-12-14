@@ -3,17 +3,20 @@ Router para vistas HTML principales.
 """
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import select
+from app.core.db import get_db
 from app.utils.auth import login_required, get_current_user
 from app.core.templates import templates
-from app.services import db_logs, csv_handler
+from app.services import db_logs, csv_handler, db_counts
 from app.core.config import ASYNC_DB_URL
-from sqlalchemy.ext.asyncio import create_async_engine
+from app.models.sql_models import PickingAudit, PickingAuditItem, CountSession
 import pandas as pd
 import numpy as np
 
 router = APIRouter(tags=["views"])
 
-# Crear engine asíncrono para reconciliación
+# Crear engine asíncrono para reconciliación (pandas read_sql)
 async_engine = create_async_engine(ASYNC_DB_URL, echo=False)
 
 
@@ -38,11 +41,11 @@ def inbound_page(request: Request, username: str = Depends(login_required)):
 
 
 @router.get('/view_logs', response_class=HTMLResponse)
-async def view_logs(request: Request, username: str = Depends(login_required)):
+async def view_logs(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Página para ver los logs de inbound."""
     if not isinstance(username, str):
         return username
-    all_logs = await db_logs.load_log_data_db_async()
+    all_logs = await db_logs.load_log_data_db_async(db)
     return templates.TemplateResponse("view_logs.html", {"request": request, "logs": all_logs})
 
 
@@ -69,30 +72,22 @@ def stock_page(request: Request, username: str = Depends(login_required)):
 
 
 @router.get('/view_counts', response_class=HTMLResponse)
-async def view_counts_page(request: Request, username: str = Depends(login_required)):
+async def view_counts_page(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Página de visualización de conteos."""
     if not isinstance(username, str):
         return username
     
-    # Cargar todos los conteos desde la base de datos
-    from app.services import db_counts
     from app.services.csv_handler import master_qty_map
-    import aiosqlite
-    from app.core.config import DB_FILE_PATH
     
-    all_counts = await db_counts.load_all_counts_db_async()
+    all_counts = await db_counts.load_all_counts_db_async(db)
     
     # Obtener información de sesiones (usuario y etapa)
     session_map = {}
     session_ids = list({c.get('session_id') for c in all_counts if c.get('session_id') is not None})
     if session_ids:
-        async with aiosqlite.connect(DB_FILE_PATH) as conn:
-            conn.row_factory = aiosqlite.Row
-            placeholders = ','.join('?' * len(session_ids))
-            query = f"SELECT id, user_username, inventory_stage FROM count_sessions WHERE id IN ({placeholders})"
-            cursor = await conn.execute(query, tuple(session_ids))
-            rows = await cursor.fetchall()
-            session_map = {r['id']: {'user': r['user_username'], 'stage': r['inventory_stage']} for r in rows}
+        result = await db.execute(select(CountSession).where(CountSession.id.in_(session_ids)))
+        sessions = result.scalars().all()
+        session_map = {s.id: {'user': s.user_username, 'stage': s.inventory_stage} for s in sessions}
     
     # Enriquecer los conteos con información del sistema y sesión
     enriched_counts = []
@@ -232,30 +227,43 @@ def picking_page(request: Request, username: str = Depends(login_required)):
 
 
 @router.get('/view_picking_audits', response_class=HTMLResponse)
-async def view_picking_audits(request: Request, username: str = Depends(login_required)):
+async def view_picking_audits(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Página de visualización de auditorías de picking."""
     if not isinstance(username, str):
         return username
     
-    # Cargar auditorías desde la base de datos
-    audits = await load_picking_audits_from_db()
-    return templates.TemplateResponse("view_picking_audits.html", {"request": request, "audits": audits})
-
-
-async def load_picking_audits_from_db():
-    """Carga todas las auditorías de picking con sus items desde la base de datos."""
-    import aiosqlite
-    from app.core.config import DB_FILE_PATH
+    # Cargar auditorías desde la base de datos (Migrado a ORM)
+    result = await db.execute(select(PickingAudit).order_by(PickingAudit.id.desc()))
+    audits_orm = result.scalars().all()
     
     audits = []
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        conn.row_factory = aiosqlite.Row
-        cursor = await conn.execute("SELECT * FROM picking_audits ORDER BY id DESC")
-        rows = await cursor.fetchall()
-        for row in rows:
-            audit = dict(row)
-            cursor_items = await conn.execute("SELECT * FROM picking_audit_items WHERE audit_id = ?", (audit['id'],))
-            items = await cursor_items.fetchall()
-            audit['items'] = [dict(item) for item in items]
-            audits.append(audit)
-    return audits
+    for audit_orm in audits_orm:
+        audit_dict = {
+            "id": audit_orm.id,
+            "order_number": audit_orm.order_number,
+            "despatch_number": audit_orm.despatch_number,
+            "customer_name": audit_orm.customer_name,
+            "username": audit_orm.username,
+            "timestamp": audit_orm.timestamp,
+            "status": audit_orm.status,
+            "packages": audit_orm.packages
+        }
+        
+        # Cargar items para esta auditoría (Lazy loading es asíncrono, mejor hacer query explícita)
+        result_items = await db.execute(select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_orm.id))
+        items_orm = result_items.scalars().all()
+        
+        audit_dict["items"] = [
+            {
+                "id": item.id,
+                "item_code": item.item_code,
+                "description": item.description,
+                "order_line": item.order_line,
+                "qty_req": item.qty_req,
+                "qty_scan": item.qty_scan,
+                "difference": item.difference
+            } for item in items_orm
+        ]
+        audits.append(audit_dict)
+
+    return templates.TemplateResponse("view_picking_audits.html", {"request": request, "audits": audits})
