@@ -1,6 +1,8 @@
 # logitrack
 Gestión de procesos de almacén
 
+> ⚠️ **ADVERTENCIA DE SEGURIDAD**: Este proyecto requiere configuración obligatoria de variables de entorno antes del primer uso. La aplicación NO iniciará sin las credenciales necesarias.
+
 ## 🔧 Configuración Inicial
 
 ### 1. Instalación de Dependencias
@@ -8,25 +10,26 @@ Gestión de procesos de almacén
 instalar_dependencias.bat
 ```
 
-### 2. Configuración de Seguridad (⚠️ IMPORTANTE)
-Antes de ejecutar la aplicación, configura las variables de entorno:
+### 2. ⚠️ Configuración de Seguridad (OBLIGATORIO)
+La aplicación NO funcionará sin este paso:
 
 1. Copia el archivo de ejemplo:
    ```bash
    copy .env.example .env
    ```
 
-2. Edita `.env` y actualiza las claves con valores seguros:
+2. Genera una clave secreta segura:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+3. Edita `.env` y actualiza con valores REALES y SEGUROS:
    ```env
-   SECRET_KEY=tu_clave_secreta_aleatoria_de_minimo_32_caracteres
+   SECRET_KEY=tu_clave_generada_aqui
    UPDATE_PASSWORD=tu_contraseña_admin_segura
    ```
 
-3. **En producción**, genera claves aleatorias seguras:
-   ```python
-   import secrets
-   print(secrets.token_urlsafe(32))
-   ```
+4. **NUNCA** compartas o subas el archivo `.env` al repositorio
 
 📖 Para más detalles, consulta [CONFIGURACION_ENV.md](CONFIGURACION_ENV.md)
 

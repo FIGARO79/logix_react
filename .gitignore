@@ -10,8 +10,12 @@ __pycache__/
 
 # Config y secretos
 .env
+.env.local
+.env.*.local
 .env.*
 *.sqlite3
+*.db
+*.sqlite
 
 # Carpeta instance (datos de aplicación)
 instance/
