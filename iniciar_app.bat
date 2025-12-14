@@ -1,49 +1,71 @@
 @echo off
-echo Iniciando Logix...
+setlocal
+cd /d "%~dp0"
 
-:: Intentar activar el entorno virtual (probando ambas ubicaciones posibles)
-set "VENV_ACTIVATED=0"
+echo ===================================================
+echo Iniciando Logix (Modo Auto-Reparable Robust)
+echo ===================================================
 
-if exist "venv\Scripts\activate.bat" (
-    echo Activando entorno virtual desde venv...
-    call "venv\Scripts\activate.bat"
-    set "VENV_ACTIVATED=1"
-) else if exist ".venv\Scripts\activate.bat" (
-    echo Activando entorno virtual desde .venv...
-    call ".venv\Scripts\activate.bat"
-    set "VENV_ACTIVATED=1"
-)
+:: 1. Buscar Python del Sistema
+where python >nul 2>&1
+if %errorlevel% neq 0 goto ERROR_PYTHON
 
-if "%VENV_ACTIVATED%"=="0" (
-    echo Error: No se encuentra el entorno virtual.
-    echo Por favor, ejecute primero instalar_dependencias.bat
-    pause
-    exit /b 1
-)
+:: 2. Validar Entorno Virtual
+if not exist ".venv\Scripts\python.exe" goto REPARAR_ENTORNO
 
-:: Verificar que Python está disponible
-python --version > nul 2>&1
-if errorlevel 1 (
-    echo Error: Python no esta disponible en el entorno virtual
-    pause
-    exit /b 1
-)
+:: Verificar version de python dentro del venv
+".venv\Scripts\python.exe" --version >nul 2>&1
+if errorlevel 1 goto REPARAR_ENTORNO
 
-:: Verificar que uvicorn está instalado
-python -c "import uvicorn" > nul 2>&1
-if errorlevel 1 (
-    echo Uvicorn no esta instalado. Instalando...
-    pip install uvicorn
-    if errorlevel 1 (
-        echo Error: No se pudo instalar uvicorn
-        pause
-        exit /b 1
-    )
-)
+:: Verificar uvicorn dentro del venv
+".venv\Scripts\python.exe" -c "import uvicorn" >nul 2>&1
+if errorlevel 1 goto REPARAR_ENTORNO
 
+echo [OK] Entorno virtual valido.
+goto INICIAR_APP
+
+:REPARAR_ENTORNO
 echo.
-echo Iniciando servidor web...
-echo Presiona Ctrl+C para detener el servidor
+echo [MANTENIMIENTO] El entorno virtual esta incompleto o danado.
+echo [MANTENIMIENTO] Reconstruyendo entorno para este equipo...
 echo.
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+if exist ".venv" (
+    echo Eliminando entorno anterior...
+    rmdir /s /q ".venv"
+)
+
+echo Creando nuevo entorno virtual...
+python -m venv .venv
+if errorlevel 1 goto ERROR_VENV
+
+echo Instalando librerias desde requirements.txt...
+".venv\Scripts\python.exe" -m pip install -r requirements.txt
+if errorlevel 1 goto ERROR_PIP
+
+echo [EXITO] Entorno reparado correctamente.
+echo.
+
+:INICIAR_APP
+echo [INFO] Iniciando servidor...
+echo Presiona Ctrl+C para detener.
+echo.
+".venv\Scripts\python.exe" -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 pause
+exit /b 0
+
+:ERROR_PYTHON
+echo [ERROR] No se encontro Python en este equipo.
+echo Instala Python o asegurate de que esta en el PATH.
+pause
+exit /b 1
+
+:ERROR_VENV
+echo [ERROR] No se pudo crear el entorno virtual (.venv).
+pause
+exit /b 1
+
+:ERROR_PIP
+echo [ERROR] Fallo la instalacion de dependencias.
+pause
+exit /b 1

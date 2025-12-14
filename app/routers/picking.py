@@ -111,248 +111,189 @@ async def get_picking_orders_summary():
 
 
 @router.get('/picking_audit/{audit_id}/print')
-async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required)):
+async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        try:
-            conn.row_factory = aiosqlite.Row
-            
-            # Obtener la auditoría
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audits WHERE id = ?",
-                (audit_id,)
-            )
-            audit = await cursor.fetchone()
-            
-            if not audit:
-                raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
-            
-            # Obtener los items
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audit_items WHERE audit_id = ?",
-                (audit_id,)
-            )
-            items = await cursor.fetchall()
-            
-            # Construir respuesta
-            response = {
-                "id": audit['id'],
-                "order_number": audit['order_number'],
-                "despatch_number": audit['despatch_number'],
-                "customer_name": audit['customer_name'],
-                "packages": audit['packages'] if audit['packages'] else 0,
-                "items": [
-                    {
-                        "code": item['item_code'],
-                        "description": item['description'],
-                        "order_line": item['order_line'] if 'order_line' in item.keys() else '',
-                        "qty_req": item['qty_req'],
-                        "qty_scan": item['qty_scan'],
-                        "edited": item['edited'] if 'edited' in item.keys() else 0
-                    }
-                    for item in items
-                ]
-            }
-            
-            return JSONResponse(content=response)
-            
-        except aiosqlite.Error as e:
-            print(f"Database error in get_picking_audit_for_print: {e}")
-            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+    try:
+        # Obtener la auditoría con sus items
+        stmt = select(PickingAuditModel).options(selectinload(PickingAuditModel.items)).where(PickingAuditModel.id == audit_id)
+        result = await db.execute(stmt)
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
+        
+        # Construir respuesta
+        response = {
+            "id": audit.id,
+            "order_number": audit.order_number,
+            "despatch_number": audit.despatch_number,
+            "customer_name": audit.customer_name,
+            "packages": audit.packages if audit.packages else 0,
+            "items": [
+                {
+                    "code": item.item_code,
+                    "description": item.description,
+                    "order_line": item.order_line if item.order_line else '',
+                    "qty_req": item.qty_req,
+                    "qty_scan": item.qty_scan,
+                    "edited": item.edited if item.edited else 0
+                }
+                for item in audit.items
+            ]
+        }
+        
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+        print(f"Database error in get_picking_audit_for_print: {e}")
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
 @router.get('/picking_audit/{audit_id}')
-async def get_picking_audit(audit_id: int, username: str = Depends(login_required)):
+async def get_picking_audit(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        try:
-            conn.row_factory = aiosqlite.Row
-            
-            # Obtener la auditoría
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audits WHERE id = ?",
-                (audit_id,)
+    try:
+        # Obtener la auditoría con sus items
+        stmt = select(PickingAuditModel).options(selectinload(PickingAuditModel.items)).where(PickingAuditModel.id == audit_id)
+        result = await db.execute(stmt)
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
+        
+        # Verificar que sea del mismo día
+        audit_date = datetime.datetime.fromisoformat(audit.timestamp).date()
+        today = datetime.datetime.now().date()
+        
+        if audit_date != today:
+            raise HTTPException(
+                status_code=403, 
+                detail="Solo se pueden editar auditorías del mismo día."
             )
-            audit = await cursor.fetchone()
-            
-            if not audit:
-                raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
-            
-            # Verificar que sea del mismo día
-            audit_date = datetime.datetime.fromisoformat(audit['timestamp']).date()
-            today = datetime.datetime.now().date()
-            
-            if audit_date != today:
-                raise HTTPException(
-                    status_code=403, 
-                    detail="Solo se pueden editar auditorías del mismo día."
-                )
-            
-            # Obtener los items
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audit_items WHERE audit_id = ?",
-                (audit_id,)
-            )
-            items = await cursor.fetchall()
-            
-            # Construir respuesta
-            response = {
-                "id": audit['id'],
-                "order_number": audit['order_number'],
-                "despatch_number": audit['despatch_number'],
-                "customer_name": audit['customer_name'],
-                "packages": audit['packages'] if audit['packages'] else 0,
-                "items": [
-                    {
-                        "code": item['item_code'],
-                        "description": item['description'],
-                        "qty_req": item['qty_req'],
-                        "qty_scan": item['qty_scan'],
-                        "edited": item['edited'] if 'edited' in item.keys() else 0
-                    }
-                    for item in items
-                ]
-            }
-            
-            return JSONResponse(content=response)
-            
-        except aiosqlite.Error as e:
-            print(f"Database error in get_picking_audit: {e}")
-            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+        
+        # Construir respuesta
+        response = {
+            "id": audit.id,
+            "order_number": audit.order_number,
+            "despatch_number": audit.despatch_number,
+            "customer_name": audit.customer_name,
+            "packages": audit.packages if audit.packages else 0,
+            "items": [
+                {
+                    "code": item.item_code,
+                    "description": item.description,
+                    "qty_req": item.qty_req,
+                    "qty_scan": item.qty_scan,
+                    "edited": item.edited if item.edited else 0
+                }
+                for item in audit.items
+            ]
+        }
+        
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+        print(f"Database error in get_picking_audit: {e}")
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
 @router.put('/update_picking_audit/{audit_id}')
-async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(login_required)):
+async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Actualiza una auditoría de picking existente. Solo permite editar auditorías del mismo día."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        try:
-            conn.row_factory = aiosqlite.Row
-            
-            # Verificar que la auditoría existe y es del mismo día
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audits WHERE id = ?",
-                (audit_id,)
+    try:
+        # Verificar que la auditoría existe y es del mismo día
+        stmt = select(PickingAuditModel).options(selectinload(PickingAuditModel.items)).where(PickingAuditModel.id == audit_id)
+        result = await db.execute(stmt)
+        existing_audit = result.scalar_one_or_none()
+        
+        if not existing_audit:
+            raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
+        
+        audit_date = datetime.datetime.fromisoformat(existing_audit.timestamp).date()
+        today = datetime.datetime.now().date()
+        
+        if audit_date != today:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo se pueden editar auditorías del mismo día."
             )
-            existing_audit = await cursor.fetchone()
+        
+        # Obtener items anteriores para comparar
+        old_items = {item.item_code: item for item in existing_audit.items}
+        
+        # Recalcular status según nuevas diferencias
+        differences_exist = any(item.qty_scan != item.qty_req for item in audit_data.items)
+        new_status = 'Con Diferencia' if differences_exist else 'Completo'
+        
+        # Actualizar auditoría principal
+        existing_audit.timestamp = datetime.datetime.now().isoformat(timespec='seconds')
+        existing_audit.status = new_status
+        existing_audit.packages = audit_data.packages if audit_data.packages else 0
+        
+        # Actualizar items
+        for item in audit_data.items:
+            difference = item.qty_scan - item.qty_req
+            old_item = old_items.get(item.code)
             
-            if not existing_audit:
-                raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
+            # Marcar como editado si cambió qty_scan
+            edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
             
-            audit_date = datetime.datetime.fromisoformat(existing_audit['timestamp']).date()
-            today = datetime.datetime.now().date()
-            
-            if audit_date != today:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Solo se pueden editar auditorías del mismo día."
-                )
-            
-            # Obtener items anteriores para comparar
-            cursor = await conn.execute(
-                "SELECT * FROM picking_audit_items WHERE audit_id = ?",
-                (audit_id,)
-            )
-            old_items = {item['item_code']: item for item in await cursor.fetchall()}
-            
-            # Recalcular status según nuevas diferencias
-            differences_exist = any(item.qty_scan != item.qty_req for item in audit_data.items)
-            new_status = 'Con Diferencia' if differences_exist else 'Completo'
-            
-            # Actualizar auditoría principal
-            await conn.execute(
-                '''
-                UPDATE picking_audits 
-                SET timestamp = ?, status = ?, packages = ?
-                WHERE id = ?
-                ''',
-                (
-                    datetime.datetime.now().isoformat(timespec='seconds'),
-                    new_status,
-                    audit_data.packages if audit_data.packages else 0,
-                    audit_id
-                )
-            )
-            
-            # Actualizar items
-            for item in audit_data.items:
-                difference = item.qty_scan - item.qty_req
-                old_item = old_items.get(item.code)
-                
-                # Marcar como editado si cambió qty_scan
-                edited = 1 if (old_item and old_item['qty_scan'] != item.qty_scan) else 0
-                
-                await conn.execute(
-                    '''
-                    UPDATE picking_audit_items 
-                    SET qty_scan = ?, difference = ?, edited = ?
-                    WHERE audit_id = ? AND item_code = ?
-                    ''',
-                    (item.qty_scan, difference, edited, audit_id, item.code)
-                )
-            
-            await conn.commit()
-            
-            return JSONResponse(content={
-                "message": "Auditoría actualizada con éxito",
-                "audit_id": audit_id,
-                "status": new_status
-            })
-            
-        except aiosqlite.Error as e:
-            print(f"Database error in update_picking_audit: {e}")
-            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+            if old_item:
+                old_item.qty_scan = item.qty_scan
+                old_item.difference = difference
+                old_item.edited = edited
+        
+        await db.commit()
+        
+        return JSONResponse(content={
+            "message": "Auditoría actualizada con éxito",
+            "audit_id": audit_id,
+            "status": new_status
+        })
+        
+    except Exception as e:
+        print(f"Database error in update_picking_audit: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
 @router.post('/save_picking_audit')
-async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(login_required)):
+async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Guarda una auditoría de picking en la base de datos."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
-        try:
-            # 1. Insertar la auditoría principal
-            cursor = await conn.execute(
-                '''
-                INSERT INTO picking_audits (order_number, despatch_number, customer_name, username, timestamp, status, packages)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''',
-                (
-                    audit_data.order_number,
-                    audit_data.despatch_number,
-                    audit_data.customer_name,
-                    username,
-                    datetime.datetime.now().isoformat(timespec='seconds'),
-                    audit_data.status,
-                    audit_data.packages if audit_data.packages else 0
-                )
+    try:
+        # 1. Crear la auditoría principal
+        new_audit = PickingAuditModel(
+            order_number=audit_data.order_number,
+            despatch_number=audit_data.despatch_number,
+            customer_name=audit_data.customer_name,
+            username=username,
+            timestamp=datetime.datetime.now().isoformat(timespec='seconds'),
+            status=audit_data.status,
+            packages=audit_data.packages if audit_data.packages else 0
+        )
+        db.add(new_audit)
+        await db.flush()  # Para obtener el audit_id
+
+        # 2. Insertar los items de la auditoría
+        for item in audit_data.items:
+            difference = item.qty_scan - item.qty_req
+            new_item = PickingAuditItem(
+                audit_id=new_audit.id,
+                item_code=item.code,
+                description=item.description,
+                order_line=item.order_line if hasattr(item, 'order_line') else '',
+                qty_req=item.qty_req,
+                qty_scan=item.qty_scan,
+                difference=difference,
+                edited=0  # edited = 0 para nuevas auditorías
             )
-            await conn.commit()
-            audit_id = cursor.lastrowid
+            db.add(new_item)
+        
+        await db.commit()
 
-            # 2. Insertar los items de la auditoría
-            items_to_insert = []
-            for item in audit_data.items:
-                difference = item.qty_scan - item.qty_req
-                items_to_insert.append((
-                    audit_id,
-                    item.code,
-                    item.description,
-                    item.order_line if hasattr(item, 'order_line') else '',
-                    item.qty_req,
-                    item.qty_scan,
-                    difference,
-                    0  # edited = 0 para nuevas auditorías
-                ))
+        return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
 
-            await conn.executemany(
-                '''
-                INSERT INTO picking_audit_items (audit_id, item_code, description, order_line, qty_req, qty_scan, difference, edited)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''',
-                items_to_insert
-            )
-            await conn.commit()
-
-            return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": audit_id}, status_code=201)
-
-        except aiosqlite.Error as e:
-            print(f"Database error in save_picking_audit: {e}")
-            raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+    except Exception as e:
+        print(f"Database error in save_picking_audit: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
