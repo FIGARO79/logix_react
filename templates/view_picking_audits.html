@@ -384,10 +384,9 @@
     <!-- Contenido principal -->
     <main class="main-content">
         <div class="container mx-auto max-w-full px-4 py-8">
-            <div class="bg-white px-6 py-6 rounded-lg shadow border" style="border-color: var(--sap-border);">
-                <div
-                    style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 12px 16px; margin: -24px -24px 16px -24px; border-radius: 4px 4px 0 0;">
-                    <h1 class="text-base font-semibold" style="margin: 0; letter-spacing: 0.3px;">Confirmación de
+            <div class="bg-white px-6 py-6 rounded-lg shadow border custom-border">
+                <div class="header-gradient">
+                    <h1 class="text-base font-semibold custom-heading">Confirmación de
                         Picking</h1>
                 </div>
 
@@ -420,10 +419,7 @@
                         </thead>
                         <tbody class="bg-white" style="font-family: '72', Arial, sans-serif;">
                             {% for audit in audits %}
-                            <tr id="audit-{{ audit.id }}"
-                                style="border-bottom: 1px solid #e5e5e5; transition: background-color 0.2s ease;"
-                                onmouseover="this.style.backgroundColor='#f7f7f7';"
-                                onmouseout="this.style.backgroundColor='white';">
+                            <tr id="audit-{{ audit.id }}" class="audit-row">
                                 <td class="px-6 py-2 whitespace-nowrap">{{ audit.order_number }}/{{
                                     audit.despatch_number }}
                                 </td>
