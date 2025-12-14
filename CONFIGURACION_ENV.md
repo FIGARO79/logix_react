@@ -1,6 +1,6 @@
 # 🔐 Configuración de Variables de Entorno
 
-Este documento proporciona información detallada sobre la configuración de variables de entorno para el proyecto Logix.
+Este documento proporciona información detallada sobre la configuración de variables de entorno para el proyecto logitrack.
 
 ## ⚠️ Importancia de la Configuración Segura
 
@@ -37,6 +37,7 @@ openssl rand -base64 32
 
 **Ejemplo de salida**:
 ```
+# EJEMPLO - NO USAR EN PRODUCCIÓN
 8vJQ2K3mN9pL4xR7wZ1yT6hF5sD0gB2aW8uE3vC9mP1nX4kJ7qY0lI6oU5rT8eA
 ```
 
@@ -81,11 +82,12 @@ Copia la salida generada.
 Abre el archivo `.env` con un editor de texto y actualiza:
 
 ```env
+# EJEMPLO - Reemplaza con tus valores reales
 # Reemplaza con tu clave generada
-SECRET_KEY=8vJQ2K3mN9pL4xR7wZ1yT6hF5sD0gB2aW8uE3vC9mP1nX4kJ7qY0lI6oU5rT8eA
+SECRET_KEY=<tu_clave_generada_aqui>
 
 # Reemplaza con una contraseña fuerte
-UPDATE_PASSWORD=W@r3h0us3!Adm1n#2025
+UPDATE_PASSWORD=<tu_contraseña_segura_aqui>
 ```
 
 ### Paso 4: Verificar permisos del archivo
