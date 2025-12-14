@@ -28,6 +28,20 @@ GRN_COLUMN_NAME_IN_CSV = 'GRN_Number'
 COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description']
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
-# Cargar desde variables de entorno con valores por defecto solo para desarrollo
-SECRET_KEY = os.getenv('SECRET_KEY', 'una-clave-secreta-muy-dificil-de-adivinar')
-UPDATE_PASSWORD = os.getenv('UPDATE_PASSWORD', 'warehouse_admin_2025')
+# Cargar desde variables de entorno (OBLIGATORIAS)
+SECRET_KEY = os.getenv('SECRET_KEY')
+UPDATE_PASSWORD = os.getenv('UPDATE_PASSWORD')
+
+# Validar que las variables críticas estén configuradas
+if not SECRET_KEY:
+    raise ValueError(
+        "❌ ERROR: La variable de entorno 'SECRET_KEY' es obligatoria.\n"
+        "   Genera una clave segura con: python -c \"import secrets; print(secrets.token_urlsafe(32))\"\n"
+        "   y agrégala a tu archivo .env"
+    )
+
+if not UPDATE_PASSWORD:
+    raise ValueError(
+        "❌ ERROR: La variable de entorno 'UPDATE_PASSWORD' es obligatoria.\n"
+        "   Define una contraseña segura en tu archivo .env"
+    )
