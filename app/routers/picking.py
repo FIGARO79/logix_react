@@ -6,10 +6,13 @@ import datetime
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 from app.models.schemas import PickingAudit
+from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem
 from app.utils.auth import login_required
-from app.core.config import DB_FILE_PATH
-import aiosqlite
+from app.core.db import get_db
 
 router = APIRouter(prefix="/api", tags=["picking"])
 
