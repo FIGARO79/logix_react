@@ -8,10 +8,15 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Config y secretos
+# Config y secretos (NUNCA SUBIR ARCHIVOS CON CONTRASEÑAS)
 .env
-.env.*
+.env.local
+.env.development
+.env.development.mysql
+.env.production
+.env.*.local
 *.sqlite3
+*.db
 
 # Carpeta instance (datos de aplicación)
 instance/
