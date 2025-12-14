@@ -1,0 +1,2 @@
+cd ~/main
+source ~/.virtualenvs/main_env/bin/activate

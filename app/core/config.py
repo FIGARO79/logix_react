@@ -14,10 +14,16 @@ PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240 - Unconfirmed Pi
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')
-DB_FILE_PATH = os.path.join(INSTANCE_FOLDER, 'inbound_log.db')
+
 
 # --- Configuración de la Base de Datos ---
-ASYNC_DB_URL = f"sqlite+aiosqlite:///{DB_FILE_PATH}"
+DB_USER = os.getenv('DB_USER', 'whcol')
+DB_PASSWORD = os.getenv('DB_PASSWORD', 'Figaro1979*')
+DB_HOST = os.getenv('DB_HOST', 'whcol.mysql.pythonanywhere-services.com')
+DB_NAME = os.getenv('DB_NAME', 'whcol$default')
+
+# URL de conexión asíncrona para MySQL con aiomysql
+ASYNC_DB_URL = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 
 # --- Configuración de Columnas CSV ---
 COLUMNS_TO_READ_MASTER = [

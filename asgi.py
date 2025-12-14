@@ -5,15 +5,21 @@ Este archivo configura la aplicación FastAPI para ejecutarse en PythonAnywhere.
 import sys
 import os
 
+# === CONFIGURAR VARIABLES DE ENTORNO PARA MYSQL ===
+os.environ.setdefault('DB_USER', 'whcol')
+os.environ.setdefault('DB_PASSWORD', 'Figaro1979*')
+os.environ.setdefault('DB_HOST', 'whcol.mysql.pythonanywhere-services.com')
+os.environ.setdefault('DB_NAME', 'whcol$default')
+os.environ.setdefault('SECRET_KEY', 'Figaro1979*')
+os.environ.setdefault('UPDATE_PASSWORD', 'Figaro1979*')
+
 # Añadir el directorio del proyecto al path de Python
-# IMPORTANTE: Reemplaza 'YOUR_USERNAME' con tu nombre de usuario de PythonAnywhere
-project_home = '/home/YOUR_USERNAME/logix_ApiRouter'
+project_home = '/home/whcol/main'
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
 
 # Activar el entorno virtual
-# IMPORTANTE: Reemplaza 'YOUR_USERNAME' con tu nombre de usuario de PythonAnywhere
-activate_this = '/home/YOUR_USERNAME/logix_ApiRouter/venv/bin/activate_this.py'
+activate_this = '/home/whcol/main/.venv/bin/activate_this.py'
 if os.path.exists(activate_this):
     with open(activate_this) as file_:
         exec(file_.read(), dict(__file__=activate_this))

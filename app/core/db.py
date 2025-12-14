@@ -6,7 +6,8 @@ from app.core.config import ASYNC_DB_URL
 engine = create_async_engine(
     ASYNC_DB_URL,
     echo=False, # Cambiar a True para ver las consultas SQL en consola
-    future=True
+    future=True,
+    pool_recycle=280
 )
 
 # Fábrica de sesiones
