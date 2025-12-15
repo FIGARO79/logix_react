@@ -389,14 +389,14 @@ async def export_reconciliation(username: str = Depends(login_required)):
             'GRN_Number': 'GRN',
             'Item_Code': 'Código de Ítem',
             'Item_Description': 'Descripción',
-            'Bin_Original': 'Ubicación Original',
-            'Bin_Reubicado': 'Ubicación Reubicada',
+            'Bin_Original': 'Ubicación',
+            'Bin_Reubicado': 'Reubicado',
             'Cant_Esperada_Linea': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
         })
         
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación Original', 'Ubicación Reubicada', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
         df_for_export = df_for_export[cols_order]
 
         output = BytesIO()
