@@ -47,10 +47,11 @@ echo [EXITO] Entorno reparado correctamente.
 echo.
 
 :INICIAR_APP
-echo [INFO] Iniciando servidor...
+echo [INFO] Iniciando servidor en modo desarrollo...
+echo [INFO] Auto-reload ACTIVADO: El servidor se reiniciara al detectar cambios
 echo Presiona Ctrl+C para detener.
 echo.
-".venv\Scripts\python.exe" -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+".venv\Scripts\python.exe" -m uvicorn main:app --reload --reload-delay 0.5 --host 0.0.0.0 --port 8000
 pause
 exit /b 0
 
