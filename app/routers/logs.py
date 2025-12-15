@@ -181,6 +181,151 @@ async def export_log(username: str = Depends(login_required), db: AsyncSession =
     )
 
 
+@router.get('/items_without_grn')
+async def get_items_without_grn(username: str = Depends(login_required)):
+    """Obtiene un reporte de items en el log que no están en ningún GRN."""
+    try:
+        async with async_engine.connect() as conn:
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
+
+        grn_df = csv_handler.df_grn_cache
+
+        if logs_df.empty:
+            return JSONResponse(content={"data": [], "message": "No hay registros en el log"})
+
+        # Convertir qtyReceived a numérico
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+
+        if grn_df is None or grn_df.empty:
+            # Si no hay datos de GRN, todos los items del log están "sin GRN"
+            items_without_grn = logs_df.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+        else:
+            # Obtener items únicos en el log
+            log_items = set(logs_df['itemCode'].unique())
+            # Obtener items únicos en el GRN
+            grn_items = set(grn_df['Item_Code'].unique())
+            # Items que están en el log pero NO en el GRN
+            items_not_in_grn = log_items - grn_items
+
+            # Filtrar el log para obtener solo esos items
+            filtered_logs = logs_df[logs_df['itemCode'].isin(items_not_in_grn)]
+            # Agrupar por item y sumar cantidades
+            items_without_grn = filtered_logs.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+
+        if items_without_grn.empty:
+            return JSONResponse(content={"data": [], "message": "Todos los items están asociados con GRNs"})
+
+        # Ordenar por código de item
+        items_without_grn = items_without_grn.sort_values('itemCode').reset_index(drop=True)
+
+        # Convertir cantidad a entero
+        items_without_grn['qtyReceived'] = items_without_grn['qtyReceived'].astype(int)
+
+        # Renombrar columnas
+        items_without_grn = items_without_grn.rename(columns={
+            'importReference': 'Import Ref.',
+            'waybill': 'Waybill',
+            'itemCode': 'Código de Ítem',
+            'itemDescription': 'Descripción',
+            'qtyReceived': 'Cantidad Recibida'
+        })
+
+        # Reordenar columnas en el orden especificado
+        items_without_grn = items_without_grn[['Import Ref.', 'Waybill', 'Código de Ítem', 'Descripción', 'Cantidad Recibida']]
+
+        return JSONResponse(content={
+            "data": items_without_grn.to_dict(orient='records'),
+            "columns": items_without_grn.columns.tolist(),
+            "message": f"Se encontraron {len(items_without_grn)} items sin asociación con GRN"
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get('/export_items_without_grn')
+async def export_items_without_grn(username: str = Depends(login_required)):
+    """Exporta el reporte de items sin GRN a Excel."""
+    try:
+        async with async_engine.connect() as conn:
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
+
+        grn_df = csv_handler.df_grn_cache
+
+        if logs_df.empty:
+            raise HTTPException(status_code=404, detail="No hay registros en el log")
+
+        # Convertir qtyReceived a numérico
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+
+        if grn_df is None or grn_df.empty:
+            items_without_grn = logs_df.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+        else:
+            log_items = set(logs_df['itemCode'].unique())
+            grn_items = set(grn_df['Item_Code'].unique())
+            items_not_in_grn = log_items - grn_items
+            filtered_logs = logs_df[logs_df['itemCode'].isin(items_not_in_grn)]
+            items_without_grn = filtered_logs.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+
+        if items_without_grn.empty:
+            raise HTTPException(status_code=404, detail="Todos los items están asociados con GRNs")
+
+        items_without_grn = items_without_grn.sort_values('itemCode').reset_index(drop=True)
+
+        # Convertir cantidad a entero
+        items_without_grn['qtyReceived'] = items_without_grn['qtyReceived'].astype(int)
+
+        df_for_export = items_without_grn.rename(columns={
+            'itemCode': 'Código de Ítem',
+            'itemDescription': 'Descripción',
+            'importReference': 'Import Ref.',
+            'waybill': 'Waybill',
+            'qtyReceived': 'Cantidad Recibida'
+        })
+
+        # Reordenar columnas en el orden especificado
+        df_for_export = df_for_export[['Import Ref.', 'Waybill', 'Código de Ítem', 'Descripción', 'Cantidad Recibida']]
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_for_export.to_excel(writer, index=False, sheet_name='Items Sin GRN')
+            worksheet = writer.sheets['Items Sin GRN']
+            for i, col_name in enumerate(df_for_export.columns):
+                column_letter = get_column_letter(i + 1)
+                max_len = max(df_for_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = max_len
+
+        output.seek(0)
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"items_sin_grn_{timestamp_str}.xlsx"
+        return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+
+
 @router.get('/export_reconciliation')
 async def export_reconciliation(username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
