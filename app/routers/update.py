@@ -163,20 +163,15 @@ async def preview_grn_file(file: UploadFile = File(...)):
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
 @router.post('/clear_database')
 async def clear_database(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    # La URL de redirección debe ser construida correctamente
-    redirect_url = request.url_for('update_files_get')
-
     if password != UPDATE_PASSWORD:
-        query_params = urlencode({'error': 'Contraseña incorrecta'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Contraseña incorrecta"})
     
     try:
-        await db.execute(delete(Log))
+        result = await db.execute(delete(Log))
         await db.commit()
         
-        query_params = urlencode({'message': 'Base de datos de logs limpiada'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+        rows_deleted = result.rowcount
+        return JSONResponse(content={"message": f"Base de datos limpiada correctamente. {rows_deleted} registros eliminados."})
     
     except Exception as e:
-        query_params = urlencode({'error': str(e)})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": f"Error al limpiar la base de datos: {str(e)}"})

@@ -578,8 +578,7 @@
                             Esta acción borrará permanentemente todos los registros del historial de inbound y no se
                             puede deshacer.
                         </p>
-                        <form action="/clear_database" method="post"
-                            onsubmit="return confirm('ADVERTENCIA: ¿Estás TOTALMENTE SEGURO de que quieres borrar TODOS los registros? Esta acción no se puede deshacer.');">
+                        <form id="clearDbForm" onsubmit="event.preventDefault(); clearDatabase();">
                             <div class="mb-4">
                                 <label for="password_clear" class="block mb-2 text-xs font-semibold"
                                     style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Confirmar
@@ -968,6 +967,38 @@
                 warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>',
                 information: '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>'
             };
+
+            // --- Función para limpiar la base de datos ---
+            async function clearDatabase() {
+                const password = document.getElementById('password_clear').value;
+
+                if (!confirm('ADVERTENCIA: ¿Estás TOTALMENTE SEGURO de que quieres borrar TODOS los registros? Esta acción no se puede deshacer.')) {
+                    return;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('password', password);
+
+                    const response = await fetch('/clear_database', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(result.message, 'success');
+                        // Limpiar el campo de contraseña
+                        document.getElementById('password_clear').value = '';
+                    } else {
+                        showMessage(result.error || 'Error al limpiar la base de datos', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showMessage('Error de conexión al limpiar la base de datos.', 'error');
+                }
+            }
         });
     </script>
 </body>
