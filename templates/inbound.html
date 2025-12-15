@@ -1840,11 +1840,14 @@
                     return parseFloat(value) || -Infinity;
                 }
                 if (columnIndex === 9) {
+                    // Formato esperado: "dd/mm/yyyy HH:MM:SS"
                     try {
-                        const [datePart] = value.split(',');
+                        if (value === "-") return 0;
+                        const [datePart, timePart] = value.split(' ');
                         const [day, month, year] = datePart.split('/');
-                        const isoDateString = `${month}/${day}/${year}${value.substring(value.indexOf(','))}`;
-                        return new Date(isoDateString).getTime() || 0;
+                        const [hours, minutes, seconds] = timePart ? timePart.split(':') : ['0', '0', '0'];
+                        const date = new Date(year, month - 1, day, hours, minutes, seconds);
+                        return date.getTime() || 0;
                     } catch (e) {
                         return 0;
                     }
