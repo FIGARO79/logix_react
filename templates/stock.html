@@ -5,13 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logix - Consultar Inventario</title>
-    <!-- Relative path to avoid mixed-content issues when served over HTTPS -->
-    <link rel="icon" type="image/svg+xml" href="/static/images/gear-wide-connected.svg">
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/fallback.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <!-- SAP '72' Font -->
     <link rel="stylesheet" href="https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/library.css">
@@ -31,42 +28,31 @@
         }
     </style>
     <style>
-        /* ===== Paleta y estilo moderno (inspirado en el mock) ===== */
+        /* ===== SAP Fiori Quartz/Belize Theme ===== */
         :root {
-            --bg-gradient-start: #f3f7fb;
-            --bg-gradient-end: #e6eef8;
-            --card-bg: #ffffff;
-            --card-border: #e2e8f0;
-            --card-shadow: 0 18px 60px rgba(12, 47, 89, 0.08);
-            --primary: #2f6ed6;
-            --primary-strong: #245bb1;
-            --ink: #0f1f3d;
-            --muted: #62718a;
-            --surface-muted: #f5f7fb;
+            --sapBrandColor: #0a6ed1;
+            --sapHighlightColor: #0854a0;
+            --sapBaseColor: #fff;
+            --sapShellColor: #354a5f;
+            --sapBackgroundColor: #f7f7f7;
+            --sapFontFamily: '72', '72full', Arial, Helvetica, sans-serif;
+            --sapFontSize: 0.875rem;
+            --sapTextColor: #32363a;
+            --sapLinkColor: #0a6ed1;
 
-            --sapBrandColor: var(--primary);
-            --sapHighlightColor: var(--primary-strong);
-            --sapBaseColor: #ffffff;
-            --sapShellColor: #0f1f3d;
-            --sapBackgroundColor: transparent;
-            --sapFontFamily: 'Manrope', '72', '72full', sans-serif;
-            --sapFontSize: 0.95rem;
-            --sapTextColor: var(--ink);
-            --sapLinkColor: var(--primary);
-
-            --sapPositiveColor: #0f9d58;
-            --sapNegativeColor: #d93025;
-            --sapCriticalColor: #f29d41;
+            --sapPositiveColor: #107e3e;
+            --sapNegativeColor: #b00;
+            --sapCriticalColor: #e9730c;
             --sapNeutralColor: #6a6d70;
-            --sapInformativeColor: var(--primary);
+            --sapInformativeColor: #0a6ed1;
 
-            --sapTileBackground: #ffffff;
-            --sapTileBorder: #dce3ed;
-            --sapButtonBackground: #ffffff;
-            --sapButtonBorderColor: var(--primary);
-            --sapButtonHoverBackground: #e8f0fb;
-            --sapFieldBackground: #f7f9fc;
-            --sapFieldBorderColor: #c8d4e4;
+            --sapTileBackground: #fff;
+            --sapTileBorder: #d9d9d9;
+            --sapButtonBackground: #fff;
+            --sapButtonBorderColor: #0854a0;
+            --sapButtonHoverBackground: #ebf5fe;
+            --sapFieldBackground: #fff;
+            --sapFieldBorderColor: #89919a;
         }
 
         * {
@@ -76,14 +62,14 @@
         body {
             font-family: var(--sapFontFamily);
             font-size: var(--sapFontSize);
-            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            background-color: var(--sapBackgroundColor);
             color: var(--sapTextColor);
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
             overflow: hidden;
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         /* Header superior - SAP Fiori Shell Bar */
@@ -220,173 +206,11 @@
             overflow-y: auto;
         }
 
-        .page-shell {
+        .container-wrapper {
             width: 100%;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 3rem 1.5rem 2.5rem;
-        }
-
-        .hero {
-            text-align: center;
-            margin-bottom: 1.75rem;
-            color: var(--ink);
-        }
-
-        .hero h1 {
-            font-size: 2rem;
-            letter-spacing: -0.02em;
-            margin: 0.35rem 0 0.25rem;
-            font-weight: 700;
-        }
-
-        .hero p {
-            margin: 0;
-            color: var(--muted);
-            font-weight: 500;
-        }
-
-        .section-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            box-shadow: var(--card-shadow);
-            padding: 1.5rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .section-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .section-card h2 {
-            margin: 0;
-            font-size: 1.05rem;
-            letter-spacing: 0.01em;
-            color: var(--ink);
-            font-weight: 700;
-        }
-
-        .search-row {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            gap: 0.5rem;
-            align-items: end;
-        }
-
-        @media (max-width: 640px) {
-            .search-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .input-large {
-            height: 56px;
-            border-radius: 12px;
-            border: 1px solid var(--card-border);
-            background: #f8fbff;
-            padding: 0 1rem;
-            font-size: 1rem;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .input-large:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(47, 110, 214, 0.15);
-        }
-
-        .icon-button,
-        .primary-button {
-            height: 56px;
-            min-width: 56px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 1.1rem;
-            font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: transform 0.1s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-        }
-
-        .icon-button {
-            background: #f0f2f5;
-            border-color: #e1e7ef;
-            color: var(--ink);
-        }
-
-        .icon-button:hover {
-            background: #e7edf6;
-        }
-
-        .primary-button {
-            background: var(--primary);
-            color: #fff;
-            box-shadow: 0 10px 25px rgba(47, 110, 214, 0.25);
-        }
-
-        .primary-button:hover {
-            background: var(--primary-strong);
-            transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(36, 91, 177, 0.28);
-        }
-
-        .primary-button:active,
-        .icon-button:active {
-            transform: translateY(0);
-        }
-
-        .label-muted {
-            font-size: 0.85rem;
-            color: var(--muted);
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-        }
-
-        #item-details-container {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        }
-
-        .field-card {
-            background: var(--surface-muted);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 0.75rem 0.9rem;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-        }
-
-        .form-label {
-            font-weight: 700;
-            margin-bottom: 6px;
-            display: block;
-            color: var(--muted);
-            font-size: 0.82rem;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .data-field {
-            background: #edf2f7;
-            padding: 12px 14px;
-            border-radius: 10px;
-            min-height: 50px;
-            border: 1px solid var(--card-border);
-            color: var(--ink);
-            font-size: 1rem;
-            line-height: 1.4;
-            display: flex;
-            align-items: center;
-            font-weight: 600;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         input[type="text"],
@@ -741,25 +565,24 @@
 
     <!-- Contenido principal -->
     <main class="main-content">
-        <div class="page-shell">
-            <div class="hero">
-                <p class="label-muted">Consulta de Inventario</p>
-                <h1>Consulta de Inventario</h1>
-                <p>Busca un código de artículo y revisa sus detalles de stock.</p>
-            </div>
-
-            <div class="section-card">
-                <div class="card-header">
-                    <h2>Buscar artículo</h2>
+        <div class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="bg-white p-6 rounded-md shadow-md border" style="border-color: var(--sapTileBorder);">
+                <div
+                    style="background-color: var(--sapList_HeaderBackground); color: var(--sapTextColor); padding: 0.75rem 1rem; margin: -1.5rem -1.5rem 1rem -1.5rem; border-radius: 0.25rem 0.25rem 0 0; border-bottom: 0.0625rem solid var(--sapTileBorder);">
+                    <h1 class="text-base font-semibold" style="margin: 0; font-family: var(--sapFontFamily);">Consulta
+                        de Inventario</h1>
                 </div>
-                <div class="search-row">
-                    <div>
-                        <label for="search-input" class="label-muted">Ingrese el código del artículo</label>
-                        <input type="text" id="search-input" placeholder="Buscar por Item Code..."
-                            class="input-large w-full" oninput="this.value = this.value.toUpperCase()" required />
+
+                <!-- Controles de Búsqueda -->
+                <div class="flex items-end gap-2 mb-4">
+                    <div class="flex-grow">
+                        <label for="search-input" class="form-label">Ingrese el código del artículo</label>
+                        <input type="text" id="search-input" placeholder="Buscar por Item Code..." class="w-full"
+                            oninput="this.value = this.value.toUpperCase()" required />
                     </div>
-                    <button id="scan-barcode-btn" title="Escanear código de barras" class="icon-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                    <button id="scan-barcode-btn" title="Escanear código de barras"
+                        class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                             class="bi bi-qr-code-scan" viewBox="0 0 16 16">
                             <path
                                 d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
@@ -770,22 +593,18 @@
                             <path d="M12 9h2V8h-2z" />
                         </svg>
                     </button>
-                    <button type="button" id="search-btn" title="Buscar" class="primary-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                    <button type="button" id="search-btn" title="Buscar"
+                        class="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                             viewBox="0 0 16 16">
                             <path
                                 d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
                         </svg>
-                        <span style="margin-left: 8px;">Buscar</span>
                     </button>
                 </div>
-            </div>
 
-            <div class="section-card">
-                <div class="card-header">
-                    <h2>Detalle de inventario</h2>
-                </div>
-                <div id="item-details-container" class="mt-2">
+                <!-- Formulario de Resultados -->
+                <div id="item-details-container" class="space-y-1 mt-6 grid grid-cols-1 gap-0">
                     <!-- Los campos se generarán aquí con JavaScript -->
                 </div>
             </div>
@@ -953,7 +772,7 @@
 
             function renderForm(data = {}) {
                 detailsContainer.innerHTML = fields.map(field => `
-                    <div class="field-card">
+                    <div>
                         <label class="form-label">${field.label}</label>
                         <div class="data-field">${data[field.id] === null || data[field.id] === undefined ? '' : data[field.id]}</div>
                     </div>
