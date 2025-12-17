@@ -17,7 +17,14 @@ import numpy as np
 router = APIRouter(tags=["views"])
 
 # Crear engine asíncrono para reconciliación (pandas read_sql)
-async_engine = create_async_engine(ASYNC_DB_URL, echo=False)
+# Use pool_pre_ping/pool_recycle to avoid stale MySQL connections causing
+# occasional "Lost connection to MySQL server" errors when the page loads.
+async_engine = create_async_engine(
+    ASYNC_DB_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=280,
+)
 
 
 @router.get('/', response_class=HTMLResponse, name='home_page')

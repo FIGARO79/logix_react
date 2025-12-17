@@ -19,7 +19,11 @@ from sqlalchemy import text
 import numpy as np
 
 # Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
-async_engine = create_async_engine(ASYNC_DB_URL)
+async_engine = create_async_engine(
+    ASYNC_DB_URL,
+    pool_pre_ping=True,
+    pool_recycle=280,
+)
 
 router = APIRouter(prefix="/api", tags=["logs"])
 
