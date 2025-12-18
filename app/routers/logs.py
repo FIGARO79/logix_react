@@ -258,7 +258,7 @@ async def get_items_without_grn(username: str = Depends(login_required)):
 
 
 @router.get('/export_items_without_grn')
-async def export_items_without_grn(username: str = Depends(login_required)):
+async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(login_required)):
     """Exporta el reporte de items sin GRN a Excel."""
     try:
         async with async_engine.connect() as conn:
@@ -320,7 +320,11 @@ async def export_items_without_grn(username: str = Depends(login_required)):
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Calcular fecha/hora del cliente usando el offset (minutos)
+        utc_now = datetime.datetime.now(datetime.timezone.utc)
+        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+        
         filename = f"items_sin_grn_{timestamp_str}.xlsx"
         return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
@@ -331,7 +335,7 @@ async def export_items_without_grn(username: str = Depends(login_required)):
 
 
 @router.get('/export_reconciliation')
-async def export_reconciliation(username: str = Depends(login_required)):
+async def export_reconciliation(timezone_offset: int = 0, username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
     try:
         async with async_engine.connect() as conn:
@@ -413,7 +417,11 @@ async def export_reconciliation(username: str = Depends(login_required)):
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Calcular fecha/hora del cliente usando el offset (minutos)
+        utc_now = datetime.datetime.now(datetime.timezone.utc)
+        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+        
         filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
         return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 

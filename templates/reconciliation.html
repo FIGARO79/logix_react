@@ -826,7 +826,7 @@
                         </svg>
                         Items sin GRN
                     </button>
-                    <a href="/api/export_reconciliation" class="btn-primary" download>
+                    <a href="#" onclick="exportReconciliation(event)" class="btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                             viewBox="0 0 16 16">
                             <path
@@ -1170,8 +1170,9 @@
         // --- Función para exportar items sin GRN a Excel ---
         async function exportItemsWithoutGrn() {
             try {
+                const timezoneOffset = new Date().getTimezoneOffset();
                 const link = document.createElement('a');
-                link.href = '/api/export_items_without_grn';
+                link.href = `/api/export_items_without_grn?timezone_offset=${timezoneOffset}`;
                 link.download = true;
                 document.body.appendChild(link);
                 link.click();
@@ -1181,6 +1182,14 @@
                 console.error('Error:', error);
                 showNotification('Error al descargar el reporte', 'error');
             }
+        }
+
+        // --- Función para exportar conciliación general ---
+        function exportReconciliation(event) {
+            event.preventDefault();
+            const timezoneOffset = new Date().getTimezoneOffset();
+            window.location.href = `/api/export_reconciliation?timezone_offset=${timezoneOffset}`;
+            showNotification('Descargando reporte de conciliación...', 'information');
         }
 
         // --- Función para mostrar notificaciones SAP Fiori ---
