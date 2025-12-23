@@ -12,6 +12,7 @@ class LogEntry(BaseModel):
     itemCode: str
     quantity: int
     relocatedBin: Optional[str] = ''
+    observaciones: Optional[str] = ''
 
 
 class Count(BaseModel):

@@ -87,7 +87,8 @@ async def add_log(data: LogEntry, username: str = Depends(login_required), db: A
         'relocatedBin': data.relocatedBin or '',
         'qtyReceived': quantity_received_form,
         'qtyGrn': total_expected,
-        'difference': difference
+        'difference': difference,
+        'observaciones': data.observaciones or ''
     }
     
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
@@ -107,6 +108,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
     waybill = data.get('waybill', existing_log.get('waybill'))
     relocated_bin = data.get('relocatedBin', existing_log.get('relocatedBin'))
     qty_received = int(data.get('qtyReceived', existing_log.get('qtyReceived')))
+    observaciones = data.get('observaciones', existing_log.get('observaciones', ''))
     
     import_reference = existing_log['importReference']
     item_code = existing_log['itemCode']
@@ -123,7 +125,8 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
         'relocatedBin': relocated_bin,
         'qtyReceived': qty_received,
         'difference': difference,
-        'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
+        'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
+        'observaciones': observaciones
     }
     
     success = await db_logs.update_log_entry_db_async(db, log_id, entry_data_for_db)

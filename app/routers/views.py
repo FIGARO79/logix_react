@@ -210,9 +210,10 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
             'Cant_Esperada_Linea': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
+            'Observaciones': 'Observaciones'
         })
 
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia', 'Observaciones']
         merged_df = merged_df[cols_order]
 
         return templates.TemplateResponse('reconciliation.html', {
