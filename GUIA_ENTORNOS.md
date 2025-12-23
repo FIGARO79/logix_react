@@ -162,7 +162,27 @@ Get-Content .env
 
 ## Migrar Datos Entre Entornos
 
-### SQLite → MySQL
+### MySQL (Producción) → SQLite (Desarrollo)
+**Script automático:** `migrar_datos_mysql_sqlite.bat`
+
+Este script copia TODOS los datos desde MySQL de producción hacia SQLite local:
+
+```powershell
+# Ejecutar script interactivo
+.\migrar_datos_mysql_sqlite.bat
+
+# O manualmente
+.\.venv\Scripts\python.exe migrate_mysql_to_sqlite.py
+```
+
+⚠️ **ADVERTENCIA:** Esto sobrescribirá todos los datos actuales en SQLite
+
+✅ **Úsalo cuando:**
+- Acabas de cambiar a entorno de desarrollo
+- Quieres trabajar con datos reales sin conexión
+- Necesitas datos de producción para debugging
+
+### SQLite → MySQL (Producción)
 ```powershell
 # Ya existe un script
 .\.venv\Scripts\python.exe migrate_sqlite_to_mysql.py
@@ -170,7 +190,7 @@ Get-Content .env
 
 ### Backup de SQLite
 ```powershell
-Copy-Item instance\logix.db instance\logix_backup_$(Get-Date -Format 'yyyyMMdd').db
+Copy-Item instance\inbound_log.db instance\inbound_log_backup_$(Get-Date -Format 'yyyyMMdd').db
 ```
 
 ### Backup de MySQL
