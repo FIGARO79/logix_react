@@ -55,3 +55,4 @@ class PickingAudit(BaseModel):
     status: str
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
+    packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos

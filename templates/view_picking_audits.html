@@ -674,32 +674,11 @@
             const printButtons = document.querySelectorAll('.print-packing-btn');
 
             printButtons.forEach(button => {
-                button.addEventListener('click', async function () {
+                button.addEventListener('click', function () {
                     const auditId = this.getAttribute('data-audit-id');
-                    const orderNumber = this.getAttribute('data-order');
-                    const customerName = this.getAttribute('data-customer');
-                    const packages = this.getAttribute('data-packages');
 
-                    try {
-                        // Obtener los detalles completos de la auditoría (endpoint sin restricción de fecha)
-                        const response = await fetch(`/api/picking_audit/${auditId}/print`);
-                        if (!response.ok) {
-                            throw new Error('Error al cargar los detalles de la auditoría');
-                        }
-
-                        const audit = await response.json();
-
-                        // Generar el packing list
-                        generatePackingList(orderNumber, customerName, packages, audit.items);
-
-                        // Imprimir
-                        setTimeout(() => {
-                            window.print();
-                        }, 500);
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al generar el packing list');
-                    }
+                    // Abrir la página de impresión del packing list en una nueva ventana
+                    window.open(`/packing_list_print/${auditId}`, '_blank');
                 });
             });
         });

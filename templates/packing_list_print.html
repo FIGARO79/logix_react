@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing List - {{ order_number }}</title>
+    <style>
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            @page {
+                margin: 1cm;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #0070d2;
+        }
+
+        .header h2 {
+            margin: 5px 0;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .order-info {
+            margin-bottom: 25px;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .order-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .order-info td {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        .order-info td:first-child {
+            font-weight: bold;
+            width: 150px;
+        }
+
+        .package {
+            margin-bottom: 40px;
+            border: 2px solid #0070d2;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .package-header {
+            background: #0070d2;
+            color: white;
+            padding: 12px 15px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .package-content {
+            padding: 15px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .items-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .items-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+        }
+
+        .items-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .items-table td:last-child {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .no-items {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        .print-btn {
+            background: #0070d2;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .print-btn:hover {
+            background: #005fb2;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-left: 4px solid #0070d2;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Imprimir Packing List</button>
+    </div>
+
+    <div class="header">
+        <h1>PACKING LIST</h1>
+        <h2>Lista de Empaque por Bulto</h2>
+    </div>
+
+    <div class="order-info">
+        <table>
+            <tr>
+                <td>Order Number:</td>
+                <td><strong>{{ order_number }}</strong></td>
+            </tr>
+            <tr>
+                <td>Despatch Number:</td>
+                <td><strong>{{ despatch_number }}</strong></td>
+            </tr>
+            <tr>
+                <td>Cliente:</td>
+                <td><strong>{{ customer_name }}</strong></td>
+            </tr>
+            <tr>
+                <td>Fecha:</td>
+                <td><strong>{{ timestamp }}</strong></td>
+            </tr>
+            <tr>
+                <td>Total de Bultos:</td>
+                <td><strong>{{ total_packages }}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    {% for package_num in range(1, total_packages + 1) %}
+    <div class="package {% if not loop.last %}page-break{% endif %}">
+        <div class="package-header">
+            📦 BULTO #{{ package_num }} de {{ total_packages }}
+        </div>
+        <div class="package-content">
+            {% if packages.get(package_num|string) %}
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Código</th>
+                        <th style="width: 60%;">Descripción</th>
+                        <th style="width: 20%;">Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in packages.get(package_num|string) %}
+                    <tr>
+                        <td>{{ item.item_code }}</td>
+                        <td>{{ item.description }}</td>
+                        <td>{{ item.quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-items">
+                Sin artículos asignados a este bulto
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="summary no-print">
+        <strong>Nota:</strong> Este packing list detalla el contenido específico de cada bulto.
+        Cada página representa un bulto individual para facilitar el empaque y verificación.
+    </div>
+</body>
+
+</html>

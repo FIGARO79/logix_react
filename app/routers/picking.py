@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from app.models.schemas import PickingAudit
-from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem
+from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem, PickingPackageItem
 from app.utils.auth import login_required
 from app.core.db import get_db
 
@@ -290,6 +290,20 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
             )
             db.add(new_item)
         
+        # 3. Insertar la asignación de artículos a bultos
+        packages_assignment = audit_data.packages_assignment if hasattr(audit_data, 'packages_assignment') else {}
+        if packages_assignment:
+            for package_num, items in packages_assignment.items():
+                for item in items:
+                    package_item = PickingPackageItem(
+                        audit_id=new_audit.id,
+                        package_number=int(package_num),
+                        item_code=item['code'],
+                        description=item.get('description', ''),
+                        qty_scan=item.get('qty_scan', 0)
+                    )
+                    db.add(package_item)
+        
         await db.commit()
 
         return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
@@ -298,3 +312,55 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
         print(f"Database error in save_picking_audit: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+
+
+@router.get('/packing_list/{audit_id}')
+async def get_packing_list(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Obtiene el packing list detallado por bulto para una auditoría."""
+    try:
+        # Obtener la auditoría
+        result = await db.execute(
+            select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
+        )
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            raise HTTPException(status_code=404, detail="Auditoría no encontrada")
+        
+        # Obtener los items asignados a bultos
+        result = await db.execute(
+            select(PickingPackageItem)
+            .where(PickingPackageItem.audit_id == audit_id)
+            .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
+        )
+        package_items = result.scalars().all()
+        
+        # Organizar por bulto
+        packing_list = {
+            'audit_id': audit.id,
+            'order_number': audit.order_number,
+            'despatch_number': audit.despatch_number,
+            'customer_name': audit.customer_name,
+            'total_packages': audit.packages,
+            'timestamp': audit.timestamp,
+            'packages': {}
+        }
+        
+        for item in package_items:
+            package_num = item.package_number
+            if package_num not in packing_list['packages']:
+                packing_list['packages'][package_num] = []
+            
+            packing_list['packages'][package_num].append({
+                'item_code': item.item_code,
+                'description': item.description,
+                'quantity': item.qty_scan
+            })
+        
+        return JSONResponse(content=packing_list)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting packing list: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener packing list: {e}")

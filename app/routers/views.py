@@ -10,7 +10,7 @@ from app.utils.auth import login_required, get_current_user
 from app.core.templates import templates
 from app.services import db_logs, csv_handler, db_counts
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, CountSession
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession
 import pandas as pd
 import numpy as np
 
@@ -283,3 +283,60 @@ async def view_picking_audits(request: Request, username: str = Depends(login_re
         audits.append(audit_dict)
 
     return templates.TemplateResponse("view_picking_audits.html", {"request": request, "audits": audits})
+
+
+@router.get('/packing_list_print/{audit_id}', response_class=HTMLResponse)
+async def packing_list_print_page(request: Request, audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Página de impresión del packing list por bulto."""
+    if not isinstance(username, str):
+        return username
+    
+    try:
+        # Obtener la auditoría
+        result = await db.execute(
+            select(PickingAudit).where(PickingAudit.id == audit_id)
+        )
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "Auditoría no encontrada"
+            })
+        
+        # Obtener los items asignados a bultos
+        result = await db.execute(
+            select(PickingPackageItem)
+            .where(PickingPackageItem.audit_id == audit_id)
+            .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
+        )
+        package_items = result.scalars().all()
+        
+        # Organizar por bulto
+        packages = {}
+        for item in package_items:
+            package_num = str(item.package_number)
+            if package_num not in packages:
+                packages[package_num] = []
+            
+            packages[package_num].append({
+                'item_code': item.item_code,
+                'description': item.description,
+                'quantity': item.qty_scan
+            })
+        
+        return templates.TemplateResponse("packing_list_print.html", {
+            "request": request,
+            "order_number": audit.order_number,
+            "despatch_number": audit.despatch_number,
+            "customer_name": audit.customer_name,
+            "timestamp": audit.timestamp,
+            "total_packages": audit.packages,
+            "packages": packages
+        })
+    
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": f"Error al cargar packing list: {str(e)}"
+        })

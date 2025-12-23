@@ -746,17 +746,31 @@
         <!-- Modal de Cantidad de Bultos/Paquetes -->
         <div id="packages-modal"
             class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Cantidad de Bultos</h3>
-                <p class="text-gray-700 mb-4">Ingrese la cantidad total de bultos o paquetes del pedido:</p>
-                <input type="number" id="packages-input" inputmode="numeric" aria-label="Cantidad de bultos"
-                    placeholder="0" min="1"
-                    class="w-full text-center border border-gray-300 rounded-md shadow-sm py-2 text-2xl" />
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Asignación de Artículos por Bulto</h3>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad total de bultos:</label>
+                    <input type="number" id="packages-input" inputmode="numeric" aria-label="Cantidad de bultos"
+                        placeholder="0" min="1"
+                        class="w-32 text-center border border-gray-300 rounded-md shadow-sm py-2 text-lg" />
+                    <button id="generate-packages-btn"
+                        class="ml-2 py-2 px-4 bg-blue-500 text-white rounded-md font-semibold hover:bg-blue-600">
+                        Generar Bultos
+                    </button>
+                </div>
+
+                <div id="packages-assignment-container" class="hidden">
+                    <p class="text-sm text-gray-600 mb-4">Asigne los artículos a cada bulto arrastrando o seleccionando:
+                    </p>
+                    <div id="packages-list" class="space-y-4"></div>
+                </div>
+
                 <div class="flex justify-end gap-4 mt-6">
                     <button id="cancel-packages-btn"
                         class="py-2 px-4 bg-gray-200 text-gray-700 rounded-md font-semibold hover:bg-gray-300">Cancelar</button>
                     <button id="confirm-packages-btn"
-                        class="py-2 px-4 btn-success text-white rounded-md font-semibold">Confirmar</button>
+                        class="py-2 px-4 btn-success text-white rounded-md font-semibold">Confirmar y Guardar</button>
                 </div>
             </div>
         </div>
@@ -770,6 +784,7 @@
             let soundBeep, soundBoop;
             let currentItemForQuantity = null;
             let packagesQuantity = 0; // Cantidad de bultos/paquetes
+            let packagesAssignment = {}; // Asignación de artículos a bultos: { package_number: [items] }
             let editMode = false; // Modo edición
             let editAuditId = null; // ID de auditoría en edición
             let originalItemValues = {}; // Valores originales para detectar cambios
@@ -805,6 +820,9 @@
             const packagesInput = document.getElementById('packages-input');
             const cancelPackagesBtn = document.getElementById('cancel-packages-btn');
             const confirmPackagesBtn = document.getElementById('confirm-packages-btn');
+            const generatePackagesBtn = document.getElementById('generate-packages-btn');
+            const packagesAssignmentContainer = document.getElementById('packages-assignment-container');
+            const packagesList = document.getElementById('packages-list');
 
             // --- Inicialización ---
             document.addEventListener('DOMContentLoaded', () => {
@@ -875,6 +893,7 @@
             confirmQuantityBtn.addEventListener('click', confirmQuantity);
             cancelPackagesBtn.addEventListener('click', hidePackagesModal);
             confirmPackagesBtn.addEventListener('click', confirmPackages);
+            generatePackagesBtn.addEventListener('click', generatePackagesUI);
             packagesInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmPackages(); } });
             quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
 
@@ -1236,7 +1255,8 @@
                     customer_name: customerName,
                     status: status,
                     items: orderItems,
-                    packages: packagesQuantity
+                    packages: packagesQuantity,
+                    packages_assignment: packagesAssignment
                 };
 
                 try {
@@ -1310,6 +1330,9 @@
              */
             function showPackagesModal() {
                 packagesInput.value = '';
+                packagesAssignmentContainer.classList.add('hidden');
+                packagesList.innerHTML = '';
+                packagesAssignment = {};
                 packagesModal.classList.remove('hidden');
                 packagesInput.focus();
             }
@@ -1319,10 +1342,126 @@
              */
             function hidePackagesModal() {
                 packagesModal.classList.add('hidden');
+                packagesAssignmentContainer.classList.add('hidden');
+                packagesList.innerHTML = '';
             }
 
             /**
-             * Confirma la cantidad de bultos y procede a guardar.
+             * Genera la interfaz para asignar artículos a bultos.
+             */
+            function generatePackagesUI() {
+                const packages = parseInt(packagesInput.value, 10);
+                if (isNaN(packages) || packages < 1) {
+                    showMessage('Por favor ingrese una cantidad válida de bultos (mínimo 1).', 'error');
+                    return;
+                }
+
+                packagesQuantity = packages;
+                packagesAssignment = {};
+
+                // Inicializar bultos vacíos
+                for (let i = 1; i <= packages; i++) {
+                    packagesAssignment[i] = [];
+                }
+
+                // Generar UI para cada bulto
+                packagesList.innerHTML = '';
+                for (let i = 1; i <= packages; i++) {
+                    const packageDiv = document.createElement('div');
+                    packageDiv.className = 'border border-gray-300 rounded-lg p-4 bg-gray-50';
+                    packageDiv.innerHTML = `
+                        <h4 class="font-bold text-lg mb-3 text-gray-800">Bulto #${i}</h4>
+                        <div class="space-y-2" id="package-${i}-items"></div>
+                        <div class="mt-3">
+                            <select id="package-${i}-select" class="w-full border border-gray-300 rounded-md p-2 text-sm">
+                                <option value="">-- Seleccionar artículo --</option>
+                                ${orderItems.map(item => `
+                                    <option value="${item.code}">
+                                        ${item.code} - ${item.description} (Cant: ${item.qty_scan})
+                                    </option>
+                                `).join('')}
+                            </select>
+                            <button onclick="addItemToPackage(${i})" class="mt-2 w-full bg-blue-500 text-white py-1 px-3 rounded text-sm hover:bg-blue-600">
+                                Agregar Artículo
+                            </button>
+                        </div>
+                    `;
+                    packagesList.appendChild(packageDiv);
+                }
+
+                packagesAssignmentContainer.classList.remove('hidden');
+            }
+
+            /**
+             * Agrega un artículo a un bulto específico.
+             */
+            window.addItemToPackage = function (packageNumber) {
+                const selectEl = document.getElementById(`package-${packageNumber}-select`);
+                const itemCode = selectEl.value;
+
+                if (!itemCode) {
+                    showMessage('Seleccione un artículo', 'warning');
+                    return;
+                }
+
+                const item = orderItems.find(i => i.code === itemCode);
+                if (!item) return;
+
+                // Verificar si ya está en este bulto
+                if (packagesAssignment[packageNumber].some(i => i.code === itemCode)) {
+                    showMessage('Este artículo ya está en este bulto', 'warning');
+                    return;
+                }
+
+                // Agregar al bulto
+                packagesAssignment[packageNumber].push({
+                    code: item.code,
+                    description: item.description,
+                    qty_scan: item.qty_scan
+                });
+
+                // Actualizar UI
+                updatePackageItemsUI(packageNumber);
+                selectEl.value = '';
+            }
+
+            /**
+             * Actualiza la visualización de artículos en un bulto.
+             */
+            function updatePackageItemsUI(packageNumber) {
+                const container = document.getElementById(`package-${packageNumber}-items`);
+                const items = packagesAssignment[packageNumber];
+
+                if (items.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm italic">Sin artículos asignados</p>';
+                    return;
+                }
+
+                container.innerHTML = items.map(item => `
+                    <div class="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                        <div class="flex-1">
+                            <span class="font-semibold text-sm">${item.code}</span>
+                            <span class="text-xs text-gray-600 ml-2">${item.description}</span>
+                            <span class="text-xs text-blue-600 ml-2">(${item.qty_scan})</span>
+                        </div>
+                        <button onclick="removeItemFromPackage(${packageNumber}, '${item.code}')" 
+                            class="text-red-500 hover:text-red-700 text-sm font-bold">
+                            ✕
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            /**
+             * Remueve un artículo de un bulto.
+             */
+            window.removeItemFromPackage = function (packageNumber, itemCode) {
+                packagesAssignment[packageNumber] = packagesAssignment[packageNumber].filter(i => i.code !== itemCode);
+                updatePackageItemsUI(packageNumber);
+            }
+
+            /**
+             * Confirma la asignación de bultos y procede a guardar.
              */
             async function confirmPackages() {
                 const packages = parseInt(packagesInput.value, 10);
