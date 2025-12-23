@@ -893,7 +893,9 @@
             confirmQuantityBtn.addEventListener('click', confirmQuantity);
             cancelPackagesBtn.addEventListener('click', hidePackagesModal);
             confirmPackagesBtn.addEventListener('click', confirmPackages);
+            console.log('Registering generatePackagesBtn listener', generatePackagesBtn);
             generatePackagesBtn.addEventListener('click', generatePackagesUI);
+            console.log('generatePackagesBtn listener registered');
             packagesInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmPackages(); } });
             quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
 
@@ -1350,8 +1352,16 @@
              * Genera la interfaz para asignar artículos a bultos.
              */
             function generatePackagesUI() {
+                console.log('generatePackagesUI called');
                 const packages = parseInt(packagesInput.value, 10);
+                console.log('Packages value:', packages);
+
                 if (isNaN(packages) || packages < 1) {
+
+                    if (orderItems.length === 0) {
+                        showMessage('No hay artículos para asignar a bultos.', 'error');
+                        return;
+                    }
                     showMessage('Por favor ingrese una cantidad válida de bultos (mínimo 1).', 'error');
                     return;
                 }
@@ -1389,7 +1399,10 @@
                     packagesList.appendChild(packageDiv);
                 }
 
+                console.log('Showing packages assignment container');
+                console.log('Container element:', packagesAssignmentContainer);
                 packagesAssignmentContainer.classList.remove('hidden');
+                console.log('Container classes after remove hidden:', packagesAssignmentContainer.className);
             }
 
             /**
