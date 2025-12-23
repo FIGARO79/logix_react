@@ -297,7 +297,77 @@
             position: relative;
             border-right: 1px solid rgba(255, 255, 255, 0.2);
             font-family: var(--sapFontFamily);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
+        .dataframe td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 6px 8px;
+        }
+
+        /* Anchos específicos de columnas */
+        .dataframe th:nth-child(1),
+        .dataframe td:nth-child(1) {
+            width: 7%;
+        }
+
+        /* GRN */
+
+        .dataframe th:nth-child(2),
+        .dataframe td:nth-child(2) {
+            width: 12%;
+        }
+
+        /* Código de Ítem */
+
+        .dataframe th:nth-child(3),
+        .dataframe td:nth-child(3) {
+            width: 30%;
+        }
+
+        /* Descripción */
+
+        .dataframe th:nth-child(4),
+        .dataframe td:nth-child(4) {
+            width: 12%;
+        }
+
+        /* Ubicación */
+
+        .dataframe th:nth-child(5),
+        .dataframe td:nth-child(5) {
+            width: 12%;
+        }
+
+        /* Reubicado */
+
+        .dataframe th:nth-child(6),
+        .dataframe td:nth-child(6) {
+            width: 9%;
+            text-align: right;
+        }
+
+        /* Cant. Esperada */
+
+        .dataframe th:nth-child(7),
+        .dataframe td:nth-child(7) {
+            width: 9%;
+            text-align: right;
+        }
+
+        /* Cant. Recibida */
+
+        .dataframe th:nth-child(8),
+        .dataframe td:nth-child(8) {
+            width: 9%;
+            text-align: right;
+        }
+
+        /* Diferencia */
 
         .dataframe th:last-child {
             border-right: none;
@@ -493,45 +563,17 @@
             text-overflow: ellipsis;
         }
 
-        /* Anchos mínimos para encabezados - para que título + icono quepan en una línea */
-        .dataframe th:nth-child(1) {
-            min-width: 120px;
-        }
-
-        .dataframe th:nth-child(2) {
-            min-width: 120px;
-        }
-
-        .dataframe th:nth-child(3) {
-            min-width: 350px;
-        }
-
-        .dataframe th:nth-child(4) {
-            min-width: 160px;
-        }
-
-        .dataframe th:nth-child(5) {
-            min-width: 160px;
-        }
-
-        .dataframe th:nth-child(6) {
-            min-width: 130px;
-        }
-
-        .dataframe th:nth-child(7) {
-            min-width: 100px;
-        }
-
-        .dataframe th:nth-child(8) {
-            min-width: 100px;
-        }
-
-
         /* Contenedor de tabla con scroll */
         .table-container {
             max-height: calc(100vh - 150px);
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: hidden;
             position: relative;
+        }
+
+        .table-container table {
+            width: 100%;
+            table-layout: fixed;
         }
 
         /* Encabezados sticky (inmovilizados) */
@@ -1241,6 +1283,67 @@
                 }
             }, 6000);
         }
+
+        // Hacer editable la columna de Observaciones
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = document.querySelector('table.dataframe');
+            if (!table) return;
+
+            // Buscar el índice de la columna Observaciones
+            const headers = Array.from(table.querySelectorAll('thead th'));
+            const obsColumnIndex = headers.findIndex(th => th.textContent.trim() === 'OBSERVACIONES');
+
+            if (obsColumnIndex === -1) return;
+
+            // Hacer cada celda de observaciones editable
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const obsCell = cells[obsColumnIndex];
+
+                if (obsCell) {
+                    obsCell.style.cursor = 'pointer';
+                    obsCell.style.backgroundColor = 'rgba(255, 255, 200, 0.3)';
+                    obsCell.style.minHeight = '2rem';
+                    obsCell.style.padding = '0.5rem';
+
+                    obsCell.addEventListener('click', function () {
+                        if (this.querySelector('input')) return; // Ya está en modo edición
+
+                        const currentText = this.textContent.trim();
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = currentText;
+                        input.style.cssText = `
+                            width: 100%;
+                            padding: 0.5rem;
+                            border: 2px solid var(--sapBrandColor);
+                            border-radius: 0.25rem;
+                            font-family: var(--sapFontFamily);
+                            font-size: 0.875rem;
+                        `;
+
+                        this.innerHTML = '';
+                        this.appendChild(input);
+                        input.focus();
+                        input.select();
+
+                        const saveEdit = () => {
+                            const newText = input.value.trim();
+                            this.textContent = newText || '';
+                            this.style.backgroundColor = 'rgba(255, 255, 200, 0.3)';
+                        };
+
+                        input.addEventListener('blur', saveEdit);
+                        input.addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') {
+                                saveEdit();
+                            }
+                        });
+                    });
+                }
+            });
+        });
     </script>
 
 </body>

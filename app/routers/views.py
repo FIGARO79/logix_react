@@ -179,6 +179,14 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
                 columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
             )
+            
+            # Extraer observaciones si existen
+            if 'observaciones' in latest_logs.columns:
+                obs_df = latest_logs[['itemCode', 'observaciones']].rename(
+                    columns={'itemCode': 'Item_Code', 'observaciones': 'Observaciones'}
+                )
+                locations_df = locations_df.merge(obs_df, on='Item_Code', how='left')
+            
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
         # Rellenar valores nulos
@@ -210,10 +218,9 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
             'Cant_Esperada_Linea': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
-            'Observaciones': 'Observaciones'
         })
 
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia', 'Observaciones']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
         merged_df = merged_df[cols_order]
 
         return templates.TemplateResponse('reconciliation.html', {

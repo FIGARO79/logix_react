@@ -379,6 +379,14 @@ async def export_reconciliation(timezone_offset: int = 0, username: str = Depend
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
                 columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
             )
+            
+            # Extraer observaciones si existen
+            if 'observaciones' in latest_logs.columns:
+                obs_df = latest_logs[['itemCode', 'observaciones']].rename(
+                    columns={'itemCode': 'Item_Code', 'observaciones': 'Observaciones'}
+                )
+                locations_df = locations_df.merge(obs_df, on='Item_Code', how='left')
+            
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
@@ -396,6 +404,13 @@ async def export_reconciliation(timezone_offset: int = 0, username: str = Depend
         # Ordenar por GRN ascendente
         merged_df = merged_df.sort_values('GRN_Number', ascending=True)
 
+        # Crear columna de Observaciones si no existe
+        if 'Observaciones' not in merged_df.columns:
+            merged_df['Observaciones'] = ''
+        
+        # Asegurar que las observaciones no sean NaN
+        merged_df['Observaciones'] = merged_df['Observaciones'].fillna('')
+
         df_for_export = merged_df.rename(columns={
             'GRN_Number': 'GRN',
             'Item_Code': 'Código de Ítem',
@@ -407,7 +422,7 @@ async def export_reconciliation(timezone_offset: int = 0, username: str = Depend
             'Diferencia': 'Diferencia'
         })
         
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia', 'Observaciones']
         df_for_export = df_for_export[cols_order]
 
         output = BytesIO()
