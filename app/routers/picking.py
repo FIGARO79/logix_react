@@ -300,7 +300,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
                         package_number=int(package_num),
                         item_code=item['code'],
                         description=item.get('description', ''),
-                        qty_scan=item.get('qty_scan', 0)
+                        qty_scan=item.get('qty', item.get('qty_scan', 0))
                     )
                     db.add(package_item)
         

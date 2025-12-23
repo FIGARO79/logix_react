@@ -784,7 +784,7 @@
             let soundBeep, soundBoop;
             let currentItemForQuantity = null;
             let packagesQuantity = 0; // Cantidad de bultos/paquetes
-            let packagesAssignment = {}; // Asignación de artículos a bultos: { package_number: [items] }
+            let packagesAssignment = {}; // Asignación: { package_number: [{code, description, qty}] }
             let editMode = false; // Modo edición
             let editAuditId = null; // ID de auditoría en edición
             let originalItemValues = {}; // Valores originales para detectar cambios
@@ -1391,6 +1391,7 @@
                                     </option>
                                 `).join('')}
                             </select>
+                            <input type="number" id="package-${i}-qty" min="1" placeholder="Cantidad" class="mt-2 w-full border border-gray-300 rounded-md p-2 text-sm" />
                             <button onclick="addItemToPackage(${i})" class="mt-2 w-full bg-blue-500 text-white py-1 px-3 rounded text-sm hover:bg-blue-600">
                                 Agregar Artículo
                             </button>
@@ -1408,34 +1409,59 @@
             /**
              * Agrega un artículo a un bulto específico.
              */
+            function getTotalAssignedQty(itemCode, excludePackage = null) {
+                // Suma asignada del item en todos los bultos (opcionalmente excluyendo uno)
+                let total = 0;
+                Object.entries(packagesAssignment).forEach(([pkg, items]) => {
+                    if (excludePackage !== null && Number(pkg) === Number(excludePackage)) return;
+                    items.forEach(it => {
+                        if (it.code === itemCode) total += (it.qty || 0);
+                    });
+                });
+                return total;
+            }
+
             window.addItemToPackage = function (packageNumber) {
                 const selectEl = document.getElementById(`package-${packageNumber}-select`);
+                const qtyEl = document.getElementById(`package-${packageNumber}-qty`);
                 const itemCode = selectEl.value;
+                const qtyValue = parseInt(qtyEl.value, 10);
 
                 if (!itemCode) {
                     showMessage('Seleccione un artículo', 'warning');
                     return;
                 }
 
-                const item = orderItems.find(i => i.code === itemCode);
-                if (!item) return;
-
-                // Verificar si ya está en este bulto
-                if (packagesAssignment[packageNumber].some(i => i.code === itemCode)) {
-                    showMessage('Este artículo ya está en este bulto', 'warning');
+                if (isNaN(qtyValue) || qtyValue <= 0) {
+                    showMessage('Ingrese una cantidad mayor a 0 para el bulto', 'warning');
                     return;
                 }
 
-                // Agregar al bulto
-                packagesAssignment[packageNumber].push({
-                    code: item.code,
-                    description: item.description,
-                    qty_scan: item.qty_scan
-                });
+                const item = orderItems.find(i => i.code === itemCode);
+                if (!item) return;
+
+                const assignedElsewhere = getTotalAssignedQty(itemCode, packageNumber);
+                const maxAvailable = item.qty_scan - assignedElsewhere;
+                if (qtyValue > maxAvailable) {
+                    showMessage(`Cantidad supera lo escaneado. Disponible: ${maxAvailable}`, 'error');
+                    return;
+                }
+
+                const existingIndex = packagesAssignment[packageNumber].findIndex(i => i.code === itemCode);
+                if (existingIndex >= 0) {
+                    packagesAssignment[packageNumber][existingIndex].qty = qtyValue;
+                } else {
+                    packagesAssignment[packageNumber].push({
+                        code: item.code,
+                        description: item.description,
+                        qty: qtyValue
+                    });
+                }
 
                 // Actualizar UI
                 updatePackageItemsUI(packageNumber);
                 selectEl.value = '';
+                qtyEl.value = '';
             }
 
             /**
@@ -1455,7 +1481,7 @@
                         <div class="flex-1">
                             <span class="font-semibold text-sm">${item.code}</span>
                             <span class="text-xs text-gray-600 ml-2">${item.description}</span>
-                            <span class="text-xs text-blue-600 ml-2">(${item.qty_scan})</span>
+                            <span class="text-xs text-blue-600 ml-2">(${item.qty})</span>
                         </div>
                         <button onclick="removeItemFromPackage(${packageNumber}, '${item.code}')" 
                             class="text-red-500 hover:text-red-700 text-sm font-bold">
