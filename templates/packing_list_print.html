@@ -6,94 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Packing List - {{ order_number }}</title>
     <style>
-        @media print {
-            .no-print {
-                display: none;
-            }
-
-            @page {
-                margin: 0.25cm 0.25cm 0.25cm 0.25cm;
-            }
-
-            .page-break {
-                page-break-after: always;
-            }
-
-            body {
-                margin: 0;
-            }
-
-            .header {
-                margin-top: 0;
-                margin-bottom: 0;
-                border-bottom: 0;
-                padding: 0;
-            }
-
-            .header h1 {
-                font-size: 11px;
-                margin: 0;
-                padding: 0;
-            }
-
-            .header h2 {
-                font-size: 8px;
-                margin: 0;
-                padding: 0;
-            }
-
-            .order-info {
-                margin-bottom: 2px;
-                padding: 3px 3px;
-            }
-
-            .order-info td {
-                padding: 1px 2px;
-                font-size: 10px;
-            }
-
-            .package {
-                margin-bottom: 2px;
-                border: 0;
-                border-radius: 0
-            }
-
-            .package-header {
-                padding: 3px 3px;
-                font-size: 11px;
-            }
-
-            .package-content {
-                padding: 3px 5px;
-            }
-
-            .items-table {
-                margin-top: 2px;
-            }
-
-            .items-table th {
-                padding: 2px 4px;
-                font-size: 9px;
-            }
-
-            .items-table td {
-                padding: 2px 4px;
-                font-size: 10px;
-                border-bottom: 1px solid #000;
-            }
-
-            .no-items {
-                padding: 4px;
-                font-size: 10px;
-            }
-
-            .summary {
-                margin-top: 4px;
-                padding: 3px 5px;
-                font-size: 9px;
-            }
-        }
-
+        /* Estilos Globales (Pantalla) */
         body {
             font-family: '72', 'Segoe UI', Arial, sans-serif;
             margin: 16px;
@@ -234,6 +147,114 @@
             font-size: 12px;
             color: #4b637a;
         }
+
+        /* Estilos de Impresión */
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            @page {
+                margin: 0.5cm 0.25cm 0.25cm 0.25cm;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+
+            body {
+                margin: 0;
+                background: white;
+                color: black;
+            }
+
+            .header {
+                margin-top: 0;
+                margin-bottom: 0;
+                border-bottom: 0;
+                padding: 0;
+                line-height: 1;
+            }
+
+            .header h1 {
+                font-size: 11px;
+                margin: 0;
+                padding: 0;
+                line-height: 1;
+                color: black;
+            }
+
+            .header h2 {
+                font-size: 8px;
+                margin: 0;
+                padding: 0;
+                line-height: 1;
+                color: black;
+            }
+
+            .order-info {
+                margin-bottom: 2px;
+                padding: 3px 3px;
+                background: transparent;
+                border: 0;
+            }
+
+            .order-info td {
+                padding: 1px 2px;
+                font-size: 10px;
+            }
+
+            .package {
+                margin-bottom: 2px;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .package-header {
+                padding: 3px 3px;
+                font-size: 11px;
+                background: transparent;
+                color: black;
+                font-weight: bold;
+                border-bottom: 1px solid #000;
+            }
+
+            .package-content {
+                padding: 3px 5px;
+            }
+
+            .items-table {
+                margin-top: 2px;
+            }
+
+            .items-table th {
+                padding: 2px 4px;
+                font-size: 9px;
+                background: transparent;
+                color: black;
+                border-bottom: 1px solid #000;
+            }
+
+            .items-table td {
+                padding: 2px 4px;
+                font-size: 10px;
+                border-bottom: 1px solid #000;
+            }
+
+            .no-items {
+                padding: 4px;
+                font-size: 10px;
+            }
+
+            .summary {
+                margin-top: 4px;
+                padding: 3px 5px;
+                font-size: 9px;
+                border: none;
+                background: transparent;
+            }
+        }
     </style>
 </head>
 
@@ -265,7 +286,7 @@
             </tr>
             <tr>
                 <td>Fecha:</td>
-                <td><strong>{{ timestamp }}</strong></td>
+                <td><strong>{{ timestamp.replace('T', ' ').split(' ')[0] }}</strong></td>
             </tr>
             <tr>
                 <td>Total de Bultos:</td>
