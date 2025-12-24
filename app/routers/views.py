@@ -325,15 +325,31 @@ async def packing_list_print_page(request: Request, audit_id: int, username: str
                 'quantity': item.qty_scan
             })
         
-        return templates.TemplateResponse("packing_list_print.html", {
+        # Preparar contexto robusto (evitar None y tipos inesperados)
+        try:
+            total_packages = int(audit.packages or 0)
+        except Exception:
+            total_packages = 0
+
+        def _to_str(v):
+            if v is None:
+                return ""
+            try:
+                return v.strftime('%Y-%m-%d %H:%M')  # para datetime
+            except Exception:
+                return str(v)
+
+        context = {
             "request": request,
-            "order_number": audit.order_number,
-            "despatch_number": audit.despatch_number,
-            "customer_name": audit.customer_name,
-            "timestamp": audit.timestamp,
-            "total_packages": audit.packages,
-            "packages": packages
-        })
+            "order_number": _to_str(audit.order_number),
+            "despatch_number": _to_str(audit.despatch_number),
+            "customer_name": _to_str(audit.customer_name),
+            "timestamp": _to_str(audit.timestamp),
+            "total_packages": total_packages,
+            "packages": packages,
+        }
+
+        return templates.TemplateResponse("packing_list_print.html", context)
     
     except Exception as e:
         return templates.TemplateResponse("error.html", {

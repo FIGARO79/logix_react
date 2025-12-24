@@ -677,8 +677,9 @@
                 button.addEventListener('click', function () {
                     const auditId = this.getAttribute('data-audit-id');
 
-                    // Abrir la página de impresión del packing list en una nueva ventana
-                    window.open(`/packing_list_print/${auditId}`, '_blank');
+                    // Abrir la página de impresión del packing list en una nueva ventana, aislando el opener
+                    const w = window.open(`/packing_list_print/${auditId}`, '_blank', 'noopener');
+                    if (w) w.opener = null;
                 });
             });
         });

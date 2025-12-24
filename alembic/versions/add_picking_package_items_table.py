@@ -1,7 +1,7 @@
 """Add picking_package_items table
 
 Revision ID: add_package_items
-Revises: 
+Revises: add_observaciones_column
 Create Date: 2025-12-23
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_package_items'
-down_revision = None
+down_revision = 'add_observaciones_column'
 branch_labels = None
 depends_on = None
 
