@@ -19,8 +19,8 @@ async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) 
             relocatedBin=entry_data.get('relocatedBin'),
             qtyReceived=entry_data.get('qtyReceived'),
             qtyGrn=entry_data.get('qtyGrn'),
-            difference=entry_data.get('difference'),
-            observaciones=entry_data.get('observaciones', '')
+            difference=entry_data.get('difference')
+            # Nota: observaciones se omite porque no existe en tabla MySQL
         )
         db.add(new_log)
         await db.commit()
@@ -40,8 +40,8 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
             relocatedBin=entry_data_for_db.get('relocatedBin'),
             qtyReceived=entry_data_for_db.get('qtyReceived'),
             difference=entry_data_for_db.get('difference'),
-            timestamp=entry_data_for_db.get('timestamp'),
-            observaciones=entry_data_for_db.get('observaciones')
+            timestamp=entry_data_for_db.get('timestamp')
+            # Nota: observaciones se omite porque no existe en tabla MySQL
         )
         result = await db.execute(stmt)
         await db.commit()
@@ -71,7 +71,7 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                 "qtyReceived": log.qtyReceived,
                 "qtyGrn": log.qtyGrn,
                 "difference": log.difference,
-                "observaciones": log.observaciones or ''
+                "observaciones": ""  # Columna no existe en tabla MySQL
             }
             for log in logs
         ]
@@ -98,7 +98,7 @@ async def get_log_entry_by_id_async(db: AsyncSession, log_id: int) -> Optional[D
                 "qtyReceived": log.qtyReceived,
                 "qtyGrn": log.qtyGrn,
                 "difference": log.difference,
-                "observaciones": log.observaciones or ''
+                "observaciones": ""  # Columna no existe en tabla MySQL
             }
         return None
     except Exception as e:

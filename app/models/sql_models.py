@@ -48,7 +48,8 @@ class Log(Base):
     qtyReceived: Mapped[Optional[int]] = mapped_column(Integer)
     qtyGrn: Mapped[Optional[int]] = mapped_column(Integer)
     difference: Mapped[Optional[int]] = mapped_column(Integer)
-    observaciones: Mapped[Optional[str]] = mapped_column(String(500))
+    # Nota: observaciones NO existe en tabla logs en producción (MySQL)
+    # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
 
 class AppState(Base):
     __tablename__ = "app_state"
