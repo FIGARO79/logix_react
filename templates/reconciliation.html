@@ -298,7 +298,7 @@
             border-right: 1px solid rgba(255, 255, 255, 0.2);
             font-family: var(--sapFontFamily);
             white-space: nowrap;
-            overflow: hidden;
+            overflow: visible;
             text-overflow: ellipsis;
         }
 
@@ -567,7 +567,7 @@
         .table-container {
             max-height: calc(100vh - 150px);
             overflow-y: auto;
-            overflow-x: hidden;
+            overflow-x: auto;
             position: relative;
         }
 
@@ -625,7 +625,7 @@
             border-radius: 3px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             padding: 8px;
-            z-index: 100;
+            z-index: 10000;
             display: none;
             margin-top: 4px;
         }
