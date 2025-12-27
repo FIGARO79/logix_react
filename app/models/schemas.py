@@ -12,6 +12,7 @@ class LogEntry(BaseModel):
     itemCode: str
     quantity: int
     relocatedBin: Optional[str] = ''
+    observaciones: Optional[str] = ''
 
 
 class Count(BaseModel):
@@ -41,6 +42,7 @@ class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
     code: str
     description: str
+    order_line: Optional[str] = ''
     qty_req: int
     qty_scan: int
 
@@ -53,3 +55,4 @@ class PickingAudit(BaseModel):
     status: str
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
+    packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos

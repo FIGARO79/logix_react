@@ -9,7 +9,7 @@ from sqlalchemy.pool import NullPool
 from main import app
 from app.core.db import get_db, Base
 # Importar init_db para inicializar tablas legacy
-from app.services.database import init_db
+# from app.services.database import init_db
 
 # Usar un archivo físico temporal para que aiosqlite y SQLAlchemy compartan la misma BD
 TEST_DB_FILENAME = "test_hybrid.db"
@@ -76,7 +76,7 @@ async def client():
          patch("app.services.csv_handler.load_csv_data"):
          
         # Inicializar tablas legacy en la BD de test
-        await init_db()
+        # await init_db()
 
         with TestClient(app) as c:
             yield c

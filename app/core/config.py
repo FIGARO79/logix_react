@@ -14,10 +14,34 @@ PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240 - Unconfirmed Pi
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')
-DB_FILE_PATH = os.path.join(INSTANCE_FOLDER, 'inbound_log.db')
+
 
 # --- Configuración de la Base de Datos ---
-ASYNC_DB_URL = f"sqlite+aiosqlite:///{DB_FILE_PATH}"
+# Detectar entorno: 'development' usa SQLite, 'production' usa MySQL
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'production').lower()
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite' if ENVIRONMENT == 'development' else 'mysql')
+
+if DB_TYPE == 'sqlite':
+    # Configuración para SQLite (Desarrollo Local / Portable)
+    os.makedirs(INSTANCE_FOLDER, exist_ok=True)
+    DB_PATH = os.path.join(INSTANCE_FOLDER, 'inbound_log.db')
+    ASYNC_DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+    print(f"Modo de Base de Datos: SQLite (Local) -> {DB_PATH}")
+else:
+    # Configuración para MySQL (Producción o Local)
+    DB_USER = os.getenv('DB_USER', 'root')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = os.getenv('DB_PORT', '3306')
+    DB_NAME = os.getenv('DB_NAME', 'logix_db')
+    
+    # URL de conexión asíncrona para MySQL
+    ASYNC_DB_URL = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    
+    env_label = "🌐 [PRODUCCIÓN]" if ENVIRONMENT == 'production' else "💻 [DESARROLLO]"
+    print(f"{env_label} Base de Datos: MySQL")
+    print(f"   Servidor: {DB_HOST}:{DB_PORT}")
+    print(f"   Base de Datos: {DB_NAME}")
 
 # --- Configuración de Columnas CSV ---
 COLUMNS_TO_READ_MASTER = [

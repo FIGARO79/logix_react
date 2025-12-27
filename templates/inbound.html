@@ -225,11 +225,11 @@
         th,
         td {
             border: 1px solid var(--sap-border);
-            padding: 10px 12px;
+            padding: 1px 4px;
             text-align: left;
             vertical-align: middle;
             font-size: 13px;
-            line-height: 1.4;
+            line-height: 0.9;
         }
 
         th {
@@ -949,7 +949,7 @@
     <!-- Header superior con menú -->
     <header class="top-header">
         <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
@@ -1226,7 +1226,7 @@
                 <h2 style="font-size: 14px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">Registros de Inbound
                 </h2>
             </div>
-            <div class="overflow-x-auto" style="padding: 2px;">
+            <div class="overflow-x-auto" style="padding: 1px;">
                 <table class="min-w-full" id="logTable">
                     <thead>
                         <tr>
@@ -1607,7 +1607,19 @@
                 const diffCell = createCell(entry.difference);
                 if (entry.difference < 0) diffCell.classList.add("text-red-600", "font-bold");
                 else if (entry.difference > 0) diffCell.classList.add("text-blue-600", "font-bold");
-                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString("es-CO", { hour12: false }) : "-";
+
+                // Formatear timestamp en hora local con formato dd/mm/yyyy HH:MM:SS
+                let timestamp = "-";
+                if (entry.timestamp) {
+                    const date = new Date(entry.timestamp);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    timestamp = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                }
                 createCell(timestamp);
 
                 const actionsCell = newRow.insertCell();
@@ -1828,11 +1840,14 @@
                     return parseFloat(value) || -Infinity;
                 }
                 if (columnIndex === 9) {
+                    // Formato esperado: "dd/mm/yyyy HH:MM:SS"
                     try {
-                        const [datePart] = value.split(',');
+                        if (value === "-") return 0;
+                        const [datePart, timePart] = value.split(' ');
                         const [day, month, year] = datePart.split('/');
-                        const isoDateString = `${month}/${day}/${year}${value.substring(value.indexOf(','))}`;
-                        return new Date(isoDateString).getTime() || 0;
+                        const [hours, minutes, seconds] = timePart ? timePart.split(':') : ['0', '0', '0'];
+                        const date = new Date(year, month - 1, day, hours, minutes, seconds);
+                        return date.getTime() || 0;
                     } catch (e) {
                         return 0;
                     }

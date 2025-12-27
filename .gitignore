@@ -8,13 +8,15 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Config y secretos
+# Config y secretos (NUNCA SUBIR ARCHIVOS CON CONTRASEÑAS)
 .env
 .env.local
+.env.development
+.env.development.mysql
+.env.production
 .env.*.local
 *.sqlite3
 *.db
-*.sqlite
 
 # Carpeta instance (datos de aplicación)
 instance/
@@ -39,6 +41,9 @@ yarn-error.log*
 
 # Otros
 *.egg-info/
+mysql.txt
+*.egg
+*.md
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv

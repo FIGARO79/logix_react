@@ -384,10 +384,9 @@
     <!-- Contenido principal -->
     <main class="main-content">
         <div class="container mx-auto max-w-full px-4 py-8">
-            <div class="bg-white px-6 py-6 rounded-lg shadow border" style="border-color: var(--sap-border);">
-                <div
-                    style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 12px 16px; margin: -24px -24px 16px -24px; border-radius: 4px 4px 0 0;">
-                    <h1 class="text-base font-semibold" style="margin: 0; letter-spacing: 0.3px;">Confirmación de
+            <div class="bg-white px-6 py-6 rounded-lg shadow border custom-border">
+                <div class="header-gradient">
+                    <h1 class="text-base font-semibold custom-heading">Confirmación de
                         Picking</h1>
                 </div>
 
@@ -420,10 +419,7 @@
                         </thead>
                         <tbody class="bg-white" style="font-family: '72', Arial, sans-serif;">
                             {% for audit in audits %}
-                            <tr id="audit-{{ audit.id }}"
-                                style="border-bottom: 1px solid #e5e5e5; transition: background-color 0.2s ease;"
-                                onmouseover="this.style.backgroundColor='#f7f7f7';"
-                                onmouseout="this.style.backgroundColor='white';">
+                            <tr id="audit-{{ audit.id }}" class="audit-row">
                                 <td class="px-6 py-2 whitespace-nowrap">{{ audit.order_number }}/{{
                                     audit.despatch_number }}
                                 </td>
@@ -678,32 +674,12 @@
             const printButtons = document.querySelectorAll('.print-packing-btn');
 
             printButtons.forEach(button => {
-                button.addEventListener('click', async function () {
+                button.addEventListener('click', function () {
                     const auditId = this.getAttribute('data-audit-id');
-                    const orderNumber = this.getAttribute('data-order');
-                    const customerName = this.getAttribute('data-customer');
-                    const packages = this.getAttribute('data-packages');
 
-                    try {
-                        // Obtener los detalles completos de la auditoría (endpoint sin restricción de fecha)
-                        const response = await fetch(`/api/picking_audit/${auditId}/print`);
-                        if (!response.ok) {
-                            throw new Error('Error al cargar los detalles de la auditoría');
-                        }
-
-                        const audit = await response.json();
-
-                        // Generar el packing list
-                        generatePackingList(orderNumber, customerName, packages, audit.items);
-
-                        // Imprimir
-                        setTimeout(() => {
-                            window.print();
-                        }, 500);
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al generar el packing list');
-                    }
+                    // Abrir la página de impresión del packing list en una nueva ventana, aislando el opener
+                    const w = window.open(`/packing_list_print/${auditId}`, '_blank', 'noopener');
+                    if (w) w.opener = null;
                 });
             });
         });
@@ -781,9 +757,11 @@
 
             let itemsHTML = '';
             itemsToShow.forEach((item, index) => {
+                // Usar order_line si existe, sino usar el índice secuencial
+                const lineNumber = item.order_line || (index + 1);
                 itemsHTML += `
                     <tr>
-                        <td>${index + 1}</td>
+                        <td>${lineNumber}</td>
                         <td>${item.code}</td>
                         <td>${item.description}</td>
                         <td style="text-align: center;">${item.qty_scan}</td>
@@ -807,7 +785,7 @@
                     <table class="packing-list-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;">#</th>
+                                <th style="width: 40px;">Línea</th>
                                 <th>Código de Item</th>
                                 <th>Descripción</th>
                                 <th style="width: 100px; text-align: center;">Cantidad</th>

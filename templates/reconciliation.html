@@ -70,7 +70,7 @@
             height: 100vh;
             overflow: hidden;
             margin: 0;
-            line-height: 1.4;
+            line-height: 1;
         }
 
         /* Header superior - SAP Fiori Shell Bar */
@@ -287,7 +287,7 @@
         }
 
         .dataframe th {
-            padding: 10px 12px;
+            padding: 6px 8px;
             text-align: left;
             font-size: 11px;
             font-weight: 600;
@@ -297,7 +297,77 @@
             position: relative;
             border-right: 1px solid rgba(255, 255, 255, 0.2);
             font-family: var(--sapFontFamily);
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: ellipsis;
         }
+
+        .dataframe td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 6px 8px;
+        }
+
+        /* Anchos específicos de columnas */
+        .dataframe th:nth-child(1),
+        .dataframe td:nth-child(1) {
+            width: 7%;
+        }
+
+        /* GRN */
+
+        .dataframe th:nth-child(2),
+        .dataframe td:nth-child(2) {
+            width: 12%;
+        }
+
+        /* Código de Ítem */
+
+        .dataframe th:nth-child(3),
+        .dataframe td:nth-child(3) {
+            width: 30%;
+        }
+
+        /* Descripción */
+
+        .dataframe th:nth-child(4),
+        .dataframe td:nth-child(4) {
+            width: 9%;
+        }
+
+        /* Ubicación */
+
+        .dataframe th:nth-child(5),
+        .dataframe td:nth-child(5) {
+            width: 9%;
+        }
+
+        /* Reubicado */
+
+        .dataframe th:nth-child(6),
+        .dataframe td:nth-child(6) {
+            width: 12%;
+            text-align: right;
+        }
+
+        /* Cant. Esperada */
+
+        .dataframe th:nth-child(7),
+        .dataframe td:nth-child(7) {
+            width: 12%;
+            text-align: right;
+        }
+
+        /* Cant. Recibida */
+
+        .dataframe th:nth-child(8),
+        .dataframe td:nth-child(8) {
+            width: 9%;
+            text-align: right;
+        }
+
+        /* Diferencia */
 
         .dataframe th:last-child {
             border-right: none;
@@ -352,7 +422,7 @@
         }
 
         .dataframe td {
-            padding: 10px 12px;
+            padding: 2px 4px;
             font-size: 13px;
             vertical-align: middle;
             border-right: 1px solid var(--sapList_BorderColor);
@@ -493,45 +563,17 @@
             text-overflow: ellipsis;
         }
 
-        /* Anchos mínimos para encabezados - para que título + icono quepan en una línea */
-        .dataframe th:nth-child(1) {
-            min-width: 120px;
-        }
-
-        .dataframe th:nth-child(2) {
-            min-width: 120px;
-        }
-
-        .dataframe th:nth-child(3) {
-            min-width: 350px;
-        }
-
-        .dataframe th:nth-child(4) {
-            min-width: 160px;
-        }
-
-        .dataframe th:nth-child(5) {
-            min-width: 160px;
-        }
-
-        .dataframe th:nth-child(6) {
-            min-width: 130px;
-        }
-
-        .dataframe th:nth-child(7) {
-            min-width: 100px;
-        }
-
-        .dataframe th:nth-child(8) {
-            min-width: 100px;
-        }
-
-
         /* Contenedor de tabla con scroll */
         .table-container {
             max-height: calc(100vh - 150px);
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: auto;
             position: relative;
+        }
+
+        .table-container table {
+            width: 100%;
+            table-layout: fixed;
         }
 
         /* Encabezados sticky (inmovilizados) */
@@ -583,7 +625,7 @@
             border-radius: 3px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             padding: 8px;
-            z-index: 100;
+            z-index: 10000;
             display: none;
             margin-top: 4px;
         }
@@ -816,7 +858,17 @@
                     Conciliación</h1>
 
                 <div class="flex space-x-2">
-                    <a href="/api/export_reconciliation" class="btn-primary" download>
+                    <button onclick="generateItemsWithoutGrnReport()" class="btn-primary" id="btn-items-without-grn"
+                        title="Generar reporte de items sin GRN">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path d="M8.5 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm0 2a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z" />
+                            <path
+                                d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 0 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                        </svg>
+                        Items sin GRN
+                    </button>
+                    <a href="#" onclick="exportReconciliation(event)" class="btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                             viewBox="0 0 16 16">
                             <path
@@ -1070,6 +1122,228 @@
                 }
             });
         }
+
+        // --- Función para generar reporte de items sin GRN ---
+        async function generateItemsWithoutGrnReport() {
+            try {
+                const btn = document.getElementById('btn-items-without-grn');
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Cargando...';
+
+                const response = await fetch('/api/items_without_grn');
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayItemsWithoutGrnTable(result);
+                } else {
+                    showNotification(result.detail || 'Error al generar el reporte', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error de conexión al generar el reporte', 'error');
+            } finally {
+                const btn = document.getElementById('btn-items-without-grn');
+                btn.disabled = false;
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm0 2a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 0 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg> Items sin GRN';
+            }
+        }
+
+        // --- Función para mostrar la tabla de items sin GRN ---
+        function displayItemsWithoutGrnTable(result) {
+            const container = document.querySelector('.container.mx-auto');
+
+            // Buscar o crear un contenedor para el reporte
+            let reportContainer = document.getElementById('items-without-grn-container');
+            if (!reportContainer) {
+                reportContainer = document.createElement('div');
+                reportContainer.id = 'items-without-grn-container';
+                reportContainer.style.marginTop = '2rem';
+                container.appendChild(reportContainer);
+            }
+
+            if (result.data.length === 0) {
+                reportContainer.innerHTML = `
+                    <div style="background-color: var(--sapTileBackground); border: 1px solid var(--sapTileBorder); padding: 2rem; border-radius: 0.5rem; text-align: center;">
+                        <p style="color: var(--sapNeutralColor); font-family: var(--sapFontFamily);">${result.message}</p>
+                    </div>
+                `;
+                showNotification(result.message, 'information');
+                return;
+            }
+
+            // Crear tabla HTML
+            let tableHtml = `
+                <div style="background-color: var(--sapTileBackground); border: 1px solid var(--sapTileBorder); border-radius: 0.5rem; overflow: hidden;">
+                    <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--sapTileBorder); display: flex; justify-content: space-between; align-items: center; background-color: #e8e8e8;">
+                        <h3 style="margin: 0; font-family: var(--sapFontFamily); font-size: 0.875rem; font-weight: 600; color: var(--sapTextColor);">
+                            ${result.message} (${result.data.length})
+                        </h3>
+                        <button onclick="exportItemsWithoutGrn()" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="display: inline; margin-right: 0.5rem;">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                            </svg>
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="min-w-full leading-normal dataframe" border="0" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+                            <thead>
+                                <tr style="background-color: #e8e8e8;">
+                                    ${result.columns.map(col => `<th style="padding: 0.75rem; text-align: left; font-weight: bold; border-bottom: 1px solid var(--sapList_BorderColor); color: var(--sapTextColor); font-family: var(--sapFontFamily); font-size: var(--sapFontSize); width: ${100 / result.columns.length}%;">${col}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${result.data.map(row => `
+                                    <tr style="border-bottom: 1px solid var(--sapList_BorderColor);">
+                                        ${result.columns.map(col => `<td style="padding: 0rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${row[col] || ''}">${row[col] || ''}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            reportContainer.innerHTML = tableHtml;
+            showNotification(result.message, 'success');
+        }
+
+        // --- Función para exportar items sin GRN a Excel ---
+        async function exportItemsWithoutGrn() {
+            try {
+                const timezoneOffset = new Date().getTimezoneOffset();
+                const link = document.createElement('a');
+                link.href = `/api/export_items_without_grn?timezone_offset=${timezoneOffset}`;
+                link.download = true;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showNotification('Descargando reporte...', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error al descargar el reporte', 'error');
+            }
+        }
+
+        // --- Función para exportar conciliación general ---
+        function exportReconciliation(event) {
+            event.preventDefault();
+            const timezoneOffset = new Date().getTimezoneOffset();
+            window.location.href = `/api/export_reconciliation?timezone_offset=${timezoneOffset}`;
+            showNotification('Descargando reporte de conciliación...', 'information');
+        }
+
+        // --- Función para mostrar notificaciones SAP Fiori ---
+        function showNotification(message, type = 'information') {
+            const messageContainer = document.getElementById('message-container');
+            if (!messageContainer) return;
+
+            const messageStrip = document.createElement('div');
+            messageStrip.style.cssText = `
+                padding: 0.75rem 1rem;
+                margin-bottom: 1rem;
+                border-radius: 0.25rem;
+                display: flex;
+                align-items: center;
+                border: 1px solid;
+            `;
+
+            const icons = {
+                success: { bg: 'rgba(16, 126, 62, 0.1)', border: '#107e3e', color: '#107e3e', icon: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' },
+                error: { bg: 'rgba(176, 0, 0, 0.1)', border: '#b00', color: '#b00', icon: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>' },
+                information: { bg: 'rgba(10, 110, 209, 0.1)', border: '#0a6ed1', color: '#0a6ed1', icon: '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>' }
+            };
+
+            const style = icons[type] || icons.information;
+
+            messageStrip.style.backgroundColor = style.bg;
+            messageStrip.style.borderColor = style.border;
+            messageStrip.style.color = style.color;
+
+            messageStrip.innerHTML = `
+                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem; margin-right: 0.75rem; flex-shrink: 0;">
+                    ${style.icon}
+                </svg>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; cursor: pointer; margin-left: auto; padding: 0;">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem;">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            `;
+
+            messageContainer.appendChild(messageStrip);
+
+            setTimeout(() => {
+                if (messageStrip.parentElement) {
+                    messageStrip.style.opacity = '0';
+                    messageStrip.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => messageStrip.remove(), 300);
+                }
+            }, 6000);
+        }
+
+        // Hacer editable la columna de Observaciones
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = document.querySelector('table.dataframe');
+            if (!table) return;
+
+            // Buscar el índice de la columna Observaciones
+            const headers = Array.from(table.querySelectorAll('thead th'));
+            const obsColumnIndex = headers.findIndex(th => th.textContent.trim() === 'OBSERVACIONES');
+
+            if (obsColumnIndex === -1) return;
+
+            // Hacer cada celda de observaciones editable
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const obsCell = cells[obsColumnIndex];
+
+                if (obsCell) {
+                    obsCell.style.cursor = 'pointer';
+                    obsCell.style.backgroundColor = 'rgba(255, 255, 200, 0.3)';
+                    obsCell.style.minHeight = '2rem';
+                    obsCell.style.padding = '0.5rem';
+
+                    obsCell.addEventListener('click', function () {
+                        if (this.querySelector('input')) return; // Ya está en modo edición
+
+                        const currentText = this.textContent.trim();
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = currentText;
+                        input.style.cssText = `
+                            width: 100%;
+                            padding: 0.5rem;
+                            border: 2px solid var(--sapBrandColor);
+                            border-radius: 0.25rem;
+                            font-family: var(--sapFontFamily);
+                            font-size: 0.875rem;
+                        `;
+
+                        this.innerHTML = '';
+                        this.appendChild(input);
+                        input.focus();
+                        input.select();
+
+                        const saveEdit = () => {
+                            const newText = input.value.trim();
+                            this.textContent = newText || '';
+                            this.style.backgroundColor = 'rgba(255, 255, 200, 0.3)';
+                        };
+
+                        input.addEventListener('blur', saveEdit);
+                        input.addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') {
+                                saveEdit();
+                            }
+                        });
+                    });
+                }
+            });
+        });
     </script>
 
 </body>

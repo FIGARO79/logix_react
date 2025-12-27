@@ -1,0 +1,7 @@
+cd ~/main
+source ~/.virtualenvs/main_env/bin/activate
+
+correcciones
+
+-Notificación de datos borrados en update
+-Reporte de log de items que no tienen GRN relacionada y exportar en reconciliation

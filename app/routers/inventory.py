@@ -14,10 +14,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
 
-from app.core.config import DB_FILE_PATH, ASYNC_DB_URL
+from app.core.config import ASYNC_DB_URL
 from app.core.db import get_db
 from app.core.templates import templates
 from app.services.csv_handler import master_qty_map
+from app.services import db_counts
 from app.utils.auth import login_required, admin_login_required
 from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation
 
@@ -174,11 +175,9 @@ async def start_inventory_stage_1(request: Request, admin: bool = Depends(admin_
         await db.execute(delete(SessionLocation))
         await db.execute(delete(RecountList))
         
-        # Resetear autoincrement (específico de SQLite, requiere text() o raw execution)
-        # SQLAlchemy no tiene método agnóstico para resetear secuencias fácilmente
-        await db.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('stock_counts', 'count_sessions', 'session_locations', 'recount_list')"))
-        
-        print("Tablas de inventario y contadores de ID reiniciados.")
+        # MySQL no requiere resetear autoincrement como SQLite
+        # Los IDs continuarán desde donde quedaron
+        print("Tablas de inventario limpiadas.")
 
         # Actualizar estado
         stmt_update = update(AppState).where(AppState.key == 'current_inventory_stage').values(value='1')

@@ -10,14 +10,21 @@ from app.utils.auth import login_required, get_current_user
 from app.core.templates import templates
 from app.services import db_logs, csv_handler, db_counts
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, CountSession
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession
 import pandas as pd
 import numpy as np
 
 router = APIRouter(tags=["views"])
 
 # Crear engine asíncrono para reconciliación (pandas read_sql)
-async_engine = create_async_engine(ASYNC_DB_URL, echo=False)
+# Use pool_pre_ping/pool_recycle to avoid stale MySQL connections causing
+# occasional "Lost connection to MySQL server" errors when the page loads.
+async_engine = create_async_engine(
+    ASYNC_DB_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=280,
+)
 
 
 @router.get('/', response_class=HTMLResponse, name='home_page')
@@ -172,6 +179,14 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
                 columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
             )
+            
+            # Extraer observaciones si existen
+            if 'observaciones' in latest_logs.columns:
+                obs_df = latest_logs[['itemCode', 'observaciones']].rename(
+                    columns={'itemCode': 'Item_Code', 'observaciones': 'Observaciones'}
+                )
+                locations_df = locations_df.merge(obs_df, on='Item_Code', how='left')
+            
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
         # Rellenar valores nulos
@@ -261,9 +276,83 @@ async def view_picking_audits(request: Request, username: str = Depends(login_re
                 "order_line": item.order_line,
                 "qty_req": item.qty_req,
                 "qty_scan": item.qty_scan,
-                "difference": item.difference
+                "difference": item.difference,
+                "edited": item.edited if item.edited else 0
             } for item in items_orm
         ]
         audits.append(audit_dict)
 
     return templates.TemplateResponse("view_picking_audits.html", {"request": request, "audits": audits})
+
+
+@router.get('/packing_list_print/{audit_id}', response_class=HTMLResponse)
+async def packing_list_print_page(request: Request, audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Página de impresión del packing list por bulto."""
+    if not isinstance(username, str):
+        return username
+    
+    try:
+        # Obtener la auditoría
+        result = await db.execute(
+            select(PickingAudit).where(PickingAudit.id == audit_id)
+        )
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "Auditoría no encontrada"
+            })
+        
+        # Obtener los items asignados a bultos
+        result = await db.execute(
+            select(PickingPackageItem)
+            .where(PickingPackageItem.audit_id == audit_id)
+            .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
+        )
+        package_items = result.scalars().all()
+        
+        # Organizar por bulto
+        packages = {}
+        for item in package_items:
+            package_num = str(item.package_number)
+            if package_num not in packages:
+                packages[package_num] = []
+            
+            packages[package_num].append({
+                'item_code': item.item_code,
+                'description': item.description,
+                'quantity': item.qty_scan
+            })
+        
+        # Preparar contexto robusto (evitar None y tipos inesperados)
+        try:
+            total_packages = int(audit.packages or 0)
+        except Exception:
+            total_packages = 0
+
+        def _to_str(v):
+            if v is None:
+                return ""
+            try:
+                return v.strftime('%Y-%m-%d %H:%M')  # para datetime
+            except Exception:
+                return str(v)
+
+        context = {
+            "request": request,
+            "order_number": _to_str(audit.order_number),
+            "despatch_number": _to_str(audit.despatch_number),
+            "customer_name": _to_str(audit.customer_name),
+            "timestamp": _to_str(audit.timestamp),
+            "total_packages": total_packages,
+            "packages": packages,
+        }
+
+        return templates.TemplateResponse("packing_list_print.html", context)
+    
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": f"Error al cargar packing list: {str(e)}"
+        })

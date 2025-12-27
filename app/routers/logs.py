@@ -19,7 +19,11 @@ from sqlalchemy import text
 import numpy as np
 
 # Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
-async_engine = create_async_engine(ASYNC_DB_URL)
+async_engine = create_async_engine(
+    ASYNC_DB_URL,
+    pool_pre_ping=True,
+    pool_recycle=280,
+)
 
 router = APIRouter(prefix="/api", tags=["logs"])
 
@@ -84,6 +88,7 @@ async def add_log(data: LogEntry, username: str = Depends(login_required), db: A
         'qtyReceived': quantity_received_form,
         'qtyGrn': total_expected,
         'difference': difference
+        # Nota: observaciones no se incluye porque la columna no existe en tabla MySQL
     }
     
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
@@ -103,6 +108,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
     waybill = data.get('waybill', existing_log.get('waybill'))
     relocated_bin = data.get('relocatedBin', existing_log.get('relocatedBin'))
     qty_received = int(data.get('qtyReceived', existing_log.get('qtyReceived')))
+    # Nota: observaciones se omite porque no existe en tabla MySQL
     
     import_reference = existing_log['importReference']
     item_code = existing_log['itemCode']
@@ -120,6 +126,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
         'qtyReceived': qty_received,
         'difference': difference,
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
+        # Nota: observaciones se omite porque no existe en tabla MySQL
     }
     
     success = await db_logs.update_log_entry_db_async(db, log_id, entry_data_for_db)
@@ -181,8 +188,157 @@ async def export_log(username: str = Depends(login_required), db: AsyncSession =
     )
 
 
+@router.get('/items_without_grn')
+async def get_items_without_grn(username: str = Depends(login_required)):
+    """Obtiene un reporte de items en el log que no están en ningún GRN."""
+    try:
+        async with async_engine.connect() as conn:
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
+
+        grn_df = csv_handler.df_grn_cache
+
+        if logs_df.empty:
+            return JSONResponse(content={"data": [], "message": "No hay registros en el log"})
+
+        # Convertir qtyReceived a numérico
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+
+        if grn_df is None or grn_df.empty:
+            # Si no hay datos de GRN, todos los items del log están "sin GRN"
+            items_without_grn = logs_df.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+        else:
+            # Obtener items únicos en el log
+            log_items = set(logs_df['itemCode'].unique())
+            # Obtener items únicos en el GRN
+            grn_items = set(grn_df['Item_Code'].unique())
+            # Items que están en el log pero NO en el GRN
+            items_not_in_grn = log_items - grn_items
+
+            # Filtrar el log para obtener solo esos items
+            filtered_logs = logs_df[logs_df['itemCode'].isin(items_not_in_grn)]
+            # Agrupar por item y sumar cantidades
+            items_without_grn = filtered_logs.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+
+        if items_without_grn.empty:
+            return JSONResponse(content={"data": [], "message": "Todos los items están asociados con GRNs"})
+
+        # Ordenar por código de item
+        items_without_grn = items_without_grn.sort_values('itemCode').reset_index(drop=True)
+
+        # Convertir cantidad a entero
+        items_without_grn['qtyReceived'] = items_without_grn['qtyReceived'].astype(int)
+
+        # Renombrar columnas
+        items_without_grn = items_without_grn.rename(columns={
+            'importReference': 'Import Ref.',
+            'waybill': 'Waybill',
+            'itemCode': 'Código de Ítem',
+            'itemDescription': 'Descripción',
+            'qtyReceived': 'Cantidad Recibida'
+        })
+
+        # Reordenar columnas en el orden especificado
+        items_without_grn = items_without_grn[['Import Ref.', 'Waybill', 'Código de Ítem', 'Descripción', 'Cantidad Recibida']]
+
+        return JSONResponse(content={
+            "data": items_without_grn.to_dict(orient='records'),
+            "columns": items_without_grn.columns.tolist(),
+            "message": f"Se encontraron {len(items_without_grn)} items sin asociación con GRN"
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get('/export_items_without_grn')
+async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(login_required)):
+    """Exporta el reporte de items sin GRN a Excel."""
+    try:
+        async with async_engine.connect() as conn:
+            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
+
+        grn_df = csv_handler.df_grn_cache
+
+        if logs_df.empty:
+            raise HTTPException(status_code=404, detail="No hay registros en el log")
+
+        # Convertir qtyReceived a numérico
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+
+        if grn_df is None or grn_df.empty:
+            items_without_grn = logs_df.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+        else:
+            log_items = set(logs_df['itemCode'].unique())
+            grn_items = set(grn_df['Item_Code'].unique())
+            items_not_in_grn = log_items - grn_items
+            filtered_logs = logs_df[logs_df['itemCode'].isin(items_not_in_grn)]
+            items_without_grn = filtered_logs.groupby('itemCode').agg({
+                'itemDescription': 'first',
+                'importReference': 'first',
+                'waybill': 'first',
+                'qtyReceived': 'sum'
+            }).reset_index()
+
+        if items_without_grn.empty:
+            raise HTTPException(status_code=404, detail="Todos los items están asociados con GRNs")
+
+        items_without_grn = items_without_grn.sort_values('itemCode').reset_index(drop=True)
+
+        # Convertir cantidad a entero
+        items_without_grn['qtyReceived'] = items_without_grn['qtyReceived'].astype(int)
+
+        df_for_export = items_without_grn.rename(columns={
+            'itemCode': 'Código de Ítem',
+            'itemDescription': 'Descripción',
+            'importReference': 'Import Ref.',
+            'waybill': 'Waybill',
+            'qtyReceived': 'Cantidad Recibida'
+        })
+
+        # Reordenar columnas en el orden especificado
+        df_for_export = df_for_export[['Import Ref.', 'Waybill', 'Código de Ítem', 'Descripción', 'Cantidad Recibida']]
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_for_export.to_excel(writer, index=False, sheet_name='Items Sin GRN')
+            worksheet = writer.sheets['Items Sin GRN']
+            for i, col_name in enumerate(df_for_export.columns):
+                column_letter = get_column_letter(i + 1)
+                max_len = max(df_for_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = max_len
+
+        output.seek(0)
+        # Calcular fecha/hora del cliente usando el offset (minutos)
+        utc_now = datetime.datetime.now(datetime.timezone.utc)
+        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+        
+        filename = f"items_sin_grn_{timestamp_str}.xlsx"
+        return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+
+
 @router.get('/export_reconciliation')
-async def export_reconciliation(username: str = Depends(login_required)):
+async def export_reconciliation(timezone_offset: int = 0, username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
     try:
         async with async_engine.connect() as conn:
@@ -223,6 +379,14 @@ async def export_reconciliation(username: str = Depends(login_required)):
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
                 columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
             )
+            
+            # Extraer observaciones si existen
+            if 'observaciones' in latest_logs.columns:
+                obs_df = latest_logs[['itemCode', 'observaciones']].rename(
+                    columns={'itemCode': 'Item_Code', 'observaciones': 'Observaciones'}
+                )
+                locations_df = locations_df.merge(obs_df, on='Item_Code', how='left')
+            
             merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
 
         merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
@@ -240,18 +404,25 @@ async def export_reconciliation(username: str = Depends(login_required)):
         # Ordenar por GRN ascendente
         merged_df = merged_df.sort_values('GRN_Number', ascending=True)
 
+        # Crear columna de Observaciones si no existe
+        if 'Observaciones' not in merged_df.columns:
+            merged_df['Observaciones'] = ''
+        
+        # Asegurar que las observaciones no sean NaN
+        merged_df['Observaciones'] = merged_df['Observaciones'].fillna('')
+
         df_for_export = merged_df.rename(columns={
             'GRN_Number': 'GRN',
             'Item_Code': 'Código de Ítem',
             'Item_Description': 'Descripción',
-            'Bin_Original': 'Ubicación Original',
-            'Bin_Reubicado': 'Ubicación Reubicada',
+            'Bin_Original': 'Ubicación',
+            'Bin_Reubicado': 'Reubicado',
             'Cant_Esperada_Linea': 'Cant. Esperada',
             'Total_Recibido': 'Cant. Recibida',
             'Diferencia': 'Diferencia'
         })
         
-        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación Original', 'Ubicación Reubicada', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia']
+        cols_order = ['GRN', 'Código de Ítem', 'Descripción', 'Ubicación', 'Reubicado', 'Cant. Esperada', 'Cant. Recibida', 'Diferencia', 'Observaciones']
         df_for_export = df_for_export[cols_order]
 
         output = BytesIO()
@@ -264,7 +435,11 @@ async def export_reconciliation(username: str = Depends(login_required)):
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Calcular fecha/hora del cliente usando el offset (minutos)
+        utc_now = datetime.datetime.now(datetime.timezone.utc)
+        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+        
         filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
         return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
