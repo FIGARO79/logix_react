@@ -12,7 +12,7 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_db
-from app.models.sql_models import StockCount
+from app.models.sql_models import CycleCount
 from app.services import csv_handler
 from app.utils.auth import login_required
 
@@ -76,15 +76,15 @@ async def generate_count_plan(
     except KeyError as e:
         raise HTTPException(status_code=500, detail=f"Columna faltante en maestro de items: {e}")
 
-    # 2. Consultar conteos realizados en el año actual
+    # 2. Consultar conteos realizados en el año actual (Usando CycleCount)
     current_year = datetime.datetime.now().year
     start_of_year = f"{current_year}-01-01"
     
-    # Consulta SQL: Contar registros en stock_counts por item_code desde inicio de año
+    # Consulta SQL: Contar registros en cycle_counts por item_code desde inicio de año
     query = (
-        select(StockCount.item_code, func.count(StockCount.id).label("count"))
-        .where(StockCount.timestamp >= start_of_year)
-        .group_by(StockCount.item_code)
+        select(CycleCount.item_code, func.count(CycleCount.id).label("count"))
+        .where(CycleCount.timestamp >= start_of_year)
+        .group_by(CycleCount.item_code)
     )
     
     result = await db.execute(query)
