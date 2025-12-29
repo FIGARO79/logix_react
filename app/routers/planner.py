@@ -59,11 +59,11 @@ async def generate_count_plan(
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
 
     # 1. Obtener todos los items del maestro
-    # csv_handler.df_item_master_cache debería estar cargado
-    if csv_handler.df_item_master_cache is None:
+    # csv_handler.df_master_cache debería estar cargado
+    if csv_handler.df_master_cache is None:
         await csv_handler.load_csv_data()
     
-    df_master = csv_handler.df_item_master_cache
+    df_master = csv_handler.df_master_cache
     if df_master is None or df_master.empty:
         raise HTTPException(status_code=500, detail="No se pudo cargar el maestro de items.")
 
