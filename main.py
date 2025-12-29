@@ -28,8 +28,8 @@ async def lifespan(app: FastAPI):
     # Startup
     print("Iniciando aplicación Logix...")
     
-    # Ejecutar migraciones de base de datos (síncrono pero rápido)
-    run_migrations()
+    # Ejecutar migraciones de base de datos (asíncrono)
+    await run_migrations()
     
     await load_csv_data()
     print("Aplicación Logix iniciada correctamente.")

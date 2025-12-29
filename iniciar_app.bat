@@ -51,7 +51,11 @@ echo [INFO] Iniciando servidor en modo desarrollo...
 echo [INFO] Auto-reload ACTIVADO: El servidor se reiniciara al detectar cambios
 echo Presiona Ctrl+C para detener.
 echo.
-".venv\Scripts\python.exe" -m uvicorn main:app --reload --reload-delay 0.5 --host 127.0.0.1 --port 8000
+
+:: Configurar exclusiones para WatchFiles para evitar bucles de reinicio
+set WATCHFILES_EXCLUDE=.venv,.git,__pycache__,databases,*.pyc,*.pyo,*.pyd,.DS_Store
+
+".venv\Scripts\python.exe" -m uvicorn main:app --reload --reload-delay 0.5 --host 127.0.0.1 --port 8000 --reload-exclude ".venv" --reload-exclude ".git" --reload-exclude "databases" --reload-exclude "__pycache__"
 pause
 exit /b 0
 
