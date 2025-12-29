@@ -77,8 +77,12 @@ async def add_log(data: LogEntry, username: str = Depends(login_required), db: A
     total_received_now = total_received_before + quantity_received_form
     difference = total_received_now - total_expected
     
+    # Usar hora de Colombia (UTC-5) para consistencia en servidores nube (PythonAnywhere usa UTC)
+    colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+    current_time = datetime.datetime.now(colombia_tz)
+
     entry_data = {
-        'timestamp': datetime.datetime.now().isoformat(timespec='seconds'),
+        'timestamp': current_time.isoformat(timespec='seconds'),
         'importReference': import_reference,
         'waybill': data.waybill,
         'itemCode': item_code_form,
@@ -159,6 +163,19 @@ async def export_log(username: str = Depends(login_required), db: AsyncSession =
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
     df = pd.DataFrame(logs_data)
+
+    # Procesar timestamp para asegurar hora local correcta en Excel
+    try:
+        # Convertir a datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        # Si tiene zona horaria (los nuevos registros), convertir a Colombia y quitar tz info para que Excel lo muestre limpio
+        if df['timestamp'].dt.tz is not None:
+             colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+             df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
+    except Exception as e:
+        print(f"Advertencia procesando fechas en export: {e}")
+
     df_export = df[[
         'timestamp', 'importReference', 'waybill', 'itemCode', 'itemDescription',
         'binLocation', 'relocatedBin', 'qtyReceived', 'qtyGrn', 'difference'
