@@ -68,11 +68,17 @@ async def generate_count_plan(
         raise HTTPException(status_code=500, detail="No se pudo cargar el maestro de items.")
 
     # Filtrar columnas necesarias y limpiar
-    # Asumimos columnas 'Item_Code' y 'ABC_Code_stockroom' (ajustar según CSV real)
+    # Asumimos columnas 'Item_Code', 'ABC_Code_stockroom' y 'Physical_Qty'
     try:
-        items_data = df_master[['Item_Code', 'ABC_Code_stockroom']].copy()
+        items_data = df_master[['Item_Code', 'ABC_Code_stockroom', 'Physical_Qty']].copy()
         items_data['Item_Code'] = items_data['Item_Code'].astype(str).str.strip().str.upper()
         items_data['ABC_Code_stockroom'] = items_data['ABC_Code_stockroom'].astype(str).str.strip().str.upper()
+        # Convertir Physical_Qty a numérico, forzando errores a NaN y luego a 0
+        items_data['Physical_Qty'] = pd.to_numeric(items_data['Physical_Qty'], errors='coerce').fillna(0)
+        
+        # FILTRO CLAVE: Solo items con stock físico > 0
+        items_data = items_data[items_data['Physical_Qty'] > 0]
+        
     except KeyError as e:
         raise HTTPException(status_code=500, detail=f"Columna faltante en maestro de items: {e}")
 
