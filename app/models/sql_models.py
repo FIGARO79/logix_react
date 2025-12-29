@@ -107,6 +107,15 @@ class StockCount(Base):
 
     session = relationship("CountSession", back_populates="counts")
 
+class CycleCount(Base):
+    __tablename__ = "cycle_counts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+    count_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("stock_counts.id"))
+
 class PickingAudit(Base):
     __tablename__ = "picking_audits"
 
