@@ -641,7 +641,8 @@
 
             // --- Planner Logic ---
             const form = document.getElementById('plannerForm');
-            const updatePlanBtn = document.getElementById('updatePlanBtn'); // Before: previewBtn
+            const updatePlanBtn = document.getElementById('updatePlanBtn');
+            const generateBtn = document.getElementById('generateBtn');
             const saveConfigBtn = document.getElementById('saveConfigBtn');
             const statusMessage = document.getElementById('statusMessage');
 
@@ -758,6 +759,18 @@
                     updatePlanBtn.disabled = false;
                     updatePlanBtn.textContent = "Actualizar Planificación";
                 }
+            });
+
+            // 4. Generate Excel
+            generateBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent form submit
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) return showStatus("Seleccione fechas", "error");
+
+                // Trigger download directly
+                window.location.href = `/api/planner/generate_plan?start_date=${startDate}&end_date=${endDate}`;
             });
 
             function updateDashboard(data) {
