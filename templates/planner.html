@@ -4,47 +4,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logix - Planificador de Conteos</title>
+    <title>Logix - Planner Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ===== SAP Business One Inspired Styles ===== */
+        /* ===== SAP Fiori / Excel Dashboard Styles ===== */
         :root {
             --sap-primary: #0070d2;
             --sap-primary-dark: #005fb2;
             --sap-header-bg: #2c3e50;
-            --sap-header-text: #ffffff;
-            --sap-border: #d0d7de;
-            --sap-hover: #f3f6f9;
             --sap-text: #32383e;
-            --sap-table-header: #4a5f7f;
-            --sap-yellow: #fbbf24;
+            --sap-border: #d0d7de;
+            --excel-header-bg: #e5e7eb;
+            /* Gray-200 like Excel headers */
+            --excel-border: #9ca3af;
+            /* Gray-400 for cell borders */
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #ffffff;
             color: var(--sap-text);
+            font-size: 0.875rem;
+            /* Compact font size */
         }
 
-        /* ===== Estilos para Header con Menú Desplegable - SAP Fiori Style ===== */
-        /* Header superior - SAP Fiori Shell Bar */
+        /* --- Layout & Utilities --- */
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .excel-table th,
+        .excel-table td {
+            border: 1px solid var(--excel-border);
+            padding: 4px 8px;
+            text-align: center;
+        }
+
+        .excel-table th {
+            background-color: var(--excel-header-bg);
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .excel-table td.text-left {
+            text-align: left;
+        }
+
+        .excel-table td.bg-gray {
+            background-color: #f3f4f6;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+            border-left: 4px solid var(--sap-primary);
+            padding-left: 0.5rem;
+        }
+
+        /* --- Header Styles (Shared) --- */
         .top-header {
             background-color: var(--sap-header-bg);
             color: white;
             padding: 0 1rem;
             height: 44px;
-            min-height: 44px;
             display: flex;
             align-items: center;
             gap: 1rem;
-            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.3);
-            z-index: 1000;
             position: sticky;
             top: 0;
+            z-index: 50;
         }
 
-        /* Botón hamburguesa */
         .menu-toggle {
             background: none;
             border: none;
@@ -54,16 +95,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 0.25rem;
-            transition: background-color 0.1s ease;
-        }
-
-        .menu-toggle:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .menu-toggle:active {
-            background-color: rgba(255, 255, 255, 0.2);
         }
 
         .menu-toggle svg {
@@ -71,264 +102,463 @@
             height: 1.25rem;
         }
 
-        .header-title {
-            font-size: 1rem;
-            font-weight: 400;
-            margin: 0;
-            color: #fff;
-        }
-
-        /* Menú desplegable - SAP Fiori Side Navigation */
         .dropdown-menu {
             position: fixed;
             top: 44px;
             left: 0;
             width: 15rem;
-            max-height: calc(100vh - 44px);
+            height: calc(100vh - 44px);
             background-color: var(--sap-header-bg);
-            box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
             transform: translateX(-100%);
-            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-            overflow-y: auto;
+            transition: transform 0.2s;
             z-index: 999;
-            height: auto;
-            display: block;
+            display: flex;
             flex-direction: column;
-            padding-top: 0;
         }
 
         .dropdown-menu.open {
             transform: translateX(0);
-            left: 0;
         }
 
-        .dropdown-menu nav {
-            padding: 0;
-            display: block;
-            padding-top: 0;
-        }
-
-        .dropdown-menu a,
-        .dropdown-menu button {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 1rem;
-            color: #fff;
+        .dropdown-menu a {
+            padding: 10px 16px;
+            color: white;
             text-decoration: none;
-            border-radius: 0;
-            margin: 0;
-            transition: background-color 0.1s ease;
-            font-size: 0.875rem;
-            border-left: 0.1875rem solid transparent;
-            width: 100%;
-            border-bottom: none;
-            background: none;
-            text-align: left;
-            cursor: pointer;
-            border: none;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-left: 3px solid transparent;
         }
 
-        .dropdown-menu a:hover,
-        .dropdown-menu button:hover {
-            background-color: rgba(255, 255, 255, 0.08);
+        .dropdown-menu a:hover {
+            background: rgba(255, 255, 255, 0.1);
             border-left-color: var(--sap-primary);
-            color: #fff;
         }
 
-        .dropdown-menu a:active,
-        .dropdown-menu button:active {
-            background-color: rgba(255, 255, 255, 0.12);
-        }
-
-        .dropdown-menu svg {
-            width: 1rem;
-            height: 1rem;
-            flex-shrink: 0;
-        }
-
-        /* Overlay para cerrar el menú */
         .menu-overlay {
             position: fixed;
             top: 44px;
             left: 0;
             width: 100%;
             height: calc(100vh - 44px);
-            background-color: rgba(0, 0, 0, 0.6);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
+            background: rgba(0, 0, 0, 0.5);
             z-index: 998;
-            display: block;
+            display: none;
         }
 
         .menu-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .btn-primary {
-            background-color: #0070f2;
-            color: white;
-            transition: background-color 0.2s;
-        }
-
-        .btn-primary:hover {
-            background-color: #005bb5;
-        }
-
-        .btn-secondary {
-            background-color: #f0f0f0;
-            color: #333;
-            border: 1px solid #ccc;
-            transition: background-color 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background-color: #e0e0e0;
+            display: block;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Header superior con menú -->
+    <!-- Header -->
     <header class="top-header">
-        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+        <button class="menu-toggle" id="menuToggle">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
         </button>
-        <h1 class="header-title">Logix - Planificador de Conteos</h1>
+        <h1 class="font-semibold">Logix - Planeación de Conteos</h1>
     </header>
 
-    <!-- Menú desplegable (Se inyectará el contenido de _menu.html si usas include, o hardcoded aquí) -->
     {% include '_menu.html' %}
-
-    <!-- Overlay para cerrar el menú -->
     <div class="menu-overlay" id="menuOverlay"></div>
 
-    <main class="container mx-auto px-4 py-8 max-w-2xl">
-        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Generar Plan de Conteos Cíclicos</h2>
+    <main class="dashboard-container">
 
-            <p class="text-gray-600 mb-6 text-sm">
-                Esta herramienta genera un archivo Excel con la programación de conteos sugerida.
-                El sistema calcula los conteos pendientes basándose en la clasificación ABC y el historial de conteos
-                del año actual.
-                Solo se incluyen artículos con stock físico positivo.
-            </p>
-
-            <form id="plannerForm" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
-                        <input type="date" id="startDate" name="startDate" required
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
-                    </div>
-                    <div>
-                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
-                        <input type="date" id="endDate" name="endDate" required
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
-                    </div>
+        <!-- Controls & Parameters -->
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
+            <h2 class="section-title">Parámetros Generales</h2>
+            <form id="plannerForm" class="flex flex-wrap items-end gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
+                    <input type="date" id="startDate" name="startDate"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
+                    <input type="date" id="endDate" name="endDate"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
+                    <input type="text" id="holidayCount" readonly
+                        class="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center" value="0">
                 </div>
 
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-blue-700">
-                                El plan se distribuirá equitativamente en los días hábiles (Lunes a Viernes) dentro del
-                                rango seleccionado, excluyendo festivos de Colombia.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end pt-4 gap-4">
+                <div class="ml-auto flex gap-2">
                     <button type="button" id="previewBtn"
-                        class="btn-secondary px-6 py-2.5 rounded-md font-medium shadow-sm flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Vista Previa
-                    </button>
+                        class="bg-gray-600 text-white px-4 py-1.5 rounded text-sm hover:bg-gray-700">Actualizar
+                        Tablero</button>
                     <button type="submit" id="generateBtn"
-                        class="btn-primary px-6 py-2.5 rounded-md font-medium shadow-sm flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Generar y Descargar Plan
-                    </button>
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Generar
+                        Excel</button>
                 </div>
             </form>
-
-            <div id="statusMessage" class="mt-4 hidden p-3 rounded text-sm text-center"></div>
         </div>
 
-        <!-- Sección de Vista Previa (Tablero) -->
-        <div id="previewSection" class="mt-8 hidden">
-            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resumen del Plan (Tablero)</h3>
+        <!-- Top Panel: ABC Summary & Legend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-                <!-- Tarjetas de Resumen -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                        <p class="text-sm text-blue-600 font-medium">Total Items a Contar</p>
-                        <p class="text-2xl font-bold text-blue-800" id="totalItems">0</p>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-                        <p class="text-sm text-green-600 font-medium">Días Programados</p>
-                        <p class="text-2xl font-bold text-green-800" id="totalDays">0</p>
-                    </div>
-                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                        <p class="text-sm text-purple-600 font-medium">Promedio por Día</p>
-                        <p class="text-2xl font-bold text-purple-800" id="avgPerDay">0</p>
-                    </div>
-                </div>
+            <!-- ABC Classification Summary -->
+            <div>
+                <h3 class="section-title">Resumen Categorías (ABC)</h3>
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th>N° de Conteos (Items)</th>
+                            <th>Ciclos de Conteo</th>
+                            <th>Conteos Requeridos</th>
+                            <th>Items diarios</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold">A</td>
+                            <td id="countA" class="bg-gray">0</td>
+                            <td>3</td>
+                            <td id="reqA" class="bg-gray">0</td>
+                            <td id="dailyA" class="bg-gray">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">B</td>
+                            <td id="countB" class="bg-gray">0</td>
+                            <td>2</td>
+                            <td id="reqB" class="bg-gray">0</td>
+                            <td id="dailyB" class="bg-gray">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">C</td>
+                            <td id="countC" class="bg-gray">0</td>
+                            <td>1</td>
+                            <td id="reqC" class="bg-gray">0</td>
+                            <td id="dailyC" class="bg-gray">0</td>
+                        </tr>
+                        <tr class="border-t-2 border-gray-400">
+                            <td class="text-left font-bold" colspan="2">Días Útiles YTD:</td>
+                            <td id="workingDays" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-bold" colspan="2">Total Conteos Requeridos:</td>
+                            <td id="totalReq" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-bold" colspan="2">Total Items por día:</td>
+                            <td id="totalDaily" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <!-- Tabla de Resumen por Fecha -->
+            <!-- Legend -->
+            <div>
+                <h3 class="section-title">Leyenda / Clasificación</h3>
+                <table class="excel-table w-auto md:w-full">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Criterio (Hits)</th>
+                            <th>Festivos Próximos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold">W</td>
+                            <td class="text-left">More than 30 hits</td>
+                            <td rowspan="5" class="text-left align-top text-xs text-gray-500 bg-gray-50 p-2">
+                                <ul class="list-disc pl-4 space-y-1">
+                                    <li>01/01/2026 - Año Nuevo</li>
+                                    <li>...</li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">X</td>
+                            <td class="text-left">11-30 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Y</td>
+                            <td class="text-left">7-10 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Z</td>
+                            <td class="text-left">1-2 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">0</td>
+                            <td class="text-left">Non moving item</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Monthly Grids -->
+        <div class="space-y-8">
+
+            <!-- PLANEADO -->
+            <div>
+                <h3 class="section-title text-blue-800 border-blue-800">Planeado (Conteos Programados)</h3>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Fecha</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Cantidad Items</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Detalle (Primeros 3)</th>
+                    <table class="excel-table" id="plannedTable">
+                        <thead>
+                            <tr class="bg-blue-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">TOTAL</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="previewTableBody">
-                            <!-- Filas generadas dinámicamente -->
+                        <tbody>
+                            <!-- Rows generated by JS -->
+                            <tr id="rowPlannedA">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedB">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedC">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedTotal" class="border-t-2 border-gray-400 font-bold bg-gray-50">
+                                <td class="text-left">TOTAL</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- EJECUTADO (Placeholder / Future Implementation) -->
+            <div>
+                <h3 class="section-title text-green-800 border-green-800">Ejecutado (Real)</h3>
+                <div class="overflow-x-auto">
+                    <table class="excel-table" id="executedTable">
+                        <thead>
+                            <tr class="bg-green-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">W2W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DELTA -->
+            <div>
+                <h3 class="section-title text-red-800 border-red-800">Delta (Diferencia)</h3>
+                <div class="overflow-x-auto">
+                    <table class="excel-table">
+                        <thead>
+                            <tr class="bg-red-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
+
+        <div id="statusMessage"
+            class="mt-4 hidden p-3 rounded text-sm text-center fixed bottom-4 right-4 shadow-lg border"></div>
+
     </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // --- Lógica del Menú ---
+            // --- Menu Logic ---
             const menuToggle = document.getElementById('menuToggle');
             const dropdownMenu = document.getElementById('dropdownMenu');
             const menuOverlay = document.getElementById('menuOverlay');
@@ -340,185 +570,148 @@
 
             if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
             if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
-
-            // Cerrar menú al hacer clic en un enlace (Consistencia con Inbound)
             if (dropdownMenu) {
-                const menuLinks = dropdownMenu.querySelectorAll('a, button');
-                menuLinks.forEach(link => {
-                    link.addEventListener('click', () => {
-                        if (dropdownMenu.classList.contains('open')) {
-                            toggleMenu();
-                        }
-                    });
+                dropdownMenu.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => { if (dropdownMenu.classList.contains('open')) toggleMenu(); });
                 });
             }
 
-            // --- Lógica del Formulario ---
+            // --- Planner Logic ---
             const form = document.getElementById('plannerForm');
-            const generateBtn = document.getElementById('generateBtn');
             const previewBtn = document.getElementById('previewBtn');
             const statusMessage = document.getElementById('statusMessage');
-            const previewSection = document.getElementById('previewSection');
-            const previewTableBody = document.getElementById('previewTableBody');
 
-            // Establecer fechas por defecto (mes actual)
+            // Set default dates
             const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const year = today.getFullYear();
+            document.getElementById('startDate').value = `${year}-01-01`;
+            document.getElementById('endDate').value = `${year}-12-31`;
 
-            document.getElementById('startDate').valueAsDate = firstDay;
-            document.getElementById('endDate').valueAsDate = lastDay;
+            function showStatus(msg, type) {
+                statusMessage.textContent = msg;
+                statusMessage.className = `mt-4 p-3 rounded text-sm text-center fixed bottom-4 right-4 shadow-lg border z-50 ${type === 'error' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-green-100 text-green-700 border-green-300'}`;
+                statusMessage.classList.remove('hidden');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+            }
 
-            // Función para validar fechas
-            function validateDates() {
+            // Mock Data Generator (Temporary until backend supports full dashboard aggregation)
+            // This mirrors the logic requested: A=3, B=2, C=1 cycles.
+            previewBtn.addEventListener('click', async () => {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
 
-                if (!startDate || !endDate) {
-                    showStatus("Por favor seleccione ambas fechas.", "error");
-                    return null;
-                }
+                if (!startDate || !endDate) return showStatus("Seleccione fechas", "error");
 
-                if (startDate > endDate) {
-                    showStatus("La fecha de inicio no puede ser posterior a la fecha fin.", "error");
-                    return null;
-                }
-                return { startDate, endDate };
-            }
-
-            // Handler para Vista Previa
-            previewBtn.addEventListener('click', async () => {
-                const dates = validateDates();
-                if (!dates) return;
-
-                const originalBtnText = previewBtn.innerHTML;
                 previewBtn.disabled = true;
-                previewBtn.innerHTML = '<div class="spinner inline-block w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div> Cargando...';
-                showStatus("Cargando vista previa...", "info");
-                previewSection.classList.add('hidden');
+                previewBtn.textContent = "Calculando...";
 
                 try {
-                    const url = `/api/planner/preview_plan?start_date=${dates.startDate}&end_date=${dates.endDate}`;
+                    // Fetch actual items to get counts per category
+                    const url = `/api/planner/preview_plan?start_date=${startDate}&end_date=${endDate}`;
                     const response = await fetch(url);
+                    const data = await response.json();
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        renderPreview(data);
-                        showStatus("Vista previa cargada.", "success");
-                    } else {
-                        const errorData = await response.json().catch(() => ({ detail: "Error desconocido" }));
-                        showStatus(`Error: ${errorData.detail || response.statusText}`, "error");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showStatus("Error de conexión al servidor.", "error");
+                    if (!response.ok) throw new Error(data.detail || "Error");
+
+                    updateDashboard(data);
+                    showStatus("Tablero actualizado", "success");
+
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error al actualizar", "error");
                 } finally {
                     previewBtn.disabled = false;
-                    previewBtn.innerHTML = originalBtnText;
+                    previewBtn.textContent = "Actualizar Tablero";
                 }
             });
 
-            function renderPreview(data) {
-                document.getElementById('totalItems').textContent = data.total_items;
-                document.getElementById('totalDays').textContent = data.summary_by_date.length;
+            function updateDashboard(data) {
+                // 1. Calculate Category Counts (Mocking strictly from response if available, else estimating or counting array)
+                // The API 'details' contains { 'Item Code', 'Item Class', 'Planned Date' ... }
+                // We need to group by Item Class (A, B, C)
 
-                const avg = data.summary_by_date.length > 0
-                    ? Math.round(data.total_items / data.summary_by_date.length)
-                    : 0;
-                document.getElementById('avgPerDay').textContent = avg;
+                let counts = { A: 0, B: 0, C: 0 };
+                let monthlyData = {
+                    A: Array(12).fill(0),
+                    B: Array(12).fill(0),
+                    C: Array(12).fill(0)
+                };
 
-                previewTableBody.innerHTML = '';
+                // Helper to get Unique items per category
+                const uniqueItems = new Set();
+                const itemsByCategory = { A: new Set(), B: new Set(), C: new Set() };
 
-                // Agrupar detalles por fecha para mostrar ejemplos
-                const detailsByDate = {};
                 data.details.forEach(item => {
-                    if (!detailsByDate[item['Planned Date']]) {
-                        detailsByDate[item['Planned Date']] = [];
+                    const cat = item['Item Class'] || 'C'; // Default to C if missing
+                    const date = new Date(item['Planned Date']);
+                    const month = date.getMonth(); // 0-11
+
+                    if (cat in monthlyData) {
+                        monthlyData[cat][month]++;
+                        itemsByCategory[cat].add(item['Item Code']);
                     }
-                    detailsByDate[item['Planned Date']].push(item['Item Code']);
                 });
 
-                data.summary_by_date.forEach(row => {
-                    const tr = document.createElement('tr');
-                    const dateStr = row['Planned Date'];
-                    const count = row['count'];
-                    const examples = detailsByDate[dateStr] ? detailsByDate[dateStr].slice(0, 3).join(', ') + (detailsByDate[dateStr].length > 3 ? '...' : '') : '';
+                counts.A = itemsByCategory.A.size;
+                counts.B = itemsByCategory.B.size;
+                counts.C = itemsByCategory.C.size;
 
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${dateStr}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${count}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${examples}</td>
-                    `;
-                    previewTableBody.appendChild(tr);
-                });
+                // Update Summary Table
+                document.getElementById('countA').textContent = counts.A;
+                document.getElementById('countB').textContent = counts.B;
+                document.getElementById('countC').textContent = counts.C;
 
-                previewSection.classList.remove('hidden');
+                const reqA = counts.A * 3;
+                const reqB = counts.B * 2;
+                const reqC = counts.C * 1;
+
+                document.getElementById('reqA').textContent = reqA;
+                document.getElementById('reqB').textContent = reqB;
+                document.getElementById('reqC').textContent = reqC;
+
+                const totalReq = reqA + reqB + reqC;
+                document.getElementById('totalReq').textContent = totalReq;
+
+                // Calc Business Days (Simplified: Weekdays - Holidays approx)
+                // Using the range selected
+                const start = new Date(document.getElementById('startDate').value);
+                const end = new Date(document.getElementById('endDate').value);
+                let workingDays = 0;
+                let cur = new Date(start);
+                while (cur <= end) {
+                    const day = cur.getDay();
+                    if (day !== 0 && day !== 6) workingDays++;
+                    cur.setDate(cur.getDate() + 1);
+                }
+                document.getElementById('workingDays').textContent = workingDays;
+
+                const totalDaily = workingDays > 0 ? (totalReq / workingDays).toFixed(1) : 0;
+                document.getElementById('totalDaily').textContent = totalDaily;
+
+                // Approx daily Distribution
+                document.getElementById('dailyA').textContent = workingDays > 0 ? (reqA / workingDays).toFixed(1) : 0;
+                document.getElementById('dailyB').textContent = workingDays > 0 ? (reqB / workingDays).toFixed(1) : 0;
+                document.getElementById('dailyC').textContent = workingDays > 0 ? (reqC / workingDays).toFixed(1) : 0;
+
+                // Update Monthly Grid (Planned)
+                updateRow('rowPlannedA', monthlyData.A);
+                updateRow('rowPlannedB', monthlyData.B);
+                updateRow('rowPlannedC', monthlyData.C);
+
+                // Total Row
+                const totalMonth = monthlyData.A.map((v, i) => v + monthlyData.B[i] + monthlyData.C[i]);
+                updateRow('rowPlannedTotal', totalMonth);
             }
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const dates = validateDates();
-                if (!dates) return;
-
-                // UI Loading state
-                const originalBtnText = generateBtn.innerHTML;
-                generateBtn.disabled = true;
-                generateBtn.innerHTML = '<div class="spinner inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> Generando...';
-                showStatus("Procesando solicitud...", "info");
-
-                try {
-                    const url = `/api/planner/generate_plan?start_date=${dates.startDate}&end_date=${dates.endDate}`;
-
-                    const response = await fetch(url, {
-                        method: 'GET',
-                    });
-
-                    if (response.ok) {
-                        // Manejar descarga de archivo
-                        const blob = await response.blob();
-                        const disposition = response.headers.get("Content-Disposition");
-                        let filename = "plan_conteos.xlsx";
-
-                        if (disposition) {
-                            const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                            if (match && match[1]) filename = match[1].replace(/['"]/g, "");
-                        }
-
-                        const downloadUrl = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = downloadUrl;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(downloadUrl);
-                        a.remove();
-
-                        showStatus("Plan generado correctamente.", "success");
-                    } else {
-                        const errorData = await response.json().catch(() => ({ detail: "Error desconocido" }));
-                        showStatus(`Error: ${errorData.detail || response.statusText}`, "error");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showStatus("Error de conexión al servidor.", "error");
-                } finally {
-                    generateBtn.disabled = false;
-                    generateBtn.innerHTML = originalBtnText;
-                }
-            });
-
-            function showStatus(message, type) {
-                statusMessage.textContent = message;
-                statusMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700');
-
-                if (type === 'error') {
-                    statusMessage.classList.add('bg-red-100', 'text-red-700');
-                } else if (type === 'success') {
-                    statusMessage.classList.add('bg-green-100', 'text-green-700');
-                } else {
-                    statusMessage.classList.add('bg-blue-100', 'text-blue-700');
-                }
-                statusMessage.classList.remove('hidden');
+            function updateRow(rowId, values) {
+                const row = document.getElementById(rowId);
+                const cells = row.querySelectorAll('td'); // 0 is label, 1-12 months, 13 total
+                let rowTotal = 0;
+                values.forEach((val, i) => {
+                    cells[i + 1].textContent = val; // +1 because first cell is label
+                    rowTotal += val;
+                });
+                cells[13].textContent = rowTotal;
             }
         });
     </script>
