@@ -22,7 +22,9 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/planner", tags=["planner"])
 
 # --- Persistencia de Configuración ---
+# --- Persistencia de Configuración ---
 CONFIG_FILE = "planner_config.json"
+PLAN_DATA_FILE = "planner_data.json"
 
 def load_config():
     """Carga la configuración desde el archivo JSON, o usa defaults."""
@@ -43,12 +45,6 @@ def save_config(config_data):
     """Guarda la configuración en el archivo JSON."""
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config_data, f, indent=4)
-
-# Cargar configuración al inicio
-PLANNER_CONFIG = {}
-
-# Festivos (Default y Global)
-HOLIDAYS = set()
 
 def load_config():
     """Carga la configuración desde el archivo JSON, o usa defaults."""
@@ -95,8 +91,26 @@ def save_config(config_data):
     except ValueError:
         pass
 
+def load_plan_data():
+    """Carga los datos del plan calculeado/guardado."""
+    if not os.path.exists(PLAN_DATA_FILE):
+        return None
+    try:
+        with open(PLAN_DATA_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def save_plan_data(data):
+    """Guarda los datos del plan en JSON."""
+    with open(PLAN_DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
 # Cargar configuración inicial
 PLANNER_CONFIG = load_config()
+
+# Festivos (Default y Global)
+HOLIDAYS = set() # This will be populated by load_config()
 
 class PlannerConfigModel(BaseModel):
     start_date: str
@@ -310,4 +324,42 @@ async def update_planner_config(
         return {"message": "Configuración guardada correctamente", "config": PLANNER_CONFIG}
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD.")
+
+
+@router.get("/current_plan")
+async def get_current_plan(username: str = Depends(login_required)):
+    """Obtiene el plan guardado (persistente)."""
+    data = load_plan_data()
+    if not data:
+        return {} # Retorno vacío si no hay plan
+    return data
+
+@router.post("/update_plan")
+async def update_count_plan(
+    start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """Calcula el plan (igual que preview) PERO lo guarda en JSON para persistencia."""
+    # 1. Calcular usando la misma logica
+    df_output = await calculate_count_plan_data(start_date, end_date, db)
+    
+    # 2. Formatear igual que preview
+    df_output['Planned Date'] = df_output['Planned Date'].astype(str)
+    summary_by_date = df_output.groupby('Planned Date').size().reset_index(name='count')
+    summary_by_abc = df_output.groupby('ABC Code').size().reset_index(name='count')
+    
+    result_data = {
+        "total_items": len(df_output),
+        "summary_by_date": summary_by_date.to_dict(orient='records'),
+        "summary_by_abc": summary_by_abc.to_dict(orient='records'),
+        "details": df_output.to_dict(orient='records'),
+        "generated_at": datetime.datetime.now().isoformat()
+    }
+    
+    # 3. Guardar
+    save_plan_data(result_data)
+    
+    return result_data
 

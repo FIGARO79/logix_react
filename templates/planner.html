@@ -246,9 +246,9 @@
                     <button type="button" id="saveConfigBtn"
                         class="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar
                         Fechas</button>
-                    <button type="button" id="previewBtn"
-                        class="bg-gray-600 text-white px-4 py-1.5 rounded text-sm hover:bg-gray-700">Actualizar
-                        Tablero</button>
+                    <button type="button" id="updatePlanBtn"
+                        class="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">Actualizar
+                        Planificación</button>
                     <button type="submit" id="generateBtn"
                         class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Generar
                         Excel</button>
@@ -641,7 +641,7 @@
 
             // --- Planner Logic ---
             const form = document.getElementById('plannerForm');
-            const previewBtn = document.getElementById('previewBtn');
+            const updatePlanBtn = document.getElementById('updatePlanBtn'); // Before: previewBtn
             const saveConfigBtn = document.getElementById('saveConfigBtn');
             const statusMessage = document.getElementById('statusMessage');
 
@@ -662,9 +662,29 @@
                     console.error("Error loading config:", e);
                 }
             }
-            loadConfig();
 
-            // 2. Save Configuration
+            // 1.1 Load Saved Plan Data (Persistence)
+            async function loadSavedPlan() {
+                try {
+                    const res = await fetch('/api/planner/current_plan');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.total_items) {
+                            updateDashboard(data);
+                            // console.log("Datos del plan cargados:", data);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error loading saved plan:", e);
+                }
+            }
+
+            // Run on load
+            loadConfig();
+            loadSavedPlan();
+
+
+            // 2. Save Configuration (Dates & Holidays)
             saveConfigBtn.addEventListener('click', async () => {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
@@ -709,34 +729,33 @@
                 setTimeout(() => statusMessage.classList.add('hidden'), 3000);
             }
 
-            // Mock Data Generator (Temporary until backend supports full dashboard aggregation)
-            // This mirrors the logic requested: A=3, B=2, C=1 cycles.
-            previewBtn.addEventListener('click', async () => {
+            // 3. Update Planning (Calculate & Save) - "Actualizar Planificación"
+            updatePlanBtn.addEventListener('click', async () => {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
 
                 if (!startDate || !endDate) return showStatus("Seleccione fechas", "error");
 
-                previewBtn.disabled = true;
-                previewBtn.textContent = "Calculando...";
+                updatePlanBtn.disabled = true;
+                updatePlanBtn.textContent = "Calculando...";
 
                 try {
-                    // Fetch actual items to get counts per category
-                    const url = `/api/planner/preview_plan?start_date=${startDate}&end_date=${endDate}`;
-                    const response = await fetch(url);
+                    // Call the NEW endpoint that calculates AND saves
+                    const url = `/api/planner/update_plan?start_date=${startDate}&end_date=${endDate}`;
+                    const response = await fetch(url, { method: 'POST' }); // POST to trigger update/save
                     const data = await response.json();
 
                     if (!response.ok) throw new Error(data.detail || "Error");
 
                     updateDashboard(data);
-                    showStatus("Tablero actualizado", "success");
+                    showStatus("Planificación actualizada y guardada", "success");
 
                 } catch (e) {
                     console.error(e);
-                    showStatus("Error al actualizar", "error");
+                    showStatus("Error al actualizar planificación", "error");
                 } finally {
-                    previewBtn.disabled = false;
-                    previewBtn.textContent = "Actualizar Tablero";
+                    updatePlanBtn.disabled = false;
+                    updatePlanBtn.textContent = "Actualizar Planificación";
                 }
             });
 
@@ -757,7 +776,7 @@
                 const itemsByCategory = { A: new Set(), B: new Set(), C: new Set() };
 
                 data.details.forEach(item => {
-                    const cat = item['Item Class'] || 'C'; // Default to C if missing
+                    const cat = item['ABC Code'] || 'C'; // Default to C if missing
                     const date = new Date(item['Planned Date']);
                     const month = date.getMonth(); // 0-11
 
