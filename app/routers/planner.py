@@ -15,8 +15,93 @@ from app.core.db import get_db
 from app.models.sql_models import CycleCount
 from app.services import csv_handler
 from app.utils.auth import login_required
+import json
+import os
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/planner", tags=["planner"])
+
+# --- Persistencia de Configuración ---
+CONFIG_FILE = "planner_config.json"
+
+def load_config():
+    """Carga la configuración desde el archivo JSON, o usa defaults."""
+    default_config = {
+        "start_date": f"{datetime.datetime.now().year}-01-01",
+        "end_date": f"{datetime.datetime.now().year}-12-31"
+    }
+    if not os.path.exists(CONFIG_FILE):
+        return default_config
+    
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return default_config
+
+def save_config(config_data):
+    """Guarda la configuración en el archivo JSON."""
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config_data, f, indent=4)
+
+# Cargar configuración al inicio
+PLANNER_CONFIG = {}
+
+# Festivos (Default y Global)
+HOLIDAYS = set()
+
+def load_config():
+    """Carga la configuración desde el archivo JSON, o usa defaults."""
+    default_holidays = [
+        "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03",
+        "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29",
+        "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02",
+        "2026-11-16", "2026-12-08", "2026-12-25"
+    ]
+    
+    default_config = {
+        "start_date": f"{datetime.datetime.now().year}-01-01",
+        "end_date": f"{datetime.datetime.now().year}-12-31",
+        "holidays": default_holidays
+    }
+    
+    config = default_config
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                loaded = json.load(f)
+                config.update(loaded)
+        except Exception:
+            pass
+            
+    # Sincronizar variable global HOLIDAYS
+    global HOLIDAYS
+    try:
+        HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config.get("holidays", [])}
+    except ValueError:
+        HOLIDAYS = set() # Fallback si hay error en formato
+        
+    return config
+
+def save_config(config_data):
+    """Guarda la configuración en el archivo JSON."""
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config_data, f, indent=4)
+        
+    # Sincronizar variable global HOLIDAYS
+    global HOLIDAYS
+    try:
+        HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config_data.get("holidays", [])}
+    except ValueError:
+        pass
+
+# Cargar configuración inicial
+PLANNER_CONFIG = load_config()
+
+class PlannerConfigModel(BaseModel):
+    start_date: str
+    end_date: str
+    holidays: list[str]
 
 # Configuración de frecuencias (Reglas de Negocio)
 FREQUENCY_MAP = {
@@ -25,31 +110,7 @@ FREQUENCY_MAP = {
     'C': 1
 }
 
-# Festivos Colombia 2025-2026 (Aproximado)
-COLOMBIA_HOLIDAYS = {
-    # 2025
-    datetime.date(2025, 1, 1), datetime.date(2025, 1, 6),
-    datetime.date(2025, 3, 24),
-    datetime.date(2025, 4, 17), datetime.date(2025, 4, 18),
-    datetime.date(2025, 5, 1),
-    datetime.date(2025, 6, 2), datetime.date(2025, 6, 23), datetime.date(2025, 6, 30),
-    datetime.date(2025, 7, 20),
-    datetime.date(2025, 8, 7), datetime.date(2025, 8, 18),
-    datetime.date(2025, 10, 13),
-    datetime.date(2025, 11, 3), datetime.date(2025, 11, 17),
-    datetime.date(2025, 12, 8), datetime.date(2025, 12, 25),
-    # 2026 (Estimado)
-    datetime.date(2026, 1, 1), datetime.date(2026, 1, 12),
-    datetime.date(2026, 3, 23),
-    datetime.date(2026, 4, 2), datetime.date(2026, 4, 3),
-    datetime.date(2026, 5, 1), datetime.date(2026, 5, 18),
-    datetime.date(2026, 6, 8), datetime.date(2026, 6, 15), datetime.date(2026, 6, 29),
-    datetime.date(2026, 7, 20),
-    datetime.date(2026, 8, 7), datetime.date(2026, 8, 17),
-    datetime.date(2026, 10, 12),
-    datetime.date(2026, 11, 2), datetime.date(2026, 11, 16),
-    datetime.date(2026, 12, 8), datetime.date(2026, 12, 25),
-}
+
 
 def get_working_days(start_date: datetime.date, end_date: datetime.date):
     """Genera una lista de días hábiles (Lunes-Viernes) entre dos fechas, excluyendo festivos."""
@@ -57,7 +118,7 @@ def get_working_days(start_date: datetime.date, end_date: datetime.date):
     current_date = start_date
     while current_date <= end_date:
         # 0=Lunes, 4=Viernes. Excluir fines de semana y festivos
-        if current_date.weekday() < 5 and current_date not in COLOMBIA_HOLIDAYS:
+        if current_date.weekday() < 5 and current_date not in HOLIDAYS:
             working_days.append(current_date)
         current_date += datetime.timedelta(days=1)
     return working_days
@@ -221,3 +282,32 @@ async def generate_count_plan(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@router.get("/config")
+async def get_planner_config(username: str = Depends(login_required)):
+    """Obtiene la configuración actual (fechas)."""
+    return PLANNER_CONFIG
+
+@router.post("/config")
+async def update_planner_config(
+    config: PlannerConfigModel,
+    username: str = Depends(login_required)
+):
+    """Actualiza la configuración (fechas) y la guarda."""
+    try:
+        # Validar formato de fechas
+        datetime.datetime.strptime(config.start_date, '%Y-%m-%d')
+        datetime.datetime.strptime(config.end_date, '%Y-%m-%d')
+        # Validar festivos
+        for h in config.holidays:
+             datetime.datetime.strptime(h, '%Y-%m-%d')
+        
+        # Actualizar memoria y archivo
+        global PLANNER_CONFIG
+        PLANNER_CONFIG = config.dict()
+        save_config(PLANNER_CONFIG)
+        
+        return {"message": "Configuración guardada correctamente", "config": PLANNER_CONFIG}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD.")
+

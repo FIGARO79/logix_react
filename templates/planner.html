@@ -243,6 +243,9 @@
                 </div>
 
                 <div class="ml-auto flex gap-2">
+                    <button type="button" id="saveConfigBtn"
+                        class="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar
+                        Fechas</button>
                     <button type="button" id="previewBtn"
                         class="bg-gray-600 text-white px-4 py-1.5 rounded text-sm hover:bg-gray-700">Actualizar
                         Tablero</button>
@@ -315,18 +318,18 @@
                         <tr>
                             <th>Código</th>
                             <th>Criterio (Hits)</th>
-                            <th>Festivos Próximos</th>
+                            <th>Festivos</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td class="font-bold">W</td>
                             <td class="text-left">More than 30 hits</td>
-                            <td rowspan="5" class="text-left align-top text-xs text-gray-500 bg-gray-50 p-2">
-                                <ul class="list-disc pl-4 space-y-1">
-                                    <li>01/01/2026 - Año Nuevo</li>
-                                    <li>...</li>
-                                </ul>
+                            <td rowspan="7" class="text-left align-top text-xs text-gray-500 bg-gray-50 p-0"
+                                style="height: 1px;">
+                                <textarea id="holidaysInput"
+                                    class="w-full h-full border-none p-2 text-xs text-gray-700 bg-transparent resize-none focus:outline-none block"
+                                    placeholder="YYYY-MM-DD (uno por línea)"></textarea>
                             </td>
                         </tr>
                         <tr>
@@ -336,6 +339,14 @@
                         <tr>
                             <td class="font-bold">Y</td>
                             <td class="text-left">7-10 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">K</td>
+                            <td class="text-left">5-6 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">L</td>
+                            <td class="text-left">3-4 hits</td>
                         </tr>
                         <tr>
                             <td class="font-bold">Z</td>
@@ -631,13 +642,65 @@
             // --- Planner Logic ---
             const form = document.getElementById('plannerForm');
             const previewBtn = document.getElementById('previewBtn');
+            const saveConfigBtn = document.getElementById('saveConfigBtn');
             const statusMessage = document.getElementById('statusMessage');
 
-            // Set default dates
-            const today = new Date();
-            const year = today.getFullYear();
-            document.getElementById('startDate').value = `${year}-01-01`;
-            document.getElementById('endDate').value = `${year}-12-31`;
+            // 1. Load Stored Configuration on Startup
+            async function loadConfig() {
+                try {
+                    const res = await fetch('/api/planner/config');
+                    if (res.ok) {
+                        const config = await res.json();
+                        if (config.start_date) document.getElementById('startDate').value = config.start_date;
+                        if (config.end_date) document.getElementById('endDate').value = config.end_date;
+                        if (config.holidays && Array.isArray(config.holidays)) {
+                            document.getElementById('holidaysInput').value = config.holidays.join('\n');
+                            document.getElementById('holidayCount').value = config.holidays.length;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error loading config:", e);
+                }
+            }
+            loadConfig();
+
+            // 2. Save Configuration
+            saveConfigBtn.addEventListener('click', async () => {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const holidaysRaw = document.getElementById('holidaysInput').value;
+
+                if (!startDate || !endDate) return showStatus("Seleccione fechas válidas", "error");
+
+                // Parse holidays from textarea (one per line, filter empty)
+                const holidays = holidaysRaw.split('\n')
+                    .map(h => h.trim())
+                    .filter(h => h.match(/^\d{4}-\d{2}-\d{2}$/)); // Basic regex validation
+
+                try {
+                    const res = await fetch('/api/planner/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            start_date: startDate,
+                            end_date: endDate,
+                            holidays: holidays
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        document.getElementById('holidayCount').value = data.config.holidays.length;
+                        showStatus("Configuración guardada correctamente", "success");
+                    } else {
+                        const err = await res.json();
+                        showStatus(err.detail || "Error al guardar (revise formato festivos)", "error");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión", "error");
+                }
+            });
 
             function showStatus(msg, type) {
                 statusMessage.textContent = msg;
