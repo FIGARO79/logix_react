@@ -680,8 +680,9 @@
             }
 
             // Run on load
-            loadConfig();
-            loadSavedPlan();
+            loadConfig().then(() => {
+                loadSavedPlan();
+            });
 
 
             // 2. Save Configuration (Dates & Holidays)
@@ -808,15 +809,24 @@
 
                 // Calc Business Days (Simplified: Weekdays - Holidays approx)
                 // Using the range selected
-                const start = new Date(document.getElementById('startDate').value);
-                const end = new Date(document.getElementById('endDate').value);
                 let workingDays = 0;
-                let cur = new Date(start);
-                while (cur <= end) {
-                    const day = cur.getDay();
-                    if (day !== 0 && day !== 6) workingDays++;
-                    cur.setDate(cur.getDate() + 1);
+                const sVal = document.getElementById('startDate').value;
+                const eVal = document.getElementById('endDate').value;
+
+                if (sVal && eVal) {
+                    const start = new Date(sVal + 'T00:00:00');
+                    const end = new Date(eVal + 'T00:00:00');
+                    let cur = new Date(start);
+
+                    // Simple working days calculation (excluding weekends)
+                    // Note: This matches the simplified backend logic for display purposes
+                    while (cur <= end) {
+                        const day = cur.getDay();
+                        if (day !== 0 && day !== 6) workingDays++;
+                        cur.setDate(cur.getDate() + 1);
+                    }
                 }
+
                 document.getElementById('workingDays').textContent = workingDays;
 
                 const totalDaily = workingDays > 0 ? (totalReq / workingDays).toFixed(1) : 0;
