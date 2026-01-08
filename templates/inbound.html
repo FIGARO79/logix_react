@@ -302,6 +302,24 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
+        /* Utility for consistent toolbar height */
+        .toolbar-btn {
+            height: 32px !important;
+            padding: 0 12px !important;
+            font-size: 13px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        select.toolbar-btn {
+            padding-right: 24px !important;
+            /* Space for arrow */
+        }
+
         .btn-print-label {
             width: 100%;
             max-width: 265px;
@@ -341,11 +359,11 @@
 
         .archive-selector {
             margin-left: 10px;
-            padding: 6px;
-            font-size: 13px;
+            /* Height and padding handled by toolbar-btn */
             border-radius: 5px;
             border: 1px solid #d1d5db;
             color: black;
+            background-color: white;
         }
 
         /* --- Toast Notification Styles --- */
@@ -1260,17 +1278,15 @@
                 <h2 style="font-size: 14px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">Registros de Inbound
                 </h2>
                 <div class="flex items-center">
-                    <button id="UpdateFilesBtn" class="btn-secondary"
-                        style="margin-right: 0.5rem; padding: 6px 12px; font-size: 13px;"
+                    <button id="UpdateFilesBtn" class="btn-secondary toolbar-btn" style="margin-right: 0.5rem;"
                         title="Actualizar Archivos Maestros">Actualizar Archivos</button>
-                    <select id="archiveSelector" class="archive-selector hidden">
+                    <select id="archiveSelector" class="archive-selector toolbar-btn hidden">
                         <option value="">-- Versión Actual --</option>
                     </select>
                     <!-- Log export button removed as requested -->
-                    <button id="cleanBaseBtn" class="btn-clean-base"
+                    <button id="cleanBaseBtn" class="btn-clean-base toolbar-btn"
                         title="Archivar registros actuales y limpiar tabla">Base Limpia</button>
-                    <button id="viewReconciliationBtn" class="btn-secondary ml-2"
-                        style="padding: 6px 12px; font-size: 13px;">Ver Conciliación</button>
+                    <button id="viewReconciliationBtn" class="btn-secondary toolbar-btn ml-2">Ver Conciliación</button>
                 </div>
             </div>
             <div class="overflow-x-auto" style="padding: 1px;">

@@ -224,85 +224,67 @@
             overflow-x: hidden;
         }
 
-        /* Grid cards - Diseño premium */
+        /* Grid cards - Diseño SAP Fiori Refinado */
         .grid-card {
             background: white;
-            border-radius: 16px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--sap-border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px;
+            /* Bordes sutilmente redondeados, más profesional */
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            border-top: 4px solid transparent;
+            /* Preparado para acento */
+            transition: all 0.2s ease-out;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 2rem 1.5rem;
+            padding: 2rem 1rem;
             text-decoration: none;
             color: var(--sap-text);
             position: relative;
-            overflow: hidden;
-            min-height: 160px;
+            min-height: 180px;
             cursor: pointer;
         }
 
-        .grid-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #0070d2 0%, #1e88e5 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 0;
-        }
-
         .grid-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: var(--shadow-xl);
-            border-color: transparent;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            border-top-color: var(--sap-primary);
+            /* Acento SAP superior */
+            border-color: #d1d5db;
         }
 
-        .grid-card:hover::before {
-            opacity: 1;
-        }
-
-        .grid-card:active {
-            transform: translateY(-4px) scale(1.01);
+        /* Eliminamos el gradiente invasivo del diseño anterior */
+        .grid-card::before {
+            display: none;
         }
 
         .grid-card svg {
-            width: 3.5rem;
-            height: 3.5rem;
-            margin-bottom: 1rem;
-            position: relative;
-            z-index: 1;
-            transition: all 0.3s ease;
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1.25rem;
+            color: var(--sap-primary);
+            transition: transform 0.3s ease, color 0.2s ease;
         }
 
         .grid-card:hover svg {
-            transform: scale(1.1) rotate(5deg);
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+            transform: scale(1.1);
+            color: var(--sap-primary-dark);
         }
 
         .grid-card span {
-            font-weight: 600;
-            font-size: 1rem;
-            position: relative;
-            z-index: 1;
-            transition: all 0.3s ease;
+            font-family: '72', 'Inter', sans-serif;
+            /* Intento de usar fuente SAP o fallback */
+            font-weight: 500;
+            font-size: 1.1rem;
+            color: #374151;
+            transition: color 0.2s ease;
         }
 
         .grid-card:hover span {
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .grid-card:hover svg {
-            color: white;
-            stroke: white;
-            fill: none;
+            color: var(--sap-primary-dark);
+            font-weight: 600;
         }
 
         /* Responsive optimizations */
@@ -503,7 +485,7 @@
 
             const gridContainer = document.getElementById('main-menu-grid');
 
-            menuItems.forEach(item => { 
+            menuItems.forEach(item => {
                 const card = document.createElement('a');
                 card.href = item.href;
                 card.className = 'grid-card';
