@@ -18,17 +18,17 @@ else
 fi
 
 # 2. Crear entorno virtual si no existe
-if [ ! -d ".venv" ]; then
-    echo "[INFO] Creando entorno virtual .venv..."
-    $PYTHON_CMD -m venv .venv
+if [ ! -d ".venv_linux" ]; then
+    echo "[INFO] Creando entorno virtual .venv_linux (compatible con USB)..."
+    $PYTHON_CMD -m venv .venv_linux --copies
 else
-    echo "[INFO] Entorno virtual ya existe."
+    echo "[INFO] Entorno virtual (.venv_linux) ya existe."
 fi
 
 # 3. Actualizar pip e instalar requerimientos
 echo "[INFO] Instalando librerías desde requirements.txt..."
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -r requirements.txt
+.venv_linux/bin/python -m pip install --upgrade pip
+.venv_linux/bin/python -m pip install -r requirements.txt
 
 if [ $? -eq 0 ]; then
     echo ""
