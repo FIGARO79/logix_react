@@ -56,3 +56,16 @@ class PickingAudit(BaseModel):
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
+
+
+class CountExecutionItem(BaseModel):
+    item_code: str
+    description: Optional[str] = None
+    bin_location: Optional[str] = None
+    system_qty: int
+    physical_qty: int
+    abc_code: Optional[str] = None
+
+class CountExecutionRequest(BaseModel):
+    date: str
+    items: List[CountExecutionItem]

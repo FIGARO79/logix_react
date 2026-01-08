@@ -256,6 +256,52 @@
             </form>
         </div>
 
+        <!-- Daily Execution Section -->
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
+            <h2 class="section-title text-purple-800 border-purple-800" style="border-left-color: #6b21a8;">Ejecución
+                Diaria (Conteo Ciego)</h2>
+            <div class="flex flex-wrap items-end gap-6 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha de Ejecución</label>
+                    <input type="date" id="execDate"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-purple-500 outline-none">
+                </div>
+                <button type="button" id="loadDailyItemsBtn"
+                    class="bg-purple-700 text-white px-4 py-1.5 rounded text-sm hover:bg-purple-800">Cargar Items del
+                    Día</button>
+            </div>
+
+            <div id="executionPanel" class="hidden">
+                <div class="overflow-x-auto max-h-96">
+                    <table class="excel-table" id="executionTable">
+                        <thead>
+                            <tr class="bg-purple-100">
+                                <th>Ubicación</th>
+                                <th>Item</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th>Stock Físico (Conteo)</th>
+                                <th>Diferencia</th>
+                                <!-- Hidden System Qty -->
+                            </tr>
+                        </thead>
+                        <tbody id="executionTableBody">
+                            <!-- Rows loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button type="button" id="saveExecutionBtn"
+                        class="bg-green-600 text-white px-6 py-2 rounded text-sm hover:bg-green-700 font-bold">
+                        Confirmar y Guardar Ejecución
+                    </button>
+                </div>
+            </div>
+            <div id="noItemsMsg" class="hidden text-gray-500 italic p-4 text-center">
+                No hay items planificados para esta fecha.
+            </div>
+        </div>
+
         <!-- Top Panel: ABC Summary & Legend -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
@@ -646,10 +692,21 @@
             const saveConfigBtn = document.getElementById('saveConfigBtn');
             const statusMessage = document.getElementById('statusMessage');
 
+            // Execution Elements
+            const execDateInput = document.getElementById('execDate');
+            const loadDailyItemsBtn = document.getElementById('loadDailyItemsBtn');
+            const executionPanel = document.getElementById('executionPanel');
+            const executionTableBody = document.getElementById('executionTableBody');
+            const saveExecutionBtn = document.getElementById('saveExecutionBtn');
+            const noItemsMsg = document.getElementById('noItemsMsg');
+
+            // Set default execution date to today
+            execDateInput.value = new Date().toISOString().split('T')[0];
+
             // 1. Load Stored Configuration on Startup
             async function loadConfig() {
                 try {
-                    const res = await fetch('/api/planner/config');
+                    const res = await fetch(`/api/planner/config?t=${new Date().getTime()}`);
                     if (res.ok) {
                         const config = await res.json();
                         if (config.start_date) document.getElementById('startDate').value = config.start_date;
@@ -658,25 +715,36 @@
                             document.getElementById('holidaysInput').value = config.holidays.join('\n');
                             document.getElementById('holidayCount').value = config.holidays.length;
                         }
+                    } else {
+                        const errText = await res.text();
+                        console.error("Error config:", errText);
+                        showStatus("Error al cargar configuración: " + res.status, "error");
                     }
                 } catch (e) {
                     console.error("Error loading config:", e);
+                    showStatus("Error cargando configuración: " + e.message, "error");
                 }
             }
 
             // 1.1 Load Saved Plan Data (Persistence)
             async function loadSavedPlan() {
                 try {
-                    const res = await fetch('/api/planner/current_plan');
+                    const res = await fetch(`/api/planner/current_plan?t=${new Date().getTime()}`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.total_items) {
                             updateDashboard(data);
-                            // console.log("Datos del plan cargados:", data);
+                        } else {
+                            console.warn("Plan vacío o inválido");
                         }
+                    } else {
+                        const errText = await res.text();
+                        console.error("Error plan:", errText);
+                        showStatus("Error al cargar plan: " + res.status, "error");
                     }
                 } catch (e) {
                     console.error("Error loading saved plan:", e);
+                    showStatus("Error cargando plan guardado: " + e.message, "error");
                 }
             }
 
@@ -772,6 +840,209 @@
                 // Trigger download directly
                 window.location.href = `/api/planner/generate_plan?start_date=${startDate}&end_date=${endDate}`;
             });
+
+            // --- 5. Execution Logic ---
+
+            // 5.1 Load Items
+            loadDailyItemsBtn.addEventListener('click', async () => {
+                const date = execDateInput.value;
+                if (!date) return showStatus("Seleccione una fecha", "error");
+
+                loadDailyItemsBtn.disabled = true;
+                loadDailyItemsBtn.textContent = "Cargando...";
+
+                try {
+                    const res = await fetch(`/api/planner/execution/daily_items?date=${date}`);
+                    if (res.ok) {
+                        const items = await res.json();
+                        renderExecutionTable(items);
+                    } else {
+                        showStatus("Error al cargar items", "error");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión", "error");
+                } finally {
+                    loadDailyItemsBtn.disabled = false;
+                    loadDailyItemsBtn.textContent = "Cargar Items del Día";
+                }
+            });
+
+            function renderExecutionTable(items) {
+                executionTableBody.innerHTML = '';
+                if (items.length === 0) {
+                    executionPanel.classList.add('hidden');
+                    noItemsMsg.classList.remove('hidden');
+                    return;
+                }
+
+                noItemsMsg.classList.add('hidden');
+                executionPanel.classList.remove('hidden');
+
+                items.forEach((item, index) => {
+                    const row = document.createElement('tr');
+
+                    // Blind count logic: system_qty is stored in data attribute but not shown text
+                    row.innerHTML = `
+                        <td class="font-bold text-blue-800">${item.bin_location}</td>
+                        <td class="text-left font-mono text-xs">${item.item_code}</td>
+                        <td class="text-left text-xs truncate max-w-xs" title="${item.description}">${item.description}</td>
+                        <td class="text-center">${item.abc_code || '-'}</td>
+                        <td class="p-1">
+                            <input type="number" class="physical-input w-24 border border-gray-300 rounded px-2 py-1 text-center focus:border-purple-500 focus:bg-purple-50 outline-none"
+                                data-system="${item.system_qty}" data-code="${item.item_code}" data-abc="${item.abc_code}">
+                        </td>
+                        <td class="difference-cell font-bold text-gray-400">-</td>
+                    `;
+                    executionTableBody.appendChild(row);
+                });
+
+                // Attach listeners
+                document.querySelectorAll('.physical-input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const val = parseInt(e.target.value);
+                        const sys = parseInt(e.target.dataset.system);
+                        const diffCell = e.target.closest('tr').querySelector('.difference-cell');
+
+                        if (isNaN(val)) {
+                            diffCell.textContent = "-";
+                            diffCell.className = "difference-cell font-bold text-gray-400";
+                        } else {
+                            const diff = val - sys;
+                            diffCell.textContent = diff > 0 ? `+${diff}` : diff;
+                            if (diff === 0) diffCell.className = "difference-cell font-bold text-green-600";
+                            else if (diff < 0) diffCell.className = "difference-cell font-bold text-red-600";
+                            else diffCell.className = "difference-cell font-bold text-blue-600";
+                        }
+                    });
+                });
+            }
+
+            // 5.2 Save Execution
+            saveExecutionBtn.addEventListener('click', async () => {
+                const inputs = document.querySelectorAll('.physical-input');
+                const itemsToSave = [];
+                let hasEmpty = false;
+
+                inputs.forEach(input => {
+                    const val = input.value;
+                    if (val === '') {
+                        hasEmpty = true;
+                        input.classList.add('border-red-500');
+                    } else {
+                        input.classList.remove('border-red-500');
+                        itemsToSave.push({
+                            item_code: input.dataset.code,
+                            description: input.closest('tr').children[2].textContent, // Fallback desc
+                            bin_location: input.closest('tr').children[0].textContent,
+                            system_qty: parseInt(input.dataset.system),
+                            physical_qty: parseInt(val),
+                            abc_code: input.dataset.abc === 'undefined' ? null : input.dataset.abc
+                        });
+                    }
+                });
+
+                if (hasEmpty) {
+                    if (!confirm("Hay items sin contar (vacíos). ¿Desea guardar solo los ingresados?")) return;
+                }
+
+                if (itemsToSave.length === 0) return showStatus("No hay datos para guardar", "error");
+
+                try {
+                    const res = await fetch('/api/planner/execution/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            date: execDateInput.value,
+                            items: itemsToSave
+                        })
+                    });
+
+                    if (res.ok) {
+                        showStatus("Conteo guardado exitosamente", "success");
+                        executionPanel.classList.add('hidden'); // Hide after save
+                        loadExecutedStats(); // Refresh stats
+                    } else {
+                        const err = await res.json();
+                        showStatus(err.detail || "Error al guardar", "error");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión", "error");
+                }
+            });
+
+            // 6. Integration: Load Executed Stats
+            async function loadExecutedStats() {
+                try {
+                    const year = new Date().getFullYear();
+                    const res = await fetch(`/api/planner/execution/stats?year=${year}`);
+                    if (res.ok) {
+                        const stats = await res.json();
+                        updateStatsGrids(stats);
+                    }
+                } catch (e) {
+                    console.error("Error loading stats:", e);
+                }
+            }
+
+            function updateStatsGrids(stats) {
+                // Fill Executed Table
+                fillGridTable('executedTable', stats.executed);
+
+
+                // Fill Delta Table
+                const deltaTable = document.getElementById('deltaTable');
+                if (deltaTable) {
+                    fillGridTableByElement(deltaTable, stats.delta);
+                }
+            }
+
+            function fillGridTable(tableId, dataGrid) {
+                const table = document.getElementById(tableId);
+                if (!table) return;
+
+                // Rows 1 (A), 2 (B), 3 (C) usually
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+
+                // Map rows to category
+                // Assuming fixed order A, B, C
+                if (rows.length >= 3) {
+                    updateRowCells(rows[0], dataGrid['A']);
+                    updateRowCells(rows[1], dataGrid['B']);
+                    updateRowCells(rows[2], dataGrid['C']);
+                }
+            }
+
+            function fillGridTableByElement(table, dataGrid) {
+                if (!table) return;
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                if (rows.length >= 3) {
+                    updateRowCells(rows[0], dataGrid['A']);
+                    updateRowCells(rows[1], dataGrid['B']);
+                    updateRowCells(rows[2], dataGrid['C']);
+                }
+            }
+
+            function updateRowCells(row, monthlyValues) {
+                // Cells 1 to 12 (indices) are months
+                const cells = row.querySelectorAll('td');
+                // Cell 0 is Label
+                let total = 0;
+                monthlyValues.forEach((val, i) => {
+                    if (cells[i + 1]) {
+                        cells[i + 1].textContent = val;
+                        total += val;
+                    }
+                });
+                // Last cell is total?
+                if (cells[13]) cells[13].textContent = total;
+            }
+
+            // Call stats load on start
+            loadExecutedStats();
 
             function updateDashboard(data) {
                 // 1. Calculate Category Counts (Mocking strictly from response if available, else estimating or counting array)

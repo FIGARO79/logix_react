@@ -12,7 +12,8 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_db
-from app.models.sql_models import CycleCount
+from app.models.schemas import CountExecutionRequest
+from app.models.sql_models import CycleCount, CycleCountRecording
 from app.services import csv_handler
 from app.utils.auth import login_required
 import json
@@ -361,4 +362,142 @@ async def update_count_plan(
     save_plan_data(result_data)
     
     return result_data
+    return result_data
 
+
+# --- Nuevos Endpoints de Ejecución (Conteos Cíclicos) ---
+
+@router.get("/execution/daily_items")
+async def get_daily_items_for_execution(
+    date: str = Query(..., description="Fecha de ejecución (YYYY-MM-DD)"),
+    username: str = Depends(login_required)
+):
+    """Obtiene los items planificados para una fecha específica, enriquecidos con datos del maestro."""
+    plan_data = load_plan_data()
+    if not plan_data or "details" not in plan_data:
+        return []
+    
+    # Filtrar items para la fecha
+    daily_items = [
+        item for item in plan_data["details"] 
+        if item.get("Planned Date") == date
+    ]
+    
+    # Enriquecer con datos del maestro (Bin y Stock Teórico)
+    enriched_items = []
+    for item in daily_items:
+        item_code = item.get("Item Code")
+        
+        # Buscar en cache del CSV
+        details = await csv_handler.get_item_details_from_master_csv(item_code)
+        
+        bin_loc = "N/A"
+        system_qty = 0
+        
+        if details:
+             bin_loc = details.get("Bin_1", "N/A")
+             try:
+                 qty_raw = details.get("Physical_Qty", 0)
+                 system_qty = int(float(qty_raw))
+             except (ValueError, TypeError):
+                 system_qty = 0
+                 
+        enriched_items.append({
+            "item_code": item_code,
+            "description": item.get("Description"),
+            "abc_code": item.get("ABC Code"),
+            "bin_location": bin_loc,
+            "system_qty": system_qty, # Se envía para cálculo de diferencias (Frontend debe ocultarlo si es ciego)
+            "planned_date": date
+        })
+        
+    # Ordenar por ubicación para facilitar el recorrido en bodega
+    return sorted(enriched_items, key=lambda x: x["bin_location"] or "")
+
+
+@router.post("/execution/save")
+async def save_daily_execution(
+    execution_data: CountExecutionRequest,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """Guarda los conteos ejecutados del día en la tabla dedicada."""
+    try:
+        saved_count = 0
+        
+        for item in execution_data.items:
+            # Calcular diferencia
+            physical = item.physical_qty
+            system = item.system_qty
+            diff = physical - system
+            
+            # Crear registro
+            new_record = CycleCountRecording(
+                planned_date=execution_data.date,
+                executed_date=datetime.datetime.now().strftime("%Y-%m-%d"),
+                item_code=item.item_code,
+                item_description=item.description,
+                bin_location=item.bin_location,
+                system_qty=system,
+                physical_qty=physical,
+                difference=diff,
+                username=username,
+                abc_code=item.abc_code
+            )
+            db.add(new_record)
+            saved_count += 1
+            
+        await db.commit()
+        return {"message": f"Se guardaron {saved_count} conteos correctamente.", "success": True}
+        
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al guardar ejecución: {str(e)}")
+
+
+@router.get("/execution/stats")
+async def get_execution_stats(
+    year: int = Query(datetime.datetime.now().year),
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtiene estadísticas de ejecución y delta agrupadas por mes y categoría ABC.
+    Basado en la tabla CycleCountRecording.
+    """
+    # Consultar todos los registros del año
+    query = select(CycleCountRecording).where(CycleCountRecording.executed_date.like(f"{year}-%"))
+    result = await db.execute(query)
+    records = result.scalars().all()
+    
+    # Inicializar estructuras de datos
+    # Meses 0-11
+    executed_grid = {cat: [0]*12 for cat in ['A', 'B', 'C']}
+    delta_grid = {cat: [0]*12 for cat in ['A', 'B', 'C']}
+    
+    for record in records:
+        try:
+            date_obj = datetime.datetime.strptime(record.executed_date, "%Y-%m-%d")
+            month_idx = date_obj.month - 1 # 0-indexed
+            
+            cat = record.abc_code
+            if cat not in executed_grid:
+                cat = 'C' # Fallback
+                
+            # Ejecutado: Conteo de items contados
+            executed_grid[cat][month_idx] += 1
+            
+            # Delta: Suma absoluta de las diferencias (o neta? El usuario dijo "generar diferencias")
+            # Para KPI de exactitud, usually absolute. Para ajuste de inventario, net.
+            # Visualizaremos discrepancias (diff != 0)
+            if record.difference != 0:
+                delta_grid[cat][month_idx] += 1
+                
+        except (ValueError, TypeError):
+            continue
+            
+    return {
+        "executed": executed_grid,
+        "delta": delta_grid, # Items con diferencia
+        "year": year
+    }

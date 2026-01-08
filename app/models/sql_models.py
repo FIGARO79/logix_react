@@ -159,3 +159,18 @@ class PickingPackageItem(Base):
     qty_scan: Mapped[int] = mapped_column(Integer, nullable=False)
 
     audit = relationship("PickingAudit", back_populates="package_items")
+
+class CycleCountRecording(Base):
+    __tablename__ = "cycle_count_recordings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    planned_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    executed_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    item_description: Mapped[Optional[str]] = mapped_column(String(255))
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
+    system_qty: Mapped[int] = mapped_column(Integer, default=0)
+    physical_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    difference: Mapped[int] = mapped_column(Integer, default=0)
+    username: Mapped[str] = mapped_column(String(100))
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10))
