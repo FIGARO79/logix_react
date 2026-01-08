@@ -73,74 +73,76 @@
 
 <body>
 
-    <header class="top-header">
+    <header class="top-header shadow-sm">
         <a href="/planner" class="back-link">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                stroke="currentColor" class="w-4 h-4">
+                stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
-            Volver al Planner
         </a>
-        <h1 class="header-title ml-4">Ejecución de Conteo Diario</h1>
+        <h1 class="header-title ml-2 font-semibold">Ejecución de Conteo</h1>
     </header>
 
-    <main class="max-w-7xl mx-auto p-6">
+    <main class="max-w-7xl mx-auto p-2 pb-24 md:p-6">
 
-        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <div class="flex flex-wrap items-end gap-6 mb-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Fecha de Ejecución</label>
+        <div class="bg-white p-3 md:p-6 rounded-lg shadow-sm border border-gray-200 mb-4">
+            <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+                <div class="w-full md:w-auto">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha de Ejecución</label>
                     <input type="date" id="execDate"
-                        class="border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none w-48">
+                        class="border border-gray-300 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none w-full md:w-48 bg-gray-50">
                 </div>
                 <button type="button" id="loadDailyItemsBtn"
-                    class="bg-blue-700 text-white px-6 py-2 rounded text-sm hover:bg-blue-800 transition-colors font-medium">
-                    Cargar Items del Día
+                    class="bg-blue-700 text-white px-4 py-2 rounded text-sm hover:bg-blue-800 transition-colors font-medium w-full md:w-auto shadow-sm active:scale-95 transform transition-transform">
+                    Cargar Items
                 </button>
             </div>
+        </div>
 
-            <div id="statusMessage" class="hidden p-3 rounded mb-4 text-sm font-medium"></div>
+        <div id="statusMessage" class="hidden p-3 rounded mb-4 text-sm font-medium shadow-sm"></div>
 
-            <div id="executionPanel" class="hidden mt-6">
-                <!-- Count Stats -->
-                <div class="flex gap-4 mb-4 text-sm">
-                    <div class="bg-blue-50 px-4 py-2 rounded border border-blue-100">
-                        <span class="text-blue-800 font-bold">Total Items:</span>
-                        <span id="totalItemsCount" class="font-bold ml-1">0</span>
-                    </div>
+        <div id="executionPanel" class="hidden">
+            <!-- Count Stats -->
+            <div class="flex justify-between items-center mb-2 px-1">
+                <div class="text-xs text-gray-500 font-medium">
+                    Total Items: <span id="totalItemsCount" class="font-bold text-gray-900 text-sm">0</span>
                 </div>
+            </div>
 
-                <div class="overflow-x-auto border rounded-lg bg-white">
-                    <table class="excel-table" id="executionTable">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-700">
-                                <th class="w-32">Ubicación</th>
-                                <th class="w-32">Item Code</th>
-                                <th>Descripción</th>
-                                <th class="w-24 text-center">Cat.</th>
-                                <th class="w-32 text-center">Conteo Físico</th>
-                                <th class="w-32 text-center">Diferencia</th>
-                            </tr>
-                        </thead>
-                        <tbody id="executionTableBody" class="divide-y divide-gray-100">
-                            <!-- Rows loaded via JS -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                <table class="excel-table w-full whitespace-nowrap" id="executionTable">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-xs uppercase tracking-wider">
+                            <th class="px-2 py-2 w-16">Ubic.</th>
+                            <th class="px-2 py-2 w-20">Item</th>
+                            <th class="px-2 py-2">Desc.</th>
+                            <th class="px-1 py-1 text-center w-8">Cat</th>
+                            <th class="px-2 py-2 text-center w-20">Físico</th>
+                            <th class="px-2 py-2 text-center w-12">Dif.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="executionTableBody" class="divide-y divide-gray-100 text-sm">
+                        <!-- Rows loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
 
-                <div class="mt-6 flex justify-end">
+            <!-- Sticky Mobile Footer for Save Button -->
+            <div
+                class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:static md:bg-transparent md:border-0 md:shadow-none md:mt-4 md:p-0 z-50">
+                <div class="max-w-7xl mx-auto flex justify-end">
                     <button type="button" id="saveExecutionBtn"
-                        class="bg-green-600 text-white px-8 py-2.5 rounded shadow-sm hover:bg-green-700 font-bold transition-all transform hover:scale-105">
+                        class="w-full md:w-auto bg-green-600 text-white px-8 py-3 rounded-lg shadow-md hover:bg-green-700 font-bold text-base transition-all transform active:scale-95">
                         Confirmar y Guardar
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div id="noItemsMsg"
-                class="hidden text-gray-500 italic p-12 text-center bg-gray-50 rounded-lg mt-6 border border-dashed border-gray-300">
-                <p class="text-lg">No hay items planificados para esta fecha.</p>
-                <p class="text-xs mt-2">Seleccione otra fecha o verifique el plan.</p>
-            </div>
+        <div id="noItemsMsg"
+            class="hidden text-gray-500 italic p-8 text-center bg-white rounded-lg mt-4 border border-dashed border-gray-300">
+            <p class="text-base font-medium">Sin tareas</p>
+            <p class="text-xs mt-1">No hay items programados para hoy.</p>
         </div>
 
     </main>
@@ -161,19 +163,18 @@
 
             function showStatus(msg, type) {
                 statusMsg.textContent = msg;
-                statusMsg.className = `mb-4 p-3 rounded text-sm font-medium ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+                statusMsg.className = `mb-4 p-3 rounded text-sm font-medium border ${type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`;
                 statusMsg.classList.remove('hidden');
-                // Auto hide only logic success
                 if (type === 'success') setTimeout(() => statusMsg.classList.add('hidden'), 5000);
             }
 
             // Load Items
             loadBtn.addEventListener('click', async () => {
                 const date = execDateInput.value;
-                if (!date) return showStatus("Seleccione una fecha válida", "error");
+                if (!date) return showStatus("Fecha requerida", "error");
 
                 loadBtn.disabled = true;
-                loadBtn.textContent = "Cargando...";
+                loadBtn.innerHTML = '<span class="animate-pulse">Cargando...</span>';
                 statusMsg.classList.add('hidden');
 
                 try {
@@ -182,14 +183,14 @@
                         const items = await res.json();
                         renderTable(items);
                     } else {
-                        showStatus("Error al cargar items: " + res.status, "error");
+                        showStatus("Error al cargar", "error");
                     }
                 } catch (e) {
                     console.error(e);
-                    showStatus("Error de conexión: " + e.message, "error");
+                    showStatus("Error de conexión", "error");
                 } finally {
                     loadBtn.disabled = false;
-                    loadBtn.textContent = "Cargar Items del Día";
+                    loadBtn.textContent = "Cargar Items";
                 }
             });
 
@@ -208,52 +209,52 @@
                 items.forEach(item => {
                     const row = document.createElement('tr');
 
-                    // Input logic
                     row.innerHTML = `
-                        <td class="font-bold text-blue-700">${item.bin_location || '-'}</td>
-                        <td class="font-mono text-xs text-gray-600">${item.item_code}</td>
-                        <td class="text-sm text-gray-800">${item.description}</td>
-                        <td class="text-center font-bold text-gray-500">${item.abc_code || '-'}</td>
-                        <td class="text-center">
-                            <input type="number" class="physical-input w-24 border border-gray-300 rounded px-2 py-1 text-center font-bold text-gray-800 focus:border-blue-500 outline-none transition-colors"
-                                placeholder="0"
+                        <td class="font-bold text-blue-700 p-2">${item.bin_location || '-'}</td>
+                        <td class="font-mono text-xs text-gray-500 p-2">${item.item_code}</td>
+                        <td class="text-xs text-gray-800 p-2 max-w-[150px] truncate" title="${item.description}">${item.description}</td>
+                        <td class="text-center font-bold text-gray-400 text-xs p-1">${item.abc_code || '-'}</td>
+                        <td class="text-center p-1">
+                            <input type="tel" class="physical-input w-full md:w-20 border border-gray-300 rounded px-1 py-2 text-center font-bold text-lg text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                placeholder="-"
                                 data-system="${item.system_qty}" 
                                 data-code="${item.item_code}" 
                                 data-abc="${item.abc_code}">
                         </td>
-                        <td class="difference-cell text-center font-bold text-gray-300">-</td>
+                        <td class="difference-cell text-center font-bold text-gray-300 text-xs p-1">-</td>
                     `;
                     tableBody.appendChild(row);
                 });
 
-                // Attach live diff calculation
+                // Attach listeners
                 document.querySelectorAll('.physical-input').forEach(input => {
                     input.addEventListener('input', (e) => {
-                        const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                        const valStr = e.target.value;
+                        const val = valStr === '' ? '' : parseInt(valStr);
                         const sys = parseInt(e.target.dataset.system);
                         const diffCell = e.target.closest('tr').querySelector('.difference-cell');
 
-                        if (val === '') {
+                        if (val === '' || isNaN(val)) {
                             diffCell.textContent = "-";
-                            diffCell.className = "difference-cell text-center font-bold text-gray-300";
-                            e.target.classList.remove('bg-green-50', 'bg-red-50');
+                            diffCell.className = "difference-cell text-center font-bold text-gray-300 text-xs p-1";
+                            e.target.classList.remove('bg-green-50', 'bg-red-50', 'text-green-700', 'text-red-700');
                         } else {
                             const diff = val - sys;
                             diffCell.textContent = diff > 0 ? `+${diff}` : diff;
 
                             if (diff === 0) {
-                                diffCell.className = "difference-cell text-center font-bold text-green-600";
-                                e.target.classList.add('bg-green-50');
-                                e.target.classList.remove('bg-red-50');
+                                diffCell.className = "difference-cell text-center font-bold text-green-600 text-xs p-1";
+                                e.target.classList.add('bg-green-50', 'text-green-700');
+                                e.target.classList.remove('bg-red-50', 'text-red-700');
                             } else {
-                                diffCell.className = "difference-cell text-center font-bold text-red-600";
-                                e.target.classList.add('bg-red-50');
-                                e.target.classList.remove('bg-green-50');
+                                diffCell.className = "difference-cell text-center font-bold text-red-600 text-xs p-1";
+                                e.target.classList.add('bg-red-50', 'text-red-700');
+                                e.target.classList.remove('bg-green-50', 'text-green-700');
                             }
                         }
                     });
 
-                    // Enter key to next input navigation
+                    // Enter key nav
                     input.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
@@ -261,6 +262,9 @@
                             const idx = inputs.indexOf(e.target);
                             if (idx >= 0 && idx < inputs.length - 1) {
                                 inputs[idx + 1].focus();
+                            } else {
+                                // Close keyboard on last item
+                                e.target.blur();
                             }
                         }
                     });
@@ -277,12 +281,12 @@
                     const val = input.value;
                     if (val === '') {
                         hasEmpty = true;
-                        input.classList.add('border-red-500');
+                        input.classList.add('border-red-500', 'ring-1', 'ring-red-200');
                     } else {
-                        input.classList.remove('border-red-500');
+                        input.classList.remove('border-red-500', 'ring-1', 'ring-red-200');
                         itemsToSave.push({
                             item_code: input.dataset.code,
-                            description: input.closest('tr').children[2].textContent,
+                            description: input.closest('tr').children[2].title || input.closest('tr').children[2].textContent,
                             bin_location: input.closest('tr').children[0].textContent,
                             system_qty: parseInt(input.dataset.system),
                             physical_qty: parseInt(val),
@@ -291,13 +295,12 @@
                     }
                 });
 
-                if (itemsToSave.length === 0) return showStatus("No hay datos ingresados para guardar", "error");
+                if (itemsToSave.length === 0) return showStatus("Ingrese al menos un conteo", "error");
 
-                if (hasEmpty) {
-                    if (!confirm(`Hay ${inputs.length - itemsToSave.length} items sin contar. ¿Desea guardar solo los ${itemsToSave.length} ingresados?`)) return;
-                } else {
-                    if (!confirm(`¿Confirmar el guardado de ${itemsToSave.length} items?`)) return;
-                }
+                let confirmMsg = `¿Guardar ${itemsToSave.length} conteos?`;
+                if (hasEmpty) confirmMsg = `Hay ${inputs.length - itemsToSave.length} pendientes.\n\n` + confirmMsg;
+
+                if (!confirm(confirmMsg)) return;
 
                 saveBtn.disabled = true;
                 saveBtn.textContent = "Guardando...";
@@ -313,17 +316,17 @@
                     });
 
                     if (res.ok) {
-                        showStatus("Conteo guardado exitosamente. Redirigiendo...", "success");
-                        setTimeout(() => window.location.href = '/planner', 1500);
+                        showStatus("¡Guardado!", "success");
+                        setTimeout(() => window.location.href = '/planner', 1000);
                     } else {
                         const err = await res.json();
-                        showStatus(err.detail || "Error al guardar", "error");
+                        showStatus(err.detail || "Error", "error");
                         saveBtn.disabled = false;
                         saveBtn.textContent = "Confirmar y Guardar";
                     }
                 } catch (e) {
                     console.error(e);
-                    showStatus("Error de conexión al guardar", "error");
+                    showStatus("Error de conexión", "error");
                     saveBtn.disabled = false;
                     saveBtn.textContent = "Confirmar y Guardar";
                 }
