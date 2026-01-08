@@ -206,3 +206,31 @@ async def load_archived_log_data_db_async(db: AsyncSession, version_date: str) -
     except Exception as e:
         print(f"DB Error (load_archived_log_data_db_async): {e}")
         return []
+
+async def load_all_logs_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
+    """Carga TODOS los logs de la base de datos (activos y archivados)."""
+    try:
+        stmt = select(Log).order_by(Log.id.desc())
+        result = await db.execute(stmt)
+        logs = result.scalars().all()
+        return [
+            {
+                "id": log.id,
+                "timestamp": log.timestamp,
+                "importReference": log.importReference,
+                "waybill": log.waybill,
+                "itemCode": log.itemCode,
+                "itemDescription": log.itemDescription,
+                "binLocation": log.binLocation,
+                "relocatedBin": log.relocatedBin,
+                "qtyReceived": log.qtyReceived,
+                "qtyGrn": log.qtyGrn,
+                "difference": log.difference,
+                "archived_at": log.archived_at,
+                "observaciones": ""
+            }
+            for log in logs
+        ]
+    except Exception as e:
+        print(f"DB Error (load_all_logs_db_async): {e}")
+        return []
