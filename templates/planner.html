@@ -257,49 +257,22 @@
         </div>
 
         <!-- Daily Execution Section -->
-        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-            <h2 class="section-title text-purple-800 border-purple-800" style="border-left-color: #6b21a8;">Ejecución
-                Diaria (Conteo Ciego)</h2>
-            <div class="flex flex-wrap items-end gap-6 mb-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha de Ejecución</label>
-                    <input type="date" id="execDate"
-                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-purple-500 outline-none">
-                </div>
-                <button type="button" id="loadDailyItemsBtn"
-                    class="bg-purple-700 text-white px-4 py-1.5 rounded text-sm hover:bg-purple-800">Cargar Items del
-                    Día</button>
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="section-title text-purple-800 border-purple-800" style="border-left-color: #6b21a8;">
+                    Ejecución Diaria</h2>
+                <p class="text-sm text-gray-500">Accede a la interfaz de conteo ciego para registrar el inventario
+                    diario.</p>
             </div>
-
-            <div id="executionPanel" class="hidden">
-                <div class="overflow-x-auto max-h-96">
-                    <table class="excel-table" id="executionTable">
-                        <thead>
-                            <tr class="bg-purple-100">
-                                <th>Ubicación</th>
-                                <th>Item</th>
-                                <th>Descripción</th>
-                                <th>Categoría</th>
-                                <th>Stock Físico (Conteo)</th>
-                                <th>Diferencia</th>
-                                <!-- Hidden System Qty -->
-                            </tr>
-                        </thead>
-                        <tbody id="executionTableBody">
-                            <!-- Rows loaded via JS -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4 flex justify-end">
-                    <button type="button" id="saveExecutionBtn"
-                        class="bg-green-600 text-white px-6 py-2 rounded text-sm hover:bg-green-700 font-bold">
-                        Confirmar y Guardar Ejecución
-                    </button>
-                </div>
-            </div>
-            <div id="noItemsMsg" class="hidden text-gray-500 italic p-4 text-center">
-                No hay items planificados para esta fecha.
-            </div>
+            <a href="/planner/execution" target="_blank"
+                class="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                Ir a Pantalla de Conteo
+            </a>
         </div>
 
         <!-- Top Panel: ABC Summary & Legend -->
@@ -692,17 +665,6 @@
             const saveConfigBtn = document.getElementById('saveConfigBtn');
             const statusMessage = document.getElementById('statusMessage');
 
-            // Execution Elements
-            const execDateInput = document.getElementById('execDate');
-            const loadDailyItemsBtn = document.getElementById('loadDailyItemsBtn');
-            const executionPanel = document.getElementById('executionPanel');
-            const executionTableBody = document.getElementById('executionTableBody');
-            const saveExecutionBtn = document.getElementById('saveExecutionBtn');
-            const noItemsMsg = document.getElementById('noItemsMsg');
-
-            // Set default execution date to today
-            execDateInput.value = new Date().toISOString().split('T')[0];
-
             // 1. Load Stored Configuration on Startup
             async function loadConfig() {
                 try {
@@ -844,134 +806,6 @@
             // --- 5. Execution Logic ---
 
             // 5.1 Load Items
-            loadDailyItemsBtn.addEventListener('click', async () => {
-                const date = execDateInput.value;
-                if (!date) return showStatus("Seleccione una fecha", "error");
-
-                loadDailyItemsBtn.disabled = true;
-                loadDailyItemsBtn.textContent = "Cargando...";
-
-                try {
-                    const res = await fetch(`/api/planner/execution/daily_items?date=${date}`);
-                    if (res.ok) {
-                        const items = await res.json();
-                        renderExecutionTable(items);
-                    } else {
-                        showStatus("Error al cargar items", "error");
-                    }
-                } catch (e) {
-                    console.error(e);
-                    showStatus("Error de conexión", "error");
-                } finally {
-                    loadDailyItemsBtn.disabled = false;
-                    loadDailyItemsBtn.textContent = "Cargar Items del Día";
-                }
-            });
-
-            function renderExecutionTable(items) {
-                executionTableBody.innerHTML = '';
-                if (items.length === 0) {
-                    executionPanel.classList.add('hidden');
-                    noItemsMsg.classList.remove('hidden');
-                    return;
-                }
-
-                noItemsMsg.classList.add('hidden');
-                executionPanel.classList.remove('hidden');
-
-                items.forEach((item, index) => {
-                    const row = document.createElement('tr');
-
-                    // Blind count logic: system_qty is stored in data attribute but not shown text
-                    row.innerHTML = `
-                        <td class="font-bold text-blue-800">${item.bin_location}</td>
-                        <td class="text-left font-mono text-xs">${item.item_code}</td>
-                        <td class="text-left text-xs truncate max-w-xs" title="${item.description}">${item.description}</td>
-                        <td class="text-center">${item.abc_code || '-'}</td>
-                        <td class="p-1">
-                            <input type="number" class="physical-input w-24 border border-gray-300 rounded px-2 py-1 text-center focus:border-purple-500 focus:bg-purple-50 outline-none"
-                                data-system="${item.system_qty}" data-code="${item.item_code}" data-abc="${item.abc_code}">
-                        </td>
-                        <td class="difference-cell font-bold text-gray-400">-</td>
-                    `;
-                    executionTableBody.appendChild(row);
-                });
-
-                // Attach listeners
-                document.querySelectorAll('.physical-input').forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        const val = parseInt(e.target.value);
-                        const sys = parseInt(e.target.dataset.system);
-                        const diffCell = e.target.closest('tr').querySelector('.difference-cell');
-
-                        if (isNaN(val)) {
-                            diffCell.textContent = "-";
-                            diffCell.className = "difference-cell font-bold text-gray-400";
-                        } else {
-                            const diff = val - sys;
-                            diffCell.textContent = diff > 0 ? `+${diff}` : diff;
-                            if (diff === 0) diffCell.className = "difference-cell font-bold text-green-600";
-                            else if (diff < 0) diffCell.className = "difference-cell font-bold text-red-600";
-                            else diffCell.className = "difference-cell font-bold text-blue-600";
-                        }
-                    });
-                });
-            }
-
-            // 5.2 Save Execution
-            saveExecutionBtn.addEventListener('click', async () => {
-                const inputs = document.querySelectorAll('.physical-input');
-                const itemsToSave = [];
-                let hasEmpty = false;
-
-                inputs.forEach(input => {
-                    const val = input.value;
-                    if (val === '') {
-                        hasEmpty = true;
-                        input.classList.add('border-red-500');
-                    } else {
-                        input.classList.remove('border-red-500');
-                        itemsToSave.push({
-                            item_code: input.dataset.code,
-                            description: input.closest('tr').children[2].textContent, // Fallback desc
-                            bin_location: input.closest('tr').children[0].textContent,
-                            system_qty: parseInt(input.dataset.system),
-                            physical_qty: parseInt(val),
-                            abc_code: input.dataset.abc === 'undefined' ? null : input.dataset.abc
-                        });
-                    }
-                });
-
-                if (hasEmpty) {
-                    if (!confirm("Hay items sin contar (vacíos). ¿Desea guardar solo los ingresados?")) return;
-                }
-
-                if (itemsToSave.length === 0) return showStatus("No hay datos para guardar", "error");
-
-                try {
-                    const res = await fetch('/api/planner/execution/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            date: execDateInput.value,
-                            items: itemsToSave
-                        })
-                    });
-
-                    if (res.ok) {
-                        showStatus("Conteo guardado exitosamente", "success");
-                        executionPanel.classList.add('hidden'); // Hide after save
-                        loadExecutedStats(); // Refresh stats
-                    } else {
-                        const err = await res.json();
-                        showStatus(err.detail || "Error al guardar", "error");
-                    }
-                } catch (e) {
-                    console.error(e);
-                    showStatus("Error de conexión", "error");
-                }
-            });
-
             // 6. Integration: Load Executed Stats
             async function loadExecutedStats() {
                 try {

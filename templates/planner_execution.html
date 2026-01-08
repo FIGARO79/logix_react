@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logix - Ejecución de Conteo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sap-primary: #0070d2;
+            --sap-header-bg: #2c3e50;
+            --sap-text: #32383e;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: var(--sap-text);
+        }
+
+        .top-header {
+            background-color: var(--sap-header-bg);
+            color: white;
+            padding: 0 1rem;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .excel-table th,
+        .excel-table td {
+            border: 1px solid #d0d7de;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .excel-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="top-header">
+        <a href="/planner" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            Volver al Planner
+        </a>
+        <h1 class="header-title ml-4">Ejecución de Conteo Diario</h1>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6">
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <div class="flex flex-wrap items-end gap-6 mb-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Fecha de Ejecución</label>
+                    <input type="date" id="execDate"
+                        class="border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none w-48">
+                </div>
+                <button type="button" id="loadDailyItemsBtn"
+                    class="bg-blue-700 text-white px-6 py-2 rounded text-sm hover:bg-blue-800 transition-colors font-medium">
+                    Cargar Items del Día
+                </button>
+            </div>
+
+            <div id="statusMessage" class="hidden p-3 rounded mb-4 text-sm font-medium"></div>
+
+            <div id="executionPanel" class="hidden mt-6">
+                <!-- Count Stats -->
+                <div class="flex gap-4 mb-4 text-sm">
+                    <div class="bg-blue-50 px-4 py-2 rounded border border-blue-100">
+                        <span class="text-blue-800 font-bold">Total Items:</span>
+                        <span id="totalItemsCount" class="font-bold ml-1">0</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border rounded-lg bg-white">
+                    <table class="excel-table" id="executionTable">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-700">
+                                <th class="w-32">Ubicación</th>
+                                <th class="w-32">Item Code</th>
+                                <th>Descripción</th>
+                                <th class="w-24 text-center">Cat.</th>
+                                <th class="w-32 text-center">Conteo Físico</th>
+                                <th class="w-32 text-center">Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="executionTableBody" class="divide-y divide-gray-100">
+                            <!-- Rows loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="button" id="saveExecutionBtn"
+                        class="bg-green-600 text-white px-8 py-2.5 rounded shadow-sm hover:bg-green-700 font-bold transition-all transform hover:scale-105">
+                        Confirmar y Guardar
+                    </button>
+                </div>
+            </div>
+
+            <div id="noItemsMsg"
+                class="hidden text-gray-500 italic p-12 text-center bg-gray-50 rounded-lg mt-6 border border-dashed border-gray-300">
+                <p class="text-lg">No hay items planificados para esta fecha.</p>
+                <p class="text-xs mt-2">Seleccione otra fecha o verifique el plan.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const execDateInput = document.getElementById('execDate');
+            const loadBtn = document.getElementById('loadDailyItemsBtn');
+            const saveBtn = document.getElementById('saveExecutionBtn');
+            const panel = document.getElementById('executionPanel');
+            const tableBody = document.getElementById('executionTableBody');
+            const noItemsMsg = document.getElementById('noItemsMsg');
+            const statusMsg = document.getElementById('statusMessage');
+            const totalCountSpan = document.getElementById('totalItemsCount');
+
+            // Default to today
+            execDateInput.value = new Date().toISOString().split('T')[0];
+
+            function showStatus(msg, type) {
+                statusMsg.textContent = msg;
+                statusMsg.className = `mb-4 p-3 rounded text-sm font-medium ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+                statusMsg.classList.remove('hidden');
+                // Auto hide only logic success
+                if (type === 'success') setTimeout(() => statusMsg.classList.add('hidden'), 5000);
+            }
+
+            // Load Items
+            loadBtn.addEventListener('click', async () => {
+                const date = execDateInput.value;
+                if (!date) return showStatus("Seleccione una fecha válida", "error");
+
+                loadBtn.disabled = true;
+                loadBtn.textContent = "Cargando...";
+                statusMsg.classList.add('hidden');
+
+                try {
+                    const res = await fetch(`/api/planner/execution/daily_items?date=${date}`);
+                    if (res.ok) {
+                        const items = await res.json();
+                        renderTable(items);
+                    } else {
+                        showStatus("Error al cargar items: " + res.status, "error");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión: " + e.message, "error");
+                } finally {
+                    loadBtn.disabled = false;
+                    loadBtn.textContent = "Cargar Items del Día";
+                }
+            });
+
+            function renderTable(items) {
+                tableBody.innerHTML = '';
+                if (items.length === 0) {
+                    panel.classList.add('hidden');
+                    noItemsMsg.classList.remove('hidden');
+                    return;
+                }
+
+                noItemsMsg.classList.add('hidden');
+                panel.classList.remove('hidden');
+                totalCountSpan.textContent = items.length;
+
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    // Input logic
+                    row.innerHTML = `
+                        <td class="font-bold text-blue-700">${item.bin_location || '-'}</td>
+                        <td class="font-mono text-xs text-gray-600">${item.item_code}</td>
+                        <td class="text-sm text-gray-800">${item.description}</td>
+                        <td class="text-center font-bold text-gray-500">${item.abc_code || '-'}</td>
+                        <td class="text-center">
+                            <input type="number" class="physical-input w-24 border border-gray-300 rounded px-2 py-1 text-center font-bold text-gray-800 focus:border-blue-500 outline-none transition-colors"
+                                placeholder="0"
+                                data-system="${item.system_qty}" 
+                                data-code="${item.item_code}" 
+                                data-abc="${item.abc_code}">
+                        </td>
+                        <td class="difference-cell text-center font-bold text-gray-300">-</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                // Attach live diff calculation
+                document.querySelectorAll('.physical-input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                        const sys = parseInt(e.target.dataset.system);
+                        const diffCell = e.target.closest('tr').querySelector('.difference-cell');
+
+                        if (val === '') {
+                            diffCell.textContent = "-";
+                            diffCell.className = "difference-cell text-center font-bold text-gray-300";
+                            e.target.classList.remove('bg-green-50', 'bg-red-50');
+                        } else {
+                            const diff = val - sys;
+                            diffCell.textContent = diff > 0 ? `+${diff}` : diff;
+
+                            if (diff === 0) {
+                                diffCell.className = "difference-cell text-center font-bold text-green-600";
+                                e.target.classList.add('bg-green-50');
+                                e.target.classList.remove('bg-red-50');
+                            } else {
+                                diffCell.className = "difference-cell text-center font-bold text-red-600";
+                                e.target.classList.add('bg-red-50');
+                                e.target.classList.remove('bg-green-50');
+                            }
+                        }
+                    });
+
+                    // Enter key to next input navigation
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const inputs = Array.from(document.querySelectorAll('.physical-input'));
+                            const idx = inputs.indexOf(e.target);
+                            if (idx >= 0 && idx < inputs.length - 1) {
+                                inputs[idx + 1].focus();
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Save Logic
+            saveBtn.addEventListener('click', async () => {
+                const inputs = document.querySelectorAll('.physical-input');
+                const itemsToSave = [];
+                let hasEmpty = false;
+
+                inputs.forEach(input => {
+                    const val = input.value;
+                    if (val === '') {
+                        hasEmpty = true;
+                        input.classList.add('border-red-500');
+                    } else {
+                        input.classList.remove('border-red-500');
+                        itemsToSave.push({
+                            item_code: input.dataset.code,
+                            description: input.closest('tr').children[2].textContent,
+                            bin_location: input.closest('tr').children[0].textContent,
+                            system_qty: parseInt(input.dataset.system),
+                            physical_qty: parseInt(val),
+                            abc_code: input.dataset.abc === 'undefined' ? null : input.dataset.abc
+                        });
+                    }
+                });
+
+                if (itemsToSave.length === 0) return showStatus("No hay datos ingresados para guardar", "error");
+
+                if (hasEmpty) {
+                    if (!confirm(`Hay ${inputs.length - itemsToSave.length} items sin contar. ¿Desea guardar solo los ${itemsToSave.length} ingresados?`)) return;
+                } else {
+                    if (!confirm(`¿Confirmar el guardado de ${itemsToSave.length} items?`)) return;
+                }
+
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Guardando...";
+
+                try {
+                    const res = await fetch('/api/planner/execution/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            date: execDateInput.value,
+                            items: itemsToSave
+                        })
+                    });
+
+                    if (res.ok) {
+                        showStatus("Conteo guardado exitosamente. Redirigiendo...", "success");
+                        setTimeout(() => window.location.href = '/planner', 1500);
+                    } else {
+                        const err = await res.json();
+                        showStatus(err.detail || "Error al guardar", "error");
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = "Confirmar y Guardar";
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión al guardar", "error");
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = "Confirmar y Guardar";
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
