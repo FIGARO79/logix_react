@@ -2055,7 +2055,21 @@
                 const isItemDataPresent = !!currentItemData;
                 const isPackingList = !!importReferenceInput.value.trim();
                 const isWaybill = !!waybillInput.value.trim();
-                const isQuantity = parseInt(quantityInput.value) > 0;
+                const quantityVal = parseInt(quantityInput.value);
+                const isQuantity = quantityVal > 0;
+
+                // --- Label Dynamic Update Logic ---
+                if (isItemDataPresent && isQuantity) {
+                    const unitWeight = parseFloat(currentItemData.Weight_per_Unit) || 0;
+                    const totalWeight = (quantityVal * unitWeight).toFixed(2);
+                    labelQty.textContent = quantityVal;
+                    labelWeight.textContent = totalWeight;
+                } else if (isItemDataPresent) {
+                    // Reset if quantity invalid but item present
+                    labelQty.textContent = "";
+                    labelWeight.textContent = parseFloat(currentItemData.Weight_per_Unit || 0).toFixed(2);
+                }
+                // ----------------------------------
 
                 addLogEntryBtn.disabled = !(isItemDataPresent && isPackingList && isWaybill && isQuantity);
                 printLabelBtn.disabled = !isItemDataPresent;
