@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func, desc
 from app.models.sql_models import Log
 from typing import Dict, Any, Optional, List
+import datetime
+from sqlalchemy import distinct
 
 async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) -> Optional[int]:
     """Guarda una entrada de log en la base de datos."""
@@ -55,7 +57,9 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
 async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
     """Carga todos los logs de la base de datos."""
     try:
-        result = await db.execute(select(Log).order_by(Log.id.desc()))
+        # Default: Cargar solo logs activos (archived_at es NULL)
+        stmt = select(Log).where(Log.archived_at.is_(None)).order_by(Log.id.desc())
+        result = await db.execute(stmt)
         logs = result.scalars().all()
         # Convertir a dict explícitamente porque los modelos ORM no son dicts
         return [
@@ -111,7 +115,8 @@ async def get_total_received_for_import_reference_async(db: AsyncSession, import
     try:
         stmt = select(func.sum(Log.qtyReceived)).where(
             Log.importReference == import_reference,
-            Log.itemCode == item_code
+            Log.itemCode == item_code,
+            Log.archived_at.is_(None)
         )
         result = await db.execute(stmt)
         total_received = result.scalar()
@@ -140,7 +145,8 @@ async def get_latest_relocated_bin_async(db: AsyncSession, item_code: str) -> Op
         stmt = select(Log.relocatedBin).where(
             Log.itemCode == item_code,
             Log.relocatedBin.is_not(None),
-            Log.relocatedBin != ''
+            Log.relocatedBin != '',
+            Log.archived_at.is_(None)
         ).order_by(Log.id.desc()).limit(1)
         
         result = await db.execute(stmt)
@@ -149,3 +155,54 @@ async def get_latest_relocated_bin_async(db: AsyncSession, item_code: str) -> Op
     except Exception as e:
         print(f"DB Error (get_latest_relocated_bin_async): {e}")
         return None
+
+async def archive_current_logs_db_async(db: AsyncSession) -> bool:
+    """Archiva todos los logs activos asignándoles la fecha actual."""
+    try:
+        current_time_iso = datetime.datetime.now().isoformat(timespec='seconds')
+        stmt = update(Log).where(Log.archived_at.is_(None)).values(archived_at=current_time_iso)
+        result = await db.execute(stmt)
+        await db.commit()
+        return True # Always return true, even if 0 rows updated
+    except Exception as e:
+        print(f"DB Error (archive_current_logs_db_async): {e}")
+        await db.rollback()
+        return False
+
+async def get_archived_versions_db_async(db: AsyncSession) -> List[str]:
+    """Obtiene una lista de las fechas de archivado únicas."""
+    try:
+        stmt = select(distinct(Log.archived_at)).where(Log.archived_at.is_not(None)).order_by(Log.archived_at.desc())
+        result = await db.execute(stmt)
+        versions = result.scalars().all()
+        return [v for v in versions if v]
+    except Exception as e:
+        print(f"DB Error (get_archived_versions_db_async): {e}")
+        return []
+
+async def load_archived_log_data_db_async(db: AsyncSession, version_date: str) -> List[Dict[str, Any]]:
+    """Carga los logs de una versión archivada específica."""
+    try:
+        stmt = select(Log).where(Log.archived_at == version_date).order_by(Log.id.desc())
+        result = await db.execute(stmt)
+        logs = result.scalars().all()
+        return [
+            {
+                "id": log.id,
+                "timestamp": log.timestamp,
+                "importReference": log.importReference,
+                "waybill": log.waybill,
+                "itemCode": log.itemCode,
+                "itemDescription": log.itemDescription,
+                "binLocation": log.binLocation,
+                "relocatedBin": log.relocatedBin,
+                "qtyReceived": log.qtyReceived,
+                "qtyGrn": log.qtyGrn,
+                "difference": log.difference,
+                "observaciones": ""
+            }
+            for log in logs
+        ]
+    except Exception as e:
+        print(f"DB Error (load_archived_log_data_db_async): {e}")
+        return []
