@@ -5,7 +5,7 @@ import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
-from app.models.sql_models import StockCount, CountSession, AppState, SessionLocation
+from app.models.sql_models import StockCount, CountSession, AppState, SessionLocation, CycleCount
 from typing import List, Dict, Any, Optional
 
 async def load_all_counts_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
@@ -241,6 +241,22 @@ async def save_stock_count(db: AsyncSession, session_id: int, item_code: str, co
         db.add(new_count)
         await db.commit()
         await db.refresh(new_count)
+
+        # --- NUEVO: Registrar también en CycleCount para el planificador ---
+        # Se asume que cada conteo válido cuenta como un "ciclo" completado para ese item
+        try:
+            new_cycle_entry = CycleCount(
+                item_code=item_code,
+                timestamp=new_count.timestamp,
+                abc_code=None, # Se podría llenar si tuviéramos el dato aquí, o dejar que el planner lo cruce
+                count_id=new_count.id
+            )
+            db.add(new_cycle_entry)
+            await db.commit()
+        except Exception as e_cycle:
+            print(f"Advertencia: No se pudo registrar en cycle_counts: {e_cycle}")
+            # No hacemos rollback del conteo principal, solo logueamos el error
+
         return new_count.id
     except Exception as e:
         print(f"DB Error (save_stock_count): {e}")

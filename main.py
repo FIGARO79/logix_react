@@ -19,7 +19,7 @@ from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
 # Importar routers
-from app.routers import sessions, logs, stock, counts, auth, views, admin, update, picking, inventory
+from app.routers import sessions, logs, stock, counts, auth, views, admin, update, picking, inventory, planner
 
 # --- Eventos de ciclo de vida (Lifespan) ---
 @asynccontextmanager
@@ -28,8 +28,8 @@ async def lifespan(app: FastAPI):
     # Startup
     print("Iniciando aplicación Logix...")
     
-    # Ejecutar migraciones de base de datos (síncrono pero rápido)
-    run_migrations()
+    # Ejecutar migraciones de base de datos (asíncrono)
+    await run_migrations()
     
     await load_csv_data()
     print("Aplicación Logix iniciada correctamente.")
@@ -79,6 +79,7 @@ app.include_router(admin.router)
 app.include_router(update.router)
 app.include_router(picking.router)
 app.include_router(inventory.router)
+app.include_router(planner.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")

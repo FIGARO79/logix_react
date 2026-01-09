@@ -2,7 +2,7 @@
 venv/
 .venv/
 env/
-ENV/
+ENV/4
 __pycache__/
 *.py[cod]
 *.pyo
@@ -44,6 +44,11 @@ yarn-error.log*
 mysql.txt
 *.egg
 *.md
+*.txt
+*.xlsm
+*.bak
+*.backup    
+*.xlsx
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv

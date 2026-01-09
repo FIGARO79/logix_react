@@ -302,6 +302,24 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
+        /* Utility for consistent toolbar height */
+        .toolbar-btn {
+            height: 32px !important;
+            padding: 0 12px !important;
+            font-size: 13px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        select.toolbar-btn {
+            padding-right: 24px !important;
+            /* Space for arrow */
+        }
+
         .btn-print-label {
             width: 100%;
             max-width: 265px;
@@ -322,6 +340,30 @@
 
         .btn-export-log:hover {
             background-color: #1565C0;
+        }
+
+        .btn-clean-base {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .btn-clean-base:hover {
+            background-color: #b91c1c;
+        }
+
+        .archive-selector {
+            margin-left: 10px;
+            /* Height and padding handled by toolbar-btn */
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            color: black;
+            background-color: white;
         }
 
         /* --- Toast Notification Styles --- */
@@ -403,31 +445,34 @@
         }
 
         .sortable-header::after {
-            content: "";
+            content: "↕";
             position: absolute;
             right: 8px;
             top: 50%;
-            margin-top: -4px;
-            border: 4px solid transparent;
-            opacity: 0.3;
+            transform: translateY(-50%);
+            opacity: 0.5;
             pointer-events: none;
             transition: opacity 0.2s ease-in-out;
+            font-size: 0.875rem;
+            color: #6b7280;
         }
 
         .sortable-header.sort-asc::after {
-            border-bottom-color: #4b5563;
+            content: "↑";
             opacity: 1;
+            color: #4b5563;
         }
 
         .sortable-header.sort-desc::after {
-            border-top-color: #4b5563;
+            content: "↓";
             opacity: 1;
+            color: #4b5563;
         }
 
         .action-btn {
             background: none;
             border: none;
-            padding: 0.25rem;
+            padding: 0.1rem;
             border-radius: 9999px;
             color: #6b7280;
             transition: background-color 0.2s, color 0.2s;
@@ -1046,6 +1091,13 @@
                 </svg>
                 <span>Confirmación Picking</span>
             </a>
+            <a href="/planner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M6 2a.5.5 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2Z" />
+                </svg>
+                <span>Planificador</span>
+            </a>
             <button class="logout-btn" onclick="window.location.href='/logout'">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M7.5 1v7h1V1z" />
@@ -1222,9 +1274,20 @@
         <div
             style="background-color: #ffffff; padding: 0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid var(--sap-border); overflow: hidden;">
             <div
-                style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 8px 16px;">
+                style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between;">
                 <h2 style="font-size: 14px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">Registros de Inbound
                 </h2>
+                <div class="flex items-center">
+                    <button id="UpdateFilesBtn" class="btn-secondary toolbar-btn" style="margin-right: 0.5rem;"
+                        title="Actualizar Archivos Maestros">Actualizar Archivos</button>
+                    <select id="archiveSelector" class="archive-selector toolbar-btn hidden">
+                        <option value="">-- Versión Actual --</option>
+                    </select>
+                    <!-- Log export button removed as requested -->
+                    <button id="cleanBaseBtn" class="btn-clean-base toolbar-btn"
+                        title="Archivar registros actuales y limpiar tabla">Base Limpia</button>
+                    <button id="viewReconciliationBtn" class="btn-secondary toolbar-btn ml-2">Ver Conciliación</button>
+                </div>
             </div>
             <div class="overflow-x-auto" style="padding: 1px;">
                 <table class="min-w-full" id="logTable">
@@ -1345,6 +1408,8 @@
             const updateFilesBtn = document.getElementById("UpdateFilesBtn");
             const viewLogsLinkBtn = document.getElementById("viewLogsLinkBtn");
             const viewReconciliationBtn = document.getElementById("viewReconciliationBtn");
+            const cleanBaseBtn = document.getElementById("cleanBaseBtn");
+            const archiveSelector = document.getElementById("archiveSelector");
             // Scanner elements
             const scanItemBtn = document.getElementById("scanItemBtn");
             const scannerModal = document.getElementById('scanner-modal');
@@ -1362,8 +1427,8 @@
             const ICONS = {
                 spinner: '<div class="spinner"></div>',
                 search: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>',
-                edit: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>',
-                delete: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>',
+                edit: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>',
+                delete: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>',
                 success: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
                 error: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
                 info: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
@@ -1799,12 +1864,15 @@
                                 }
                             }
             */
-            async function loadInitialLogs() {
-                showToast("Cargando registros...", "info");
+            async function loadInitialLogs(versionDate = null) {
+                showToast(versionDate ? "Cargando histórico..." : "Cargando registros...", "info");
                 try {
-                    // MODIFICACIÓN: Se añade { cache: 'no-cache' } para evitar que el navegador
-                    // muestre datos viejos guardados en memoria.
-                    const response = await fetch(`${API_BASE_URL}/get_logs`, { cache: 'no-cache' });
+                    let url = `${API_BASE_URL}/get_logs`;
+                    if (versionDate) {
+                        url += `?version_date=${encodeURIComponent(versionDate)}`;
+                    }
+                    const response = await fetch(url, { cache: 'no-cache' });
+
                     if (response.ok) {
                         const logs = await response.json();
                         logTableBody.innerHTML = "";
@@ -1812,6 +1880,19 @@
                         updateSortIndicators(currentSortColumnIndex, currentSortDirection);
                         sortTableByColumn(currentSortColumnIndex, currentSortDirection, true);
                         showToast("Registros cargados.", "success");
+
+                        // Si estamos viendo histórico, deshabilitar acciones
+                        if (versionDate) {
+                            document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
+                            if (addLogEntryBtn) addLogEntryBtn.disabled = true;
+                            if (cleanBaseBtn) cleanBaseBtn.classList.add('hidden');
+                        } else {
+                            if (addLogEntryBtn) addLogEntryBtn.disabled = false;
+                            checkFormValidity();
+                            if (cleanBaseBtn) cleanBaseBtn.classList.remove('hidden');
+                            await loadArchiveVersions(); // Refrescar lista de versiones
+                        }
+
                     } else {
                         const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
                         showToast(errorData.error, "error");
@@ -1820,6 +1901,57 @@
                     showToast("Error de conexión al cargar registros.", "error");
                 } finally {
                     checkTableEmpty();
+                }
+            }
+
+            async function archiveLogs() {
+                if (!confirm("¿Está seguro de que desea limpiar la base? \n\nEsta acción archivará los registros actuales y dejará la tabla vacía para un nuevo proceso. Los datos actuales se podrán consultar después en el histórico.")) return;
+
+                showToast("Archivando registros...", "info");
+                toggleButtonSpinner(cleanBaseBtn, true, 'Base Limpia');
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/logs/archive`, { method: "POST" });
+
+                    if (response.ok) {
+                        showToast("Base limpiada y registros archivados.", "success");
+                        await loadInitialLogs(); // Recarga la tabla (vacía)
+                        await loadArchiveVersions(); // Actualiza dropdown
+                    } else {
+                        const err = await response.json();
+                        showToast(err.detail || "Error al archivar.", "error");
+                    }
+                } catch (error) {
+                    showToast("Error de conexión al archivar.", "error");
+                } finally {
+                    toggleButtonSpinner(cleanBaseBtn, false, 'Base Limpia');
+                }
+            }
+
+            async function loadArchiveVersions() {
+                if (!archiveSelector) return;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/logs/versions`);
+                    if (response.ok) {
+                        const versions = await response.json();
+                        archiveSelector.innerHTML = '<option value="">-- Versión Actual --</option>';
+
+                        if (versions.length > 0) {
+                            archiveSelector.classList.remove('hidden');
+                            versions.forEach(v => {
+                                const date = new Date(v);
+                                const label = date.toLocaleString('es-CO');
+                                const opt = document.createElement('option');
+                                opt.value = v;
+                                opt.textContent = `Archivo: ${label}`;
+                                archiveSelector.appendChild(opt);
+                            });
+                        } else {
+                            archiveSelector.classList.add('hidden');
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error cargando versiones:", e);
                 }
             }
 
@@ -1885,7 +2017,11 @@
                 if (logTableBody.rows.length === 0) { showToast("No hay datos para exportar.", "error"); return; }
                 showToast("Generando Excel...", "info");
                 try {
-                    const response = await fetch(`${API_BASE_URL}/export_log`);
+                    let url = `${API_BASE_URL}/export_log`;
+                    if (archiveSelector && archiveSelector.value) {
+                        url += `?version_date=${encodeURIComponent(archiveSelector.value)}`;
+                    }
+                    const response = await fetch(url);
                     if (response.ok) {
                         const blob = await response.blob();
                         const disposition = response.headers.get("Content-Disposition");
@@ -1919,7 +2055,21 @@
                 const isItemDataPresent = !!currentItemData;
                 const isPackingList = !!importReferenceInput.value.trim();
                 const isWaybill = !!waybillInput.value.trim();
-                const isQuantity = parseInt(quantityInput.value) > 0;
+                const quantityVal = parseInt(quantityInput.value);
+                const isQuantity = quantityVal > 0;
+
+                // --- Label Dynamic Update Logic ---
+                if (isItemDataPresent && isQuantity) {
+                    const unitWeight = parseFloat(currentItemData.Weight_per_Unit) || 0;
+                    const totalWeight = (quantityVal * unitWeight).toFixed(2);
+                    labelQty.textContent = quantityVal;
+                    labelWeight.textContent = totalWeight;
+                } else if (isItemDataPresent) {
+                    // Reset if quantity invalid but item present
+                    labelQty.textContent = "";
+                    labelWeight.textContent = parseFloat(currentItemData.Weight_per_Unit || 0).toFixed(2);
+                }
+                // ----------------------------------
 
                 addLogEntryBtn.disabled = !(isItemDataPresent && isPackingList && isWaybill && isQuantity);
                 printLabelBtn.disabled = !isItemDataPresent;
@@ -2000,6 +2150,15 @@
             });
 
             closeScannerBtn?.addEventListener('click', stopScanning);
+
+            if (cleanBaseBtn) cleanBaseBtn.addEventListener('click', archiveLogs);
+
+            if (archiveSelector) {
+                archiveSelector.addEventListener('change', (e) => {
+                    const version = e.target.value;
+                    loadInitialLogs(version);
+                });
+            }
 
             // Initial setup
             [importReferenceInput, waybillInput, itemCodeInput, quantityInput].forEach(input => {

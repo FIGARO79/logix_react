@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logix - Planner Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== SAP Fiori / Excel Dashboard Styles ===== */
+        :root {
+            --sap-primary: #0070d2;
+            --sap-primary-dark: #005fb2;
+            --sap-header-bg: #2c3e50;
+            --sap-text: #32383e;
+            --sap-border: #d0d7de;
+            --excel-header-bg: #e5e7eb;
+            /* Gray-200 like Excel headers */
+            --excel-border: #9ca3af;
+            /* Gray-400 for cell borders */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: var(--sap-text);
+            font-size: 0.875rem;
+            /* Compact font size */
+        }
+
+        /* --- Layout & Utilities --- */
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .excel-table th,
+        .excel-table td {
+            border: 1px solid var(--excel-border);
+            padding: 4px 8px;
+            text-align: center;
+        }
+
+        .excel-table th {
+            background-color: var(--excel-header-bg);
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .excel-table td.text-left {
+            text-align: left;
+        }
+
+        .excel-table td.bg-gray {
+            background-color: #f3f4f6;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+            border-left: 4px solid var(--sap-primary);
+            padding-left: 0.5rem;
+        }
+
+        /* ===== SAP Fiori Header & Menu Styles ===== */
+        .top-header {
+            background-color: var(--sap-header-bg);
+            color: white;
+            padding: 0 1rem;
+            height: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-toggle svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 0;
+            color: #fff;
+        }
+
+        .dropdown-menu {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 15rem;
+            max-height: calc(100vh - 44px);
+            background-color: var(--sap-header-bg);
+            box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
+            transform: translateX(-100%);
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .dropdown-menu.open {
+            transform: translateX(0);
+        }
+
+        .dropdown-menu nav {
+            padding: 0;
+        }
+
+        .dropdown-menu a,
+        .dropdown-menu .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 0;
+            margin: 0;
+            transition: background-color 0.1s ease;
+            font-size: 0.875rem;
+            border-left: 0.1875rem solid transparent;
+        }
+
+        .dropdown-menu a:hover,
+        .dropdown-menu .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sap-primary);
+        }
+
+        .dropdown-menu a:active,
+        .dropdown-menu .logout-btn:active {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .dropdown-menu svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+            justify-content: flex-start;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 44px);
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="top-header">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+        <h1 class="header-title">Logix - Planeación de Conteos</h1>
+    </header>
+
+    {% include '_menu.html' %}
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <main class="dashboard-container">
+
+        <!-- Controls & Parameters -->
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
+            <h2 class="section-title">Parámetros Generales</h2>
+            <form id="plannerForm" class="flex flex-wrap items-end gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
+                    <input type="date" id="startDate" name="startDate"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
+                    <input type="date" id="endDate" name="endDate"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
+                    <input type="text" id="holidayCount" readonly
+                        class="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center" value="0">
+                </div>
+
+                <div class="ml-auto flex gap-2">
+                    <button type="button" id="saveConfigBtn"
+                        class="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar
+                        Fechas</button>
+                    <button type="button" id="updatePlanBtn"
+                        class="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">Actualizar
+                        Planificación</button>
+                    <button type="submit" id="generateBtn"
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">Generar
+                        Excel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Daily Execution Section -->
+        <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="section-title text-purple-800 border-purple-800" style="border-left-color: #6b21a8;">
+                    Ejecución Diaria</h2>
+                <p class="text-sm text-gray-500">Accede a la interfaz de conteo ciego para registrar el inventario
+                    diario.</p>
+            </div>
+            <a href="/planner/execution" target="_blank"
+                class="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                Ir a Pantalla de Conteo
+            </a>
+        </div>
+
+        <!-- Top Panel: ABC Summary & Legend -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <!-- ABC Classification Summary -->
+            <div>
+                <h3 class="section-title">Resumen Categorías (ABC)</h3>
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th>N° de Conteos (Items)</th>
+                            <th>Ciclos de Conteo</th>
+                            <th>Conteos Requeridos</th>
+                            <th>Items diarios</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold">A</td>
+                            <td id="countA" class="bg-gray">0</td>
+                            <td>3</td>
+                            <td id="reqA" class="bg-gray">0</td>
+                            <td id="dailyA" class="bg-gray">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">B</td>
+                            <td id="countB" class="bg-gray">0</td>
+                            <td>2</td>
+                            <td id="reqB" class="bg-gray">0</td>
+                            <td id="dailyB" class="bg-gray">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">C</td>
+                            <td id="countC" class="bg-gray">0</td>
+                            <td>1</td>
+                            <td id="reqC" class="bg-gray">0</td>
+                            <td id="dailyC" class="bg-gray">0</td>
+                        </tr>
+                        <tr class="border-t-2 border-gray-400">
+                            <td class="text-left font-bold" colspan="2">Días Útiles YTD:</td>
+                            <td id="workingDays" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-bold" colspan="2">Total Conteos Requeridos:</td>
+                            <td id="totalReq" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-bold" colspan="2">Total Items por día:</td>
+                            <td id="totalDaily" class="font-bold bg-yellow-50" colspan="3">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Legend -->
+            <div>
+                <h3 class="section-title">Leyenda / Clasificación</h3>
+                <table class="excel-table w-auto md:w-full">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Criterio (Hits)</th>
+                            <th>Festivos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold">W</td>
+                            <td class="text-left">More than 30 hits</td>
+                            <td rowspan="7" class="text-left align-top text-xs text-gray-500 bg-gray-50 p-0"
+                                style="height: 1px;">
+                                <textarea id="holidaysInput"
+                                    class="w-full h-full border-none p-2 text-xs text-gray-700 bg-transparent resize-none focus:outline-none block"
+                                    placeholder="YYYY-MM-DD (uno por línea)"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">X</td>
+                            <td class="text-left">11-30 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Y</td>
+                            <td class="text-left">7-10 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">K</td>
+                            <td class="text-left">5-6 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">L</td>
+                            <td class="text-left">3-4 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Z</td>
+                            <td class="text-left">1-2 hits</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">0</td>
+                            <td class="text-left">Non moving item</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Monthly Grids -->
+        <div class="space-y-8">
+
+            <!-- PLANEADO -->
+            <div>
+                <h3 class="section-title text-blue-800 border-blue-800">Planeado (Conteos Programados)</h3>
+                <div class="overflow-x-auto">
+                    <table class="excel-table" id="plannedTable">
+                        <thead>
+                            <tr class="bg-blue-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows generated by JS -->
+                            <tr id="rowPlannedA">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedB">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedC">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td class="font-bold bg-gray-100">0</td>
+                            </tr>
+                            <tr id="rowPlannedTotal" class="border-t-2 border-gray-400 font-bold bg-gray-50">
+                                <td class="text-left">TOTAL</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- EJECUTADO (Placeholder / Future Implementation) -->
+            <div>
+                <h3 class="section-title text-green-800 border-green-800">Ejecutado (Real)</h3>
+                <div class="overflow-x-auto">
+                    <table class="excel-table" id="executedTable">
+                        <thead>
+                            <tr class="bg-green-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">W2W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DELTA -->
+            <div>
+                <h3 class="section-title text-red-800 border-red-800">Delta (Diferencia)</h3>
+                <div class="overflow-x-auto">
+                    <table class="excel-table">
+                        <thead>
+                            <tr class="bg-red-100">
+                                <th class="text-left" style="min-width: 120px;">Categoría/Mes</th>
+                                <th>ENE</th>
+                                <th>FEB</th>
+                                <th>MAR</th>
+                                <th>ABR</th>
+                                <th>MAY</th>
+                                <th>JUN</th>
+                                <th>JUL</th>
+                                <th>AGO</th>
+                                <th>SEP</th>
+                                <th>OCT</th>
+                                <th>NOV</th>
+                                <th>DIC</th>
+                                <th class="bg-gray-300">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">A</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">B</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr class="text-gray-400 italic">
+                                <td class="font-bold text-left">C</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="statusMessage"
+            class="mt-4 hidden p-3 rounded text-sm text-center fixed bottom-4 right-4 shadow-lg border"></div>
+
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // --- Menu Logic ---
+            const menuToggle = document.getElementById('menuToggle');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+
+            function toggleMenu() {
+                dropdownMenu.classList.toggle('open');
+                menuOverlay.classList.toggle('active');
+            }
+
+            if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+            if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
+            if (dropdownMenu) {
+                dropdownMenu.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => { if (dropdownMenu.classList.contains('open')) toggleMenu(); });
+                });
+            }
+
+            // --- Planner Logic ---
+            const form = document.getElementById('plannerForm');
+            const updatePlanBtn = document.getElementById('updatePlanBtn');
+            const generateBtn = document.getElementById('generateBtn');
+            const saveConfigBtn = document.getElementById('saveConfigBtn');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // 1. Load Stored Configuration on Startup
+            async function loadConfig() {
+                try {
+                    const res = await fetch(`/api/planner/config?t=${new Date().getTime()}`);
+                    if (res.ok) {
+                        const config = await res.json();
+                        if (config.start_date) document.getElementById('startDate').value = config.start_date;
+                        if (config.end_date) document.getElementById('endDate').value = config.end_date;
+                        if (config.holidays && Array.isArray(config.holidays)) {
+                            document.getElementById('holidaysInput').value = config.holidays.join('\n');
+                            document.getElementById('holidayCount').value = config.holidays.length;
+                        }
+                    } else {
+                        const errText = await res.text();
+                        console.error("Error config:", errText);
+                        showStatus("Error al cargar configuración: " + res.status, "error");
+                    }
+                } catch (e) {
+                    console.error("Error loading config:", e);
+                    showStatus("Error cargando configuración: " + e.message, "error");
+                }
+            }
+
+            // 1.1 Load Saved Plan Data (Persistence)
+            async function loadSavedPlan() {
+                try {
+                    const res = await fetch(`/api/planner/current_plan?t=${new Date().getTime()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.total_items) {
+                            updateDashboard(data);
+                        } else {
+                            console.warn("Plan vacío o inválido");
+                        }
+                    } else {
+                        const errText = await res.text();
+                        console.error("Error plan:", errText);
+                        showStatus("Error al cargar plan: " + res.status, "error");
+                    }
+                } catch (e) {
+                    console.error("Error loading saved plan:", e);
+                    showStatus("Error cargando plan guardado: " + e.message, "error");
+                }
+            }
+
+            // Run on load
+            loadConfig().then(() => {
+                loadSavedPlan();
+            });
+
+
+            // 2. Save Configuration (Dates & Holidays)
+            saveConfigBtn.addEventListener('click', async () => {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const holidaysRaw = document.getElementById('holidaysInput').value;
+
+                if (!startDate || !endDate) return showStatus("Seleccione fechas válidas", "error");
+
+                // Parse holidays from textarea (one per line, filter empty)
+                const holidays = holidaysRaw.split('\n')
+                    .map(h => h.trim())
+                    .filter(h => h.match(/^\d{4}-\d{2}-\d{2}$/)); // Basic regex validation
+
+                try {
+                    const res = await fetch('/api/planner/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            start_date: startDate,
+                            end_date: endDate,
+                            holidays: holidays
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        document.getElementById('holidayCount').value = data.config.holidays.length;
+                        showStatus("Configuración guardada correctamente", "success");
+                    } else {
+                        const err = await res.json();
+                        showStatus(err.detail || "Error al guardar (revise formato festivos)", "error");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error de conexión", "error");
+                }
+            });
+
+            function showStatus(msg, type) {
+                statusMessage.textContent = msg;
+                statusMessage.className = `mt-4 p-3 rounded text-sm text-center fixed bottom-4 right-4 shadow-lg border z-50 ${type === 'error' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-green-100 text-green-700 border-green-300'}`;
+                statusMessage.classList.remove('hidden');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+            }
+
+            // 3. Update Planning (Calculate & Save) - "Actualizar Planificación"
+            updatePlanBtn.addEventListener('click', async () => {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) return showStatus("Seleccione fechas", "error");
+
+                updatePlanBtn.disabled = true;
+                updatePlanBtn.textContent = "Calculando...";
+
+                try {
+                    // Call the NEW endpoint that calculates AND saves
+                    const url = `/api/planner/update_plan?start_date=${startDate}&end_date=${endDate}`;
+                    const response = await fetch(url, { method: 'POST' }); // POST to trigger update/save
+                    const data = await response.json();
+
+                    if (!response.ok) throw new Error(data.detail || "Error");
+
+                    updateDashboard(data);
+                    showStatus("Planificación actualizada y guardada", "success");
+
+                } catch (e) {
+                    console.error(e);
+                    showStatus("Error al actualizar planificación", "error");
+                } finally {
+                    updatePlanBtn.disabled = false;
+                    updatePlanBtn.textContent = "Actualizar Planificación";
+                }
+            });
+
+            // 4. Generate Excel
+            generateBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent form submit
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) return showStatus("Seleccione fechas", "error");
+
+                // Trigger download directly
+                window.location.href = `/api/planner/generate_plan?start_date=${startDate}&end_date=${endDate}`;
+            });
+
+            // --- 5. Execution Logic ---
+
+            // 5.1 Load Items
+            // 6. Integration: Load Executed Stats
+            async function loadExecutedStats() {
+                try {
+                    const year = new Date().getFullYear();
+                    const res = await fetch(`/api/planner/execution/stats?year=${year}`);
+                    if (res.ok) {
+                        const stats = await res.json();
+                        updateStatsGrids(stats);
+                    }
+                } catch (e) {
+                    console.error("Error loading stats:", e);
+                }
+            }
+
+            function updateStatsGrids(stats) {
+                // Fill Executed Table
+                fillGridTable('executedTable', stats.executed);
+
+
+                // Fill Delta Table
+                const deltaTable = document.getElementById('deltaTable');
+                if (deltaTable) {
+                    fillGridTableByElement(deltaTable, stats.delta);
+                }
+            }
+
+            function fillGridTable(tableId, dataGrid) {
+                const table = document.getElementById(tableId);
+                if (!table) return;
+
+                // Rows 1 (A), 2 (B), 3 (C) usually
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+
+                // Map rows to category
+                // Assuming fixed order A, B, C
+                if (rows.length >= 3) {
+                    updateRowCells(rows[0], dataGrid['A']);
+                    updateRowCells(rows[1], dataGrid['B']);
+                    updateRowCells(rows[2], dataGrid['C']);
+                }
+            }
+
+            function fillGridTableByElement(table, dataGrid) {
+                if (!table) return;
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                if (rows.length >= 3) {
+                    updateRowCells(rows[0], dataGrid['A']);
+                    updateRowCells(rows[1], dataGrid['B']);
+                    updateRowCells(rows[2], dataGrid['C']);
+                }
+            }
+
+            function updateRowCells(row, monthlyValues) {
+                // Cells 1 to 12 (indices) are months
+                const cells = row.querySelectorAll('td');
+                // Cell 0 is Label
+                let total = 0;
+                monthlyValues.forEach((val, i) => {
+                    if (cells[i + 1]) {
+                        cells[i + 1].textContent = val;
+                        total += val;
+                    }
+                });
+                // Last cell is total?
+                if (cells[13]) cells[13].textContent = total;
+            }
+
+            // Call stats load on start
+            loadExecutedStats();
+
+            function updateDashboard(data) {
+                // 1. Calculate Category Counts (Mocking strictly from response if available, else estimating or counting array)
+                // The API 'details' contains { 'Item Code', 'Item Class', 'Planned Date' ... }
+                // We need to group by Item Class (A, B, C)
+
+                let counts = { A: 0, B: 0, C: 0 };
+                let monthlyData = {
+                    A: Array(12).fill(0),
+                    B: Array(12).fill(0),
+                    C: Array(12).fill(0)
+                };
+
+                // Helper to get Unique items per category
+                const uniqueItems = new Set();
+                const itemsByCategory = { A: new Set(), B: new Set(), C: new Set() };
+
+                data.details.forEach(item => {
+                    const cat = item['ABC Code'] || 'C'; // Default to C if missing
+                    const date = new Date(item['Planned Date']);
+                    const month = date.getMonth(); // 0-11
+
+                    if (cat in monthlyData) {
+                        monthlyData[cat][month]++;
+                        itemsByCategory[cat].add(item['Item Code']);
+                    }
+                });
+
+                counts.A = itemsByCategory.A.size;
+                counts.B = itemsByCategory.B.size;
+                counts.C = itemsByCategory.C.size;
+
+                // Update Summary Table
+                document.getElementById('countA').textContent = counts.A;
+                document.getElementById('countB').textContent = counts.B;
+                document.getElementById('countC').textContent = counts.C;
+
+                const reqA = counts.A * 3;
+                const reqB = counts.B * 2;
+                const reqC = counts.C * 1;
+
+                document.getElementById('reqA').textContent = reqA;
+                document.getElementById('reqB').textContent = reqB;
+                document.getElementById('reqC').textContent = reqC;
+
+                const totalReq = reqA + reqB + reqC;
+                document.getElementById('totalReq').textContent = totalReq;
+
+                // Calc Business Days (Simplified: Weekdays - Holidays approx)
+                // Using the range selected
+                let workingDays = 0;
+                const sVal = document.getElementById('startDate').value;
+                const eVal = document.getElementById('endDate').value;
+
+                if (sVal && eVal) {
+                    const start = new Date(sVal + 'T00:00:00');
+                    const end = new Date(eVal + 'T00:00:00');
+                    let cur = new Date(start);
+
+                    // Simple working days calculation (excluding weekends)
+                    // Note: This matches the simplified backend logic for display purposes
+                    while (cur <= end) {
+                        const day = cur.getDay();
+                        if (day !== 0 && day !== 6) workingDays++;
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
+
+                document.getElementById('workingDays').textContent = workingDays;
+
+                const totalDaily = workingDays > 0 ? (totalReq / workingDays).toFixed(1) : 0;
+                document.getElementById('totalDaily').textContent = totalDaily;
+
+                // Approx daily Distribution
+                document.getElementById('dailyA').textContent = workingDays > 0 ? (reqA / workingDays).toFixed(1) : 0;
+                document.getElementById('dailyB').textContent = workingDays > 0 ? (reqB / workingDays).toFixed(1) : 0;
+                document.getElementById('dailyC').textContent = workingDays > 0 ? (reqC / workingDays).toFixed(1) : 0;
+
+                // Update Monthly Grid (Planned)
+                updateRow('rowPlannedA', monthlyData.A);
+                updateRow('rowPlannedB', monthlyData.B);
+                updateRow('rowPlannedC', monthlyData.C);
+
+                // Total Row
+                const totalMonth = monthlyData.A.map((v, i) => v + monthlyData.B[i] + monthlyData.C[i]);
+                updateRow('rowPlannedTotal', totalMonth);
+            }
+
+            function updateRow(rowId, values) {
+                const row = document.getElementById(rowId);
+                const cells = row.querySelectorAll('td'); // 0 is label, 1-12 months, 13 total
+                let rowTotal = 0;
+                values.forEach((val, i) => {
+                    cells[i + 1].textContent = val; // +1 because first cell is label
+                    rowTotal += val;
+                });
+                cells[13].textContent = rowTotal;
+            }
+        });
+    </script>
+</body>
+
+</html>

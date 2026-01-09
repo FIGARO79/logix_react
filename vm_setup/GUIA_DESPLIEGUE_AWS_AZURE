@@ -1,0 +1,133 @@
+GUIA DE DESPLIEGUE EN LA NUBE (AWS / AZURE) | Logix API Router
+============================================================
+Dominio configurado: www.logixapp.dev
+
+Esta guía sirve tanto para **Microsoft Azure** (Virtual Machine) como para **Amazon AWS** (Lightsail / EC2).
+El sistema base es siempre **Ubuntu 22.04 / 24.04 LTS**.
+
+1. CREAR EL SERVIDOR (ELIGE TU NUBE)
+------------------------------------
+
+OPCION A: MICROSOFT AZURE
+-------------------------
+1. Crea una **Virtual Machine**.
+   - Imagen: Ubuntu Server 22.04 LTS.
+   - Tamaño: Standard_B1ms.
+2. IP Estática:
+   - Ve al recurso "Public IP Address" -> Configuration -> Static.
+3. Firewall (Networking):
+   - Inbound Rules: Permitir puertos 80, 443, 22.
+
+OPCION B: AMAZON AWS (Recomendado: Lightsail)
+---------------------------------------------
+1. Ve a **Amazon Lightsail** y "Create Instance".
+   - Plataforma: Linux/Unix -> OS Only -> Ubuntu 22.04 LTS.
+   - Plan: El de $5 o $10 USD es suficiente.
+2. IP Estática:
+   - Pestaña "Networking" -> "Create static IP" -> Asignar a tu instancia.
+3. Firewall:
+   - Pestaña "Networking" -> IPv4 Firewall -> Add Rule -> HTTP (80) y HTTPS (443).
+
+---> ANOTA TU IP PUBLICA (ej. 20.120.45.99 o 34.200.10.10) <---
+
+2. CONFIGURACION DNS (HOSTINGER)
+--------------------------------
+1. Entra a Hostinger -> Dominios -> logixapp.dev -> DNS.
+2. Elimina registros "parking" o por defecto.
+3. Crea/Edita:
+   | Tipo | Nombre | Valor           |
+   |------|--------|-----------------|
+   | A    | @      | [TU_IP_PUBLICA] |
+   | A    | www    | [TU_IP_PUBLICA] |
+
+3. PREPARACION DEL SERVIDOR (IGUAL PARA AMBOS)
+----------------------------------------------
+Conéctate por SSH (PuTTY o Terminal):
+   Azure: ssh -i clave.pem azureuser@tu-ip
+   AWS:   ssh -i clave.pem ubuntu@tu-ip
+
+A partir de aquí, los comandos son IDÉNTICOS para Azure y AWS:
+
+a) Instalar Dependencias:
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y python3-pip python3-venv python3-dev \
+       nginx git mysql-server libmysqlclient-dev pkg-config \
+       supervisor certbot python3-certbot-nginx
+
+b) Base de Datos MySQL:
+   sudo mysql -e "CREATE DATABASE logix_db;"
+   sudo mysql -e "CREATE USER 'logix_user'@'localhost' IDENTIFIED BY 'TuPasswordSeguro';"
+   sudo mysql -e "GRANT ALL PRIVILEGES ON logix_db.* TO 'logix_user'@'localhost';"
+   sudo mysql -e "FLUSH PRIVILEGES;"
+
+4. INSTALACION DE LA APLICACION
+--------------------------------
+   sudo mkdir -p /var/www/logix
+   sudo chown -R $USER:$USER /var/www/logix
+   cd /var/www/logix
+   
+   # Clonar repo (o subir archivos por SFTP/FileZilla)
+   git clone https://github.com/tu-usuario/logix.git .
+
+   # Entorno Python
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   pip install uvicorn gunicorn mysqlclient
+
+5. SERVICIO SYSTEMD (Auto-run)
+-------------------------------
+Crea el archivo: sudo nano /etc/systemd/system/logix.service
+
+   [Unit]
+   Description=Gunicorn Logix
+   After=network.target
+
+   [Service]
+   User=ubuntu       # OJO: 'ubuntu' en AWS, 'azureuser' en Azure (usa el comando 'whoami' para ver tu usuario)
+   Group=www-data
+   WorkingDirectory=/var/www/logix
+   Environment="PATH=/var/www/logix/venv/bin"
+   Environment="DB_TYPE=mysql"
+   Environment="DB_HOST=localhost"
+   Environment="DB_User=logix_user"
+   Environment="DB_Password=TuPasswordSeguro"
+   Environment="DB_Name=logix_db"
+   ExecStart=/var/www/logix/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000
+
+   [Install]
+   WantedBy=multi-user.target
+
+Activar:
+   sudo systemctl daemon-reload
+   sudo systemctl enable logix
+   sudo systemctl start logix
+
+6. CONFIGURAR NGINX
+--------------------
+Crea: sudo nano /etc/nginx/sites-available/logix
+
+   server {
+       listen 80;
+       server_name logixapp.dev www.logixapp.dev;
+
+       location / {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+       location /static {
+           alias /var/www/logix/static;
+       }
+   }
+
+Activar:
+   sudo ln -sf /etc/nginx/sites-available/logix /etc/nginx/sites-enabled/
+   sudo rm /etc/nginx/sites-enabled/default
+   sudo systemctl restart nginx
+
+7. CERTIFICADO SSL (HTTPS)
+--------------------------
+   sudo certbot --nginx -d logixapp.dev -d www.logixapp.dev

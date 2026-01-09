@@ -50,6 +50,7 @@ class Log(Base):
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     # Nota: observaciones NO existe en tabla logs en producción (MySQL)
     # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
+    archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
 
 class AppState(Base):
     __tablename__ = "app_state"
@@ -107,6 +108,15 @@ class StockCount(Base):
 
     session = relationship("CountSession", back_populates="counts")
 
+class CycleCount(Base):
+    __tablename__ = "cycle_counts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+    count_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("stock_counts.id"))
+
 class PickingAudit(Base):
     __tablename__ = "picking_audits"
 
@@ -150,3 +160,18 @@ class PickingPackageItem(Base):
     qty_scan: Mapped[int] = mapped_column(Integer, nullable=False)
 
     audit = relationship("PickingAudit", back_populates="package_items")
+
+class CycleCountRecording(Base):
+    __tablename__ = "cycle_count_recordings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    planned_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    executed_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    item_description: Mapped[Optional[str]] = mapped_column(String(255))
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
+    system_qty: Mapped[int] = mapped_column(Integer, default=0)
+    physical_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    difference: Mapped[int] = mapped_column(Integer, default=0)
+    username: Mapped[str] = mapped_column(String(100))
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10))

@@ -47,6 +47,22 @@ def inbound_page(request: Request, username: str = Depends(login_required)):
     return templates.TemplateResponse("inbound.html", {"request": request})
 
 
+@router.get('/planner', response_class=HTMLResponse)
+def planner_page(request: Request, username: str = Depends(login_required)):
+    """Página del planificador de conteos."""
+    if not isinstance(username, str):
+        return username
+    return templates.TemplateResponse("planner.html", {"request": request})
+
+
+@router.get('/planner/execution', response_class=HTMLResponse)
+def planner_execution_page(request: Request, username: str = Depends(login_required)):
+    """Página de ejecución diaria de conteos."""
+    if not isinstance(username, str):
+        return username
+    return templates.TemplateResponse("planner_execution.html", {"request": request})
+
+
 @router.get('/view_logs', response_class=HTMLResponse)
 async def view_logs(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Página para ver los logs de inbound."""
