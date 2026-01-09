@@ -302,6 +302,24 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
+        /* Utility for consistent toolbar height */
+        .toolbar-btn {
+            height: 32px !important;
+            padding: 0 12px !important;
+            font-size: 13px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        select.toolbar-btn {
+            padding-right: 24px !important;
+            /* Space for arrow */
+        }
+
         .btn-print-label {
             width: 100%;
             max-width: 265px;
@@ -341,11 +359,11 @@
 
         .archive-selector {
             margin-left: 10px;
-            padding: 6px;
-            font-size: 13px;
+            /* Height and padding handled by toolbar-btn */
             border-radius: 5px;
             border: 1px solid #d1d5db;
             color: black;
+            background-color: white;
         }
 
         /* --- Toast Notification Styles --- */
@@ -1073,6 +1091,13 @@
                 </svg>
                 <span>Confirmación Picking</span>
             </a>
+            <a href="/planner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M6 2a.5.5 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2Z" />
+                </svg>
+                <span>Planificador</span>
+            </a>
             <button class="logout-btn" onclick="window.location.href='/logout'">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M7.5 1v7h1V1z" />
@@ -1253,17 +1278,15 @@
                 <h2 style="font-size: 14px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">Registros de Inbound
                 </h2>
                 <div class="flex items-center">
-                    <button id="UpdateFilesBtn" class="btn-secondary"
-                        style="margin-right: 0.5rem; padding: 6px 12px; font-size: 13px;"
+                    <button id="UpdateFilesBtn" class="btn-secondary toolbar-btn" style="margin-right: 0.5rem;"
                         title="Actualizar Archivos Maestros">Actualizar Archivos</button>
-                    <select id="archiveSelector" class="archive-selector hidden">
+                    <select id="archiveSelector" class="archive-selector toolbar-btn hidden">
                         <option value="">-- Versión Actual --</option>
                     </select>
                     <!-- Log export button removed as requested -->
-                    <button id="cleanBaseBtn" class="btn-clean-base"
+                    <button id="cleanBaseBtn" class="btn-clean-base toolbar-btn"
                         title="Archivar registros actuales y limpiar tabla">Base Limpia</button>
-                    <button id="viewReconciliationBtn" class="btn-secondary ml-2"
-                        style="padding: 6px 12px; font-size: 13px;">Ver Conciliación</button>
+                    <button id="viewReconciliationBtn" class="btn-secondary toolbar-btn ml-2">Ver Conciliación</button>
                 </div>
             </div>
             <div class="overflow-x-auto" style="padding: 1px;">
@@ -2032,7 +2055,21 @@
                 const isItemDataPresent = !!currentItemData;
                 const isPackingList = !!importReferenceInput.value.trim();
                 const isWaybill = !!waybillInput.value.trim();
-                const isQuantity = parseInt(quantityInput.value) > 0;
+                const quantityVal = parseInt(quantityInput.value);
+                const isQuantity = quantityVal > 0;
+
+                // --- Label Dynamic Update Logic ---
+                if (isItemDataPresent && isQuantity) {
+                    const unitWeight = parseFloat(currentItemData.Weight_per_Unit) || 0;
+                    const totalWeight = (quantityVal * unitWeight).toFixed(2);
+                    labelQty.textContent = quantityVal;
+                    labelWeight.textContent = totalWeight;
+                } else if (isItemDataPresent) {
+                    // Reset if quantity invalid but item present
+                    labelQty.textContent = "";
+                    labelWeight.textContent = parseFloat(currentItemData.Weight_per_Unit || 0).toFixed(2);
+                }
+                // ----------------------------------
 
                 addLogEntryBtn.disabled = !(isItemDataPresent && isPackingList && isWaybill && isQuantity);
                 printLabelBtn.disabled = !isItemDataPresent;

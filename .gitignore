@@ -44,6 +44,7 @@ yarn-error.log*
 mysql.txt
 *.egg
 *.md
+*.txt
 *.xlsm
 *.bak
 *.backup    

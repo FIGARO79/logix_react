@@ -7,8 +7,8 @@
 # Asegurar que estamos en el directorio del script
 cd "$(dirname "$0")"
 
-# Configuración de ruta del entorno virtual (en HOME para evitar problemas de USB)
-VENV_PATH="$HOME/.logix_venv"
+# Configuración de ruta del entorno virtual (Estándar local)
+VENV_PATH=".venv"
 
 # 1. Buscar Python del Sistema
 if command -v python3 &> /dev/null; then

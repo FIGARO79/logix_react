@@ -23,8 +23,11 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/planner", tags=["planner"])
 
 # --- Persistencia de Configuración ---
-CONFIG_FILE = "static/json/planner_config.json"
-PLAN_DATA_FILE = "static/json/planner_data.json"
+from app.core.config import PROJECT_ROOT
+
+# --- Persistencia de Configuración ---
+CONFIG_FILE = os.path.join(PROJECT_ROOT, "static/json/planner_config.json")
+PLAN_DATA_FILE = os.path.join(PROJECT_ROOT, "static/json/planner_data.json")
 
 def load_config():
     """Carga la configuración desde el archivo JSON, o usa defaults."""
