@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 import pandas as pd
 import os
@@ -179,4 +179,83 @@ async def clear_database(request: Request, password: str = Form(...), db: AsyncS
     
     except Exception as e:
         query_params = urlencode({'error': str(e)})
+        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+
+
+# --- Endpoint para descargar TODO el log (Backup) ---
+@router.post('/export_all_log')
+async def export_all_log(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """Exporta TODOS los registros (activos y archivados) a Excel como backup."""
+    redirect_url = request.url_for('update_files_get')
+
+    if password != UPDATE_PASSWORD:
+        query_params = urlencode({'error': 'Contraseña incorrecta'})
+        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+
+    try:
+        from app.services import db_logs
+        from openpyxl.utils import get_column_letter
+
+        # Cargar TODOS los logs
+        logs_data = await db_logs.load_all_logs_db_async(db)
+        
+        if not logs_data:
+             query_params = urlencode({'error': 'No hay datos para exportar backup'})
+             return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+
+        df = pd.DataFrame(logs_data)
+
+        # Procesar timestamp
+        try:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            if df['timestamp'].dt.tz is not None:
+                 colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+                 df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
+        except Exception:
+            pass
+        
+        # Procesar archived_at para formato limpio
+        if 'archived_at' in df.columns:
+             df['archived_at'] = df['archived_at'].fillna('Activo')
+
+        df_export = df.rename(columns={
+            'timestamp': 'Timestamp', 'importReference': 'Import Reference', 'waybill': 'Waybill',
+            'itemCode': 'Item Code', 'itemDescription': 'Item Description',
+            'binLocation': 'Bin Location (Original)', 'relocatedBin': 'Relocated Bin (New)',
+            'qtyReceived': 'Qty. Received', 'qtyGrn': 'Qty. Expected (Total)', 'difference': 'Difference',
+            'archived_at': 'Estado / Fecha Archivo'
+        })
+
+        # Columnas a exportar (asegurando orden)
+        cols = ['Timestamp', 'Import Reference', 'Waybill', 'Item Code', 'Item Description', 
+                'Bin Location (Original)', 'Relocated Bin (New)', 'Qty. Received', 
+                'Qty. Expected (Total)', 'Difference', 'Estado / Fecha Archivo']
+        
+        # Filtrar solo columnas existentes (por si acaso)
+        cols = [c for c in cols if c in df_export.columns]
+        df_export = df_export[cols]
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_export.to_excel(writer, index=False, sheet_name='BackupCompleto')
+            worksheet = writer.sheets['BackupCompleto']
+            for i, col_name in enumerate(df_export.columns):
+                column_letter = get_column_letter(i + 1)
+                max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = max_len
+
+        output.seek(0)
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"BACKUP_FULL_LOG_{timestamp_str}.xlsx"
+        
+        return Response(
+            content=output.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        query_params = urlencode({'error': f'Error generando backup: {str(e)}'})
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)

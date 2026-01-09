@@ -324,6 +324,30 @@
             background-color: #1565C0;
         }
 
+        .btn-clean-base {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .btn-clean-base:hover {
+            background-color: #b91c1c;
+        }
+
+        .archive-selector {
+            margin-left: 10px;
+            padding: 6px;
+            font-size: 13px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            color: black;
+        }
+
         /* --- Toast Notification Styles --- */
         #toast-container {
             position: fixed;
@@ -1225,9 +1249,22 @@
         <div
             style="background-color: #ffffff; padding: 0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid var(--sap-border); overflow: hidden;">
             <div
-                style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 8px 16px;">
+                style="background: linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%); color: white; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between;">
                 <h2 style="font-size: 14px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">Registros de Inbound
                 </h2>
+                <div class="flex items-center">
+                    <button id="UpdateFilesBtn" class="btn-secondary"
+                        style="margin-right: 0.5rem; padding: 6px 12px; font-size: 13px;"
+                        title="Actualizar Archivos Maestros">Actualizar Archivos</button>
+                    <select id="archiveSelector" class="archive-selector hidden">
+                        <option value="">-- Versión Actual --</option>
+                    </select>
+                    <!-- Log export button removed as requested -->
+                    <button id="cleanBaseBtn" class="btn-clean-base"
+                        title="Archivar registros actuales y limpiar tabla">Base Limpia</button>
+                    <button id="viewReconciliationBtn" class="btn-secondary ml-2"
+                        style="padding: 6px 12px; font-size: 13px;">Ver Conciliación</button>
+                </div>
             </div>
             <div class="overflow-x-auto" style="padding: 1px;">
                 <table class="min-w-full" id="logTable">
@@ -1348,6 +1385,8 @@
             const updateFilesBtn = document.getElementById("UpdateFilesBtn");
             const viewLogsLinkBtn = document.getElementById("viewLogsLinkBtn");
             const viewReconciliationBtn = document.getElementById("viewReconciliationBtn");
+            const cleanBaseBtn = document.getElementById("cleanBaseBtn");
+            const archiveSelector = document.getElementById("archiveSelector");
             // Scanner elements
             const scanItemBtn = document.getElementById("scanItemBtn");
             const scannerModal = document.getElementById('scanner-modal');
@@ -1802,12 +1841,15 @@
                                 }
                             }
             */
-            async function loadInitialLogs() {
-                showToast("Cargando registros...", "info");
+            async function loadInitialLogs(versionDate = null) {
+                showToast(versionDate ? "Cargando histórico..." : "Cargando registros...", "info");
                 try {
-                    // MODIFICACIÓN: Se añade { cache: 'no-cache' } para evitar que el navegador
-                    // muestre datos viejos guardados en memoria.
-                    const response = await fetch(`${API_BASE_URL}/get_logs`, { cache: 'no-cache' });
+                    let url = `${API_BASE_URL}/get_logs`;
+                    if (versionDate) {
+                        url += `?version_date=${encodeURIComponent(versionDate)}`;
+                    }
+                    const response = await fetch(url, { cache: 'no-cache' });
+
                     if (response.ok) {
                         const logs = await response.json();
                         logTableBody.innerHTML = "";
@@ -1815,6 +1857,19 @@
                         updateSortIndicators(currentSortColumnIndex, currentSortDirection);
                         sortTableByColumn(currentSortColumnIndex, currentSortDirection, true);
                         showToast("Registros cargados.", "success");
+
+                        // Si estamos viendo histórico, deshabilitar acciones
+                        if (versionDate) {
+                            document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
+                            if (addLogEntryBtn) addLogEntryBtn.disabled = true;
+                            if (cleanBaseBtn) cleanBaseBtn.classList.add('hidden');
+                        } else {
+                            if (addLogEntryBtn) addLogEntryBtn.disabled = false;
+                            checkFormValidity();
+                            if (cleanBaseBtn) cleanBaseBtn.classList.remove('hidden');
+                            await loadArchiveVersions(); // Refrescar lista de versiones
+                        }
+
                     } else {
                         const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
                         showToast(errorData.error, "error");
@@ -1823,6 +1878,57 @@
                     showToast("Error de conexión al cargar registros.", "error");
                 } finally {
                     checkTableEmpty();
+                }
+            }
+
+            async function archiveLogs() {
+                if (!confirm("¿Está seguro de que desea limpiar la base? \n\nEsta acción archivará los registros actuales y dejará la tabla vacía para un nuevo proceso. Los datos actuales se podrán consultar después en el histórico.")) return;
+
+                showToast("Archivando registros...", "info");
+                toggleButtonSpinner(cleanBaseBtn, true, 'Base Limpia');
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/logs/archive`, { method: "POST" });
+
+                    if (response.ok) {
+                        showToast("Base limpiada y registros archivados.", "success");
+                        await loadInitialLogs(); // Recarga la tabla (vacía)
+                        await loadArchiveVersions(); // Actualiza dropdown
+                    } else {
+                        const err = await response.json();
+                        showToast(err.detail || "Error al archivar.", "error");
+                    }
+                } catch (error) {
+                    showToast("Error de conexión al archivar.", "error");
+                } finally {
+                    toggleButtonSpinner(cleanBaseBtn, false, 'Base Limpia');
+                }
+            }
+
+            async function loadArchiveVersions() {
+                if (!archiveSelector) return;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/logs/versions`);
+                    if (response.ok) {
+                        const versions = await response.json();
+                        archiveSelector.innerHTML = '<option value="">-- Versión Actual --</option>';
+
+                        if (versions.length > 0) {
+                            archiveSelector.classList.remove('hidden');
+                            versions.forEach(v => {
+                                const date = new Date(v);
+                                const label = date.toLocaleString('es-CO');
+                                const opt = document.createElement('option');
+                                opt.value = v;
+                                opt.textContent = `Archivo: ${label}`;
+                                archiveSelector.appendChild(opt);
+                            });
+                        } else {
+                            archiveSelector.classList.add('hidden');
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error cargando versiones:", e);
                 }
             }
 
@@ -1888,7 +1994,11 @@
                 if (logTableBody.rows.length === 0) { showToast("No hay datos para exportar.", "error"); return; }
                 showToast("Generando Excel...", "info");
                 try {
-                    const response = await fetch(`${API_BASE_URL}/export_log`);
+                    let url = `${API_BASE_URL}/export_log`;
+                    if (archiveSelector && archiveSelector.value) {
+                        url += `?version_date=${encodeURIComponent(archiveSelector.value)}`;
+                    }
+                    const response = await fetch(url);
                     if (response.ok) {
                         const blob = await response.blob();
                         const disposition = response.headers.get("Content-Disposition");
@@ -2003,6 +2113,15 @@
             });
 
             closeScannerBtn?.addEventListener('click', stopScanning);
+
+            if (cleanBaseBtn) cleanBaseBtn.addEventListener('click', archiveLogs);
+
+            if (archiveSelector) {
+                archiveSelector.addEventListener('change', (e) => {
+                    const version = e.target.value;
+                    loadInitialLogs(version);
+                });
+            }
 
             // Initial setup
             [importReferenceInput, waybillInput, itemCodeInput, quantityInput].forEach(input => {

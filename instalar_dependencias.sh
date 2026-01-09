@@ -6,6 +6,9 @@
 
 cd "$(dirname "$0")"
 
+# Configuración de ruta del entorno virtual (en HOME para evitar problemas de USB)
+VENV_PATH="$HOME/.logix_venv"
+
 # 1. Verificar Python
 if command -v python3 &> /dev/null; then
     PYTHON_CMD="python3"
@@ -18,17 +21,17 @@ else
 fi
 
 # 2. Crear entorno virtual si no existe
-if [ ! -d ".venv_linux" ]; then
-    echo "[INFO] Creando entorno virtual .venv_linux (compatible con USB)..."
-    $PYTHON_CMD -m venv .venv_linux --copies
+if [ ! -d "$VENV_PATH" ]; then
+    echo "[INFO] Creando entorno virtual en $VENV_PATH..."
+    $PYTHON_CMD -m venv "$VENV_PATH"
 else
-    echo "[INFO] Entorno virtual (.venv_linux) ya existe."
+    echo "[INFO] Entorno virtual ya existe en $VENV_PATH."
 fi
 
 # 3. Actualizar pip e instalar requerimientos
 echo "[INFO] Instalando librerías desde requirements.txt..."
-.venv_linux/bin/python -m pip install --upgrade pip
-.venv_linux/bin/python -m pip install -r requirements.txt
+"$VENV_PATH/bin/python" -m pip install --upgrade pip
+"$VENV_PATH/bin/python" -m pip install -r requirements.txt
 
 if [ $? -eq 0 ]; then
     echo ""

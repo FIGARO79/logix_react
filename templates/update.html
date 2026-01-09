@@ -578,6 +578,32 @@
                             Esta acción borrará permanentemente todos los registros del historial de inbound y no se
                             puede deshacer.
                         </p>
+
+                        <!-- Formulario de descarga de backup -->
+                        <form action="/export_all_log" method="post" class="mb-6">
+                            <label for="password_backup" class="block mb-2 text-xs font-semibold"
+                                style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Confirmar
+                                Contraseña para Backup:</label>
+                            <div class="relative mb-2">
+                                <input type="password" id="password_backup" name="password" required
+                                    style="font-family: var(--sapFontFamily); font-size: var(--sapFontSize); border: 0.0625rem solid var(--sapFieldBorderColor); padding: 0.25rem 2.5rem 0.25rem 0.5rem; border-radius: 0.25rem; background-color: var(--sapFieldBackground); color: var(--sapTextColor); height: 2.25rem; width: 100%;">
+                            </div>
+                            <button type="submit"
+                                class="w-full font-medium rounded text-sm px-5 py-3 text-center transition-all duration-150"
+                                style="background-color: var(--sapInformativeColor); color: white; border: 0.0625rem solid var(--sapInformativeColor); font-family: var(--sapFontFamily); height: 2.75rem;"
+                                onmouseover="this.style.backgroundColor='#0854a0';"
+                                onmouseout="this.style.backgroundColor='var(--sapInformativeColor)';">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Descargar Respaldo Completo (Activos + Histórico)
+                            </button>
+                        </form>
+
+                        <hr class="my-6 border-red-200">
+
                         <form action="/clear_database" method="post"
                             onsubmit="return confirm('ADVERTENCIA: ¿Estás TOTALMENTE SEGURO de que quieres borrar TODOS los registros? Esta acción no se puede deshacer.');">
                             <div class="mb-4">

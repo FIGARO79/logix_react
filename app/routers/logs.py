@@ -17,6 +17,7 @@ from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 import numpy as np
+from typing import Optional
 
 # Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
 async_engine = create_async_engine(
@@ -140,10 +141,33 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
 
 
 @router.get('/get_logs')
-async def get_logs(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
-    """Obtiene todos los registros de entrada."""
-    logs = await db_logs.load_log_data_db_async(db)
+async def get_logs(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """
+    Obtiene los registros de entrada.
+    Si version_date is None: obtiene los logs ACTIVOS.
+    Si version_date tiene valor: obtiene los logs de esa versión archivada.
+    """
+    if version_date:
+        logs = await db_logs.load_archived_log_data_db_async(db, version_date)
+    else:
+        logs = await db_logs.load_log_data_db_async(db)
     return JSONResponse(content=logs)
+
+
+@router.post('/logs/archive')
+async def archive_logs(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Archiva los logs actuales para limpiar la base."""
+    success = await db_logs.archive_current_logs_db_async(db)
+    if success:
+        return JSONResponse({'message': 'Logs archivados correctamente.'})
+    raise HTTPException(status_code=500, detail="Error al archivar los logs.")
+
+
+@router.get('/logs/versions')
+async def get_log_versions(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Obtiene las fechas disponibles de archivos históricos."""
+    versions = await db_logs.get_archived_versions_db_async(db)
+    return JSONResponse(content=versions)
 
 
 @router.delete('/delete_log/{log_id}')
@@ -156,9 +180,13 @@ async def delete_log_api(log_id: int, username: str = Depends(login_required), d
 
 
 @router.get('/export_log')
-async def export_log(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def export_log(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Exporta todos los registros de inbound a un archivo Excel."""
-    logs_data = await db_logs.load_log_data_db_async(db)
+    if version_date:
+        logs_data = await db_logs.load_archived_log_data_db_async(db, version_date)
+    else:
+        logs_data = await db_logs.load_log_data_db_async(db)
+    
     if not logs_data:
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
