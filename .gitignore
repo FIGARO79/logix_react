@@ -12,6 +12,7 @@ __pycache__/
 .env
 .env.local
 .env.development
+.env.example
 .env.development.mysql
 .env.production
 .env.*.local
