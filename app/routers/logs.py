@@ -8,6 +8,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse, Response
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import LogEntry
@@ -383,13 +384,14 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
 
 
 @router.get('/export_reconciliation')
-async def export_reconciliation(timezone_offset: int = 0, username: str = Depends(login_required)):
+async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
     try:
         async with async_engine.connect() as conn:
-            # Pandas read_sql doesn't support AsyncSession directly easily, using connection is standard
-            # We use text() for the raw SQL
-            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
+            if archive_date:
+                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs WHERE archived_at = :date'), sync_conn, params={"date": archive_date}))
+            else:
+                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs WHERE archived_at IS NULL'), sync_conn))
 
         # Accedemos al caché de GRN
         grn_df = csv_handler.df_grn_cache 

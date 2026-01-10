@@ -172,10 +172,14 @@ async def archive_current_logs_db_async(db: AsyncSession) -> bool:
 async def get_archived_versions_db_async(db: AsyncSession) -> List[str]:
     """Obtiene una lista de las fechas de archivado únicas."""
     try:
-        stmt = select(distinct(Log.archived_at)).where(Log.archived_at.is_not(None)).order_by(Log.archived_at.desc())
+        # Fetch all dates (including duplicates)
+        stmt = select(Log.archived_at).where(Log.archived_at.is_not(None)).order_by(Log.archived_at.desc())
         result = await db.execute(stmt)
-        versions = result.scalars().all()
-        return [v for v in versions if v]
+        dates = result.scalars().all()
+        
+        # Deduplicate preserving order (Python 3.7+ dict is insertion ordered)
+        unique_versions = list(dict.fromkeys([d for d in dates if d]))
+        return unique_versions
     except Exception as e:
         print(f"DB Error (get_archived_versions_db_async): {e}")
         return []

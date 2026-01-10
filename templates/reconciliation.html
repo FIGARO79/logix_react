@@ -865,6 +865,15 @@
                     Conciliación</h1>
 
                 <div class="flex space-x-2">
+                    <select id="archive-selector" onchange="loadArchive(this.value)" class="sap-search"
+                        style="min-width: 12rem; margin-right: 0.5rem; height: 38px;">
+                        <option value="">Logs Activos</option>
+                        {% for version in archive_versions %}
+                        <option value="{{ version }}" {% if current_archive_date==version %}selected{% endif %}>
+                            {{ version }}
+                        </option>
+                        {% endfor %}
+                    </select>
                     <button onclick="generateItemsWithoutGrnReport()" class="btn-primary" id="btn-items-without-grn"
                         title="Generar reporte de items sin GRN">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -885,6 +894,14 @@
                         </svg>
                         Exportar a Excel
                     </a>
+                    <button onclick="archiveLogs()" class="btn-secondary" title="Archivar logs actuales">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path
+                                d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 1h12a1 1 0 0 1 1 1v10.586l-2-2A2 2 0 0 0 11.586 10H8.414a2 2 0 0 0-1.414.586l-2 2V2a1 1 0 0 1 1-1z" />
+                        </svg>
+                        Archivar Logs
+                    </button>
                 </div>
             </div>
 
@@ -1237,7 +1254,15 @@
         function exportReconciliation(event) {
             event.preventDefault();
             const timezoneOffset = new Date().getTimezoneOffset();
-            window.location.href = `/api/export_reconciliation?timezone_offset=${timezoneOffset}`;
+            const urlParams = new URLSearchParams(window.location.search);
+            const archiveDate = urlParams.get('archive_date');
+
+            let exportUrl = `/api/export_reconciliation?timezone_offset=${timezoneOffset}`;
+            if (archiveDate) {
+                exportUrl += `&archive_date=${encodeURIComponent(archiveDate)}`;
+            }
+
+            window.location.href = exportUrl;
             showNotification('Descargando reporte de conciliación...', 'information');
         }
 
@@ -1351,6 +1376,42 @@
                 }
             });
         });
+
+        async function archiveLogs() {
+            if (!confirm("¿Está seguro de que desea archivar los logs actuales? Esta acción moverá los registros actuales al histórico y limpiará la vista actual.")) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/logs/archive', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification("Logs archivados correctamente. Recargando...", "success");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    const error = await response.json();
+                    showNotification("Error al archivar logs: " + (error.detail || "Error desconocido"), "error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                showNotification("Error de conexión al archivar logs", "error");
+            }
+        }
+
+        function loadArchive(date) {
+            if (date) {
+                window.location.href = '/reconciliation?archive_date=' + encodeURIComponent(date);
+            } else {
+                window.location.href = '/reconciliation';
+            }
+        }
     </script>
 
 </body>

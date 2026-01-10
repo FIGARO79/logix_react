@@ -13,6 +13,8 @@ from app.core.config import ASYNC_DB_URL
 from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession
 import pandas as pd
 import numpy as np
+from sqlalchemy import text
+from typing import Optional
 
 router = APIRouter(tags=["views"])
 
@@ -153,18 +155,31 @@ async def view_counts_page(request: Request, username: str = Depends(login_requi
 
 
 @router.get('/reconciliation', response_class=HTMLResponse)
-async def reconciliation_page(request: Request, username: str = Depends(login_required)):
+async def reconciliation_page(request: Request, archive_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Página de reconciliación con procesamiento de datos."""
     if not isinstance(username, str):
         return username
     try:
+        # Obtener versiones archivadas para el dropdown
+        archive_versions = await db_logs.get_archived_versions_db_async(db)
+
         async with async_engine.connect() as conn:
-            logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query('SELECT * FROM logs', sync_conn))
+            if archive_date:
+                # Usar parámetros en read_sql para seguridad (aunque sea una fecha interna)
+                query = text('SELECT * FROM logs WHERE archived_at = :date')
+                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(query, sync_conn, params={"date": archive_date}))
+            else:
+                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query('SELECT * FROM logs WHERE archived_at IS NULL', sync_conn))
 
         grn_df = csv_handler.df_grn_cache
 
         if logs_df.empty or grn_df is None:
-            return templates.TemplateResponse('reconciliation.html', {"request": request, "tables": []})
+            return templates.TemplateResponse('reconciliation.html', {
+                "request": request, 
+                "tables": [], 
+                "archive_versions": archive_versions,
+                "current_archive_date": archive_date
+            })
 
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
         grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
@@ -242,11 +257,13 @@ async def reconciliation_page(request: Request, username: str = Depends(login_re
         return templates.TemplateResponse('reconciliation.html', {
             "request": request,
             "tables": [merged_df.to_html(classes='min-w-full leading-normal dataframe', border=0, index=False)],
-            "titles": merged_df.columns.values
+            "titles": merged_df.columns.values,
+            "archive_versions": archive_versions,
+            "current_archive_date": archive_date
         })
 
     except Exception as e:
-        return templates.TemplateResponse('reconciliation.html', {"request": request, "error": str(e)})
+        return templates.TemplateResponse('reconciliation.html', {"request": request, "error": str(e), "archive_versions": []})
 
 
 @router.get('/picking', response_class=HTMLResponse)
