@@ -1,47 +1,90 @@
-# logitrack
-Gestión de procesos de almacén
+# Logix API Router
 
-> ⚠️ **ADVERTENCIA DE SEGURIDAD**: Este proyecto requiere configuración obligatoria de variables de entorno antes del primer uso. La aplicación NO iniciará sin las credenciales necesarias.
+Back-end API application specialized in warehouse management, inventory control, and logistics operations. Built with FastAPI for high performance and scalability.
 
-## 🔧 Configuración Inicial
+## 🚀 Technology Stack
 
-### 1. Instalación de Dependencias
+- **Framework**: FastAPI (Python 3.x)
+- **Database**:
+    - **Production**: MySQL / MariaDB (via `aiomysql`)
+    - **Development**: SQLite (via `aiosqlite`)
+- **ORM**: SQLAlchemy (Async)
+- **Server**: Uvicorn / Gunicorn
+- **Deployment**: Systemd + Nginx on Debian/Ubuntu
+
+## 🛠️ Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/tu-usuario/logix.git
+    cd logix
+    ```
+
+2.  **Create a virtual environment:**
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate  # Linux/Mac
+    # .venv\Scripts\activate   # Windows
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+## ⚙️ Configuration
+
+The application uses environment variables for configuration.
+
+1.  **Create the `.env` file:**
+    - For **Production**: Copy `env.production.example` to `.env`
+    - For **Development**: Copy `.env.example` to `.env`
+
+2.  **Edit `.env`:**
+
+    ```ini
+    # Database Configuration (Example for Production)
+    DB_TYPE=mysql
+    DB_HOST=localhost
+    DB_NAME=logix_db
+    DB_USER=logix_user
+    DB_PASSWORD=your_secure_password
+
+    # Security
+    SECRET_KEY=your_generated_secret_key
+    UPDATE_PASSWORD=your_update_password
+    ```
+
+## 🏃‍♂️ Running the Application
+
+### Development (Local)
+To run the server with auto-reload:
 ```bash
-instalar_dependencias.bat
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. ⚠️ Configuración de Seguridad (OBLIGATORIO)
-La aplicación NO funcionará sin este paso:
+### Production (VPS / Server)
+The application is designed to run behind Nginx using Systemd.
 
-1. Copia el archivo de ejemplo:
-   ```bash
-   copy .env.example .env
-   ```
+1.  **Service Configuration**:
+    Use the file `vm_setup/logix.service` to configure the Systemd service. Adjust paths and user as necessary.
 
-2. Genera una clave secreta segura:
-   ```bash
-   python -c "import secrets; print(secrets.token_urlsafe(32))"
-   ```
+2.  **Nginx Configuration**:
+    Use the file `vm_setup/nginx_logix` as a template for your Nginx server block.
 
-3. Edita `.env` y actualiza con valores REALES y SEGUROS:
-   ```env
-   SECRET_KEY=tu_clave_generada_aqui
-   UPDATE_PASSWORD=tu_contraseña_admin_segura
-   ```
+3.  **Start Services**:
+    ```bash
+    sudo systemctl enable logix
+    sudo systemctl start logix
+    sudo systemctl restart nginx
+    ```
 
-4. **NUNCA** compartas o subas el archivo `.env` al repositorio
+## 📂 Project Structure
 
-📖 Para más detalles, consulta [CONFIGURACION_ENV.md](CONFIGURACION_ENV.md)
-
-### 3. Iniciar la Aplicación
-```bash
-iniciar_app.bat
-```
-
-## 🔐 Seguridad
-
-- Las contraseñas se almacenan hasheadas con bcrypt (werkzeug.security)
-- Requisitos de contraseña: mínimo 8 caracteres, letras y números
-- Sistema de tokens de un solo uso para reset de contraseña
-- Las claves secretas se cargan desde variables de entorno
-- **Nunca** subas el archivo `.env` al repositorio
+- `app/`: Main application source code.
+    - `core/`: Configuration and database logic.
+    - `routers/`: API endpoints logic.
+    - `models/`: Database models.
+- `vm_setup/`: Deployment configuration files (Systemd, Nginx, Guides).
+- `databases/`: Directory for CSV data imports.
+- `instance/`: Directory for SQLite database (Development).
