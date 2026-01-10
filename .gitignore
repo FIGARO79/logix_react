@@ -43,11 +43,12 @@ yarn-error.log*
 *.egg-info/
 mysql.txt
 *.egg
-*.md
-*.txt
-*.xlsm
 *.bak
-*.backup    
+*.backup
+
+# Mantener archivos importantes aunque sean txt o md
+!requirements.txt
+!README.md    
 *.xlsx
 GUIA_DESPLIEGUE_OVH.md
 *.sh

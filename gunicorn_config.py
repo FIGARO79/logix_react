@@ -8,8 +8,8 @@ import multiprocessing
 cores = multiprocessing.cpu_count()
 
 # Configuración de workers
-# Fórmula: (2 x cores) + 1, pero limitado para apps asíncronas
-workers = min((cores * 2) + 1, 8)  # Máximo 8 workers
+# Configuración manual solicitada: 5 workers con UvicornWorker
+workers = 5
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Binding

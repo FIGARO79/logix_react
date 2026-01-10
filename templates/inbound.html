@@ -1236,8 +1236,8 @@
                             <div class="label-container">
                                 <div>
                                     <div class="mb-3">
-                                        <img src="/static/images/logoytpe_sandvik.png" alt="Logotipo Sandvik Etiqueta"
-                                            class="label-logo"
+                                        <img src="{{ secure_url_for(request, 'static', path='images/logoytpe_sandvik.png') }}"
+                                            alt="Logotipo Sandvik Etiqueta" class="label-logo"
                                             onerror="this.onerror=null; this.src='https://placehold.co/130x25/f3f4f6/6b7280?text=Error+Logo';" />
                                         <p class="label-item-code" id="labelItemCode">ITEM CODE</p>
                                         <p class="label-item-description" id="labelItemDescription">Item Description</p>
