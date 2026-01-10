@@ -60,7 +60,12 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 # --- Middlewares de seguridad personalizados ---
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=None)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY, 
+    max_age=None,
+    https_only=False  # Permitir cookies en HTTP y HTTPS para compatibilidad con proxy
+)
 
 # --- Montar archivos estáticos ---
 app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "static")), name="static")
