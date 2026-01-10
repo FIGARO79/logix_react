@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from app.models.schemas import PickingAudit
 from app.utils.auth import login_required
-from app.core.config import DB_FILE_PATH
+from app.core.config import DB_PATH
 import aiosqlite
 
 router = APIRouter(prefix="/api", tags=["picking"])
@@ -108,7 +108,7 @@ async def get_picking_tracking():
 @router.get('/picking_audit/{audit_id}/print')
 async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+    async with aiosqlite.connect(DB_PATH) as conn:
         try:
             conn.row_factory = aiosqlite.Row
             
@@ -159,7 +159,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(log
 @router.get('/picking_audit/{audit_id}')
 async def get_picking_audit(audit_id: int, username: str = Depends(login_required)):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+    async with aiosqlite.connect(DB_PATH) as conn:
         try:
             conn.row_factory = aiosqlite.Row
             
@@ -219,7 +219,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(login_require
 @router.put('/update_picking_audit/{audit_id}')
 async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(login_required)):
     """Actualiza una auditoría de picking existente. Solo permite editar auditorías del mismo día."""
-    async with aiosqlite.connect(DB_FILE_PATH) as conn:
+    async with aiosqlite.connect(DB_PATH) as conn:
         try:
             conn.row_factory = aiosqlite.Row
             
