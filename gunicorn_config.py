@@ -1,0 +1,37 @@
+"""
+Configuración de Gunicorn para Logix_ApiRouter
+Detecta automáticamente los núcleos del sistema
+"""
+import multiprocessing
+
+# Detectar núcleos automáticamente
+cores = multiprocessing.cpu_count()
+
+# Configuración de workers
+# Fórmula: (2 x cores) + 1, pero limitado para apps asíncronas
+workers = min((cores * 2) + 1, 8)  # Máximo 8 workers
+worker_class = "uvicorn.workers.UvicornWorker"
+
+# Binding
+bind = "0.0.0.0:8000"
+
+# Logs
+accesslog = "access.log"
+errorlog = "error.log"
+loglevel = "info"
+
+# Timeouts
+timeout = 120
+keepalive = 5
+
+# Performance
+worker_connections = 1000
+max_requests = 1000  # Reiniciar workers después de N requests (evita memory leaks)
+max_requests_jitter = 100
+
+# Hook para mostrar info solo una vez
+def on_starting(server):
+    print(f"🚀 Gunicorn iniciando:")
+    print(f"   CPU Cores: {cores}")
+    print(f"   Workers: {workers}")
+    print(f"   Binding: {bind}")
