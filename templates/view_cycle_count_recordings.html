@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Conteos - Logix</title>
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/fallback.css">
+    <!-- SAP '72' Font -->
+    <link rel="stylesheet" href="https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/library.css">
+    <style>
+        @font-face {
+            font-family: '72';
+            src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: '72';
+            src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+    </style>
+    <style>
+        /* ===== SAP Fiori Quartz/Belize Theme ===== */
+        :root {
+            /* SAP Fiori Colors - Quartz Light / Belize */
+            --sapBrandColor: #0a6ed1;
+            --sapHighlightColor: #0854a0;
+            --sapBaseColor: #fff;
+            --sapShellColor: #354a5f;
+            --sapBackgroundColor: #f7f7f7;
+            --sapFontFamily: '72', '72full', Arial, Helvetica, sans-serif;
+            --sapFontSize: 0.875rem;
+            --sapTextColor: #32363a;
+            --sapLinkColor: #0a6ed1;
+
+            /* Semantic Colors */
+            --sapPositiveColor: #107e3e;
+            --sapNegativeColor: #b00;
+            --sapCriticalColor: #e9730c;
+            --sapNeutralColor: #6a6d70;
+            --sapInformativeColor: #0a6ed1;
+
+            /* UI Colors */
+            --sapTileBackground: #fff;
+            --sapTileBorder: #d9d9d9;
+            --sapButtonBackground: #fff;
+            --sapButtonBorderColor: #0854a0;
+            --sapButtonHoverBackground: #ebf5fe;
+            --sapFieldBackground: #fff;
+            --sapFieldBorderColor: #89919a;
+
+            /* Table Colors */
+            --sapList_HeaderBackground: #f2f2f2;
+            --sapList_BorderColor: #e5e5e5;
+            --sapList_Hover_Background: #f5f5f5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--sapFontFamily);
+            font-size: var(--sapFontSize);
+            background-color: var(--sapBackgroundColor);
+            color: var(--sapTextColor);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* Header superior - SAP Fiori Shell Bar */
+        .top-header {
+            background-color: var(--sapShellColor);
+            color: white;
+            padding: 0 1rem;
+            height: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-toggle svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 0;
+            color: #fff;
+        }
+
+        /* Menú desplegable - SAP Fiori Side Navigation */
+        .dropdown-menu {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 15rem;
+            max-height: calc(100vh - 44px);
+            background-color: var(--sapShellColor);
+            box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.3);
+            transform: translateX(-100%);
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .dropdown-menu.open {
+            transform: translateX(0);
+        }
+
+        .dropdown-menu nav {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-menu a,
+        .dropdown-menu .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 0;
+            margin: 0;
+            transition: background-color 0.1s ease;
+            font-size: 0.875rem;
+            border-left: 0.1875rem solid transparent;
+        }
+
+        .dropdown-menu a:hover,
+        .dropdown-menu .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sapBrandColor);
+        }
+
+        .dropdown-menu a:active,
+        .dropdown-menu .logout-btn:active {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .dropdown-menu svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 44px);
+            background-color: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 0;
+            margin: 0;
+        }
+
+        .table-container {
+            max-height: 80vh;
+            overflow-y: auto;
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        /* SAP Fiori Table Styles */
+        table {
+            font-family: var(--sapFontFamily);
+            font-size: var(--sapFontSize);
+            border-collapse: collapse;
+            width: 100%;
+            min-width: max-content;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--sapList_HeaderBackground);
+            color: var(--sapTextColor);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 0.0625rem solid var(--sapList_BorderColor);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr {
+            border-bottom: 0.0625rem solid var(--sapList_BorderColor);
+            transition: background-color 0.1s ease;
+        }
+
+        tbody tr:hover {
+            background-color: var(--sapList_Hover_Background);
+        }
+
+        tbody td {
+            padding: 0.5rem 0.75rem;
+            color: var(--sapTextColor);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header superior con menú -->
+    <header class="top-header">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+        <h1 class="header-title">Logix - Registro de Conteos</h1>
+    </header>
+
+    <!-- Menú desplegable -->
+    {% include '_menu.html' %}
+
+    <!-- Overlay para cerrar el menú -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-xl font-normal mb-1"
+                        style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Registro Histórico</h1>
+                    <p class="text-sm" style="color: var(--sapNeutralColor); font-family: var(--sapFontFamily);">
+                        Detalle de todas las ejecuciones de conteo cíclico
+                    </p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="exportToExcel('recordingsTable', 'Reporte_Conteos_Ciclicos')"
+                        class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded transition-all duration-150"
+                        style="background-color: var(--sapButtonBackground); color: var(--sapBrandColor); border: 0.0625rem solid var(--sapButtonBorderColor); font-family: var(--sapFontFamily); height: 2.25rem;"
+                        onmouseover="this.style.backgroundColor='var(--sapButtonHoverBackground)';"
+                        onmouseout="this.style.backgroundColor='var(--sapButtonBackground)';">
+                        <i class="fas fa-file-excel mr-2"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-md rounded overflow-hidden w-full"
+                style="border: 0.0625rem solid var(--sapTileBorder);">
+                <div class="overflow-x-auto table-container">
+                    <table id="recordingsTable" class="min-w-full leading-normal">
+                        <thead>
+                            <tr>
+                                <th>Stockroom</th>
+                                <th>Item Code</th>
+                                <th>Description</th>
+                                <th>Item Type</th>
+                                <th>Class</th>
+                                <th>Group</th>
+                                <th>SIC (Co)</th>
+                                <th>SIC (Stk)</th>
+                                <th class="text-right">Weight</th>
+                                <th>ABC</th>
+                                <th>Bin</th>
+                                <th class="text-right">Sys Stock</th>
+                                <th class="text-right">Counted</th>
+                                <th class="text-right">Diff</th>
+                                <th class="text-right">Value (Difference)</th>
+                                <th class="text-right">Item Cost</th>
+                                <th class="text-right">Count Value</th>
+                                <th>Date</th>
+                                <th>User</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            {% for row in data %}
+                            <tr class="hover:bg-gray-50">
+                                <td>{{ row.stockroom }}</td>
+                                <td class="font-medium text-indigo-600">{{ row.item_code }}</td>
+                                <td class="truncate max-w-xs" title="{{ row.description }}">{{ row.description }}</td>
+                                <td>{{ row.item_type }}</td>
+                                <td>{{ row.item_class }}</td>
+                                <td>{{ row.group_major }}</td>
+                                <td>{{ row.sic_company }}</td>
+                                <td>{{ row.sic_stockroom }}</td>
+                                <td class="text-right">{{ row.weight }}</td>
+                                <td
+                                    class="font-bold 
+                                    {% if row.abc_code == 'A' %}text-red-600{% elif row.abc_code == 'B' %}text-yellow-600{% else %}text-green-600{% endif %}">
+                                    {{ row.abc_code }}
+                                </td>
+                                <td>{{ row.bin_location }}</td>
+                                <td class="text-right">{{ row.system_qty }}</td>
+                                <td class="text-right font-bold">{{ row.physical_qty }}</td>
+                                <td
+                                    class="text-right font-bold 
+                                    {% if row.difference < 0 %}text-red-600{% elif row.difference > 0 %}text-green-600{% else %}text-gray-400{% endif %}">
+                                    {{ row.difference }}
+                                </td>
+                                <td
+                                    class="text-right 
+                                    {% if row.value_diff != 0 %}text-red-600 font-bold{% else %}text-gray-400{% endif %}">
+                                    {{ row.value_diff_formatted }}
+                                </td>
+                                <td class="text-right text-gray-500">{{ row.cost_formatted }}</td>
+                                <td class="text-right font-medium">{{ row.count_value_formatted }}</td>
+                                <td class="whitespace-nowrap">{{ row.executed_date }}</td>
+                                <td class="text-xs">{{ row.username }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="19" class="py-6 text-center text-gray-500 bg-gray-50">
+                                    No hay registros de conteos disponibles.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- CÓDIGO PARA EL MENÚ DESPLEGABLE ---
+        const menuToggle = document.getElementById('menuToggle');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        function toggleMenu() {
+            dropdownMenu.classList.toggle('open');
+            menuOverlay.classList.toggle('active');
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', toggleMenu);
+        }
+
+        if (menuOverlay) {
+            menuOverlay.addEventListener('click', toggleMenu);
+        }
+
+        if (dropdownMenu) {
+            const menuLinks = dropdownMenu.querySelectorAll('a, button');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (dropdownMenu.classList.contains('open')) {
+                        toggleMenu();
+                    }
+                });
+            });
+        }
+
+        // Simple excel export function (client-side)
+        function exportToExcel(tableId, filename) {
+            let downloadLink;
+            const dataType = 'application/vnd.ms-excel';
+            const tableSelect = document.getElementById(tableId);
+            const tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
+
+            filename = filename ? filename + '.xls' : 'excel_data.xls';
+
+            downloadLink = document.createElement("a");
+
+            document.body.appendChild(downloadLink);
+
+            if (navigator.msSaveOrOpenBlob) {
+                var blob = new Blob(['\ufeff', tableHTML], {
+                    type: dataType
+                });
+                navigator.msSaveOrOpenBlob(blob, filename);
+            } else {
+                downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
+                downloadLink.download = filename;
+                downloadLink.click();
+            }
+        }
+    </script>
+</body>
+
+</html>

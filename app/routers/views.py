@@ -10,7 +10,7 @@ from app.utils.auth import login_required, get_current_user
 from app.core.templates import templates
 from app.services import db_logs, csv_handler, db_counts
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording
 import pandas as pd
 import numpy as np
 from sqlalchemy import text
@@ -151,6 +151,94 @@ async def view_counts_page(request: Request, username: str = Depends(login_requi
         "request": request,
         "counts": enriched_counts,
         "usernames": sorted(list(usernames_set))
+    })
+
+
+@router.get('/view_counts/recordings', response_class=HTMLResponse)
+async def view_cycle_count_recordings(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """Página para ver el registro histórico de conteos cíclicos (Tabla Excel-like)."""
+    if not isinstance(username, str):
+        return username
+
+    # Cargar registros de la DB
+    result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
+    recordings = result.scalars().all()
+
+    data = []
+    
+    # Asegurar que el CSV esté cargado (para campo Costo, Peso, etc)
+    if csv_handler.df_master_cache is None:
+        await csv_handler.load_csv_data()
+
+    for rec in recordings:
+        # Buscar detalles en el maestro
+        details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+        
+        # Valores por defecto si no se encuentra en CSV
+        cost = 0.0
+        weight = 0.0
+        stockroom = ""
+        item_type = ""
+        item_class = ""
+        group_major = ""
+        sic_company = ""
+        sic_stockroom = ""
+
+        if details:
+            try:
+                cost = float(details.get("Cost_per_Unit", 0))
+            except (ValueError, TypeError):
+                cost = 0.0
+            
+            try:
+                weight = float(details.get("Weight_per_Unit", 0))
+            except (ValueError, TypeError):
+                weight = 0.0
+                
+            stockroom = details.get("Stockroom", "")
+            item_type = details.get("Item_Type", "")
+            item_class = details.get("Item_Class", "")
+            group_major = details.get("Item_Group_Major", "")
+            sic_company = details.get("SIC_Code_Company", "")
+            sic_stockroom = details.get("SIC_Code_stockroom", "")
+
+        # Cálculos de valor
+        diff = rec.difference if rec.difference is not None else 0
+        value_diff = diff * cost
+        count_value = (rec.physical_qty) * cost
+
+        # Formateo
+        def fmt_money(val):
+            return "${:,.2f}".format(val)
+        
+        data.append({
+            "stockroom": stockroom,
+            "item_code": rec.item_code,
+            "description": rec.item_description,
+            "item_type": item_type,
+            "item_class": item_class,
+            "group_major": group_major,
+            "sic_company": sic_company,
+            "sic_stockroom": sic_stockroom,
+            "weight": weight,
+            "abc_code": rec.abc_code,
+            "bin_location": rec.bin_location,
+            "system_qty": rec.system_qty,
+            "physical_qty": rec.physical_qty,
+            "difference": rec.difference,
+            "value_diff": value_diff,
+            "value_diff_formatted": fmt_money(value_diff),
+            "cost": cost,
+            "cost_formatted": fmt_money(cost),
+            "count_value": count_value,
+            "count_value_formatted": fmt_money(count_value),
+            "executed_date": rec.executed_date,
+            "username": rec.username
+        })
+
+    return templates.TemplateResponse("view_cycle_count_recordings.html", {
+        "request": request,
+        "data": data
     })
 
 
