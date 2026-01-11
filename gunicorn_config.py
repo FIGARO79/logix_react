@@ -13,7 +13,8 @@ workers = 5
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Binding
-bind = "0.0.0.0:8000"
+# Escuchar solo en localhost para seguridad (Nginx hace de proxy)
+bind = "127.0.0.1:8000"
 
 # Logs
 accesslog = "access.log"
