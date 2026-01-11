@@ -23,6 +23,8 @@ instance/
 
 # VSCode
 .vscode/
+docs/
+vm_setup/
 
 # Sistema
 .DS_Store
