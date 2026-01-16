@@ -130,6 +130,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
         'waybill': waybill,
         'relocatedBin': relocated_bin,
         'qtyReceived': qty_received,
+        'qtyGrn': total_expected,
         'difference': difference,
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
         # Nota: observaciones se omite porque no existe en tabla MySQL

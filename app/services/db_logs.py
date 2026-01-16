@@ -41,6 +41,7 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
             waybill=entry_data_for_db.get('waybill'),
             relocatedBin=entry_data_for_db.get('relocatedBin'),
             qtyReceived=entry_data_for_db.get('qtyReceived'),
+            qtyGrn=entry_data_for_db.get('qtyGrn'),
             difference=entry_data_for_db.get('difference'),
             timestamp=entry_data_for_db.get('timestamp')
             # Nota: observaciones se omite porque no existe en tabla MySQL
