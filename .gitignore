@@ -55,7 +55,7 @@ mysql.txt
 GUIA_DESPLIEGUE_OVH.md
 *.sh
 *.bat
-
+*.sql
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv

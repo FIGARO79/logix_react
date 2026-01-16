@@ -8,7 +8,7 @@
 cd "$(dirname "$0")"
 
 # Configuración de ruta del entorno virtual (Estándar local)
-VENV_PATH=".venv"
+VENV_PATH="$HOME/logix_venv"
 
 # 1. Buscar Python del Sistema
 if command -v python3 &> /dev/null; then

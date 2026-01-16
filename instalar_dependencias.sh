@@ -7,7 +7,7 @@
 cd "$(dirname "$0")"
 
 # Configuración de ruta del entorno virtual (Estándar local)
-VENV_PATH=".venv"
+VENV_PATH=".venv_linux"
 
 # 1. Verificar Python
 if command -v python3 &> /dev/null; then
@@ -29,7 +29,7 @@ fi
 
 if [ ! -d "$VENV_PATH" ]; then
     echo "[INFO] Creando entorno virtual en $VENV_PATH..."
-    $PYTHON_CMD -m venv "$VENV_PATH"
+    $PYTHON_CMD -m venv --copies "$VENV_PATH"
 else
     echo "[INFO] Entorno virtual válido en $VENV_PATH."
 fi
