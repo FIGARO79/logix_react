@@ -184,6 +184,9 @@ async def delete_log_api(log_id: int, username: str = Depends(login_required), d
 @router.get('/export_log')
 async def export_log(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Exporta todos los registros de inbound a un archivo Excel."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     if version_date:
         logs_data = await db_logs.load_archived_log_data_db_async(db, version_date)
     else:
@@ -312,6 +315,9 @@ async def get_items_without_grn(username: str = Depends(login_required)):
 @router.get('/export_items_without_grn')
 async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(login_required)):
     """Exporta el reporte de items sin GRN a Excel."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     try:
         async with async_engine.connect() as conn:
             logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
@@ -389,6 +395,9 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
 @router.get('/export_reconciliation')
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     try:
         async with async_engine.connect() as conn:
             if archive_date:
@@ -405,8 +414,14 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
         grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
 
-        # Calcular totales recibidos por ítem desde el log
-        item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
+        # *** FILTRAR LOGS: Solo procesar logs de items que están en el archivo 280 actual ***
+        # Esto evita mostrar items antiguas que ya fueron archivadas o eliminadas del archivo 280
+        # pero que aún tienen registros en la base de datos de logs
+        items_in_file = grn_df['Item_Code'].unique()
+        logs_df_filtered = logs_df[logs_df['itemCode'].isin(items_in_file)]
+
+        # Calcular totales recibidos por ítem desde el log FILTRADO
+        item_totals = logs_df_filtered.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
         item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
 
         # Calcular totales esperados por ítem (sumando todas las líneas del GRN para ese ítem)
@@ -421,9 +436,9 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         merged_df = pd.merge(grn_lines, item_totals, on='Item_Code', how='left')
         merged_df = pd.merge(merged_df, item_expected_totals, on='Item_Code', how='left')
 
-        if not logs_df.empty:
-            logs_df['id'] = pd.to_numeric(logs_df['id'])
-            latest_logs = logs_df.sort_values('id', ascending=False).drop_duplicates('itemCode')
+        if not logs_df_filtered.empty:
+            logs_df_filtered['id'] = pd.to_numeric(logs_df_filtered['id'])
+            latest_logs = logs_df_filtered.sort_values('id', ascending=False).drop_duplicates('itemCode')
             
             # Extraer tanto binLocation como relocatedBin por separado
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
