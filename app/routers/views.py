@@ -268,11 +268,11 @@ async def reconciliation_page(request: Request, archive_date: Optional[str] = No
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
         grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
 
-        # *** FILTRAR LOGS: Solo procesar logs de GRNs que están en el archivo 280 actual ***
-        # Esto evita mostrar GRNs antiguas que ya fueron archivadas o eliminadas del archivo 280
+        # *** FILTRAR LOGS: Solo procesar logs de items que están en el archivo 280 actual ***
+        # Esto evita mostrar items antiguas que ya fueron archivadas o eliminadas del archivo 280
         # pero que aún tienen registros en la base de datos de logs
-        grns_in_file = grn_df['GRN_Number'].unique()
-        logs_df_filtered = logs_df[logs_df['grnNumber'].isin(grns_in_file)]
+        items_in_file = grn_df['Item_Code'].unique()
+        logs_df_filtered = logs_df[logs_df['itemCode'].isin(items_in_file)]
 
         # Calcular totales recibidos por ítem desde el log FILTRADO
         item_totals = logs_df_filtered.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
