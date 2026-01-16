@@ -408,7 +408,7 @@
 
     <!-- Contenido principal -->
     <main class="main-content">
-        <div class="container mx-auto max-w-3xl w-full px-2 pb-2 pt-4 md:px-4 md:pb-4">
+        <div class="container mx-auto max-w-4xl w-full px-2 pb-2 pt-4 md:px-4 md:pb-4">
             <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-gray-200">
 
                 <!-- Sección 1: Carga de Pedido -->
@@ -458,20 +458,30 @@
                                     <thead class="bg-gray-50 sticky top-0 z-10">
                                         <tr>
                                             <th scope="col"
-                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">
-                                                Order Number</th>
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20 cursor-pointer hover:bg-gray-100"
+                                                onclick="sortTable('order_number')">
+                                                Order Number <span id="sort-icon-order_number"></span>
+                                            </th>
                                             <th scope="col"
-                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">
-                                                Despatch Number</th>
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20 cursor-pointer hover:bg-gray-100"
+                                                onclick="sortTable('despatch_number')">
+                                                Despatch Number <span id="sort-icon-despatch_number"></span>
+                                            </th>
                                             <th scope="col"
-                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                Cliente</th>
+                                                class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onclick="sortTable('customer_name')">
+                                                Cliente <span id="sort-icon-customer_name"></span>
+                                            </th>
                                             <th scope="col"
-                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-15">
-                                                Líneas</th>
+                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-15 cursor-pointer hover:bg-gray-100"
+                                                onclick="sortTable('total_lines')">
+                                                Líneas <span id="sort-icon-total_lines"></span>
+                                            </th>
                                             <th scope="col"
-                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                Fecha Impresión</th>
+                                                class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                                onclick="sortTable('print_date')">
+                                                Fecha Impresión <span id="sort-icon-print_date"></span>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody id="tracking-table-body" class="bg-white divide-y divide-gray-200">
@@ -660,6 +670,8 @@
         <script>
             // --- Variables Globales ---
             let orderItems = []; // Almacenará los items del pedido filtrado
+            let currentTrackingData = []; // Datos de seguimiento actuales
+            let sortDirection = {}; // Estado de ordenamiento por columna (true=asc, false=desc)
             let customerName = "";
             let html5QrCode;
             let soundBeep, soundBoop;
@@ -772,34 +784,15 @@
                     }
 
                     const trackingData = await response.json();
+                    currentTrackingData = trackingData; // Guardar globalmente
 
-                    // Limpiar tabla
-                    trackingTableBody.innerHTML = '';
-
-                    if (trackingData.length === 0) {
-                        trackingTableBody.innerHTML = `
-                            <tr>
-                                <td colspan="5" class="px-3 py-4 text-center text-sm text-gray-500">
-                                    No hay pedidos disponibles
-                                </td>
-                            </tr>
-                        `;
-                        return;
+                    // Ordenar por fecha de impresión descendente por defecto si no hay orden previo
+                    if (Object.keys(sortDirection).length === 0) {
+                        sortDirection['print_date'] = false; // Descendente inicial
+                        sortTableData('print_date', false);
+                    } else {
+                        renderTrackingTable(); // Renderizar con el orden actual si ya existe
                     }
-
-                    // Agregar filas
-                    trackingData.forEach(order => {
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-gray-50 transition-colors duration-150';
-                        row.innerHTML = `
-                            <td class="px-3 py-2 text-sm font-medium text-gray-900">${order.order_number}</td>
-                            <td class="px-3 py-2 text-sm text-gray-700">${order.despatch_number}</td>
-                            <td class="px-3 py-2 text-sm text-gray-700">${order.customer_name}</td>
-                            <td class="px-3 py-2 text-sm text-center font-semibold text-blue-600">${order.total_lines}</td>
-                            <td class="px-3 py-2 text-sm text-center text-gray-600">${order.print_date}</td>
-                        `;
-                        trackingTableBody.appendChild(row);
-                    });
 
                 } catch (error) {
                     console.error('Error loading tracking data:', error);
@@ -811,6 +804,100 @@
                         </tr>
                     `;
                 }
+            }
+
+            // Función para manejar el click en los encabezados
+            function sortTable(column) {
+                // Alternar dirección: si no existe o es false (desc), pasa a true (asc). Si es true (asc), pasa a false (desc).
+                // Nota: Inicialmente quiero que el primer click sea descendente si no hay nada, pero arriba puse defecto.
+                // Lógica estándar: click -> toggle.
+
+                // Si ya estaba ordenando por esta columna, invertir. Si no, default a ascendente (true) o descendente según prefieras.
+                // Comportamiento común: primer click -> ascendente.
+
+                if (sortDirection[column] === undefined) {
+                    sortDirection[column] = true; // Primer click: Ascendente
+                } else {
+                    sortDirection[column] = !sortDirection[column]; // Invertir
+                }
+
+                // Limpiar iconos de otras columnas (opcional, o mantener estado múltiple, pero simple es mejor solo uno)
+                // Para single-column sort:
+                Object.keys(sortDirection).forEach(key => {
+                    if (key !== column) delete sortDirection[key];
+                });
+
+                sortTableData(column, sortDirection[column]);
+            }
+
+            function sortTableData(column, asc) {
+                if (!currentTrackingData || currentTrackingData.length === 0) return;
+
+                currentTrackingData.sort((a, b) => {
+                    let valA = a[column];
+                    let valB = b[column];
+
+                    // Manejo de nulos
+                    if (valA == null) valA = "";
+                    if (valB == null) valB = "";
+
+                    // Conversión numérica si aplica
+                    if (column === 'total_lines') {
+                        valA = Number(valA);
+                        valB = Number(valB);
+                    }
+
+                    if (valA < valB) return asc ? -1 : 1;
+                    if (valA > valB) return asc ? 1 : -1;
+                    return 0;
+                });
+
+                updateSortIcons(column, asc);
+                renderTrackingTable();
+            }
+
+            function updateSortIcons(activeColumn, asc) {
+                // Limpiar todos los iconos
+                const cols = ['order_number', 'despatch_number', 'customer_name', 'total_lines', 'print_date'];
+                cols.forEach(col => {
+                    const iconEl = document.getElementById(`sort-icon-${col}`);
+                    if (iconEl) iconEl.textContent = ''; // Limpiar
+                });
+
+                // Poner flecha en la columna activa
+                const activeIcon = document.getElementById(`sort-icon-${activeColumn}`);
+                if (activeIcon) {
+                    activeIcon.textContent = asc ? ' ▲' : ' ▼'; // Flecha arriba o abajo
+                }
+            }
+
+            function renderTrackingTable() {
+                const trackingTableBody = document.getElementById('tracking-table-body');
+                trackingTableBody.innerHTML = '';
+
+                if (currentTrackingData.length === 0) {
+                    trackingTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-3 py-4 text-center text-sm text-gray-500">
+                                No hay pedidos disponibles
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                currentTrackingData.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition-colors duration-150';
+                    row.innerHTML = `
+                        <td class="px-3 py-2 text-sm font-medium text-gray-900">${order.order_number}</td>
+                        <td class="px-3 py-2 text-sm text-gray-700">${order.despatch_number}</td>
+                        <td class="px-3 py-2 text-sm text-gray-700 whitespace-nowrap">${order.customer_name}</td>
+                        <td class="px-3 py-2 text-sm text-center font-semibold text-blue-600">${order.total_lines}</td>
+                        <td class="px-3 py-2 text-sm text-center text-gray-600 whitespace-nowrap">${order.print_date}</td>
+                    `;
+                    trackingTableBody.appendChild(row);
+                });
             }
 
             // Event listener para el botón de actualizar

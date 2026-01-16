@@ -78,16 +78,65 @@ async def get_picking_tracking():
         # Leer CSV
         df = pd.read_csv(picking_file_path, dtype=str)
         
-        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME"]
+        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
-        # Agrupar por ORDER_ y DESPATCH_ para contar líneas
-        grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER_NAME"]).size().reset_index(name='total_lines')
-        
-        # Obtener fecha de modificación del archivo como "fecha de impresión"
-        file_mod_time = os.path.getmtime(picking_file_path)
-        file_date = datetime.datetime.fromtimestamp(file_mod_time).strftime("%Y-%m-%d %H:%M")
+        # Función auxiliar: primer valor no vacío del grupo
+        def first_nonempty(series):
+            for val in series:
+                if pd.notna(val) and str(val).strip() != "":
+                    return str(val).strip()
+            return None
+
+        # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
+        grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER_NAME"], as_index=False).agg(
+            total_lines=("ORDER_", "size"),
+            print_time=("PICK_LIST_PRINTED_TIME", first_nonempty),
+            time_zone=("Time_Zone_Hours", first_nonempty),
+        )
+
+        # Obtener fecha de modificación del archivo como respaldo
+        # file_mod_time = os.path.getmtime(picking_file_path)
+        # fallback_date = datetime.datetime.fromtimestamp(file_mod_time).strftime("%Y-%m-%d %H:%M")
+
+        def format_local_print_time(raw_time: str, tz_value: str) -> str:
+            """Devuelve la hora local del CSV formateada; si no existe, devuelve vacío."""
+            if pd.isna(raw_time) or str(raw_time).strip() == "":
+                return "" # No mostrar fecha si no hay dato en el CSV
+
+            raw_time_str = str(raw_time).strip()
+
+            parsed_time = None
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+                try:
+                    parsed_time = datetime.datetime.strptime(raw_time_str, fmt)
+                    break
+                except ValueError:
+                    continue
+
+            if not parsed_time:
+                return raw_time_str # Devolver valor crudo para diagnóstico si falla parseo
+
+            tzinfo = None
+            tz_str = "" if pd.isna(tz_value) else str(tz_value).strip()
+            if tz_str:
+                # Time_Zone_Hours viene en formato +/-HH:MM (ej: -6:00)
+                sign = -1 if tz_str.startswith("-") else 1
+                clean_tz = tz_str[1:] if tz_str.startswith(("-", "+")) else tz_str
+                parts = clean_tz.split(":", 1)
+                hours_str = parts[0]
+                minutes_str = parts[1] if len(parts) > 1 else "0"
+                try:
+                    tz_delta = datetime.timedelta(hours=int(hours_str), minutes=int(minutes_str))
+                    tzinfo = datetime.timezone(sign * tz_delta)
+                except ValueError:
+                    tzinfo = None
+
+            if tzinfo:
+                parsed_time = parsed_time.replace(tzinfo=tzinfo)
+
+            return parsed_time.strftime("%Y-%m-%d %H:%M")
         
         # Construir respuesta
         tracking_data = []
@@ -97,7 +146,7 @@ async def get_picking_tracking():
                 "despatch_number": row["DESPATCH_"],
                 "customer_name": row["CUSTOMER_NAME"],
                 "total_lines": int(row["total_lines"]),
-                "print_date": file_date
+                "print_date": format_local_print_time(row["print_time"], row["time_zone"])
             })
         
         return JSONResponse(content=tracking_data)
