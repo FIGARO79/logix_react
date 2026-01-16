@@ -59,3 +59,6 @@ GUIA_DESPLIEGUE_OVH.md
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv
+
+# Ignorar archivos de caché generados automáticamente
+databases/stock_qty_cache.json
