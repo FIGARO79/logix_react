@@ -18,6 +18,7 @@ from app.core.config import (
 df_master_cache = None
 df_grn_cache = None
 master_qty_map = {}
+grn_file_mtime = None  # Timestamp del archivo GRN para detectar cambios
 
 # --- Funciones de Manejo de CSV ---
 
@@ -44,7 +45,7 @@ async def load_csv_data():
     Carga (o recarga) los datos de los archivos CSV principales.
     Construye master_qty_map y persiste stock_qty_cache.json, pero libera df_master_cache para ahorrar RAM.
     """
-    global df_master_cache, df_grn_cache, master_qty_map
+    global df_master_cache, df_grn_cache, master_qty_map, grn_file_mtime
     print("Cargando datos CSV en caché ligera...")
 
     # Solo se mantiene en memoria el GRN; el maestro se lee y se libera.
@@ -83,9 +84,30 @@ async def load_csv_data():
 
     if df_grn_cache is not None:
         print(f"Cargados {len(df_grn_cache)} registros del archivo GRN.")
+        # Guardar timestamp del archivo GRN para detectar cambios
+        grn_file_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
 
     # Liberar df_master_cache para conservar memoria
     df_master_cache = None
+
+
+async def reload_cache_if_needed():
+    """
+    Verifica si el archivo GRN cambió y recarga el cache si es necesario.
+    Se ejecuta al inicio de cada request sin afectar otros usuarios.
+    """
+    global grn_file_mtime
+    
+    if not os.path.exists(GRN_CSV_FILE_PATH):
+        return
+    
+    current_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
+    
+    # Si el archivo cambió, recarga el cache
+    if grn_file_mtime is None or current_mtime != grn_file_mtime:
+        print(f"Archivo GRN modificado detectado. Recargando cache...")
+        await load_csv_data()
+
 
 async def get_item_details_from_master_csv(item_code: str):
     """Busca detalles de un item leyendo el CSV por chunks para no mantenerlo en memoria."""

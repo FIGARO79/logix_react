@@ -243,6 +243,9 @@ async def reconciliation_page(request: Request, archive_date: Optional[str] = No
     """Página de reconciliación con procesamiento de datos."""
     if not isinstance(username, str):
         return username
+    
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
     try:
         # Obtener versiones archivadas para el dropdown
         archive_versions = await db_logs.get_archived_versions_db_async(db)

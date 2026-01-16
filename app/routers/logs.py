@@ -184,6 +184,9 @@ async def delete_log_api(log_id: int, username: str = Depends(login_required), d
 @router.get('/export_log')
 async def export_log(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Exporta todos los registros de inbound a un archivo Excel."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     if version_date:
         logs_data = await db_logs.load_archived_log_data_db_async(db, version_date)
     else:
@@ -312,6 +315,9 @@ async def get_items_without_grn(username: str = Depends(login_required)):
 @router.get('/export_items_without_grn')
 async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(login_required)):
     """Exporta el reporte de items sin GRN a Excel."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     try:
         async with async_engine.connect() as conn:
             logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs'), sync_conn))
@@ -389,6 +395,9 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
 @router.get('/export_reconciliation')
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(login_required)):
     """Genera y exporta el reporte de conciliación."""
+    # Verificar si el archivo GRN cambió y recargar cache si es necesario
+    await csv_handler.reload_cache_if_needed()
+    
     try:
         async with async_engine.connect() as conn:
             if archive_date:
