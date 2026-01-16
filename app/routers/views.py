@@ -166,10 +166,6 @@ async def view_cycle_count_recordings(request: Request, username: str = Depends(
 
     data = []
     
-    # Asegurar que el CSV esté cargado (para campo Costo, Peso, etc)
-    if csv_handler.df_master_cache is None:
-        await csv_handler.load_csv_data()
-
     for rec in recordings:
         # Buscar detalles en el maestro
         details = await csv_handler.get_item_details_from_master_csv(rec.item_code)

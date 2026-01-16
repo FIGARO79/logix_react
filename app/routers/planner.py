@@ -154,11 +154,11 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     if s_date > e_date:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
 
-    # 1. Obtener todos los items del maestro
-    if csv_handler.df_master_cache is None:
-        await csv_handler.load_csv_data()
-    
-    df_master = csv_handler.df_master_cache
+    # 1. Obtener todos los items del maestro (carga on-demand sin cache global)
+    df_master = await csv_handler.load_master_subset(
+        ['Item_Code', 'ABC_Code_stockroom', 'Physical_Qty', 'Item_Description'],
+        positive_stock_only=True
+    )
     if df_master is None or df_master.empty:
         raise HTTPException(status_code=500, detail="No se pudo cargar el maestro de items.")
 
