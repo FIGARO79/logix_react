@@ -113,7 +113,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
     
     waybill = data.get('waybill', existing_log.get('waybill'))
     relocated_bin = data.get('relocatedBin', existing_log.get('relocatedBin'))
-    qty_received = int(data.get('qtyReceived', existing_log.get('qtyReceived')))
+    qty_received = int(data.get('qtyReceived') or existing_log.get('qtyReceived') or 0)
     # Nota: observaciones se omite porque no existe en tabla MySQL
     
     import_reference = existing_log['importReference']
@@ -130,6 +130,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
         'waybill': waybill,
         'relocatedBin': relocated_bin,
         'qtyReceived': qty_received,
+        'qtyGrn': total_expected,
         'difference': difference,
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
         # Nota: observaciones se omite porque no existe en tabla MySQL
@@ -195,13 +196,15 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
 
     # Procesar timestamp para asegurar hora local correcta en Excel
     try:
+        import pytz
         # Convertir a datetime
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         
         # Si tiene zona horaria (los nuevos registros), convertir a Colombia y quitar tz info para que Excel lo muestre limpio
         if df['timestamp'].dt.tz is not None:
-             colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-             df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
+             df['timestamp'] = df['timestamp'].apply(lambda x: x.astimezone(pytz.timezone('America/Bogota')).replace(tzinfo=None))
+        else:
+             df['timestamp'] = df['timestamp'].apply(lambda x: pytz.UTC.localize(x).astimezone(pytz.timezone('America/Bogota')).replace(tzinfo=None))
     except Exception as e:
         print(f"Advertencia procesando fechas en export: {e}")
 

@@ -16,7 +16,7 @@ import numpy as np
 from app.models.schemas import StockCount, Count
 from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel
 from app.services import db_counts, csv_handler
-from app.services.csv_handler import master_qty_map # Importar el mapa de memoria
+from app.services.csv_handler import master_qty_map, get_locations_with_stock_count # Importar el mapa de memoria y helper
 from app.utils.auth import login_required
 from app.core.config import ASYNC_DB_URL
 
@@ -210,13 +210,8 @@ async def get_count_stats(username: str = Depends(login_required), db: AsyncSess
                 else:
                     items_with_negative_differences += 1
 
-        # 5. Total de ubicaciones con stock (del maestro de items)
-        total_locations_with_stock = 0
-        if csv_handler.df_master_cache is not None and not csv_handler.df_master_cache.empty:
-            stock_items = csv_handler.df_master_cache[pd.to_numeric(csv_handler.df_master_cache['Physical_Qty'], errors='coerce').fillna(0) > 0]
-            if not stock_items.empty:
-                bin_1_locations = stock_items['Bin_1'].dropna().unique()
-                total_locations_with_stock = len(bin_1_locations)
+        # 5. Total de ubicaciones con stock (del maestro de items) sin cache en memoria
+        total_locations_with_stock = await get_locations_with_stock_count()
 
         return JSONResponse(content={
             "total_items_with_stock": total_items_with_stock,
