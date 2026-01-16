@@ -1,4 +1,5 @@
 import os
+import json
 import pandas as pd
 import numpy as np
 from starlette.concurrency import run_in_threadpool
@@ -59,6 +60,25 @@ async def load_csv_data():
             # Usar update() en lugar de reasignar para mantener la referencia
             master_qty_map.update(dict(zip(items, quantities)))
             print(f"master_qty_map construido con {len(master_qty_map)} items, {sum(1 for q in master_qty_map.values() if q > 0)} con stock > 0")
+            
+            # Persistir master_qty_map a JSON para uso externo o caché rápida
+            try:
+                json_cache_path = os.path.join(os.path.dirname(ITEM_MASTER_CSV_PATH), 'stock_qty_cache.json')
+                
+                # Función auxiliar para convertir tipos de numpy a tipos nativos de Python para JSON
+                def numpy_converter(obj):
+                    if isinstance(obj, np.integer):
+                        return int(obj)
+                    elif isinstance(obj, np.floating):
+                        return float(obj)
+                    raise TypeError(f"Type {type(obj)} not serializable")
+
+                with open(json_cache_path, 'w') as f:
+                    json.dump(master_qty_map, f, default=numpy_converter)
+                print(f"Mapa de stock guardado en JSON cache: {json_cache_path}")
+            except Exception as e:
+                print(f"No se pudo guardar la cache JSON de stock: {e}")
+
         except Exception as e:
             print(f"Warning: no se pudo construir master_qty_map: {e}")
             master_qty_map.clear()  # Limpiar en lugar de reasignar
