@@ -272,8 +272,14 @@ async def reconciliation_page(request: Request, archive_date: Optional[str] = No
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
         grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
 
-        # Calcular totales recibidos por ítem desde el log
-        item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
+        # *** FILTRAR LOGS: Solo procesar logs de GRNs que están en el archivo 280 actual ***
+        # Esto evita mostrar GRNs antiguas que ya fueron archivadas o eliminadas del archivo 280
+        # pero que aún tienen registros en la base de datos de logs
+        grns_in_file = grn_df['GRN_Number'].unique()
+        logs_df_filtered = logs_df[logs_df['grnNumber'].isin(grns_in_file)]
+
+        # Calcular totales recibidos por ítem desde el log FILTRADO
+        item_totals = logs_df_filtered.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
         item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
 
         # Calcular totales esperados por ítem (sumando todas las líneas del GRN para ese ítem)
@@ -289,10 +295,10 @@ async def reconciliation_page(request: Request, archive_date: Optional[str] = No
         merged_df = pd.merge(grn_lines, item_totals, on='Item_Code', how='left')
         merged_df = pd.merge(merged_df, item_expected_totals, on='Item_Code', how='left')
 
-        # Obtener ubicación desde el LOG
-        if not logs_df.empty:
-            logs_df['id'] = pd.to_numeric(logs_df['id'])
-            latest_logs = logs_df.sort_values('id', ascending=False).drop_duplicates('itemCode')
+        # Obtener ubicación desde el LOG FILTRADO (solo GRNs actuales)
+        if not logs_df_filtered.empty:
+            logs_df_filtered['id'] = pd.to_numeric(logs_df_filtered['id'])
+            latest_logs = logs_df_filtered.sort_values('id', ascending=False).drop_duplicates('itemCode')
             
             # Extraer tanto binLocation como relocatedBin por separado
             locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
