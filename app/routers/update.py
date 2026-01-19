@@ -5,10 +5,8 @@ import os
 import shutil
 import json
 import datetime
-import asyncio
 from urllib.parse import urlencode
 from io import BytesIO
-from starlette.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from app.core.db import get_db
@@ -31,94 +29,6 @@ router = APIRouter(
     tags=["update"]
 )
 
-# --- Funciones auxiliares para procesar archivos en paralelo ---
-async def process_item_master(item_master: UploadFile) -> tuple[bool, str, str]:
-    """Procesa el archivo maestro de items (250) de forma async."""
-    if not item_master or not item_master.filename:
-        return False, "", ""
-    
-    if item_master.filename != os.path.basename(ITEM_MASTER_CSV_PATH):
-        return False, "", f'Nombre incorrecto para maestro de items. Se esperaba "{os.path.basename(ITEM_MASTER_CSV_PATH)}". '
-    
-    try:
-        def save_file():
-            with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
-                shutil.copyfileobj(item_master.file, buffer)
-        
-        await run_in_threadpool(save_file)
-        return True, f'Archivo "{item_master.filename}" actualizado. ', ""
-    except Exception as e:
-        return False, "", f'Error procesando archivo maestro: {str(e)}. '
-
-
-async def process_grn_file(grn_file: UploadFile, update_option_280: str, selected_grns_280: str) -> tuple[bool, str, str]:
-    """Procesa el archivo GRN (280) de forma async."""
-    if not grn_file or not grn_file.filename:
-        return False, "", ""
-    
-    if grn_file.filename != os.path.basename(GRN_CSV_FILE_PATH):
-        return False, "", f'Nombre incorrecto para archivo GRN. Se esperaba "{os.path.basename(GRN_CSV_FILE_PATH)}". '
-    
-    try:
-        def process_grn():
-            new_data_df = pd.read_csv(grn_file.file, dtype=str)
-            msg = ""
-            
-            if selected_grns_280:
-                try:
-                    selected_list = json.loads(selected_grns_280)
-                    if selected_list:
-                        original_count = len(new_data_df)
-                        new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
-                        msg += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
-                except json.JSONDecodeError:
-                    pass
-            
-            if update_option_280 == 'combine':
-                if os.path.exists(GRN_CSV_FILE_PATH):
-                    existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
-                    new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
-                    existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
-                    combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
-                else:
-                    combined_df = new_data_df
-                
-                combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
-                msg += f'Archivo "{grn_file.filename}" combinado. '
-            else:  # 'replace'
-                new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
-                msg += f'Archivo "{grn_file.filename}" reemplazado. '
-            
-            return msg
-        
-        msg = await run_in_threadpool(process_grn)
-        return True, msg, ""
-    except Exception as e:
-        import traceback
-        print(f"ERROR procesando archivo GRN: {str(e)}")
-        print(traceback.format_exc())
-        return False, "", f'Error procesando archivo GRN: {str(e)}. '
-
-
-async def process_picking_file(picking_file: UploadFile) -> tuple[bool, str, str]:
-    """Procesa el archivo de picking (240) de forma async."""
-    if not picking_file or not picking_file.filename:
-        return False, "", ""
-    
-    if picking_file.filename != os.path.basename(PICKING_CSV_PATH):
-        return False, "", f'Nombre incorrecto para archivo de picking. Se esperaba "{os.path.basename(PICKING_CSV_PATH)}". '
-    
-    try:
-        def save_file():
-            with open(PICKING_CSV_PATH, "wb") as buffer:
-                shutil.copyfileobj(picking_file.file, buffer)
-        
-        await run_in_threadpool(save_file)
-        return True, f'Archivo "{picking_file.filename}" actualizado. ', ""
-    except Exception as e:
-        return False, "", f'Error procesando archivo picking: {str(e)}. '
-
-
 # --- Endpoint para la página de actualización (GET) ---
 @router.get('/update', response_class=HTMLResponse)
 async def update_files_get(request: Request, username: str = Depends(login_required)):
@@ -131,7 +41,7 @@ async def update_files_get(request: Request, username: str = Depends(login_requi
         "message": request.query_params.get('message')
     })
 
-# --- Endpoint para subir y procesar los archivos (POST) - OPTIMIZADO CON PARALELO ---
+# --- Endpoint para subir y procesar los archivos (POST) ---
 @router.post('/update', response_class=JSONResponse)
 async def update_files_post(
     request: Request,
@@ -145,26 +55,78 @@ async def update_files_post(
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
-    # Ejecutar las 3 operaciones en paralelo con asyncio.gather()
-    try:
-        master_result, grn_result, picking_result = await asyncio.gather(
-            process_item_master(item_master),
-            process_grn_file(grn_file, update_option_280, selected_grns_280),
-            process_picking_file(picking_file),
-            return_exceptions=False
-        )
-    except Exception as e:
-        import traceback
-        print(f"ERROR en procesamiento paralelo: {str(e)}")
-        print(traceback.format_exc())
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": f"Error interno: {str(e)}"})
+    files_uploaded = False
+    message = ""
+    error = ""
 
-    # Consolidar resultados
-    files_uploaded = master_result[0] or grn_result[0] or picking_result[0]
-    message = (master_result[1] + grn_result[1] + picking_result[1]).strip()
-    error = (master_result[2] + grn_result[2] + picking_result[2]).strip()
+    # Manejo del maestro de items
+    if item_master and item_master.filename:
+        if item_master.filename == os.path.basename(ITEM_MASTER_CSV_PATH):
+            with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
+                shutil.copyfileobj(item_master.file, buffer)
+            message += f'Archivo "{item_master.filename}" actualizado. '
+            files_uploaded = True
+        else:
+            error += f'Nombre incorrecto para maestro de items. Se esperaba "{os.path.basename(ITEM_MASTER_CSV_PATH)}". '
 
-    # Recargar cache si algún archivo fue procesado
+    # Manejo del archivo GRN (280)
+    if grn_file and grn_file.filename:
+        if grn_file.filename == os.path.basename(GRN_CSV_FILE_PATH):
+            try:
+                new_data_df = pd.read_csv(grn_file.file, dtype=str)
+                
+                if selected_grns_280:
+                    try:
+                        selected_list = json.loads(selected_grns_280)
+                        if selected_list:
+                            original_count = len(new_data_df)
+                            new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
+                            message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
+                    except json.JSONDecodeError:
+                        pass
+
+                if update_option_280 == 'combine':
+                    if os.path.exists(GRN_CSV_FILE_PATH):
+                        existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
+                        
+                        # Obtener las GRNs que vienen en el archivo nuevo
+                        new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
+                        
+                        # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
+                        # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
+                        existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
+                        
+                        # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
+                        combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
+                    else:
+                        combined_df = new_data_df
+
+                    combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                    message += f'Archivo "{grn_file.filename}" combinado. '
+                
+                else:  # 'replace'
+                    new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                    message += f'Archivo "{grn_file.filename}" reemplazado. '
+                
+                files_uploaded = True
+            except Exception as e:
+                import traceback
+                print(f"ERROR procesando archivo GRN: {str(e)}")
+                print(traceback.format_exc())
+                error += f'Error procesando archivo GRN: {str(e)}. '
+        else:
+            error += f'Nombre incorrecto para archivo GRN. Se esperaba "{os.path.basename(GRN_CSV_FILE_PATH)}". '
+
+    # Manejo del archivo de picking (240)
+    if picking_file and picking_file.filename:
+        if picking_file.filename == os.path.basename(PICKING_CSV_PATH):
+            with open(PICKING_CSV_PATH, "wb") as buffer:
+                shutil.copyfileobj(picking_file.file, buffer)
+            message += f'Archivo "{picking_file.filename}" actualizado. '
+            files_uploaded = True
+        else:
+            error += f'Nombre incorrecto para archivo de picking. Se esperaba "{os.path.basename(PICKING_CSV_PATH)}". '
+
     if files_uploaded:
         await load_csv_data()
 

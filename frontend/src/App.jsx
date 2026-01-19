@@ -4,6 +4,14 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Reconciliation from './pages/Reconciliation';
+import InventoryStock from './pages/InventoryStock';
+import PickingAuditHistory from './pages/PickingAuditHistory';
+import Inbound from './pages/Inbound';
+import CycleCounts from './pages/CycleCounts';
+import LabelPrinting from './pages/LabelPrinting';
+import Planner from './pages/Planner';
+import PlannerExecution from './pages/PlannerExecution';
+import PickingAudit from './pages/PickingAudit';
 
 // Mock Protected Route (Actual implementation should check token/session)
 const ProtectedRoute = ({ children }) => {
@@ -24,10 +32,20 @@ function App() {
                     </ProtectedRoute>
                 }>
                     <Route index element={<Dashboard />} />
-                    <Route path="inbound" element={<div>Inbound Page Check (To be implemented)</div>} />
-                    <Route path="stock" element={<div>Stock Page Check (To be implemented)</div>} />
+                    <Route path="inbound" element={<Inbound />} />
+                    <Route path="label" element={<LabelPrinting />} />
+                    <Route path="stock" element={<InventoryStock />} />
                     <Route path="reconciliation" element={<Reconciliation />} />
-                    {/* Add other routes here: picking, counts, etc. */}
+                    <Route path="view_picking_audits" element={<PickingAuditHistory />} />
+                    <Route path="counts" element={<CycleCounts />} />
+                    <Route path="planner" element={<Planner />} />
+                    <Route path="planner/execution" element={<PlannerExecution />} />
+                    <Route path="picking" element={<PickingAudit />} />
+                    {/* Maps to "Auditoria Picking" but usually user clicks card to go there. 
+                        If the card href is /picking, create that page. 
+                        If the card href is /view_picking_audits, it matches above.
+                    */}
+                    <Route path="picking" element={<div>Picking Scan Page (To be implemented)</div>} />
                 </Route>
             </Routes>
         </Router>

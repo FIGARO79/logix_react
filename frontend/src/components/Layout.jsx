@@ -42,6 +42,24 @@ const Layout = () => {
                     <Link to="/inbound" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
                         Inbound
                     </Link>
+                    <Link to="/stock" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Stock
+                    </Link>
+                    <Link to="/reconciliation" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Reconciliación
+                    </Link>
+                    <Link to="/view_picking_audits" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Historial Auditorías
+                    </Link>
+                    <Link to="/picking" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Ejecutar Picking
+                    </Link>
+                    <Link to="/counts" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Conteos
+                    </Link>
+                    <Link to="/planner" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
+                        Planificador
+                    </Link>
                     <button className="logout-btn w-full text-left flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#f5576c]" onClick={() => console.log('Logout')}>
                         Cerrar Sesión
                     </button>
