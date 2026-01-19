@@ -1,5 +1,5 @@
 """
-Punto de entrada principal de la aplicación Logix - Refactorizado con APIRouter.
+Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
 import os
 from contextlib import asynccontextmanager
@@ -7,7 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-
 from starlette.middleware.sessions import SessionMiddleware
 
 # Importar configuración
@@ -18,19 +17,19 @@ from app.middleware.security import SchemeMiddleware, HSTSMiddleware
 from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
-# Importar routers
-from app.routers import sessions, logs, stock, counts, auth, views, admin, update, picking, inventory, planner
+# Importar routers existentes (que ya eran JSON o mixtos)
+from app.routers import sessions, logs, stock, counts, auth, admin, update, picking, inventory, planner
+
+# [NUEVO] Importar router refactorizado para vistas convertidas a API
+from app.routers import api_views
 
 # --- Eventos de ciclo de vida (Lifespan) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Maneja el ciclo de vida de la aplicación (inicio y cierre)."""
     # Startup
-    print("Iniciando aplicación Logix...")
-    
-    # Ejecutar migraciones de base de datos (asíncrono)
+    print("Iniciando aplicación Logix (API Headless)...")
     await run_migrations()
-    
     await load_csv_data()
     print("Aplicación Logix iniciada correctamente.")
     yield
@@ -39,63 +38,55 @@ async def lifespan(app: FastAPI):
 
 # --- Inicialización de FastAPI ---
 app = FastAPI(
-    title="Logix API",
-    description="API modular para gestión de almacén y logística",
-    version="2.0.0",
+    title="Logix API V2",
+    description="API Headless para gestión de almacén y logística (Backend React)",
+    version="2.1.0",
     lifespan=lifespan
 )
 
-# --- Configuración de CORS ---
+# --- Configuración de CORS [CRÍTICO PARA REACT] ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # En producción, reemplazar "*" con el dominio real del frontend (ej. "http://localhost:5173")
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Middleware de confianza de host ---
+# --- Middlewares de seguridad ---
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-
-# --- Middlewares de seguridad personalizados ---
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
     max_age=None,
-    https_only=False  # Permitir cookies en HTTP y HTTPS para compatibilidad con proxy
+    https_only=False
 )
 
-# --- Montar archivos estáticos ---
-app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "static")), name="static")
-
 # --- Registro de routers ---
-# Routers de API
-app.include_router(sessions.router)
-app.include_router(logs.router)
-app.include_router(stock.router)
-app.include_router(counts.router)
-
-# Routers de autenticación y vistas
+# Routers Principales (JSON)
+app.include_router(api_views.router) # [NUEVO] Reemplaza a views.router HTML
 app.include_router(auth.router)
-app.include_router(views.router)
+app.include_router(stock.router)
+app.include_router(picking.router)
+app.include_router(counts.router)
+app.include_router(planner.router)
+app.include_router(logs.router)
+app.include_router(sessions.router)
 app.include_router(admin.router)
 app.include_router(update.router)
-app.include_router(picking.router)
 app.include_router(inventory.router)
-app.include_router(planner.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
 async def health_check():
-    """Endpoint para verificar el estado de la aplicación."""
     return {
         "status": "healthy",
-        "version": "2.0.0",
-        "service": "Logix API"
+        "mode": "headless",
+        "version": "2.1.0"
     }
-
 
 if __name__ == "__main__":
     import uvicorn
