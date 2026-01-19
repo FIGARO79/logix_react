@@ -601,8 +601,18 @@
             <div class="bg-white rounded-lg shadow-xl w-[95%] max-w-lg p-6">
                 <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
                 <div id="qr-reader" class="w-full rounded-md overflow-hidden border"></div>
-                <button id="close-scanner-btn"
-                    class="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
+                <div class="flex gap-2 mt-4">
+                    <button id="toggle-flash-btn" title="Activar/Desactivar Flash"
+                        class="bg-gray-700 text-white p-3 rounded-md hover:bg-gray-600 flex items-center justify-center transition-colors duration-200">
+                        <svg id="flash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a2 2 0 0 0-.453-.618A5.98 5.98 0 0 1 2 6m6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1" />
+                        </svg>
+                    </button>
+                    <button id="close-scanner-btn"
+                        class="mt-0 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700">Cancelar</button>
+                </div>
             </div>
         </div>
 
@@ -680,6 +690,8 @@
             let editMode = false; // Modo edición
             let editAuditId = null; // ID de auditoría en edición
             let originalItemValues = {}; // Valores originales para detectar cambios
+            let currentStream = null;
+            let isFlashOn = false;
 
             // --- Selectores del DOM ---
             const loadSection = document.getElementById('load-section');
@@ -712,6 +724,8 @@
             const packagesInput = document.getElementById('packages-input');
             const cancelPackagesBtn = document.getElementById('cancel-packages-btn');
             const confirmPackagesBtn = document.getElementById('confirm-packages-btn');
+            const toggleFlashButton = document.getElementById('toggle-flash-btn');
+            const flashIcon = document.getElementById('flash-icon');
 
             // --- Inicialización ---
             document.addEventListener('DOMContentLoaded', () => {
@@ -925,6 +939,7 @@
             confirmPackagesBtn.addEventListener('click', confirmPackages);
             packagesInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmPackages(); } });
             quantityInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); confirmQuantity(); } });
+            toggleFlashButton.addEventListener('click', toggleFlash);
 
             // --- Detectar modo edición al cargar la página ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1140,41 +1155,81 @@
             /**
              * Inicia la cámara para escanear.
              */
-            function startScanner() {
+            /**
+             * Inicia la cámara para escanear.
+             */
+            async function startScanner() {
                 scannerModal.classList.remove('hidden');
                 if (!html5QrCode) {
                     html5QrCode = new Html5Qrcode("qr-reader");
                 }
 
-                const config = {
-                    fps: 10,
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        const qrboxSize = Math.floor(minEdge * 0.8); // 80% del borde más pequeño
-                        return { width: qrboxSize, height: qrboxSize };
-                    },
-                    rememberLastUsedCamera: true,
-                    supportedScanTypes: [
-                        Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                    ]
-                };
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: "environment" }
+                    });
 
-                html5QrCode.start(
-                    { facingMode: "environment" }, // Pedir cámara trasera
-                    config,
-                    (decodedText, decodedResult) => {
-                        stopScanner();
-                        processScan(decodedText);
-                    }, // onScanSuccess
-                    (error) => { /* onScanFailure (opcional) */ }
-                ).then(() => {
+                    const config = {
+                        fps: 10,
+                        qrbox: (viewfinderWidth, viewfinderHeight) => {
+                            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                            const qrboxSize = Math.floor(minEdge * 0.8); // 80% del borde más pequeño
+                            return { width: qrboxSize, height: qrboxSize };
+                        },
+                        rememberLastUsedCamera: true,
+                        supportedScanTypes: [
+                            Html5QrcodeScanType.SCAN_TYPE_CAMERA
+                        ]
+                    };
+
+                    await html5QrCode.start(
+                        { facingMode: "environment" }, // Pedir cámara trasera
+                        config,
+                        (decodedText, decodedResult) => {
+                            stopScanner();
+                            processScan(decodedText);
+                        }, // onScanSuccess
+                        (error) => { /* onScanFailure (opcional) */ }
+                    );
                     showMessage("Cámara iniciada. Apunte al código.", "info");
-                }).catch(err => {
+                } catch (err) {
                     showMessage("Error al iniciar la cámara. Verifique permisos.", "error");
                     console.error(err);
                     stopScanner();
-                });
+                }
             }
+
+            const toggleFlash = async () => {
+                if (!currentStream) return;
+
+                const track = currentStream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+
+                if (!capabilities.torch) {
+                    showMessage("El flash no está disponible en este dispositivo.", "error");
+                    return;
+                }
+
+                try {
+                    isFlashOn = !isFlashOn;
+                    await track.applyConstraints({
+                        advanced: [{ torch: isFlashOn }]
+                    });
+
+                    if (isFlashOn) {
+                        toggleFlashButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        toggleFlashButton.classList.add('bg-yellow-500', 'hover:bg-yellow-400');
+                        flashIcon.classList.add('animate-pulse');
+                    } else {
+                        toggleFlashButton.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+                        toggleFlashButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                        flashIcon.classList.remove('animate-pulse');
+                    }
+                } catch (err) {
+                    showMessage("Error al controlar el flash.", "error");
+                    console.error("Error al controlar el flash:", err);
+                }
+            };
 
             /**
              * Detiene el escáner de la cámara.
@@ -1183,12 +1238,20 @@
                 if (html5QrCode && html5QrCode.isScanning) {
                     html5QrCode.stop()
                         .then(() => {
+                            if (currentStream) {
+                                currentStream.getTracks().forEach(track => track.stop());
+                                currentStream = null;
+                            }
                             showMessage("Escáner detenido.", "info");
                         })
                         .catch(err => {
                             console.error("Error al detener el escáner:", err);
                         });
                 }
+                isFlashOn = false;
+                toggleFlashButton.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+                toggleFlashButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                flashIcon.classList.remove('animate-pulse');
                 scannerModal.classList.add('hidden');
             }
 

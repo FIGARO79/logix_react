@@ -174,9 +174,17 @@
     <div id="scanner-modal"
         class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[2000] p-4">
         <div class="bg-white rounded-lg p-4 max-w-lg w-full">
-            <h3 class="text-lg font-bold mb-4 text-center">Escanear Artículo</h3>
-            <div id="reader" class="w-full rounded-md overflow-hidden border bg-black h-64"></div>
+            <h3 class="text-lg font-bold mb-4 text-center">Apunta la cámara al código de barras</h3>
+            <div id="reader" class="w-full rounded-md overflow-hidden border"></div>
             <div class="flex gap-2 mt-4">
+                <button id="toggle-flash-btn" title="Activar/Desactivar Flash"
+                    class="bg-gray-700 text-white p-3 rounded-md hover:bg-gray-600 flex items-center justify-center transition-colors duration-200">
+                    <svg id="flash-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a2 2 0 0 0-.453-.618A5.98 5.98 0 0 1 2 6m6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1" />
+                    </svg>
+                </button>
                 <button id="close-scanner-btn"
                     class="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 font-medium">Cancelar</button>
             </div>
@@ -198,7 +206,11 @@
             const scanBtn = document.getElementById('scanBtn');
             const scannerModal = document.getElementById('scanner-modal');
             const closeScannerBtn = document.getElementById('close-scanner-btn');
+            const toggleFlashButton = document.getElementById('toggle-flash-btn');
+            const flashIcon = document.getElementById('flash-icon');
             let html5QrCode = null;
+            let currentStream = null;
+            let isFlashOn = false;
 
             // Default to today
             execDateInput.value = new Date().toISOString().split('T')[0];
@@ -375,15 +387,57 @@
             });
 
             // --- Scanner Logic ---
-            function onScanSuccess(decodedText, decodedResult) {
-                // Stop scanning
-                if (html5QrCode) {
-                    html5QrCode.stop().then(() => {
-                        scannerModal.classList.add('hidden');
-                        document.body.style.overflow = '';
-                        html5QrCode = null;
-                    }).catch(err => console.error(err));
+            const toggleFlash = async () => {
+                if (!currentStream) return;
+
+                const track = currentStream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+
+                if (!capabilities.torch) {
+                    showStatus("El flash no está disponible en este dispositivo.", "error");
+                    return;
                 }
+
+                try {
+                    isFlashOn = !isFlashOn;
+                    await track.applyConstraints({
+                        advanced: [{ torch: isFlashOn }]
+                    });
+
+                    if (isFlashOn) {
+                        toggleFlashButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        toggleFlashButton.classList.add('bg-yellow-500', 'hover:bg-yellow-400');
+                        flashIcon.classList.add('animate-pulse');
+                    } else {
+                        toggleFlashButton.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+                        toggleFlashButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                        flashIcon.classList.remove('animate-pulse');
+                    }
+                } catch (err) {
+                    showStatus("Error al controlar el flash.", "error");
+                    console.error("Error al controlar el flash:", err);
+                }
+            };
+
+            const stopScanning = () => {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => {
+                        if (currentStream) {
+                            currentStream.getTracks().forEach(track => track.stop());
+                            currentStream = null;
+                        }
+                    }).catch(err => console.error("Fallo al detener el escáner.", err));
+                }
+                isFlashOn = false;
+                toggleFlashButton.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+                toggleFlashButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                flashIcon.classList.remove('animate-pulse');
+                scannerModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            };
+
+            function onScanSuccess(decodedText, decodedResult) {
+                stopScanning();
 
                 const searchCode = decodedText.trim().toUpperCase();
 
@@ -414,35 +468,33 @@
                 }
             }
 
-            scanBtn.addEventListener('click', () => {
+            scanBtn.addEventListener('click', async () => {
                 scannerModal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden'; // Prevent background scrolling
 
-                html5QrCode = new Html5Qrcode("reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
 
-                // Prefer back camera
-                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                    .catch(err => {
-                        console.error("Error starting scanner", err);
-                        showStatus("No se pudo iniciar la cámara: " + err, "error");
-                        scannerModal.classList.add('hidden');
-                        document.body.style.overflow = '';
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: "environment" }
                     });
-            });
 
-            closeScannerBtn.addEventListener('click', () => {
-                if (html5QrCode) {
-                    html5QrCode.stop().then(() => {
-                        html5QrCode = null;
-                        scannerModal.classList.add('hidden');
-                        document.body.style.overflow = '';
-                    }).catch(err => console.error(err));
-                } else {
-                    scannerModal.classList.add('hidden');
-                    document.body.style.overflow = '';
+                    await html5QrCode.start(
+                        { facingMode: "environment" },
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
+                        onScanSuccess,
+                        (errorMessage) => { /* Ignorar errores continuos */ }
+                    );
+                } catch (err) {
+                    showStatus("No se pudo iniciar la cámara. Asegúrate de dar los permisos.", "error");
+                    stopScanning();
                 }
             });
+
+            toggleFlashButton.addEventListener('click', toggleFlash);
+            closeScannerBtn.addEventListener('click', stopScanning);
         });
     </script>
 </body>
