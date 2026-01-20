@@ -1,570 +1,422 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
-// API CONSTANTS
-const API_BASE_URL = 'http://localhost:8000/api'; // Adjust if needed
 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
 
-    // --- State ---
+    // --- State Management ---
     const [importReference, setImportReference] = useState('');
     const [waybill, setWaybill] = useState('');
     const [itemCode, setItemCode] = useState('');
-    const [quantity, setQuantity] = useState('');
+    const [quantity, setQuantity] = useState(1);
     const [relocatedBin, setRelocatedBin] = useState('');
-
-    // Data State
     const [logs, setLogs] = useState([]);
-    const [itemDetails, setItemDetails] = useState(null);
+    const [currentItemData, setCurrentItemData] = useState(null);
+    const [editingLogId, setEditingLogId] = useState(null);
+    const [toasts, setToasts] = useState([]);
     const [archiveVersions, setArchiveVersions] = useState([]);
     const [selectedVersion, setSelectedVersion] = useState('');
 
-    // UI State
-    const [loading, setLoading] = useState(false);
-    const [printing, setPrinting] = useState(false);
-    const [editingLogId, setEditingLogId] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
-    // Refs for focus management
-    const quantityInputRef = useRef(null);
+    const findItemBtnRef = useRef(null);
+    const addLogEntryBtnRef = useRef(null);
     const itemCodeInputRef = useRef(null);
 
+
     useEffect(() => {
-        setTitle("Recepción (Inbound)");
+        setTitle("Logix - Inbound");
         loadInitialLogs();
         loadArchiveVersions();
     }, []);
 
+    // --- Toast Notifications ---
+    const showToast = (message, type = "info") => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    };
+
     // --- API Calls ---
-
-    const loadInitialLogs = async (version = null) => {
-        setLoading(true);
+    const loadInitialLogs = async (versionDate = null) => {
+        showToast(versionDate ? "Cargando histórico..." : "Cargando registros...", "info");
         try {
-            let url = `${API_BASE_URL}/views/view_logs`;
-            if (version) url += `?version_date=${encodeURIComponent(version)}`;
-
-            const response = await fetch(url);
+            let url = `/api/get_logs`;
+            if (versionDate) {
+                url += `?version_date=${encodeURIComponent(versionDate)}`;
+            }
+            const response = await fetch(url, { cache: 'no-cache' });
             if (response.ok) {
                 const data = await response.json();
                 setLogs(data);
+                showToast("Registros cargados.", "success");
             } else {
-                toast.error("Error cargando registros");
+                showToast("Error al cargar registros.", "error");
             }
         } catch (error) {
-            toast.error("Error de conexión");
-        } finally {
-            setLoading(false);
+            showToast("Error de conexión al cargar registros.", "error");
         }
     };
-
+    
     const loadArchiveVersions = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/inbound/versions`);
+            const response = await fetch(`/api/logs/versions`);
             if (response.ok) {
-                const data = await response.json();
-                setArchiveVersions(data);
+                const versions = await response.json();
+                setArchiveVersions(versions);
             }
-        } catch (error) {
-            console.error("Error fetching versions", error);
+        } catch (e) {
+            console.error("Error cargando versiones:", e);
         }
     };
 
-    const findItemData = async (e) => {
-        if (e) e.preventDefault();
-        if (!itemCode.trim()) return;
+    const findItemData = async (isEditing = false) => {
+        const code = itemCode.trim().toUpperCase();
+        const packingList = importReference.trim().toUpperCase();
+
+        if (!code || !packingList) {
+            showToast("Ingrese Import Reference y Item Code.", "error");
+            return;
+        }
+
+        if (!isEditing) {
+            showToast("Buscando artículo...", "info");
+        }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/stock/find_item?item_code=${itemCode.trim()}`);
-            if (response.ok) {
-                const data = await response.json();
-                setItemDetails(data.info || data); // Adjust based on API structure
+            const response = await fetch(`/api/find_item/${encodeURIComponent(code)}/${encodeURIComponent(packingList)}`);
+            const data = await response.json();
 
-                // Auto-fill bin if available and not set manually or if valid
-                if (data.info?.Bin_1) {
-                    setRelocatedBin(data.info.Bin_1);
+            if (response.ok) {
+                setCurrentItemData(data);
+                showToast(`Artículo "${data.description || code}" encontrado.`, "success");
+                if (itemCodeInputRef.current) {
+                    itemCodeInputRef.current.focus();
                 }
 
-                toast.success("Artículo encontrado");
-                quantityInputRef.current?.focus();
             } else {
-                setItemDetails(null);
-                toast.error("Artículo no encontrado en Maestro");
+                showToast(data.error, "error");
+                setCurrentItemData(null);
             }
         } catch (error) {
-            toast.error("Error buscando artículo");
+            showToast("Error de conexión al buscar.", "error");
+            setCurrentItemData(null);
         }
     };
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-
         if (editingLogId) {
-            handleUpdateLog();
+            // Handle update logic
+        } else {
+            await addLogEntry();
+        }
+    };
+
+    const addLogEntry = async () => {
+        if (!currentItemData) {
+            showToast("Por favor, busque un artículo primero.", "error");
             return;
         }
 
-        if (!itemDetails || !quantity || !waybill || !importReference) {
-            toast.warning("Complete todos los campos requeridos");
-            return;
-        }
-
-        const payload = {
-            importReference: importReference,
-            waybill: waybill.toUpperCase(),
-            itemCode: itemCode,
-            itemDescription: itemDetails.Item_Description || itemDetails.description || "N/A",
-            qtyReceived: parseInt(quantity),
-            binLocation: itemDetails.Bin_1 || "N/A",
-            relocatedBin: relocatedBin.toUpperCase() || itemDetails.Bin_1 || "N/A",
-            username: "user" // Should come from context
+        const logData = {
+            importReference: importReference.trim().toUpperCase(),
+            waybill: waybill.trim().toUpperCase(),
+            itemCode: currentItemData.itemCode,
+            quantity: parseInt(quantity),
+            relocatedBin: relocatedBin.trim().toUpperCase(),
         };
 
+        showToast("Añadiendo registro...", "info");
         try {
-            // Using the generic log add endpoint or inbound specific if exists
-            // Assuming basic add_log logic exists or reused
-            const response = await fetch(`${API_BASE_URL}/logs/add_log`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const response = await fetch(`/api/add_log`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(logData)
             });
 
             if (response.ok) {
-                toast.success("Registro añadido");
-                loadInitialLogs();
-                // Clear partial fields
-                setItemCode('');
-                setQuantity('');
-                setItemDetails(null);
-                itemCodeInputRef.current?.focus();
+                const result = await response.json();
+                showToast(result.message || "Registro añadido.", "success");
+                await loadInitialLogs();
+                clearItemSpecificFields();
+                if (itemCodeInputRef.current) itemCodeInputRef.current.focus();
             } else {
-                toast.error("Error guardando registro");
+                const errorResult = await response.json();
+                showToast(errorResult.error, "error");
+            }
+
+        } catch (error) {
+            showToast("Error de conexión al añadir registro.", "error");
+        }
+    };
+
+    const clearItemSpecificFields = () => {
+        setItemCode("");
+        setQuantity(1);
+        setRelocatedBin("");
+        setCurrentItemData(null);
+        setEditingLogId(null);
+    };
+
+    const handleArchiveLogs = async () => {
+        if (!confirm("¿Está seguro de que desea limpiar la base? Esta acción archivará los registros actuales.")) return;
+
+        showToast("Archivando registros...", "info");
+        try {
+            const response = await fetch(`/api/logs/archive`, { method: "POST" });
+            if (response.ok) {
+                showToast("Base limpiada y registros archivados.", "success");
+                await loadInitialLogs();
+                await loadArchiveVersions();
+            } else {
+                const err = await response.json();
+                showToast(err.detail || "Error al archivar.", "error");
             }
         } catch (error) {
-            toast.error("Error de conexión");
+            showToast("Error de conexión al archivar.", "error");
         }
     };
 
-    const handleUpdateLog = async () => {
-        if (!editingLogId) return;
-
-        const payload = {
-            waybill: waybill.toUpperCase(),
-            qtyReceived: parseInt(quantity),
-            relocatedBin: relocatedBin.toUpperCase()
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/inbound/log/${editingLogId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                toast.success("Registro actualizado");
-                setEditingLogId(null);
-                loadInitialLogs();
-                // Reset form
-                setItemCode('');
-                setQuantity('');
-                setItemDetails(null);
-            } else {
-                toast.error("Error actualizando registro");
-            }
-        } catch (error) {
-            toast.error("Error de conexión");
+    const handleExport = () => {
+        let url = `/api/export_logs`;
+        if (selectedVersion) {
+            url += `?version_date=${encodeURIComponent(selectedVersion)}`;
         }
+        window.location.href = url;
+    };
+    const handleCleanBase = () => {
+        // La función de limpiar base ahora es manejada por handleArchiveLogs
+        handleArchiveLogs();
     };
 
-    const handleEditClick = (log) => {
-        setEditingLogId(log.id);
-        setItemCode(log.itemCode);
-        setWaybill(log.waybill || '');
-        setQuantity(log.qtyReceived);
-        setRelocatedBin(log.relocatedBin || '');
-        setImportReference(log.importReference || importReference);
 
-        // Mock item details for display
-        setItemDetails({
-            Item_Code: log.itemCode,
-            Item_Description: log.description || log.itemDescription,
-            Weight_per_Unit: 0 // Would need to fetch real details if needed
-        });
+    const difference = currentItemData ? quantity - (currentItemData.defaultQtyGrn || 0) : 0;
+    const receptionDate = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const handleArchive = async () => {
-        if (!window.confirm("¿Está seguro de archivar la base actual?")) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/inbound/archive`, { method: 'POST' });
-            if (response.ok) {
-                toast.success("Registros archivados");
-                loadInitialLogs();
-                loadArchiveVersions();
-            } else {
-                toast.error("Error al archivar");
-            }
-        } catch (e) {
-            toast.error("Error de conexión");
-        }
-    };
-
-    const handleExport = async () => {
-        try {
-            let url = `${API_BASE_URL}/inbound/export`;
-            if (selectedVersion) url += `?version_date=${encodeURIComponent(selectedVersion)}`;
-
-            window.open(url, '_blank');
-        } catch (e) {
-            toast.error("Error al iniciar descarga");
-        }
-    };
-
-    const handlePrint = () => {
-        if (!itemDetails) return;
-        window.print();
-    };
-
-    // --- Helpers ---
-    const calculateWeight = () => {
-        if (!itemDetails || !quantity) return "0.00";
-        const unitWeight = parseFloat(itemDetails.Weight_per_Unit || itemDetails.weight || 0);
-        return (unitWeight * parseInt(quantity)).toFixed(2);
-    };
-
-    const requestSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
-
-    const sortedLogs = React.useMemo(() => {
-        let sortableItems = [...logs];
-        if (sortConfig.key !== null) {
-            sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
-        }
-        return sortableItems;
-    }, [logs, sortConfig]);
-
-    // --- Render ---
     return (
-        <div className="container-wrapper p-4 font-sans text-xs sm:text-sm">
-            <ToastContainer position="top-right" autoClose={3000} />
-
-            {/* LABEL PRINT AREA (Hidden on screen, Visible on print) */}
-            <div className="label-print-area hidden print:block">
-                <div className="label-container flex flex-col justify-between h-full p-2 border relative">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="w-1/2">
-                            <img src="/static/images/logix_logo.png" alt="Logo" className="label-logo h-8 object-contain" />
-                        </div>
+        <>
+            <div id="toast-container">
+                {toasts.map(toast => (
+                    <div key={toast.id} className={`toast ${toast.type} show`}>
+                        <span>{toast.message}</span>
                     </div>
-                    <div className="flex-grow">
-                        <div className="label-item-code text-2xl font-bold mb-1">{itemDetails?.Item_Code || itemCode}</div>
-                        <div className="label-item-description text-lg font-bold mb-8">{itemDetails?.Item_Description?.substring(0, 60) || "Descripción del Ítem"}</div>
-
-                        <div className="label-data-field flex justify-between border-b border-black mb-1">
-                            <span className="font-bold">CANTIDAD:</span>
-                            <span className="text-xl">{quantity || "1"}</span>
-                        </div>
-                        <div className="label-data-field flex justify-between border-b border-black mb-1">
-                            <span className="font-bold">UBICACIÓN:</span>
-                            <span className="text-xl">{relocatedBin || itemDetails?.Bin_1 || "-"}</span>
-                        </div>
-                        <div className="label-data-field flex justify-between border-b border-black mb-1">
-                            <span className="font-bold">PESO TOTAL (KG):</span>
-                            <span className="text-xl">{calculateWeight()}</span>
-                        </div>
-                        <div className="label-data-field flex justify-between border-b border-black mb-1">
-                            <span className="font-bold">FECHA:</span>
-                            <span className="text-sm">{new Date().toLocaleDateString('es-CO')}</span>
-                        </div>
-                    </div>
-                    <div className="label-bottom-section mt-auto pt-4 flex items-end justify-between">
-                        <div className="label-disclaimer text-[10px] w-2/3">
-                            Este material es propiedad de Logix. Verificar contenido antes de recepción.
-                        </div>
-                        <div className="w-24 h-24 border border-black flex items-center justify-center text-center text-[10px]">
-                            QR Code
-                        </div>
-                    </div>
-                </div>
+                ))}
             </div>
 
-            {/* SCREEN ONLY CONTENT */}
-            <div className="screen-content mb-6">
+            <div className="container-wrapper mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <form id="main-form" onSubmit={handleFormSubmit}>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 mb-2">
+                        {/* Columna Izquierda: Formulario Principal */}
+                        <div className="lg:col-span-2 space-y-2 bg-white p-4 rounded-md shadow-md border border-gray-200">
+                            <div style={{ background: 'linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%)', color: 'white', padding: '6px 10px', margin: '-16px -16px 16px -16px', borderRadius: '4px 4px 0 0' }}>
+                                <h1 className="text-base font-semibold" style={{ margin: 0, letterSpacing: '0.3px' }}>Inbound - Recepción de Mercancía</h1>
+                            </div>
 
-                {/* CONFIGURATION & FORM GRID */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    {/* LEFT COLUMN: FORM */}
-                    <div className="col-span-1 lg:col-span-2 bg-white shadow-sm border border-gray-300 rounded overflow-hidden">
-                        <div className="bg-[#354a5f] text-white px-4 py-2 text-sm font-bold uppercase tracking-wider">
-                            Inbound - Recepción de Mercancía
-                        </div>
-                        <div className="p-4">
-                            <form onSubmit={(e) => { e.preventDefault(); findItemData(); }}>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Minuta / Import Reference</label>
-                                        <input
-                                            type="text"
-                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                                            value={importReference}
-                                            onChange={e => setImportReference(e.target.value)}
-                                            placeholder="I.R."
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Guía / Waybill</label>
-                                        <input
-                                            type="text"
-                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                                            value={waybill}
-                                            onChange={e => setWaybill(e.target.value)}
-                                            placeholder="W.B."
-                                            required
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                <div>
+                                    <label htmlFor="importReference" className="form-label">Import Reference</label>
+                                    <input type="text" id="importReference" name="importReference" placeholder="I.R." required
+                                        value={importReference} onChange={e => setImportReference(e.target.value.toUpperCase())} />
                                 </div>
-
-                                <div className="grid grid-cols-3 gap-4 mb-4 items-end">
-                                    <div className="col-span-2">
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Item Code</label>
-                                        <div className="flex">
-                                            <input
-                                                ref={itemCodeInputRef}
-                                                type="text"
-                                                className="w-full border border-gray-300 p-1.5 rounded-l text-sm font-bold focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                value={itemCode}
-                                                onChange={e => setItemCode(e.target.value)}
-                                                placeholder="Ingrese código y presione Enter..."
-                                                onKeyDown={e => e.key === 'Enter' && findItemData(e)}
-                                            />
-                                            <button type="button" onClick={findItemData} className="bg-[#354a5f] text-white px-3 py-1.5 rounded-r hover:bg-opacity-90">
-                                                🔍
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label htmlFor="waybill" className="form-label">Waybill</label>
+                                    <input type="text" id="waybill" name="waybill" placeholder="W.B." required
+                                        value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} />
                                 </div>
-
-                                <div className="mb-4">
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Item Description</label>
-                                    <div className="w-full bg-gray-100 border border-gray-300 p-2 rounded text-sm min-h-[34px] overflow-hidden text-ellipsis whitespace-nowrap font-medium text-gray-700">
-                                        {itemDetails?.Item_Description || "..."}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Quantity Received</label>
-                                        <input
-                                            ref={quantityInputRef}
-                                            type="number"
-                                            className="w-full border border-gray-300 p-1.5 rounded text-sm font-bold text-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                            value={quantity}
-                                            onChange={e => setQuantity(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Bin Location (Original)</label>
-                                        <div className="w-full bg-gray-100 border border-gray-300 p-1.5 rounded text-sm text-gray-700">
-                                            {itemDetails?.Bin_1 || "-"}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Relocate Bin (New)</label>
-                                        <input
-                                            type="text"
-                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                                            value={relocatedBin}
-                                            onChange={e => setRelocatedBin(e.target.value)}
-                                            placeholder="(Opcional)"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-gray-200 pt-4 mt-4">
-                                    <h4 className="text-[11px] font-bold text-gray-500 uppercase mb-2">Resumen de Cantidades</h4>
-                                    <div className="grid grid-cols-3 gap-4 bg-gray-50 p-3 rounded text-sm">
-                                        <div>
-                                            <span className="block text-[10px] text-gray-500 uppercase">Qty. Received</span>
-                                            <span className="font-bold text-gray-800">{itemDetails?.totals?.total_received || 0}</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-[10px] text-gray-500 uppercase">Qty. GRN (Expected)</span>
-                                            <span className="font-bold text-gray-800">{itemDetails?.totals?.total_expected || 0}</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-[10px] text-gray-500 uppercase">Difference</span>
-                                            <span className={`font-bold ${(itemDetails?.totals?.difference || 0) < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                                {itemDetails?.totals?.difference || 0}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={handleFormSubmit}
-                                        disabled={!quantity}
-                                        className={`flex-1 py-2 px-4 rounded font-bold text-white shadow transition-colors ${editingLogId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[var(--sap-yellow)] hover:bg-[var(--sap-yellow-light)] text-gray-800 border border-[var(--sap-yellow-light)]'}`}
-                                    >
-                                        {editingLogId ? 'Guardar Cambios' : 'Añadir Registro'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleExport}
-                                        className="flex-1 py-2 px-4 rounded font-bold text-white shadow bg-[#4b5563] hover:bg-[#374151] flex items-center justify-center gap-2"
-                                    >
-                                        <span>📥 Exportar Log</span>
-                                    </button>
-                                </div>
-
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* RIGHT COLUMN: LABEL PREVIEW */}
-                    <div className="col-span-1">
-                        <div className="bg-white shadow-sm border border-gray-300 rounded p-4 h-full relative">
-                            <h3 className="text-gray-700 font-bold mb-4 border-b pb-2">Vista Etiqueta</h3>
-
-                            {/* VISUAL LABEL PREVIEW (Mocks the printed one) */}
-                            <div className="border border-gray-300 bg-white p-3 shadow-sm mx-auto aspect-[265/378] w-full max-w-[260px] flex flex-col text-xs select-none pointer-events-none">
-                                <div className="flex justify-between items-start mb-2">
-                                    <img src="/static/images/logix_logo.png" alt="Logo" className="h-6 object-contain" />
-                                </div>
-                                <div className="font-bold text-lg mb-1 leading-tight">{itemDetails?.Item_Code || "ITEM CODE"}</div>
-                                <div className="font-bold text-sm mb-4 leading-tight text-gray-600 line-clamp-2">{itemDetails?.Item_Description || "Item Description"}</div>
-
-                                <div className="flex justify-between border-b border-gray-200 mb-1 py-0.5">
-                                    <span className="font-semibold text-gray-500">Quantity</span>
-                                    <span>{quantity || "1"}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-gray-200 mb-1 py-0.5">
-                                    <span className="font-semibold text-gray-500">Product Weight</span>
-                                    <span>{calculateWeight()}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-gray-200 mb-1 py-0.5">
-                                    <span className="font-semibold text-gray-500">Bin Loc</span>
-                                    <span>{relocatedBin || itemDetails?.Bin_1 || "N/A"}</span>
-                                </div>
-
-                                <div className="mt-auto flex justify-end pt-2">
-                                    <div className="w-16 h-16 border border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-400">
-                                        QR
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="itemCode" className="form-label">Item Code.</label>
+                                    <div className="flex items-end gap-2">
+                                        <input type="text" id="itemCode" name="itemCode" className="flex-grow" placeholder="Ingrese código y presione Enter o Buscar" required
+                                            ref={itemCodeInputRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())}
+                                            onKeyDown={e => e.key === 'Enter' && findItemData()} />
+                                        <button type="button" id="scanItemBtn" title="Escanear código de barras" className="btn-secondary h-9 w-auto px-3 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+                                            </svg>
+                                        </button>
+                                        <button type="button" id="findItemBtn" title="Buscar" className="btn-secondary h-9 w-auto px-3 flex-shrink-0" ref={findItemBtnRef} onClick={() => findItemData()}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handlePrint}
-                                disabled={!itemDetails}
-                                className="w-full mt-6 bg-[var(--sap-yellow)] border border-[var(--sap-yellow-light)] text-gray-800 font-bold py-2 rounded shadow hover:bg-[var(--sap-yellow-light)] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Imprimir Etiqueta
+                            <div>
+                                <label htmlFor="itemDescription" className="form-label">Item Description.</label>
+                                <div id="itemDescription" className="data-field min-h-[38px]">{currentItemData?.description || ''}</div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label htmlFor="quantity" className="form-label">Quantity Received.</label>
+                                    <input type="number" id="quantity" name="quantity" min="1" className="w-full sm:w-1/2" required
+                                        value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} />
+                                </div>
+                                <div>
+                                    <label htmlFor="binLocation" className="form-label">Bin Location (Original).</label>
+                                    <div id="binLocation" className="data-field min-h-[38px]">{currentItemData?.binLocation || ''}</div>
+                                </div>
+                                <div>
+                                    <label htmlFor="relocatedBin" className="form-label">Relocate Bin (New).</label>
+                                    <input type="text" id="relocatedBin" name="relocatedBin" className="w-full sm:w-1/2" placeholder="(Opcional)"
+                                        value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} />
+                                </div>
+                                <div>
+                                    <label htmlFor="aditionalBins" className="form-label">Aditional Bins.</label>
+                                    <div id="aditionalBins" className="data-field min-h-[38px]">{currentItemData?.aditionalBins || ''}</div>
+                                </div>
+                                <div>
+                                    <label htmlFor="itemtype" className="form-label">ABC.</label>
+                                    <div id="itemtype" className="data-field min-h-[38px]">{currentItemData?.itemType || ''}</div>
+                                </div>
+                                <div>
+                                    <label htmlFor="sicCode" className="form-label">Sic Code.</label>
+                                    <div id="sicCode" className="data-field min-h-[38px]">{currentItemData?.sicCode || ''}</div>
+                                </div>
+                            </div>
+
+                            <div style={{ backgroundColor: '#f8f9fa', padding: '16px', borderRadius: '3px', border: '1px solid var(--sap-border)', marginTop: '8px' }}>
+                                <h3 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--sap-text)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid var(--sap-primary)', paddingBottom: '6px' }}>
+                                    Resumen de Cantidades
+                                </h3>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><label className="form-label text-xs">Qty. Received</label>
+                                        <div id="qtyReceived" className="data-field text-sm">{quantity}</div>
+                                    </div>
+                                    <div><label className="form-label text-xs">Qty. GRN (Expected)</label>
+                                        <div id="qtyGrn" className="data-field text-sm">{currentItemData?.defaultQtyGrn || 0}</div>
+                                    </div>
+                                    <div><label className="form-label text-xs">Difference.</label>
+                                        <div id="difference" className={`data-field text-sm font-bold ${difference < 0 ? 'text-red-600' : (difference > 0 ? 'text-blue-600' : '')}`}>{difference}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap justify-start items-center mt-6 gap-3">
+                                <button type="submit" id="addLogEntryBtn" className="btn-primary w-60 h-10" ref={addLogEntryBtnRef}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    <span>{editingLogId ? 'Guardar Cambios' : 'Añadir Registro'}</span>
+                                </button>
+                                <a id="exportLogBtn" href="#" onClick={handleExport} className="btn-secondary w-60 h-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                    <span>Exportar Log</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Columna Derecha: Vista de Etiqueta */}
+                        <div className="lg:col-span-1">
+                            <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Etiqueta</h2>
+                            <div className="label-print-area">
+                                <div className="label-container">
+                                    {/* Contenido de la etiqueta */}
+                                    <div>
+                                        <div className="mb-3">
+                                            <img src="/static/images/logoytpe_sandvik.png" alt="Logotipo Sandvik" className="label-logo" />
+                                            <p className="label-item-code" id="labelItemCode">{currentItemData?.itemCode || 'ITEM CODE'}</p>
+                                            <p className="label-item-description" id="labelItemDescription">{currentItemData?.description || 'Item Description'}</p>
+                                        </div>
+                                        <div className="mb-2 space-y-1">
+                                            <div className="label-data-field"><span>Quantity Received</span><span id="labelQtyPackSpan">{quantity}</span></div>
+                                            <div className="label-data-field"><span>Product weight</span><span id="labelWeight">{currentItemData?.weight || 'N/A'}</span></div>
+                                            <div className="label-data-field"><span>Bin Location</span><span id="labelBinLocation">{relocatedBin || currentItemData?.binLocation || 'BIN'}</span></div>
+                                            <div className="label-data-field"><span>Reception Date</span><span id="labelReceptionDate">{receptionDate}</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="label-bottom-section">
+                                        <p className="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                                        <div id="qrCodeContainer">
+                                            <div className="qr-placeholder">QR Code</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" id="printLabelBtn" className="btn-primary h-10 btn-print-label mt-4" onClick={() => window.print()}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-15.75A1.125 1.125 0 013 21.375v-9.75c0-.621.504-1.125 1.125-1.125H4.5m15 0V4.875c0-.621-.504-1.125-1.125-1.125h-12.75c-.621 0-1.125.504-1.125 1.125V10.5m15 0h-15" />
+                                </svg>
+                                <span>Imprimir Etiqueta</span>
                             </button>
                         </div>
                     </div>
-
-                </div>
+                </form>
             </div>
 
-            {/* LOGS TABLE (Bottom) */}
-            <div className="bg-white shadow-sm border border-gray-300 rounded overflow-hidden">
-                <div className="bg-[#354a5f] text-white px-4 py-2 text-sm font-bold flex justify-between items-center">
-                    <span>Registros de Inbound</span>
-
-                    <div className="flex gap-2">
-                        <button onClick={handleArchive} className="bg-red-600 hover:bg-red-700 text-white text-[10px] px-2 py-1 rounded">
-                            Base Limpia
-                        </button>
-                        <button onClick={() => window.location.href = '/reconciliation'} className="bg-[#5a6c7d] hover:bg-[#4a5c6d] text-white text-[10px] px-2 py-1 rounded">
-                            Ver Conciliación
-                        </button>
-                        <select
-                            className="text-black text-[10px] rounded p-0.5"
-                            value={selectedVersion}
-                            onChange={(e) => { setSelectedVersion(e.target.value); loadInitialLogs(e.target.value); }}
-                        >
+            {/* Tabla de Logs */}
+            <div style={{ backgroundColor: '#ffffff', padding: 0, borderRadius: '4px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', border: '1px solid var(--sap-border)', overflow: 'hidden' }}>
+                <div style={{ background: 'linear-gradient(135deg, var(--sap-header-bg) 0%, #34495e 100%)', color: 'white', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h2 style={{ fontSize: '14px', fontWeight: 600, margin: 0, letterSpacing: '0.3px' }}>Registros de Inbound</h2>
+                    <div className="flex items-center">
+                    <button onClick={() => window.location.href='/update'} className="btn-secondary toolbar-btn" style={{marginRight: '0.5rem'}} title="Actualizar Archivos Maestros">Actualizar Archivos</button>
+                        <select id="archiveSelector" className="archive-selector toolbar-btn" value={selectedVersion} onChange={e => { setSelectedVersion(e.target.value); loadInitialLogs(e.target.value); }}>
                             <option value="">-- Versión Actual --</option>
                             {archiveVersions.map(v => (
-                                <option key={v} value={v}>Arch: {new Date(v).toLocaleDateString()}</option>
+                                <option key={v} value={v}>Archivo: {new Date(v).toLocaleString('es-CO')}</option>
                             ))}
                         </select>
+                        <button id="cleanBaseBtn" className="btn-clean-base toolbar-btn" title="Archivar registros actuales y limpiar tabla" onClick={handleCleanBase}>Base Limpia</button>
+                        <button id="viewReconciliationBtn" onClick={() => window.location.href='/reconciliation'} className="btn-secondary toolbar-btn ml-2">Ver Conciliación</button>
                     </div>
                 </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                        <thead className="bg-[#4a5f7f] text-white uppercase font-bold sticky top-0">
+                <div className="overflow-x-auto" style={{ padding: '1px' }}>
+                    <table className="min-w-full" id="logTable">
+                        <thead>
                             <tr>
-                                <th className="px-3 py-2">Import Reference</th>
-                                <th className="px-3 py-2">Waybill</th>
-                                <th className="px-3 py-2">Item Code</th>
-                                <th className="px-3 py-2">Item Description</th>
-                                <th className="px-3 py-2 border-l border-white/10">Bin Location (Original)</th>
-                                <th className="px-3 py-2">Relocated Bin (New)</th>
-                                <th className="px-3 py-2 text-right border-l border-white/10">Qty. Received</th>
-                                <th className="px-3 py-2 text-right">Qty. Expected</th>
-                                <th className="px-3 py-2 text-center text-blue-200 border-l border-white/10">Difference</th>
-                                <th className="px-3 py-2">Timestamp</th>
-                                <th className="px-3 py-2 text-center">Acciones</th>
+                                {/* Encabezados de tabla */}
+                                <th>Import Reference</th>
+                                <th>Waybill</th>
+                                <th>Item Code</th>
+                                <th>Item Description</th>
+                                <th>Bin Location (Original)</th>
+                                <th>Relocated Bin (New)</th>
+                                <th>Qty. Received</th>
+                                <th>Qty. Expected</th>
+                                <th>Difference</th>
+                                <th>Timestamp</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {sortedLogs.length > 0 ? (
-                                sortedLogs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-blue-50 transition-colors">
-                                        <td className="px-3 py-1.5 align-middle">{log.importReference || "-"}</td>
-                                        <td className="px-3 py-1.5 align-middle">{log.waybill || "-"}</td>
-                                        <td className="px-3 py-1.5 align-middle font-semibold text-gray-700">{log.itemCode}</td>
-                                        <td className="px-3 py-1.5 align-middle truncate max-w-[200px]" title={log.description}>{log.description}</td>
-                                        <td className="px-3 py-1.5 align-middle border-l border-gray-100">{log.binLocation}</td>
-                                        <td className="px-3 py-1.5 align-middle">{log.relocatedBin}</td>
-                                        <td className="px-3 py-1.5 align-middle text-right font-bold border-l border-gray-100">{log.qtyReceived}</td>
-                                        <td className="px-3 py-1.5 align-middle text-right text-gray-500">{log.qtyGrn || 0}</td>
-                                        <td className={`px-3 py-1.5 align-middle text-center font-bold border-l border-gray-100 ${log.difference < 0 ? 'text-red-600' : (log.difference > 0 ? 'text-blue-600' : 'text-gray-400')}`}>
-                                            {log.difference || 0}
-                                        </td>
-                                        <td className="px-3 py-1.5 align-middle text-gray-500">{new Date(log.timestamp).toLocaleString('es-CO')}</td>
-                                        <td className="px-3 py-1.5 align-middle text-center">
-                                            {!selectedVersion && (
-                                                <button onClick={() => handleEditClick(log)} className="text-gray-500 hover:text-blue-600 p-1" title="Editar">
-                                                    ✏️
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="11" className="px-4 py-8 text-center text-gray-400 italic">No hay registros para mostrar.</td>
+                        <tbody id="logTableBody" className="divide-y divide-gray-200">
+                            {logs.map(log => (
+                                <tr key={log.id}>
+                                    <td>{log.importReference}</td>
+                                    <td>{log.waybill}</td>
+                                    <td>{log.itemCode}</td>
+                                    <td>{log.itemDescription}</td>
+                                    <td>{log.binLocation}</td>
+                                    <td>{log.relocatedBin}</td>
+                                    <td>{log.qtyReceived}</td>
+                                    <td>{log.qtyGrn}</td>
+                                    <td className={`font-bold ${log.difference < 0 ? 'text-red-600' : (log.difference > 0 ? 'text-blue-600' : '')}`}>{log.difference}</td>
+                                    <td>{new Date(log.timestamp).toLocaleString("es-CO")}</td>
+                                    <td>
+                                        <button className="action-btn edit-btn" onClick={() => {
+                                            setEditingLogId(log.id);
+                                            setImportReference(log.importReference);
+                                            setWaybill(log.waybill);
+                                            setItemCode(log.itemCode);
+                                            setQuantity(log.qtyReceived);
+                                            setRelocatedBin(log.relocatedBin);
+                                            findItemData(true);
+                                        }}>✏️</button>
+                                        {/* Botón de eliminar podría ir aquí */}
+                                    </td>
                                 </tr>
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+            <p id="emptyTableMessage" className={`text-center text-gray-500 mt-4 ${logs.length > 0 ? 'hidden' : ''}`}>No hay registros aún.</p>
+        </>
     );
 };
 
