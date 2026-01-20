@@ -397,6 +397,97 @@ async def export_recount_list(request: Request, stage_number: int, admin: bool =
     )
 
 
+# ===== APIs PARA REACT ADMIN INVENTORY =====
+
+@router.get('/api/admin/inventory/summary')
+async def get_inventory_summary_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+    """API: Obtiene el resumen del estado del inventario."""
+    stats = await get_inventory_summary_stats(db)
+    
+    # Obtener estado actual
+    result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
+    stage_state = result.scalar_one_or_none()
+    current_stage = int(stage_state.value) if stage_state else 0
+    
+    return JSONResponse(content={
+        "stage": current_stage,
+        "stats": stats
+    })
+
+@router.post('/api/admin/inventory/start_stage_1')
+async def start_inventory_stage_1_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+    """API: Inicia Etapa 1."""
+    # Reset Current Stage to 1
+    result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
+    stage_state = result.scalar_one_or_none()
+    if not stage_state:
+        stage_state = AppState(key='current_inventory_stage', value='1')
+        db.add(stage_state)
+    else:
+        stage_state.value = '1'
+    
+    # Limpiar tablas (logica simplificada de start_inventory_stage_1)
+    await db.execute(delete(StockCount))
+    await db.execute(delete(CountSession))
+    await db.execute(delete(SessionLocation))
+    await db.execute(delete(RecountList))
+    
+    await db.commit()
+    return JSONResponse(content={"message": "Inventario Etapa 1 iniciado correctamente", "stage": 1})
+
+@router.post('/api/admin/inventory/advance_stage/{next_stage}')
+async def advance_inventory_stage_api(next_stage: int, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+    """API: Avanza etapa."""
+    # Validar next_stage logic...
+    result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
+    stage_state = result.scalar_one_or_none()
+    current_stage = int(stage_state.value) if stage_state else 0
+    
+    if next_stage != current_stage + 1:
+        # Allow force advance? Or error.
+        # Strict for now:
+         raise HTTPException(status_code=400, detail=f"No se puede avanzar a la etapa {next_stage} desde la etapa {current_stage}")
+
+    # Logica de calculo de diferencias (Copied from advance_inventory_stage)
+    prev_stage = next_stage - 1
+    stmt = select(StockCount.item_code, func.sum(StockCount.counted_qty).label('total_counted')).\
+        join(CountSession, StockCount.session_id == CountSession.id).\
+        where(CountSession.inventory_stage == prev_stage).\
+        group_by(StockCount.item_code)
+    
+    result = await db.execute(stmt)
+    counted_items = result.all()
+    
+    await db.execute(delete(RecountList).where(RecountList.stage_to_count == next_stage))
+
+    items_for_recount = []
+    for item in counted_items:
+        item_code = item.item_code
+        total_counted = item.total_counted
+        system_qty = master_qty_map.get(item_code)
+        system_qty = int(system_qty) if system_qty is not None else 0
+
+        if total_counted != system_qty:
+            items_for_recount.append({"item_code": item_code, "stage_to_count": next_stage})
+
+    if items_for_recount:
+        await db.execute(insert(RecountList), items_for_recount)
+    
+    stage_state.value = str(next_stage)
+    await db.commit()
+    return JSONResponse(content={"message": f"Avanzado a Etapa {next_stage}", "stage": next_stage})
+
+@router.post('/api/admin/inventory/finalize')
+async def finalize_inventory_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+    """API: Finaliza inventario."""
+    result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
+    stage_state = result.scalar_one_or_none()
+    if stage_state:
+        stage_state.value = '0' 
+        await db.commit()
+    return JSONResponse(content={"message": "Inventario finalizado correctamente", "stage": 0})
+
+
 # ===== RUTAS DE MANAGE COUNTS =====
 
 @router.get('/manage_counts', response_class=HTMLResponse, name='manage_counts_page')

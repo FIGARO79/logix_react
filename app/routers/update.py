@@ -161,6 +161,19 @@ async def preview_grn_file(file: UploadFile = File(...)):
 
 
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
+@router.post('/api/clear_database')
+async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """API: Limpia la base de datos de logs (Zona de Peligro)."""
+    if password != UPDATE_PASSWORD:
+        return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+    
+    try:
+        await db.execute(delete(Log))
+        await db.commit()
+        return JSONResponse(content={"message": "Base de datos de logs limpiada correctamente"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.post('/clear_database')
 async def clear_database(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     # La URL de redirección debe ser construida correctamente
@@ -183,6 +196,71 @@ async def clear_database(request: Request, password: str = Form(...), db: AsyncS
 
 
 # --- Endpoint para descargar TODO el log (Backup) ---
+@router.post('/api/export_all_log')
+async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """API: Exporta TODOS los registros (activos y archivados)."""
+    if password != UPDATE_PASSWORD:
+         return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+
+    try:
+        from app.services import db_logs
+        from openpyxl.utils import get_column_letter
+
+        # Reuse logic? Copied for safety and speed.
+        logs_data = await db_logs.load_all_logs_db_async(db)
+        
+        if not logs_data:
+             return JSONResponse(status_code=404, content={"error": "No hay datos para exportar backup"})
+
+        df = pd.DataFrame(logs_data)
+        try:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            if df['timestamp'].dt.tz is not None:
+                 colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+                 df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
+        except Exception:
+            pass
+        
+        if 'archived_at' in df.columns:
+             df['archived_at'] = df['archived_at'].fillna('Activo')
+
+        df_export = df.rename(columns={
+            'timestamp': 'Timestamp', 'importReference': 'Import Reference', 'waybill': 'Waybill',
+            'itemCode': 'Item Code', 'itemDescription': 'Item Description',
+            'binLocation': 'Bin Location (Original)', 'relocatedBin': 'Relocated Bin (New)',
+            'qtyReceived': 'Qty. Received', 'qtyGrn': 'Qty. Expected (Total)', 'difference': 'Difference',
+            'archived_at': 'Estado / Fecha Archivo'
+        })
+        
+        cols = ['Timestamp', 'Import Reference', 'Waybill', 'Item Code', 'Item Description', 
+                'Bin Location (Original)', 'Relocated Bin (New)', 'Qty. Received', 
+                'Qty. Expected (Total)', 'Difference', 'Estado / Fecha Archivo']
+        cols = [c for c in cols if c in df_export.columns]
+        df_export = df_export[cols]
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_export.to_excel(writer, index=False, sheet_name='BackupCompleto')
+            worksheet = writer.sheets['BackupCompleto']
+            for i, col_name in enumerate(df_export.columns):
+                column_letter = get_column_letter(i + 1)
+                max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = max_len
+
+        output.seek(0)
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"BACKUP_FULL_LOG_{timestamp_str}.xlsx"
+        
+        return Response(
+            content=output.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        import traceback
+        return JSONResponse(status_code=500, content={"error": f"Error generando backup: {str(e)}"})
+
+# Old endpoint kept for legacy safety
 @router.post('/export_all_log')
 async def export_all_log(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """Exporta TODOS los registros (activos y archivados) a Excel como backup."""

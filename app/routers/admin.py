@@ -92,9 +92,34 @@ async def reset_password(request: Request, user_id: int, new_password: str = For
     raise HTTPException(status_code=500, detail="Error al restablecer contraseña.")
 
 
-@router.get('/logout')
-async def admin_logout(request: Request):
-    """Cierra sesión de administrador."""
-    request.session.pop('admin_logged_in', None)
-    response = RedirectResponse(url='/admin/login', status_code=302)
-    return response
+
+# ===== APIs FOR REACT ADMIN =====
+
+@router.get('/api/admin/users')
+async def get_admin_users_api(request: Request, db: AsyncSession = Depends(get_db)):
+    """API: Obtiene lista de usuarios."""
+    if not request.session.get("admin_logged_in"):
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    users = await get_all_users(db)
+    # Users is a list of SQLAlchemy objects. Need serialization if not Pydantic.
+    # get_all_users returns objects.
+    users_data = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "is_approved": u.is_approved
+        } for u in users
+    ]
+    return JSONResponse(content=users_data)
+
+@router.post('/api/admin/login')
+async def admin_login_api(request: Request, data: dict):
+    """API: Login de administrador."""
+    password = data.get('password')
+    if password == UPDATE_PASSWORD:
+        request.session['admin_logged_in'] = True
+        return JSONResponse(content={"message": "Login correcto", "success": True})
+    else:
+        return JSONResponse(content={"message": "Contraseña incorrecta", "success": False}, status_code=401)
+

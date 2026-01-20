@@ -2,7 +2,7 @@
 Router para endpoints de autenticación y gestión de contraseñas.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.utils.auth import (
@@ -30,6 +30,18 @@ async def register_get(request: Request):
     """Muestra el formulario de registro."""
     return templates.TemplateResponse('register.html', {'request': request})
 
+
+@router.post('/api/register')
+async def register_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """API: Procesa el registro de un nuevo usuario."""
+    if not is_strong_password(password):
+        return JSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos."})
+
+    success = await create_user(db, username, password, is_approved=0)
+    if success:
+        return JSONResponse(content={"message": "Registro exitoso. Espera la aprobación del administrador."})
+    else:
+        return JSONResponse(status_code=400, content={"error": "El nombre de usuario ya existe."})
 
 @router.post('/register', response_class=HTMLResponse)
 async def register_post(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
@@ -113,6 +125,27 @@ async def set_password_get(request: Request, token: Optional[str] = None, db: As
     
     return templates.TemplateResponse("set_password.html", context)
 
+
+@router.post('/api/set_password')
+async def set_password_api(token: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """API: Procesa el cambio de contraseña."""
+    token_data = await get_token_data(db, token)
+
+    if not token_data or token_data.used or datetime.datetime.fromisoformat(token_data.expires_at) < datetime.datetime.now(datetime.timezone.utc):
+        return JSONResponse(status_code=400, content={"error": "Token inválido o expirado."})
+
+    if new_password != confirm_password:
+        return JSONResponse(status_code=400, content={"error": "Las contraseñas no coinciden."})
+
+    if not is_strong_password(new_password):
+        return JSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos."})
+    
+    success = await reset_user_password(db, token_data.user_id, new_password)
+    if success:
+        await mark_token_as_used(db, token)
+        return JSONResponse(content={"message": "Contraseña actualizada con éxito."})
+    
+    return JSONResponse(status_code=500, content={"error": "Ocurrió un error al actualizar la contraseña."})
 
 @router.post('/set_password', response_class=HTMLResponse)
 async def set_password_post(request: Request, token: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...), db: AsyncSession = Depends(get_db)):

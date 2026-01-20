@@ -156,6 +156,54 @@ async def get_picking_tracking():
 
 
 
+
+@router.get('/picking/packing_list/{audit_id}')
+async def get_packing_list_data(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """API: Obtiene datos del packing list (bultos) para impresión."""
+    try:
+        # Obtener la auditoría
+        result = await db.execute(select(PickingAuditModel).where(PickingAuditModel.id == audit_id))
+        audit = result.scalar_one_or_none()
+        
+        if not audit:
+            raise HTTPException(status_code=404, detail="Auditoría no encontrada")
+        
+        # Obtener los items asignados a bultos
+        result = await db.execute(
+            select(PickingPackageItem)
+            .where(PickingPackageItem.audit_id == audit_id)
+            .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
+        )
+        package_items = result.scalars().all()
+        
+        # Organizar por bulto
+        packages = {}
+        for item in package_items:
+            package_num = str(item.package_number)
+            if package_num not in packages:
+                packages[package_num] = []
+            
+            packages[package_num].append({
+                'item_code': item.item_code,
+                'description': item.description,
+                'quantity': item.qty_scan
+            })
+        
+        total_packages = int(audit.packages or 0)
+
+        response = {
+            "order_number": str(audit.order_number or ""),
+            "despatch_number": str(audit.despatch_number or ""),
+            "customer_name": str(audit.customer_name or ""),
+            "timestamp": str(audit.timestamp) if audit.timestamp else "",
+            "total_packages": total_packages,
+            "packages": packages
+        }
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
+
 @router.get('/picking_audit/{audit_id}/print')
 async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""

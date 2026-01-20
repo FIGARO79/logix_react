@@ -20,9 +20,15 @@ from app.services.csv_handler import master_qty_map # Importar el mapa de memori
 from app.utils.auth import login_required
 from app.core.config import ASYNC_DB_URL
 
-# --- Inicialización de elementos compartidos ---
 router = APIRouter(prefix="/api", tags=["counts"])
 async_engine = create_async_engine(ASYNC_DB_URL)
+
+@router.get("/counts/all")
+async def get_all_counts(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """API: Obtiene todos los conteos del sistema (Admin/Manager)."""
+    from app.services import db_counts
+    counts = await db_counts.load_all_counts_db_async(db)
+    return JSONResponse(content=[dict(c) for c in counts])
 
 
 @router.get('/get_item_for_counting/{item_code}')
@@ -106,6 +112,48 @@ async def delete_stock_count(count_id: int, username: str = Depends(login_requir
         return JSONResponse({'message': f'Conteo {count_id} eliminado con éxito.'})
     raise HTTPException(status_code=404, detail=f"Conteo con ID {count_id} no encontrado.")
 
+
+
+@router.get("/counts/{count_id}")
+async def get_count_details(count_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """API: Obtiene detalles de un conteo."""
+    stmt = select(StockCountModel).where(StockCountModel.id == count_id)
+    result = await db.execute(stmt)
+    count = result.scalar_one_or_none()
+    
+    if not count:
+         raise HTTPException(status_code=404, detail="Conteo no encontrado")
+    
+    # Manually converting to dict to avoid recursion issues with SQLAlchemy models
+    return JSONResponse(content={
+        "id": count.id,
+        "session_id": count.session_id,
+        "item_code": count.item_code,
+        "item_description": count.item_description,
+        "counted_qty": count.counted_qty,
+        "counted_location": count.counted_location,
+        "timestamp": count.timestamp.isoformat() if count.timestamp else None
+    })
+
+@router.put("/counts/{count_id}")
+async def update_count_details(count_id: int, data: dict, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """API: Actualiza un conteo."""
+    stmt = select(StockCountModel).where(StockCountModel.id == count_id)
+    result = await db.execute(stmt)
+    count = result.scalar_one_or_none()
+    
+    if not count:
+        raise HTTPException(status_code=404, detail="Conteo no encontrado")
+    
+    if 'counted_qty' in data:
+        try:
+            count.counted_qty = int(data['counted_qty'])
+            await db.commit()
+            await db.refresh(count)
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Cantidad inválida")
+
+    return JSONResponse(content={"message": "Conteo actualizado", "count_id": count.id})
 
 @router.get('/export_counts')
 async def export_counts(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
@@ -250,6 +298,81 @@ async def debug_master_qty_map(username: str = Depends(login_required)):
 @router.get('/debug/last_counts')
 async def debug_last_counts(limit: int = 20, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Endpoint de diagnóstico: devuelve los últimos `limit` registros de conteos."""
+    from app.services import db_counts
     all_counts = await db_counts.load_all_counts_db_async(db)
     return JSONResponse(content=all_counts[:int(limit)])
+
+@router.get('/counts/recordings')
+async def get_cycle_count_recordings(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """API: Obtiene el registro histórico de conteos cíclicos enriquecido (Tabla con Costos)."""
+    try:
+        from app.models.sql_models import CycleCountRecording
+        
+        # Cargar registros de la DB
+        result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
+        recordings = result.scalars().all()
+        
+        data = []
+        
+        # Asegurar carga de master
+        if csv_handler.df_master_cache is None:
+             await csv_handler.load_csv_data()
+        
+        for rec in recordings:
+            details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+            
+            cost = 0.0
+            weight = 0.0
+            stockroom = ""
+            item_type = ""
+            item_class = ""
+            group_major = ""
+            sic_company = ""
+            sic_stockroom = ""
+
+            if details:
+                try: cost = float(details.get("Cost_per_Unit", 0))
+                except: cost = 0.0
+                
+                try: weight = float(details.get("Weight_per_Unit", 0))
+                except: weight = 0.0
+                
+                stockroom = details.get("Stockroom", "")
+                item_type = details.get("Item_Type", "")
+                item_class = details.get("Item_Class", "")
+                group_major = details.get("Item_Group_Major", "")
+                sic_company = details.get("SIC_Code_Company", "")
+                sic_stockroom = details.get("SIC_Code_stockroom", "")
+            
+            diff = rec.difference if rec.difference is not None else 0
+            value_diff = diff * cost
+            # Count value based on physical quantity
+            count_value = (rec.physical_qty) * cost
+
+            data.append({
+                "id": rec.id,
+                "stockroom": stockroom,
+                "item_code": rec.item_code,
+                "description": rec.item_description,
+                "item_type": item_type,
+                "item_class": item_class,
+                "group_major": group_major,
+                "sic_company": sic_company,
+                "sic_stockroom": sic_stockroom,
+                "weight": weight,
+                "abc_code": rec.abc_code,
+                "bin_location": rec.bin_location,
+                "system_qty": rec.system_qty,
+                "physical_qty": rec.physical_qty,
+                "difference": rec.difference,
+                "value_diff": value_diff,
+                "cost": cost,
+                "count_value": count_value,
+                "executed_date": rec.executed_date.isoformat() if rec.executed_date else None,
+                "username": rec.username
+            })
+            
+        return JSONResponse(content=data)
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=f"Error cargando registros: {str(e)}")
 
