@@ -69,23 +69,32 @@ async def login_get(request: Request, message: Optional[str] = None, error: Opti
     return templates.TemplateResponse('login.html', {'request': request, 'message': message, 'error': error})
 
 
+@router.post('/api/login')
+async def login_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    """API: Procesa el login de un usuario y retorna JSON."""
+    valid, status_msg = await verify_user(db, username, password)
+    
+    if status_msg == "approved":
+        request.session['user'] = username
+        return JSONResponse(content={"message": "Login successful", "username": username})
+    elif status_msg == "pending":
+        return JSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
+    else:
+        return JSONResponse(status_code=401, content={"error": "Nombre de usuario o contraseña incorrectos."})
+
 @router.post('/login')
 async def login_post(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """Procesa el login de un usuario."""
     valid, status_msg = await verify_user(db, username, password)
     
     if status_msg == "approved":
-        # Redirigir a la página raíz (que mostrará inicio.html si hay sesión)
-        # Establecer sesión segura en lugar de cookie plana
         request.session['user'] = username
         response = RedirectResponse(url='/', status_code=status.HTTP_302_FOUND)
         return response
     elif status_msg == "pending":
-        error = "Tu cuenta está pendiente de aprobación por el administrador."
-        return templates.TemplateResponse('login.html', {'request': request, 'error': error})
+        return RedirectResponse(url=request.url_for('login_get') + '?error=' + "Tu cuenta está pendiente de aprobación.", status_code=302)
     else:
-        error = "Nombre de usuario o contraseña incorrectos."
-        return templates.TemplateResponse('login.html', {'request': request, 'error': error})
+        return RedirectResponse(url=request.url_for('login_get') + '?error=' + "Credenciales invalidas.", status_code=302)
 
 
 @router.get('/logout')

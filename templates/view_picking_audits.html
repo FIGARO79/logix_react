@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logix - Confirmación de Picking</title>
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
+    <script src="/static/js/zebra-bluetooth.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== SAP Business One Inspired Styles ===== */
+        :root {
+            --sap-primary: #0070d2;
+            --sap-primary-dark: #005fb2;
+            --sap-header-bg: #2c3e50;
+            --sap-header-text: #ffffff;
+            --sap-border: #d0d7de;
+            --sap-hover: #f3f6f9;
+            --sap-text: #32383e;
+            --sap-yellow: #fbbf24;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--sap-text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Header superior - SAP Fiori Shell Bar */
+        .top-header {
+            background-color: var(--sap-header-bg);
+            color: white;
+            padding: 0 1rem;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-toggle svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 0;
+            color: #fff;
+        }
+
+        /* Menú desplegable - SAP Fiori Side Navigation */
+        .dropdown-menu {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 15rem;
+            max-height: calc(100vh - 44px);
+            background-color: var(--sap-header-bg);
+            box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
+            transform: translateX(-100%);
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .dropdown-menu.open {
+            transform: translateX(0);
+        }
+
+        .dropdown-menu nav {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-menu a,
+        .dropdown-menu .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 0;
+            margin: 0;
+            transition: background-color 0.1s ease;
+            font-size: 0.875rem;
+            border-left: 0.1875rem solid transparent;
+        }
+
+        .dropdown-menu a:hover,
+        .dropdown-menu .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sap-primary);
+        }
+
+        .dropdown-menu a:active,
+        .dropdown-menu .logout-btn:active {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .dropdown-menu svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 44px);
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .details-row {
+            display: none;
+        }
+
+        /* Estilos para impresión de Packing List */
+        #packing-list-print {
+            display: none;
+        }
+
+
+        /* Configuración de márgenes de página para impresión */
+        @page {
+            margin: 0mm;
+            size: auto;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #packing-list-print {
+                display: block !important;
+                visibility: visible !important;
+            }
+
+            #packing-list-print,
+            #packing-list-print * {
+                visibility: visible !important;
+            }
+
+            #packing-list-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 1mm 1mm 1mm 1mm;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+        }
+
+        .packing-list-container {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .packing-list-header {
+            text-align: center;
+            margin-bottom: 2px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 2px;
+        }
+
+        .packing-list-info {
+            margin-bottom: 2px;
+        }
+
+        .packing-list-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .packing-list-table th,
+        .packing-list-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .packing-list-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header superior con menú -->
+    <header class="top-header">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+        <h1 class="header-title">Logix - Confirmación de Picking</h1>
+    </header>
+
+    <!-- Menú desplegable -->
+    <!-- Menú desplegable -->
+    {% include '_menu.html' %}
+
+    <!-- Overlay para cerrar el menú -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="container mx-auto max-w-full px-4 py-8">
+            <div class="bg-white px-6 py-6 rounded-lg shadow border custom-border">
+                <div class="header-gradient">
+                    <h1 class="text-base font-semibold custom-heading">Confirmación de
+                        Picking</h1>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead style="background-color: #f7f7f7; border-bottom: 2px solid #d9d9d9;">
+                            <tr>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Pedido</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Cliente</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Usuario</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Fecha</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Estado</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Bultos</th>
+                                <th class="px-6 py-1 text-left text-xs font-semibold uppercase tracking-wider"
+                                    style="color: #32363a; font-family: '72', Arial, sans-serif;">
+                                    Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white" style="font-family: '72', Arial, sans-serif;">
+                            {% for audit in audits %}
+                            <tr id="audit-{{ audit.id }}" class="audit-row">
+                                <td class="px-6 py-2 whitespace-nowrap">{{ audit.order_number }}/{{
+                                    audit.despatch_number }}
+                                </td>
+                                <td class="px-6 py-2 whitespace-nowrap">{{ audit.customer_name }}</td>
+                                <td class="px-6 py-2 whitespace-nowrap">{{ audit.username }}</td>
+                                <td class="px-6 py-2 whitespace-nowrap">{{ audit.timestamp }}</td>
+                                <td class="px-6 py-2 whitespace-nowrap">
+                                    <span
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ 'bg-green-100 text-green-800' if audit.status == 'Completo' else 'bg-yellow-100 text-yellow-800' }}">
+                                        {{ audit.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-2 whitespace-nowrap">{{ audit.packages if audit.packages else 0 }}
+                                </td>
+                                <td class="px-6 py-2 whitespace-nowrap">
+                                    <button data-audit-id="{{ audit.id }}" class="toggle-details-btn" style="background-color: transparent; 
+                                               border: 1px solid #0a6ed1; 
+                                               color: #0a6ed1; 
+                                               padding: 4px 8px; 
+                                               border-radius: 4px; 
+                                               cursor: pointer;
+                                               font-size: 10px;
+                                               margin-right: 8px;
+                                               transition: all 0.2s ease;"
+                                        onmouseover="this.style.backgroundColor='#0a6ed1'; this.style.color='white';"
+                                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='#0a6ed1';"
+                                        title="Ver detalles">👁</button>
+                                    <button data-audit-id="{{ audit.id }}" data-audit-date="{{ audit.timestamp }}"
+                                        class="edit-audit-btn" style="display: none; 
+                                               background-color: transparent; 
+                                               border: 1px solid #0a6ed1; 
+                                               color: #0a6ed1; 
+                                               padding: 4px 8px; 
+                                               border-radius: 4px; 
+                                               cursor: pointer;
+                                               font-size: 10px;
+                                               margin-right: 8px;
+                                               transition: all 0.2s ease;"
+                                        onmouseover="this.style.backgroundColor='#0a6ed1'; this.style.color='white';"
+                                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='#0a6ed1';"
+                                        title="Editar auditoría">✎</button>
+                                    <button data-audit-id="{{ audit.id }}"
+                                        data-order="{{ audit.order_number }}/{{ audit.despatch_number }}"
+                                        data-customer="{{ audit.customer_name }}"
+                                        data-packages="{{ audit.packages if audit.packages else 0 }}"
+                                        class="print-packing-btn" style="background-color: transparent; 
+                                               border: 1px solid #107e3e; 
+                                               color: #107e3e; 
+                                               padding: 4px 8px; 
+                                               border-radius: 4px; 
+                                               cursor: pointer;
+                                               font-size: 10px;
+                                               margin-right: 8px;
+                                               transition: all 0.2s ease;"
+                                        onmouseover="this.style.backgroundColor='#107e3e'; this.style.color='white';"
+                                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='#107e3e';"
+                                        title="Imprimir Packing List">🖨️</button>
+                                    <button data-audit-id="{{ audit.id }}" class="print-bluetooth-btn" style="background-color: transparent; 
+                                               border: 1px solid #0066cc; 
+                                               color: #0066cc; 
+                                               padding: 4px 8px; 
+                                               border-radius: 4px; 
+                                               cursor: pointer;
+                                               font-size: 10px;
+                                               transition: all 0.2s ease;
+                                               display: none;"
+                                        onmouseover="this.style.backgroundColor='#0066cc'; this.style.color='white';"
+                                        onmouseout="this.style.backgroundColor='transparent'; this.style.color='#0066cc';"
+                                        title="Imprimir con Bluetooth (Zebra)">📲</button>
+                                </td>
+                            </tr>
+                            <tr class="details-row" id="details-{{ audit.id }}">
+                                <td colspan="7" class="p-4 bg-gray-50">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 class="font-bold text-lg mb-2">Items con Diferencia</h4>
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-100">
+                                                    <tr>
+                                                        <th>Línea</th>
+                                                        <th>Item</th>
+                                                        <th>Desc.</th>
+                                                        <th>Req.</th>
+                                                        <th>Scan.</th>
+                                                        <th>Dif.</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in audit['items'] %}
+                                                    {% if item.difference != 0 %}
+                                                    <tr
+                                                        class="bg-red-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.order_line if item.order_line else '' }}</td>
+                                                        <td>{{ item.item_code }}{% if item.edited %} <span
+                                                                class="text-orange-600 text-xs">✎</span>{% endif %}</td>
+                                                        <td>{{ item.description }}</td>
+                                                        <td>{{ item.qty_req }}</td>
+                                                        <td>{{ item.qty_scan }}</td>
+                                                        <td class="font-bold">{{ item.difference }}</td>
+                                                    </tr>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-lg mb-2">Items Completos</h4>
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-100">
+                                                    <tr>
+                                                        <th>Línea</th>
+                                                        <th>Item</th>
+                                                        <th>Desc.</th>
+                                                        <th>Req.</th>
+                                                        <th>Scan.</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in audit['items'] %}
+                                                    {% if item.difference == 0 %}
+                                                    <tr
+                                                        class="bg-green-50 {{ 'border-l-4 border-orange-500' if item.edited else '' }}">
+                                                        <td>{{ item.order_line if item.order_line else '' }}</td>
+                                                        <td>{{ item.item_code }}{% if item.edited %} <span
+                                                                class="text-orange-600 text-xs">✎</span>{% endif %}</td>
+                                                        <td>{{ item.description }}</td>
+                                                        <td>{{ item.qty_req }}</td>
+                                                        <td>{{ item.qty_scan }}</td>
+                                                    </tr>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-10 text-gray-500">No hay auditorías de picking
+                                    guardadas.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- CÓDIGO PARA EL MENÚ DESPLEGABLE ---
+        const menuToggle = document.getElementById('menuToggle');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        function toggleMenu() {
+            dropdownMenu.classList.toggle('open');
+            menuOverlay.classList.toggle('active');
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', toggleMenu);
+        }
+
+        if (menuOverlay) {
+            menuOverlay.addEventListener('click', toggleMenu);
+        }
+
+        if (dropdownMenu) {
+            const menuLinks = dropdownMenu.querySelectorAll('a, button');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (dropdownMenu.classList.contains('open')) {
+                        toggleMenu();
+                    }
+                });
+            });
+        }
+        // --- FIN DEL CÓDIGO DEL MENÚ ---
+
+        // Event delegation for toggle details buttons
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('toggle-details-btn')) {
+                const auditId = e.target.getAttribute('data-audit-id');
+                const detailsRow = document.getElementById('details-' + auditId);
+                if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+                    detailsRow.style.display = 'table-row';
+                } else {
+                    detailsRow.style.display = 'none';
+                }
+            }
+
+            // Handle edit button clicks
+            if (e.target.classList.contains('edit-audit-btn')) {
+                const auditId = e.target.getAttribute('data-audit-id');
+                window.location.href = '/picking?edit=' + auditId;
+            }
+        });
+
+        // Show edit buttons only for audits from today
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🔍 Inicializando lógica de botones de edición de picking...');
+
+            // Obtener la fecha de hoy en formato local (YYYY-MM-DD)
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            console.log('📅 Fecha de hoy (local):', today.toISOString().split('T')[0]);
+
+            const editButtons = document.querySelectorAll('.edit-audit-btn');
+            console.log(`📊 Total de botones de edición encontrados: ${editButtons.length}`);
+
+            editButtons.forEach((button, index) => {
+                const auditDateStr = button.getAttribute('data-audit-date');
+                console.log(`\n🔎 Botón ${index + 1}:`);
+                console.log('  - Timestamp de auditoría:', auditDateStr);
+
+                if (auditDateStr) {
+                    try {
+                        // Parsear la fecha de la auditoría (formato ISO: YYYY-MM-DDTHH:MM:SS)
+                        const auditDateTime = new Date(auditDateStr);
+                        const auditDate = new Date(
+                            auditDateTime.getFullYear(),
+                            auditDateTime.getMonth(),
+                            auditDateTime.getDate()
+                        );
+
+                        console.log('  - Fecha de auditoría (local):', auditDate.toISOString().split('T')[0]);
+                        console.log('  - ¿Es del día actual?:', auditDate.getTime() === today.getTime());
+
+                        // Comparar solo las fechas (sin hora)
+                        if (auditDate.getTime() === today.getTime()) {
+                            button.style.display = 'inline-block';
+                            console.log('  ✅ Botón de edición MOSTRADO');
+                        } else {
+                            console.log('  ❌ Botón de edición OCULTO (auditoría de otro día)');
+                        }
+                    } catch (error) {
+                        console.error('  ⚠️ Error al parsear fecha:', error);
+                    }
+                } else {
+                    console.log('  ⚠️ No se encontró atributo data-audit-date');
+                }
+            });
+
+            console.log('\n✅ Inicialización de botones de edición completada\n');
+        });
+
+        // Funcionalidad de impresión de Packing List
+        document.addEventListener('DOMContentLoaded', function () {
+            const printButtons = document.querySelectorAll('.print-packing-btn');
+
+            printButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const auditId = this.getAttribute('data-audit-id');
+
+                    // Abrir la página de impresión del packing list en una nueva ventana, aislando el opener
+                    const w = window.open(`/packing_list_print/${auditId}`, '_blank', 'noopener');
+                    if (w) w.opener = null;
+                });
+            });
+        });
+
+        // Funcionalidad de impresión Bluetooth
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verificar si el navegador soporta Bluetooth
+            const zebraPrinter = new ZebraPrinter();
+            const bluetoothSupported = zebraPrinter.isBluetoothSupported();
+
+            if (bluetoothSupported) {
+                // Mostrar botones de Bluetooth
+                const bluetoothButtons = document.querySelectorAll('.print-bluetooth-btn');
+                bluetoothButtons.forEach(btn => btn.style.display = 'inline-block');
+                console.log('✅ Bluetooth soportado - Botones de impresión Bluetooth habilitados');
+            } else {
+                console.log('❌ Bluetooth no soportado en este navegador');
+            }
+
+            // Event listeners para botones de Bluetooth
+            const printBluetoothButtons = document.querySelectorAll('.print-bluetooth-btn');
+            printBluetoothButtons.forEach(button => {
+                button.addEventListener('click', async function () {
+                    const auditId = this.getAttribute('data-audit-id');
+
+                    // Mostrar mensaje de carga
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '⏳';
+                    this.disabled = true;
+
+                    try {
+                        // Obtener los detalles completos de la auditoría
+                        const response = await fetch(`/api/picking_audit/${auditId}/print`);
+                        if (!response.ok) {
+                            throw new Error('Error al cargar los detalles de la auditoría');
+                        }
+
+                        const auditData = await response.json();
+
+                        // Imprimir con Zebra
+                        const printer = new ZebraPrinter();
+                        await printer.printPackingList(auditData);
+
+                        alert('✅ Packing List impreso exitosamente en Zebra ZT411');
+
+                    } catch (error) {
+                        console.error('Error al imprimir:', error);
+                        alert('❌ Error: ' + error.message);
+                    } finally {
+                        // Restaurar botón
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    }
+                });
+            });
+        });
+
+        function generatePackingList(orderNumber, customerName, packages, items) {
+            // Crear o actualizar el contenedor de impresión
+            let printContainer = document.getElementById('packing-list-print');
+            if (!printContainer) {
+                printContainer = document.createElement('div');
+                printContainer.id = 'packing-list-print';
+                document.body.appendChild(printContainer);
+            }
+
+            const currentDate = new Date().toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Filtrar solo items con cantidad mayor a cero
+            const itemsToShow = items.filter(item => item.qty_scan > 0);
+
+            let itemsHTML = '';
+            itemsToShow.forEach((item, index) => {
+                // Usar order_line si existe, sino usar el índice secuencial
+                const lineNumber = item.order_line || (index + 1);
+                itemsHTML += `
+                    <tr>
+                        <td>${lineNumber}</td>
+                        <td>${item.code}</td>
+                        <td>${item.description}</td>
+                        <td style="text-align: center;">${item.qty_scan}</td>
+                    </tr>
+                `;
+            });
+
+            printContainer.innerHTML = `
+                <div class="packing-list-container">
+                    <div class="packing-list-header">
+                        <h1 style="margin: 0; font-size: 18px;">PACKING LIST</h1>
+                        <p style="margin: 2px 0 0 0;">Fecha: ${currentDate}</p>
+                    </div>
+                    
+                    <div class="packing-list-info">
+                        <p><strong>Pedido:</strong> ${orderNumber}</p>
+                        <p><strong>Cliente:</strong> ${customerName}</p>
+                        <p><strong>Cantidad de Bultos:</strong> ${packages}</p>
+                    </div>
+
+                    <table class="packing-list-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">Línea</th>
+                                <th>Código de Item</th>
+                                <th>Descripción</th>
+                                <th style="width: 100px; text-align: center;">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHTML}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 20px;">
+                        <p><strong>Total de Items:</strong> ${itemsToShow.length}</p>
+                        <p style="margin-top: 30px;">_________________________</p>
+                        <p>Firma del Responsable</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+
+</html>

@@ -2,7 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Additional custom styles if needed */
+/* ===== SAP Business One Inspired Styles from Legacy ===== */
+:root {
+  --sap-primary: #0070d2;
+  --sap-primary-dark: #005fb2;
+  --sap-primary-light: #1e88e5;
+  --sap-header-bg: #2c3e50;
+  --sap-header-text: #ffffff;
+  --sapShellColor: #354a5f;
+  --sap-border: #d0d7de;
+  --sap-hover: #f3f6f9;
+  --sap-text: #32383e;
+  --sap-text-light: #6b7280;
+  --sap-table-header: #4a5f7f;
+  --sap-yellow: #fbbf24;
+  --sap-yellow-light: #fcd34d;
+}
+
 body {
-  @apply bg-[#f5f7fa] text-[#1f2937];
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+  color: var(--sap-text);
+}
+
+/* Estilos de Impresión - COPIADOS EXACTAMENTE DE LEGACY */
+@media print {
+  /* 1. REGLA NUCLEAR: Elimina sombras en TODOS los elementos al imprimir */
+  *,
+  *::before,
+  *::after {
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+  }
+
+  html,
+  body {
+      width: 70mm;
+      height: 100mm;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-family: "Arial", "Helvetica", sans-serif;
+  }
+
+  body * {
+      visibility: hidden;
+  }
+
+  .label-print-area,
+  .label-print-area * {
+      visibility: visible;
+  }
+
+  .label-print-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: none !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white !important;
+  }
+
+  .label-container {
+      width: 100%;
+      height: 100% !important;
+      max-width: 64mm;
+      max-height: 94mm;
+      margin: 0;
+      padding: 1mm;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: white !important;
+      position: relative !important;
+      display: block;
+      box-sizing: border-box;
+      overflow: hidden;
+  }
+
+    /* Ocultar elementos de la interfaz */
+    #root > div:not(.label-print-area),
+    nav,
+    header,
+    .Toastify,
+    button,
+    input,
+    table {
+        display: none !important;
+    }
 }

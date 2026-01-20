@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logix - Actualizar Bases de Datos</title>
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
+    <!-- SAP '72' Font -->
+    <link rel="stylesheet" href="https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/library.css">
+    <style>
+        @font-face {
+            font-family: '72';
+            src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: '72';
+            src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+    </style>
+    <style>
+        /* ===== SAP Fiori Quartz/Belize Theme ===== */
+        :root {
+            /* SAP Fiori Colors - Quartz Light / Belize */
+            --sapBrandColor: #0a6ed1;
+            --sapHighlightColor: #0854a0;
+            --sapBaseColor: #fff;
+            --sapShellColor: #354a5f;
+            --sapBackgroundColor: #f7f7f7;
+            --sapFontFamily: '72', '72full', Arial, Helvetica, sans-serif;
+            --sapFontSize: 0.875rem;
+            --sapTextColor: #32363a;
+            --sapLinkColor: #0a6ed1;
+
+            /* Semantic Colors */
+            --sapPositiveColor: #107e3e;
+            --sapNegativeColor: #b00;
+            --sapCriticalColor: #e9730c;
+            --sapNeutralColor: #6a6d70;
+            --sapInformativeColor: #0a6ed1;
+
+            /* UI Colors */
+            --sapTileBackground: #fff;
+            --sapTileBorder: #d9d9d9;
+            --sapButtonBackground: #fff;
+            --sapButtonBorderColor: #0854a0;
+            --sapButtonHoverBackground: #ebf5fe;
+            --sapFieldBackground: #fff;
+            --sapFieldBorderColor: #89919a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--sapFontFamily);
+            font-size: var(--sapFontSize);
+            background-color: var(--sapBackgroundColor);
+            color: var(--sapTextColor);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* Header superior - SAP Fiori Shell Bar */
+        .top-header {
+            background-color: var(--sapShellColor);
+            color: white;
+            padding: 0 1rem;
+            height: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-toggle svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+            margin: 0;
+            color: #fff;
+        }
+
+        /* Menú desplegable - SAP Fiori Side Navigation */
+        .dropdown-menu {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 15rem;
+            max-height: calc(100vh - 44px);
+            background-color: var(--sapShellColor);
+            box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.3);
+            transform: translateX(-100%);
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .dropdown-menu.open {
+            transform: translateX(0);
+        }
+
+        .dropdown-menu nav {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-menu a,
+        .dropdown-menu .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 0;
+            margin: 0;
+            transition: background-color 0.1s ease;
+            font-size: 0.875rem;
+            border-left: 0.1875rem solid transparent;
+        }
+
+        .dropdown-menu a:hover,
+        .dropdown-menu .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sapBrandColor);
+        }
+
+        .dropdown-menu a:active,
+        .dropdown-menu .logout-btn:active {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .dropdown-menu svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 44px);
+            background-color: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* --- SAP Fiori Message Strip Styles --- */
+        #message-container {
+            position: fixed;
+            top: 44px;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 100%;
+        }
+
+        .message-strip {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-family: var(--sapFontFamily);
+            font-size: var(--sapFontSize);
+            border-bottom: 0.0625rem solid rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.3s ease-out;
+            box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .message-strip.hiding {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        .message-strip-icon {
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .message-strip-text {
+            flex-grow: 1;
+            line-height: 1.4;
+        }
+
+        .message-strip-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            margin-left: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+
+        .message-strip-close:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .message-strip-close svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Message Strip Types */
+        .message-strip.success {
+            background-color: #f1fdf6;
+            color: var(--sapPositiveColor);
+            border-left: 0.25rem solid var(--sapPositiveColor);
+        }
+
+        .message-strip.error {
+            background-color: #fef6f6;
+            color: var(--sapNegativeColor);
+            border-left: 0.25rem solid var(--sapNegativeColor);
+        }
+
+        .message-strip.warning {
+            background-color: #fef9f0;
+            color: var(--sapCriticalColor);
+            border-left: 0.25rem solid var(--sapCriticalColor);
+        }
+
+        .message-strip.information {
+            background-color: #f0f7fe;
+            color: var(--sapInformativeColor);
+            border-left: 0.25rem solid var(--sapInformativeColor);
+        }
+
+        /* Custom file input button */
+        input[type="file"]::file-selector-button {
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem 0 0 0.5rem;
+            border: none;
+            font-weight: 500;
+            background-color: #e5e7eb;
+            color: #374151;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header superior con menú -->
+    <header class="top-header">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+        </button>
+        <h1 class="header-title">Logix - Actualizar Bases de Datos</h1>
+    </header>
+
+    <!-- Menú desplegable -->
+    <!-- Menú desplegable -->
+    {% include '_menu.html' %}
+
+    <!-- Overlay para cerrar el menú -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- SAP Fiori Message Strip Container -->
+    <div id="message-container"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="container-wrapper mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="bg-white rounded-md shadow-md p-6 md:p-8 max-w-3xl mx-auto"
+                style="border: 0.0625rem solid var(--sapTileBorder);">
+                <div
+                    style="background-color: var(--sapList_HeaderBackground); color: var(--sapTextColor); padding: 0.75rem 1rem; margin: -1.5rem -1.5rem 1rem -1.5rem; border-radius: 0.25rem 0.25rem 0 0; border-bottom: 0.0625rem solid var(--sapTileBorder);">
+                    <h1 class="text-base font-semibold" style="margin: 0; font-family: var(--sapFontFamily);">
+                        Actualización de
+                        Archivos</h1>
+                </div>
+                <p class="text-sm mb-6" style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Suba los
+                    ficheros para actualizar la base de
+                    datos maestra y de GRN.</p>
+
+                <form id="upload-form" action="/update" method="post" enctype="multipart/form-data">
+                    <div class="space-y-6">
+
+                        <div id="drop-zone"
+                            class="flex items-center justify-center w-full h-30 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H13.5a4 4 0 014 4v1.586a1 1 0 01-.293.707l-1.414 1.414a1 1 0 00-.293.707V16a4 4 0 01-4 4H7z">
+                                    </path>
+                                </svg>
+                                <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span>
+                                    or drag and drop</p>
+                                <p class="text-xs text-gray-500">CSV files (250, 280, 240)</p>
+                            </div><label for="file-input" class="sr-only">Seleccionar archivos</label>
+                            <input id="file-input" type="file" class="hidden" multiple title="Seleccionar archivos" />
+                        </div>
+
+                        <div id="file-list" class="mt-4"></div>
+
+                        <!-- Opciones para el archivo 280 -->
+                        <div id="update-options-280" class="hidden mt-4 p-4 border border-gray-200 rounded-lg">
+                            <p class="font-medium text-gray-700">Opción de actualización para el archivo 280:</p>
+                            <div class="flex items-center gap-x-6 mt-2">
+                                <div class="flex items-center">
+                                    <input id="option-replace" name="update_option_280" type="radio" value="replace"
+                                        checked class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <label for="option-replace"
+                                        class="ml-2 block text-sm font-medium leading-6 text-gray-900">Reemplazar</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="option-combine" name="update_option_280" type="radio" value="combine"
+                                        class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <label for="option-combine"
+                                        class="ml-2 block text-sm font-medium leading-6 text-gray-900">Combinar</label>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">"Reemplazar" borra los datos anteriores. "Combinar"
+                                añade los nuevos datos a los existentes.</p>
+
+                            <div id="grn-selection-container" class="mt-4 hidden border-t pt-4">
+                                <p class="font-medium text-gray-700 mb-2">Seleccionar GRNs a importar:</p>
+
+                                <div class="flex gap-2 mb-2">
+                                    <button type="button" id="btn-select-all"
+                                        class="text-xs text-blue-600 hover:underline">Seleccionar Todas</button>
+                                    <span class="text-xs text-gray-400">|</span>
+                                    <button type="button" id="btn-deselect-all"
+                                        class="text-xs text-blue-600 hover:underline">Deseleccionar Todas</button>
+                                </div>
+
+                                <div id="grn-checkbox-list"
+                                    class="max-h-48 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <p class="text-sm text-gray-500 col-span-full">Cargando lista de GRNs...</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Solo se importarán las filas correspondientes a
+                                    las GRNs marcadas.</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button type="submit"
+                        class="mt-8 w-full flex items-center justify-center gap-2 font-medium rounded text-sm px-5 py-3 text-center transition-all duration-150"
+                        style="background-color: var(--sapBrandColor); color: white; border: 0.0625rem solid var(--sapBrandColor); font-family: var(--sapFontFamily); height: 2.75rem;"
+                        onmouseover="this.style.backgroundColor='var(--sapHighlightColor)';"
+                        onmouseout="this.style.backgroundColor='var(--sapBrandColor)';">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" />
+                            <path
+                                d="M9 13.5V9.25l-1.22 1.22a.75.75 0 01-1.06-1.06l2.5-2.5a.75.75 0 011.06 0l2.5 2.5a.75.75 0 11-1.06 1.06L11 9.25V13.5a.75.75 0 01-1.5 0z" />
+                        </svg>
+                        Subir y Actualizar Archivos
+                    </button>
+                </form>
+
+                <hr class="my-8" style="border-color: var(--sapTileBorder);">
+
+                <!-- Danger Zone -->
+                <div class="rounded" style="border: 0.0625rem solid var(--sapNegativeColor); background-color: #fff;">
+                    <div
+                        style="background-color: #fee; padding: 0.75rem 1rem; border-bottom: 0.0625rem solid var(--sapNegativeColor);">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
+                                fill="currentColor" style="color: var(--sapNegativeColor);">
+                                <path fill-rule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <h2 class="text-sm font-semibold"
+                                style="margin: 0; font-family: var(--sapFontFamily); color: var(--sapNegativeColor);">
+                                Zona de Peligro</h2>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm mb-4" style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">
+                            Esta acción borrará permanentemente todos los registros del historial de inbound y no se
+                            puede deshacer.
+                        </p>
+
+                        <!-- Formulario de descarga de backup -->
+                        <form action="/export_all_log" method="post" class="mb-6">
+                            <label for="password_backup" class="block mb-2 text-xs font-semibold"
+                                style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Confirmar
+                                Contraseña para Backup:</label>
+                            <div class="relative mb-2">
+                                <input type="password" id="password_backup" name="password" required
+                                    style="font-family: var(--sapFontFamily); font-size: var(--sapFontSize); border: 0.0625rem solid var(--sapFieldBorderColor); padding: 0.25rem 2.5rem 0.25rem 0.5rem; border-radius: 0.25rem; background-color: var(--sapFieldBackground); color: var(--sapTextColor); height: 2.25rem; width: 100%;">
+                            </div>
+                            <button type="submit"
+                                class="w-full font-medium rounded text-sm px-5 py-3 text-center transition-all duration-150"
+                                style="background-color: var(--sapInformativeColor); color: white; border: 0.0625rem solid var(--sapInformativeColor); font-family: var(--sapFontFamily); height: 2.75rem;"
+                                onmouseover="this.style.backgroundColor='#0854a0';"
+                                onmouseout="this.style.backgroundColor='var(--sapInformativeColor)';">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Descargar Respaldo Completo (Activos + Histórico)
+                            </button>
+                        </form>
+
+                        <hr class="my-6 border-red-200">
+
+                        <form action="/clear_database" method="post"
+                            onsubmit="return confirm('ADVERTENCIA: ¿Estás TOTALMENTE SEGURO de que quieres borrar TODOS los registros? Esta acción no se puede deshacer.');">
+                            <div class="mb-4">
+                                <label for="password_clear" class="block mb-2 text-xs font-semibold"
+                                    style="color: var(--sapTextColor); font-family: var(--sapFontFamily);">Confirmar
+                                    Contraseña:</label>
+                                <div class="relative">
+                                    <input type="password" id="password_clear" name="password" required
+                                        style="font-family: var(--sapFontFamily); font-size: var(--sapFontSize); border: 0.0625rem solid var(--sapFieldBorderColor); padding: 0.25rem 2.5rem 0.25rem 0.5rem; border-radius: 0.25rem; background-color: var(--sapFieldBackground); color: var(--sapTextColor); height: 2.25rem; width: 100%;">
+                                    <button type="button" id="togglePasswordClear"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        title="Mostrar/Ocultar contraseña">
+                                        <svg id="eyeIconClear" class="h-5 w-5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+                                            style="color: var(--sapNeutralColor);">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
+                                        </svg>
+                                        <svg id="eyeOffIconClear" class="h-5 w-5 hidden" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+                                            style="color: var(--sapNeutralColor);">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7 .95-3.11 3.824-5.585 7.44-6.325">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17.94 17.94A1.5 1.5 0 0116.5 15a1.5 1.5 0 01-1.44-1.06M21 21l-6-6m-3.5-3.5L3 3">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M1 1l22 22"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit"
+                                class="w-full font-medium rounded text-sm px-5 py-3 text-center transition-all duration-150"
+                                style="background-color: var(--sapNegativeColor); color: white; border: 0.0625rem solid var(--sapNegativeColor); font-family: var(--sapFontFamily); height: 2.75rem;"
+                                onmouseover="this.style.backgroundColor='#a00';"
+                                onmouseout="this.style.backgroundColor='var(--sapNegativeColor)';">
+                                Vaciar Base de Datos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                </form>
+            </div>
+        </div>
+        </div>
+        </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // --- CÓDIGO PARA EL MENÚ DESPLEGABLE ---
+            const menuToggle = document.getElementById('menuToggle');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+
+            function toggleMenu() {
+                dropdownMenu.classList.toggle('open');
+                menuOverlay.classList.toggle('active');
+            }
+
+            if (menuToggle) {
+                menuToggle.addEventListener('click', toggleMenu);
+            }
+
+            if (menuOverlay) {
+                menuOverlay.addEventListener('click', toggleMenu);
+            }
+
+            if (dropdownMenu) {
+                const menuLinks = dropdownMenu.querySelectorAll('a, button');
+                menuLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (dropdownMenu.classList.contains('open')) {
+                            toggleMenu();
+                        }
+                    });
+                });
+            }
+            // --- FIN DEL CÓDIGO DEL MENÚ ---
+
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const fileList = document.getElementById('file-list');
+            const uploadForm = document.getElementById('upload-form');
+            const grnSelectionContainer = document.getElementById('grn-selection-container');
+            const grnCheckboxList = document.getElementById('grn-checkbox-list');
+
+            let filesToUpload = [];
+
+            // --- Password Toggle for Clear DB ---
+            const togglePasswordClear = document.getElementById('togglePasswordClear');
+            const passwordClearInput = document.getElementById('password_clear');
+            const eyeIconClear = document.getElementById('eyeIconClear');
+            const eyeOffIconClear = document.getElementById('eyeOffIconClear');
+
+            if (togglePasswordClear) {
+                togglePasswordClear.addEventListener('click', function () {
+                    // toggle the type attribute
+                    const type = passwordClearInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordClearInput.setAttribute('type', type);
+
+                    // toggle the eye / eye off icon
+                    eyeIconClear.classList.toggle('hidden');
+                    eyeOffIconClear.classList.toggle('hidden');
+                });
+            }
+
+            // --- Drag and Drop Event Listeners ---
+            dropZone.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('bg-gray-200');
+            });
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('bg-gray-200');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('bg-gray-200');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('bg-gray-200');
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+
+            // --- Click to Upload Event Listener ---
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                handleFiles(files);
+            });
+
+            // --- Form Submission ---
+            uploadForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                uploadFiles();
+            });
+
+            // --- Helper Functions ---
+            function handleFiles(files) {
+                for (const file of files) {
+                    if (isValidFile(file)) {
+                        // Verificar si ya existe para no duplicar
+                        if (!filesToUpload.some(f => f.name === file.name)) {
+                            filesToUpload.push(file);
+
+                            // NUEVO: Si es el archivo 280, cargar previsualización
+                            if (file.name.includes('AURRSGLBD0280')) {
+                                fetchAndShowGRNs(file);
+                            }
+                        }
+                    }
+                }
+                renderFileList();
+            }
+
+            function isValidFile(file) {
+                return file.name.includes('AURRSGLBD0250') ||
+                    file.name.includes('AURRSGLBD0280') ||
+                    file.name.includes('AURRSGLBD0240');
+            }
+
+            function renderFileList() {
+                fileList.innerHTML = '';
+                let file280Exists = false;
+                filesToUpload.forEach((file, index) => {
+                    if (file.name.includes('AURRSGLBD0280')) {
+                        file280Exists = true;
+                    }
+                    const fileElement = document.createElement('div');
+                    fileElement.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-md';
+                    fileElement.innerHTML = `
+                        <span>${file.name}</span>
+                        <button type="button" class="text-red-500" data-index="${index}">Remove</button>
+                    `;
+                    fileList.appendChild(fileElement);
+                });
+
+                // Show/hide the update options for file 280
+                const updateOptionsContainer = document.getElementById('update-options-280');
+                if (file280Exists) {
+                    updateOptionsContainer.classList.remove('hidden');
+                } else {
+                    updateOptionsContainer.classList.add('hidden');
+                }
+
+                // Si eliminamos el archivo 280, ocultar el selector (Lógica combinada)
+                if (!file280Exists) {
+                    grnSelectionContainer.classList.add('hidden');
+                    grnCheckboxList.innerHTML = '';
+                }
+
+                // Add event listeners to remove buttons
+                fileList.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        filesToUpload.splice(index, 1);
+                        renderFileList();
+                    });
+                });
+            }
+
+            // --- NUEVA FUNCIÓN: Obtener y mostrar GRNs ---
+            async function fetchAndShowGRNs(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                grnSelectionContainer.classList.remove('hidden');
+                grnCheckboxList.innerHTML = '<p class="text-sm text-gray-500 col-span-full">Analizando archivo...</p>';
+
+                try {
+                    const response = await fetch('/api/preview_grn_file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.grns) {
+                        renderGRNCheckboxes(data.grns);
+                    } else {
+                        grnCheckboxList.innerHTML = `<p class="text-sm text-red-500 col-span-full">Error: ${data.error || 'No se pudieron cargar las GRNs'}</p>`;
+                    }
+                } catch (error) {
+                    console.error(error);
+                    grnCheckboxList.innerHTML = '<p class="text-sm text-red-500 col-span-full">Error de conexión al analizar archivo.</p>';
+                }
+            }
+
+            function renderGRNCheckboxes(grns) {
+                grnCheckboxList.innerHTML = '';
+
+                if (grns.length === 0) {
+                    grnCheckboxList.innerHTML = '<p class="text-sm text-gray-500 col-span-full">No se encontraron GRNs en el archivo.</p>';
+                    return;
+                }
+
+                grns.forEach(grn => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    div.innerHTML = `
+                        <input type="checkbox" id="grn-${grn}" name="selected_grn" value="${grn}" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="grn-${grn}" class="ml-2 text-xs font-medium text-gray-700 truncate" title="${grn}">${grn}</label>
+                    `;
+                    grnCheckboxList.appendChild(div);
+                });
+
+                // Listeners para Botones de Seleccionar/Deseleccionar todo
+                document.getElementById('btn-select-all').onclick = () => {
+                    document.querySelectorAll('input[name="selected_grn"]').forEach(cb => cb.checked = true);
+                };
+                document.getElementById('btn-deselect-all').onclick = () => {
+                    document.querySelectorAll('input[name="selected_grn"]').forEach(cb => cb.checked = false);
+                };
+            }
+
+            // --- Función de Subida MODIFICADA ---
+            async function uploadFiles() {
+
+                if (filesToUpload.length === 0) {
+                    showMessage('Por favor selecciona archivos para subir.', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                let file280Exists = false;
+
+                filesToUpload.forEach(file => {
+                    if (file.name.includes('AURRSGLBD0250')) {
+                        formData.append('item_master', file);
+                    } else if (file.name.includes('AURRSGLBD0280')) {
+                        formData.append('grn_file', file);
+                        file280Exists = true;
+                    } else if (file.name.includes('AURRSGLBD0240')) {
+                        formData.append('picking_file', file);
+                    }
+                });
+
+                // Append the update option AND selected GRNs for file 280 if it exists
+                if (file280Exists) {
+                    const updateOption = document.querySelector('input[name="update_option_280"]:checked').value;
+                    formData.append('update_option_280', updateOption);
+
+                    // --- NUEVO: Recopilar GRNs seleccionadas ---
+                    const selectedCheckboxes = document.querySelectorAll('input[name="selected_grn"]:checked');
+                    const selectedGRNs = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+                    // Enviamos como string JSON
+                    formData.append('selected_grns_280', JSON.stringify(selectedGRNs));
+
+                    if (selectedGRNs.length === 0) {
+                        if (!confirm("No has seleccionado ninguna GRN. ¿Estás seguro de que quieres continuar? (Se subirá el archivo vacío o no se actualizará nada).")) {
+                            return; // Cancelar subida
+                        }
+                    }
+                }
+
+                try {
+                    // Botón loading state...
+                    const submitBtn = uploadForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...';
+
+                    const response = await fetch('/update', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(result.message, 'success');
+                        filesToUpload = [];
+                        renderFileList();
+                        // Resetear la lista de GRNs
+                        grnCheckboxList.innerHTML = '';
+                        grnSelectionContainer.classList.add('hidden');
+                    } else {
+                        showMessage(result.error, 'error');
+                    }
+                } catch (error) {
+                    showMessage('Ocurrió un error al subir los archivos.', 'error');
+                } finally {
+                    // Restaurar botón
+                    const submitBtn = uploadForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" />
+                                <path d="M9 13.5V9.25l-1.22 1.22a.75.75 0 01-1.06-1.06l2.5-2.5a.75.75 0 011.06 0l2.5 2.5a.75.75 0 11-1.06 1.06L11 9.25V13.5a.75.75 0 01-1.5 0z" />
+                            </svg>
+                            Subir y Actualizar Archivos
+                        `;
+                    }
+                }
+            }
+
+            // --- SAP Fiori Message Strip Function ---
+            function showMessage(message, type = "information") {
+                const messageContainer = document.getElementById("message-container");
+                if (!messageContainer) return;
+
+                const messageStrip = document.createElement("div");
+                messageStrip.className = `message-strip ${type}`;
+
+                const icon = ICONS[type] || ICONS.information;
+
+                messageStrip.innerHTML = `
+                    <svg class="message-strip-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        ${icon}
+                    </svg>
+                    <span class="message-strip-text">${message}</span>
+                    <button class="message-strip-close" onclick="this.parentElement.remove()">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                `;
+
+                messageContainer.appendChild(messageStrip);
+
+                // Auto-remove after 6 seconds
+                setTimeout(() => {
+                    messageStrip.classList.add("hiding");
+                    setTimeout(() => messageStrip.remove(), 300);
+                }, 6000);
+            }
+
+            const ICONS = {
+                success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
+                error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
+                warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>',
+                information: '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>'
+            };
+        });
+    </script>
+</body>
+
+</html>

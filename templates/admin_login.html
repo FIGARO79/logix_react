@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logix - Admin Login</title>
+    <link rel="icon" type="image/svg+xml"
+        href="{{ secure_url_for(request, 'static', path='images/gear-wide-connected.svg') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/fallback.css">
+    <style>
+        /* --- SAP Fiori Inspired Theme (Quartz Light / Belize) --- */
+        :root {
+            --sap-primary: #0a6ed1;
+            /* Belize Blue */
+            --sap-primary-dark: #005483;
+            --sap-accent: #eebf22;
+            /* Gold/Yellow */
+            --sap-bg: #f7f7f7;
+            /* Quartz Light Background */
+            --sap-surface: #ffffff;
+            --sap-text: #32363a;
+            --sap-text-light: #6a6d70;
+            --sap-border: #d9d9d9;
+            --sap-input-border: #89919a;
+            --sap-error: #bb0000;
+            --sap-success: #107e3e;
+            --sap-focus: #000000;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--sap-bg);
+            color: var(--sap-text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-image: linear-gradient(135deg, #f7f7f7 0%, #eef2f5 100%);
+        }
+
+        /* --- Login Card --- */
+        .fiori-login-card {
+            background-color: var(--sap-surface);
+            border-radius: 0.25rem;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 400px;
+            border-top: 4px solid var(--sap-primary);
+            /* Blue accent to match login */
+        }
+
+        .fiori-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--sap-text);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .fiori-subtitle {
+            font-size: 1.125rem;
+            color: var(--sap-text-light);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        /* --- Inputs (Underlined) --- */
+        .fiori-input-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .fiori-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--sap-text-light);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fiori-input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid var(--sap-input-border);
+            background-color: transparent;
+            padding: 0.5rem 0;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--sap-text);
+            transition: border-color 0.2s;
+            outline: none;
+            border-radius: 0;
+        }
+
+        .fiori-input:focus {
+            border-bottom: 2px solid var(--sap-primary);
+        }
+
+        .fiori-input:hover {
+            border-bottom-color: var(--sap-primary);
+        }
+
+        /* --- Buttons --- */
+        .fiori-button {
+            width: 100%;
+            background-color: var(--sap-primary);
+            color: white;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--sap-primary);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fiori-button:hover {
+            background-color: var(--sap-primary-dark);
+            border-color: var(--sap-primary-dark);
+        }
+
+        .fiori-button:focus {
+            outline: 2px solid var(--sap-focus);
+            outline-offset: 2px;
+        }
+
+        /* --- Alerts --- */
+        .fiori-message {
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fiori-message-error {
+            background-color: #fde8e8;
+            color: var(--sap-error);
+            border: 1px solid #fbd5d5;
+        }
+
+        /* --- Utilities --- */
+        .toggle-password {
+            position: absolute;
+            right: 0;
+            bottom: 0.25rem;
+            color: var(--sap-text-light);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px;
+            transition: all 0.2s;
+            opacity: 0.6;
+        }
+
+        .toggle-password:hover {
+            color: var(--sap-primary);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="fiori-login-card">
+        <h1 class="fiori-title">Logix</h1>
+        <h2 class="fiori-subtitle">Acceso de Administrador</h2>
+
+        {% if error %}
+        <div class="fiori-message fiori-message-error" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20"
+                fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd" />
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            <div class="fiori-input-group">
+                <label for="password" class="fiori-label">Contraseña de Administrador</label>
+                <input type="password" id="password" name="password" required class="fiori-input"
+                    placeholder="Ingresa la contraseña" title="Contraseña">
+                <button type="button" id="togglePassword" class="toggle-password" title="Mostrar/Ocultar contraseña">
+                    <!-- Icono Ojo (Mostrar) -->
+                    <svg id="eyeIcon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <!-- Icono Ojo Tachado (Ocultar) -->
+                    <svg id="eyeOffIcon" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.11 3.56-5.595 6.837-6.425M16.5 10.5a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3l18 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <button type="submit" class="fiori-button">
+                    Acceder
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a href="/" class="text-sm text-gray-500 hover:text-gray-800 flex items-center justify-center gap-2"
+                style="text-decoration: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const togglePassword = document.getElementById('togglePassword');
+        const password = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const eyeOffIcon = document.getElementById('eyeOffIcon');
+
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function (e) {
+                // toggle the type attribute
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+
+                // toggle the eye / eye off icon
+                eyeIcon.classList.toggle('hidden');
+                eyeOffIcon.classList.toggle('hidden');
+            });
+        }
+    </script>
+</body>
+
+</html>
