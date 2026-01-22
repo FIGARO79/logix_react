@@ -1,0 +1,320 @@
+/* frontend/src/styles/Inbound.css */
+
+/* ===== Variables SAP ===== */
+:root {
+    --sap-primary: #0070d2;
+    --sap-primary-dark: #005fb2;
+    --sap-header-bg: #2c3e50;
+    --sap-header-text: #ffffff;
+    --sap-border: #d0d7de;
+    --sap-hover: #f3f6f9;
+    --sap-text: #32383e;
+    --sap-table-header: #4a5f7f;
+    --sap-yellow: #fbbf24;
+}
+
+/* ===== Layout General ===== */
+.container-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ===== Formulario ===== */
+.form-label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+    color: var(--sap-text);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.data-field {
+    background-color: #f8f9fa;
+    padding: 8px 10px;
+    border-radius: 3px;
+    min-height: 38px;
+    border: 1px solid var(--sap-border);
+    color: var(--sap-text);
+    overflow-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    border: 1px solid var(--sap-border);
+    padding: 8px 10px;
+    border-radius: 3px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--sap-primary);
+    box-shadow: 0 0 0 2px rgba(0, 112, 210, 0.1);
+}
+
+/* ===== Botones ===== */
+.btn-sap {
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    font-size: 13px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--sap-yellow);
+    color: #1f2937;
+    border: 1px solid #f59e0b;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #f59e0b;
+}
+
+.btn-secondary {
+    background-color: #5a6c7d;
+    color: white;
+    border: 1px solid #4a5c6d;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #4a5c6d;
+}
+
+.toolbar-btn {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+}
+
+/* ===== Etiqueta (Vista Pantalla) ===== */
+.label-container {
+    border: 1px solid #d1d5db;
+    padding: 0.75rem;
+    background-color: white;
+    color: #1f2937;
+    width: 100%;
+    max-width: 265px;
+    height: auto;
+    aspect-ratio: 265 / 378;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    border-radius: 0.375rem;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.label-logo {
+    max-width: 40%;
+    max-height: 20px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 3.5mm;
+    display: block;
+}
+
+.label-item-code {
+    font-size: 1.125rem;
+    font-weight: bold;
+    line-height: 1.25 !important;
+    margin-bottom: 0.25rem;
+}
+
+.label-item-description {
+    font-size: 1.125rem;
+    font-weight: bold;
+    line-height: 1.25 !important;
+    margin-bottom: 10mm;
+}
+
+.label-data-field {
+    font-size: 0.75rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5mm;
+}
+
+.label-data-field span:first-child {
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.label-data-field span:last-child {
+    text-align: right;
+}
+
+#qrCodeContainer {
+    min-height: 96px;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+}
+
+.label-disclaimer {
+    font-size: 7pt !important;
+    line-height: 1.1 !important;
+    margin-right: 0.5rem;
+    flex-grow: 1;
+}
+
+.label-bottom-section {
+    margin-top: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* ===== Tabla ===== */
+.sap-table th {
+    background: linear-gradient(180deg, var(--sap-table-header) 0%, #3d5068 100%);
+    color: var(--sap-header-text);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+}
+
+.sap-table td {
+    border: 1px solid var(--sap-border);
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.sap-table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+.sap-table tbody tr:hover {
+    background-color: var(--sap-hover);
+}
+
+/* ===== IMPRESIÓN (CRÍTICO) ===== */
+@media print {
+    @page {
+        size: 70mm 100mm;
+        margin: 0;
+    }
+
+    html,
+    body {
+        width: 70mm;
+        height: 100mm;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: white !important;
+    }
+
+    /* Ocultar TODO excepto el área de impresión */
+    body * {
+        visibility: hidden;
+    }
+
+    .label-print-area,
+    .label-print-area * {
+        visibility: visible;
+    }
+
+    .label-print-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    .label-container {
+        width: 64mm !important;
+        height: 94mm !important;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        padding: 1mm;
+        border: none !important;
+        box-shadow: none !important;
+        display: block;
+    }
+
+    .label-logo {
+        max-width: 55%;
+        max-height: 7mm;
+        margin-bottom: 2mm;
+    }
+
+    .label-item-code {
+        font-size: 12pt !important;
+        color: black !important;
+        margin-bottom: 0.5mm;
+    }
+
+    .label-item-description {
+        font-size: 12pt !important;
+        color: black !important;
+        margin-bottom: 15mm;
+    }
+
+    .label-data-field span {
+        font-size: 9pt !important;
+        color: black !important;
+    }
+
+    .label-bottom-section {
+        position: absolute !important;
+        bottom: 3mm !important;
+        left: 0 !important;
+        width: 100% !important;
+        padding: 0;
+    }
+
+    #qrCodeContainer {
+        width: 25mm !important;
+        height: 25mm !important;
+        border: none !important;
+    }
+
+    .label-disclaimer {
+        margin-bottom: 0 !important;
+        color: black !important;
+    }
+}
