@@ -1,86 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const PickingAudit = () => {
     const navigate = useNavigate();
     const { setTitle } = useOutletContext();
 
-    useEffect(() => {
-        setTitle("Chequeo de Picking");
-    }, []);
+    useEffect(() => { setTitle("Chequeo de Picking"); }, []);
 
-    // UI States
-    const [step, setStep] = useState('load'); // 'load', 'audit'
+    // --- Estados ---
+    const [step, setStep] = useState('load'); // 'load' | 'audit'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
-
-    // Data States
     const [trackingOrders, setTrackingOrders] = useState([]);
-    const [currentOrder, setCurrentOrder] = useState(null); // { orderNumber, despatchNumber, customerName, items: [] }
 
-    // Inputs
+    // Inputs Carga
     const [orderInput, setOrderInput] = useState('');
     const [despatchInput, setDespatchInput] = useState('');
+
+    // Datos Auditoría
+    const [currentOrder, setCurrentOrder] = useState(null);
+    const [auditItems, setAuditItems] = useState([]);
     const [itemInput, setItemInput] = useState('');
 
-    // Active Audit State
-    const [auditItems, setAuditItems] = useState([]);
-    const [packagesInput, setPackagesInput] = useState('');
+    // --- Modales ---
+    const [qtyModal, setQtyModal] = useState({ open: false, index: null, value: '' });
+    const [confirmModal, setConfirmModal] = useState(false); // Modal "Confirmar con diferencias"
+    const [packagesModal, setPackagesModal] = useState({ open: false, value: '' }); // Modal "Bultos"
 
-    // Modal States
-    const [quantityModalOpen, setQuantityModalOpen] = useState(false);
-    const [selectedItemIndex, setSelectedItemIndex] = useState(null);
-    const [tempQuantity, setTempQuantity] = useState('');
+    // --- Carga Inicial (Tracking) ---
+    useEffect(() => { fetchTracking(); }, []);
 
-    // Audio
-    // Simple beep logic using Web Audio API if needed, or browser beep.
-
-    // --- Tracking Data ---
     const fetchTracking = async () => {
         try {
             const res = await fetch('http://localhost:8000/api/picking/tracking');
-            if (res.ok) {
-                const data = await res.json();
-                setTrackingOrders(data);
-            }
-        } catch (e) {
-            console.error("Tracking fetch error", e);
-        }
+            if (res.ok) setTrackingOrders(await res.json());
+        } catch (e) { console.error(e); }
     };
 
-    useEffect(() => {
-        fetchTracking();
-    }, []);
-
-
-    // --- Load Order ---
+    // --- Lógica: Cargar Pedido ---
     const handleLoadOrder = async (oNum, dNum) => {
         if (!oNum || !dNum) return;
-        setLoading(true);
-        setError(null);
-
+        setLoading(true); setError(null);
         try {
             const res = await fetch(`http://localhost:8000/api/picking/order/${oNum}/${dNum}`);
-            if (!res.ok) throw new Error('Pedido no encontrado');
+            if (!res.ok) throw new Error('Pedido no encontrado o error en servidor');
 
             const data = await res.json();
-            // Data is list of lines. Group/Process them.
-            if (data.length === 0) throw new Error('Pedido sin líneas');
+            if (data.length === 0) throw new Error('El pedido no tiene líneas');
 
-            // Initialize audit state
+            // Agrupar items (mismo código = misma línea visual)
             const itemsMap = {};
             data.forEach(row => {
-                if (!itemsMap[row['Item Code']]) {
-                    itemsMap[row['Item Code']] = {
-                        code: row['Item Code'],
+                const code = row['Item Code'];
+                if (!itemsMap[code]) {
+                    itemsMap[code] = {
+                        code: code,
                         description: row['Item Description'],
                         qty_req: 0,
                         qty_scan: 0,
                         order_line: row['Order Line']
                     };
                 }
-                itemsMap[row['Item Code']].qty_req += parseFloat(row['Qty']);
+                itemsMap[code].qty_req += parseFloat(row['Qty']);
             });
 
             setAuditItems(Object.values(itemsMap));
@@ -90,7 +72,6 @@ const PickingAudit = () => {
                 customerName: data[0]['Customer Name']
             });
             setStep('audit');
-
         } catch (err) {
             setError(err.message);
         } finally {
@@ -98,214 +79,178 @@ const PickingAudit = () => {
         }
     };
 
-    // --- Audit Logic ---
-    const handleScanItem = (e) => {
+    // --- Lógica: Escanear Item ---
+    const handleScan = (e) => {
         e.preventDefault();
-        if (!itemInput) return;
+        const code = itemInput.trim().toUpperCase();
+        if (!code) return;
 
-        const code = itemInput.toUpperCase();
-        // Find item
-        const index = auditItems.findIndex(i => i.code === code);
-
-        if (index === -1) {
-            // Item not in order!
-            // Depending on logic, maybe add as extra or show error.
-            // Legacy showed error or allowed adding extra? 
-            // Usually strict audit means show error.
-            setError(`Item ${code} no pertenece a este pedido.`);
-            // Or add it dynamically if extra allowed. Let's assume strict for now.
-            // But usually we might want to track extra items. 
-            // Let's ask user quantity directly for found item.
+        const idx = auditItems.findIndex(i => i.code === code);
+        if (idx === -1) {
+            setError(`Item ${code} no pertenece al pedido.`);
+            // Reproducir sonido Error
         } else {
-            setSelectedItemIndex(index);
-            setQuantityModalOpen(true);
-            setTempQuantity(''); // Clear previous
-            setTimeout(() => document.getElementById('qty-input-modal').focus(), 100);
+            // Abrir modal de cantidad para el item encontrado
+            setQtyModal({ open: true, index: idx, value: '' });
+            setError(null);
         }
         setItemInput('');
     };
 
-    const confirmQuantity = () => {
-        if (selectedItemIndex === null) return;
-
-        const qty = parseInt(tempQuantity);
-        if (isNaN(qty)) return;
+    const submitQty = (e) => {
+        e.preventDefault();
+        const q = parseInt(qtyModal.value);
+        if (isNaN(q) || q < 0) return;
 
         const newItems = [...auditItems];
-        newItems[selectedItemIndex].qty_scan += qty;
-        setAuditItems(newItems);
+        const item = newItems[qtyModal.index];
 
-        setQuantityModalOpen(false);
-        setSelectedItemIndex(null);
-        setTempQuantity('');
-        setMessage(`Agregado ${qty} a ${newItems[selectedItemIndex].code}`);
+        // Validación opcional: No escanear más de lo requerido? (El original avisaba pero dejaba)
+        if (item.qty_scan + q > item.qty_req) {
+            if (!confirm(`Estás excediendo la cantidad requerida (${item.qty_req}). ¿Continuar?`)) return;
+        }
+
+        item.qty_scan += q;
+        setAuditItems(newItems);
+        setQtyModal({ open: false, index: null, value: '' });
+
+        // Auto check si completó
+        if (item.qty_scan === item.qty_req) setMessage(`Item ${item.code} COMPLETADO.`);
     };
 
-    const handleFinalize = async () => {
-        // Here we could ask for total packages
-        const packs = prompt("Ingrese cantidad total de bultos/paquetes:", "0");
-        if (packs === null) return; // Cancelled
+    // --- Lógica: Finalizar ---
+    const requestFinalize = () => {
+        const hasDiff = auditItems.some(i => i.qty_scan !== i.qty_req);
+        if (hasDiff) {
+            setConfirmModal(true); // "Hay diferencias, ¿seguro?"
+        } else {
+            setPackagesModal({ open: true, value: '' }); // Directo a bultos
+        }
+    };
 
-        const totalPackages = parseInt(packs) || 0;
+    const confirmDifferences = () => {
+        setConfirmModal(false);
+        setPackagesModal({ open: true, value: '' }); // Ir a bultos tras confirmar
+    };
+
+    const submitFinalize = async (e) => {
+        e.preventDefault();
+        const packs = parseInt(packagesModal.value);
+        if (isNaN(packs) || packs < 1) {
+            alert("Ingrese al menos 1 bulto.");
+            return;
+        }
 
         setLoading(true);
-        // Calculate status
         const hasDiff = auditItems.some(i => i.qty_scan !== i.qty_req);
         const status = hasDiff ? 'Con Diferencia' : 'Completo';
-
-        const payload = {
-            order_number: currentOrder.orderNumber,
-            despatch_number: currentOrder.despatchNumber,
-            customer_name: currentOrder.customerName,
-            status: status,
-            packages: totalPackages,
-            items: auditItems
-        };
 
         try {
             const res = await fetch('http://localhost:8000/api/save_picking_audit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    order_number: currentOrder.orderNumber,
+                    despatch_number: currentOrder.despatchNumber,
+                    customer_name: currentOrder.customerName,
+                    status: status,
+                    packages: packs,
+                    items: auditItems
+                })
             });
 
-            if (!res.ok) throw new Error("Error al guardar auditoría");
+            if (!res.ok) throw new Error("Error al guardar");
 
-            alert("Auditoría Guardada Exitosamente");
-            navigate('/view_picking_audits'); // Go to history
-
+            alert("¡Auditoría Guardada!");
+            navigate('/view_picking_audits');
         } catch (err) {
             setError(err.message);
+            setPackagesModal({ ...packagesModal, open: false }); // Cerrar modal si falla
+        } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-8">
-
+        <div className="max-w-5xl mx-auto px-4 py-6 font-sans">
             {step === 'load' && (
-                <div className="grid gap-8">
-                    {/* Load Form */}
-                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
-                        <h2 className="text-xl font-bold mb-4">Cargar Pedido</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input
-                                className="p-2 border rounded"
-                                placeholder="Order Number"
-                                value={orderInput}
-                                onChange={e => setOrderInput(e.target.value)}
-                            />
-                            <input
-                                className="p-2 border rounded"
-                                placeholder="Despatch Number"
-                                value={despatchInput}
-                                onChange={e => setDespatchInput(e.target.value)}
-                            />
+                <div className="grid gap-6">
+                    {/* Carga */}
+                    <div className="bg-white p-6 rounded shadow border-l-4 border-blue-600">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">1. Cargar Pedido</h2>
+                        <div className="flex gap-4">
+                            <input className="border p-2 rounded w-1/2" placeholder="Order Number" value={orderInput} onChange={e => setOrderInput(e.target.value)} />
+                            <input className="border p-2 rounded w-1/2" placeholder="Despatch Number" value={despatchInput} onChange={e => setDespatchInput(e.target.value)} />
                         </div>
-                        <button
-                            onClick={() => handleLoadOrder(orderInput, despatchInput)}
-                            disabled={loading}
-                            className="mt-4 w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
+                        <button onClick={() => handleLoadOrder(orderInput, despatchInput)} disabled={loading} className="mt-4 w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">
                             {loading ? 'Cargando...' : 'Cargar Pedido'}
                         </button>
-                        {error && <p className="text-red-500 mt-2">{error}</p>}
                     </div>
-
-                    {/* Tracking Table */}
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h3 className="text-lg font-bold mb-4 flex justify-between items-center">
-                            Pedidos Disponibles
-                            <button onClick={fetchTracking} className="text-sm bg-gray-200 px-3 py-1 rounded">Actualizar</button>
-                        </h3>
-                        <div className="overflow-x-auto max-h-64">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Despatch</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Líneas</th>
-                                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
+                    {/* Tabla Tracking */}
+                    <div className="bg-white p-6 rounded shadow">
+                        <h3 className="text-lg font-bold mb-4">Pedidos Recientes</h3>
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-100 text-gray-600 uppercase"><tr className="border-b"><th className="p-2">Order</th><th className="p-2">Despatch</th><th className="p-2">Cliente</th><th className="p-2">Acción</th></tr></thead>
+                            <tbody>
+                                {trackingOrders.map((o, i) => (
+                                    <tr key={i} className="border-b hover:bg-gray-50">
+                                        <td className="p-2">{o.order_number}</td>
+                                        <td className="p-2">{o.despatch_number}</td>
+                                        <td className="p-2">{o.customer_name}</td>
+                                        <td className="p-2"><button onClick={() => handleLoadOrder(o.order_number, o.despatch_number)} className="text-blue-600 font-bold hover:underline">Auditar</button></td>
                                     </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {trackingOrders.map((o, idx) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                            <td className="px-4 py-2 text-sm">{o.order_number}</td>
-                                            <td className="px-4 py-2 text-sm">{o.despatch_number}</td>
-                                            <td className="px-4 py-2 text-sm truncate max-w-xs">{o.customer_name}</td>
-                                            <td className="px-4 py-2 text-sm text-center">{o.total_lines}</td>
-                                            <td className="px-4 py-2 text-center">
-                                                <button
-                                                    onClick={() => handleLoadOrder(o.order_number, o.despatch_number)}
-                                                    className="text-blue-600 hover:text-blue-900 font-bold text-sm"
-                                                >
-                                                    Auditar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}
 
-            {step === 'audit' && currentOrder && (
-                <div className="space-y-6">
-                    {/* Header Info */}
-                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500 flex justify-between items-center">
+            {step === 'audit' && (
+                <div>
+                    {/* Header Pedido */}
+                    <div className="bg-white p-4 rounded shadow border-l-4 border-yellow-500 mb-6 flex justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold">{currentOrder.customerName}</h1>
-                            <p className="text-gray-600">Orden: {currentOrder.orderNumber} / {currentOrder.despatchNumber}</p>
+                            <h1 className="text-2xl font-bold text-gray-800">{currentOrder.customerName}</h1>
+                            <p className="text-gray-600 font-mono">OD: {currentOrder.orderNumber} | DP: {currentOrder.despatchNumber}</p>
                         </div>
-                        <button onClick={() => setStep('load')} className="text-gray-500 hover:text-gray-700">Cambiar Pedido</button>
+                        <button onClick={() => setStep('load')} className="text-gray-500 underline">Cambiar</button>
                     </div>
 
-                    {/* Scan Form */}
-                    <form onSubmit={handleScanItem} className="flex gap-2">
-                        <input
-                            className="flex-grow p-3 border rounded text-lg shadow-sm"
-                            placeholder="Escanear Ítem..."
-                            value={itemInput}
-                            onChange={e => setItemInput(e.target.value)}
-                            autoFocus
-                        />
-                        <button type="submit" className="bg-gray-800 text-white px-6 py-2 rounded font-bold hover:bg-black">
-                            OK
-                        </button>
+                    {/* Barra Escáner */}
+                    <form onSubmit={handleScan} className="flex gap-2 mb-4">
+                        <input autoFocus className="flex-grow border-2 border-gray-300 rounded p-3 text-lg" placeholder="Escanear ITEM CODE..." value={itemInput} onChange={e => setItemInput(e.target.value)} />
+                        <button type="submit" className="bg-gray-800 text-white px-6 font-bold rounded">OK</button>
                     </form>
-                    {error && <div className="bg-red-100 text-red-800 p-3 rounded">{error}</div>}
-                    {message && <div className="bg-green-100 text-green-800 p-3 rounded">{message}</div>}
 
-                    {/* Items Table */}
-                    <div className="bg-white shadow rounded-lg overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                    {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4 font-bold">⚠️ {error}</div>}
+                    {message && <div className="bg-green-100 text-green-800 p-3 rounded mb-4 font-bold">✅ {message}</div>}
+
+                    {/* Tabla Items */}
+                    <div className="bg-white shadow rounded overflow-hidden mb-6">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                                 <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Req</th>
-                                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Scan</th>
-                                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Dif</th>
+                                    <th className="p-3 text-left">Item</th>
+                                    <th className="p-3 text-center">Req</th>
+                                    <th className="p-3 text-center">Scan</th>
+                                    <th className="p-3 text-center">Dif</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {auditItems.map((item, idx) => {
+                            <tbody className="divide-y">
+                                {auditItems.map((item, i) => {
                                     const dif = item.qty_scan - item.qty_req;
+                                    const rowClass = dif === 0 && item.qty_scan > 0 ? 'bg-green-50' : dif !== 0 && item.qty_scan > 0 ? 'bg-red-50' : '';
                                     return (
-                                        <tr key={idx} className={dif === 0 && item.qty_scan > 0 ? 'bg-green-50' : dif !== 0 && item.qty_scan > 0 ? 'bg-red-50' : ''}>
-                                            <td className="px-4 py-2">
-                                                <div className="font-bold text-gray-900">{item.code}</div>
+                                        <tr key={i} className={`hover:bg-gray-50 ${rowClass}`}>
+                                            <td className="p-3">
+                                                <div className="font-bold text-gray-800">{item.code}</div>
                                                 <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
                                             </td>
-                                            <td className="px-4 py-2 text-center font-bold text-gray-700">{item.qty_req}</td>
-                                            <td className="px-4 py-2 text-center font-bold text-blue-600">{item.qty_scan}</td>
-                                            <td className="px-4 py-2 text-center">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${dif === 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                                                    {dif > 0 ? `+${dif}` : dif}
-                                                </span>
+                                            <td className="p-3 text-center font-bold text-gray-600">{item.qty_req}</td>
+                                            <td className="p-3 text-center font-bold text-blue-600 text-lg">{item.qty_scan}</td>
+                                            <td className="p-3 text-center font-bold">
+                                                <span className={dif === 0 ? 'text-green-600' : 'text-red-600'}>{dif > 0 ? `+${dif}` : dif}</span>
                                             </td>
                                         </tr>
                                     );
@@ -314,37 +259,52 @@ const PickingAudit = () => {
                         </table>
                     </div>
 
-                    <button
-                        onClick={handleFinalize}
-                        disabled={loading}
-                        className="w-full bg-green-600 text-white font-bold py-4 rounded shadow-lg text-xl hover:bg-green-700 transition-colors"
-                    >
+                    <button onClick={requestFinalize} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded text-xl shadow-lg transition-transform transform active:scale-95">
                         {loading ? 'Guardando...' : 'FINALIZAR AUDITORÍA'}
                     </button>
                 </div>
             )}
 
-            {/* Quantity Modal */}
-            {quantityModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-                        <h3 className="text-lg font-bold mb-4">{auditItems[selectedItemIndex]?.code}</h3>
-                        <p className="mb-2 text-sm text-gray-600">{auditItems[selectedItemIndex]?.description}</p>
-                        <label className="block text-sm font-bold mb-1">Cantidad Alistada:</label>
-                        <input
-                            id="qty-input-modal"
-                            type="number"
-                            className="w-full border p-2 rounded text-2xl text-center mb-4"
-                            value={tempQuantity}
-                            onChange={e => setTempQuantity(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && confirmQuantity()}
-                            autoFocus
-                        />
+            {/* Modal Cantidad */}
+            {qtyModal.open && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <form onSubmit={submitQty} className="bg-white p-6 rounded-lg shadow-2xl w-80">
+                        <h3 className="font-bold text-lg mb-2 text-gray-800">{auditItems[qtyModal.index].code}</h3>
+                        <p className="text-sm text-gray-500 mb-4 truncate">{auditItems[qtyModal.index].description}</p>
+                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cantidad Alistada</label>
+                        <input autoFocus type="number" className="w-full border-2 border-blue-500 rounded p-2 text-2xl text-center mb-6 font-bold"
+                            value={qtyModal.value} onChange={e => setQtyModal({ ...qtyModal, value: e.target.value })} />
                         <div className="flex justify-end gap-2">
-                            <button onClick={() => setQuantityModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-                            <button onClick={confirmQuantity} className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Confirmar</button>
+                            <button type="button" onClick={() => setQtyModal({ open: false, index: null, value: '' })} className="px-4 py-2 bg-gray-200 rounded font-bold text-gray-600">Cancelar</button>
+                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Confirmar</button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Modal Confirmación Diferencias */}
+            {confirmModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-2xl w-96 border-t-4 border-yellow-500">
+                        <h3 className="font-bold text-xl mb-4 text-yellow-700">⚠️ Diferencias Detectadas</h3>
+                        <p className="text-gray-600 mb-6">Hay items faltantes o sobrantes en el picking. ¿Deseas finalizar de todos modos?</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setConfirmModal(false)} className="px-4 py-2 bg-gray-200 rounded font-bold text-gray-700">Revisar</button>
+                            <button onClick={confirmDifferences} className="px-4 py-2 bg-yellow-500 text-white rounded font-bold hover:bg-yellow-600">Sí, Finalizar con Error</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Modal Bultos */}
+            {packagesModal.open && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <form onSubmit={submitFinalize} className="bg-white p-6 rounded-lg shadow-2xl w-80 border-t-4 border-green-500">
+                        <h3 className="font-bold text-lg mb-4 text-gray-800">📦 Total de Bultos</h3>
+                        <input autoFocus type="number" min="1" className="w-full border-2 border-gray-300 rounded p-2 text-3xl text-center mb-6 font-bold"
+                            value={packagesModal.value} onChange={e => setPackagesModal({ ...packagesModal, value: e.target.value })} placeholder="0" />
+                        <button type="submit" className="w-full py-3 bg-green-600 text-white rounded font-bold text-lg hover:bg-green-700">Guardar y Salir</button>
+                    </form>
                 </div>
             )}
         </div>

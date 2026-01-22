@@ -1,177 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import Layout from '../components/Layout';
 
+// Sonidos sintetizados (para no depender de archivos externos)
+const playSound = (type) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    if (type === 'success') {
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+    } else {
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
+    }
+};
+
 const InventoryStock = () => {
-    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
-    const [stockData, setStockData] = useState([]);
+    const [itemData, setItemData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [scannerOpen, setScannerOpen] = useState(false);
+    const scannerRef = useRef(null);
 
-    // Initial load or search logic
-    const fetchStock = async (query = '') => {
+    // Campos mapeados exactamente como en stock.html
+    const fields = [
+        { id: "Item_Code", label: "Item Code" },
+        { id: "Item_Description", label: "Descripción" },
+        { id: "Physical_Qty", label: "Cantidad Física" },
+        { id: "Frozen_Qty", label: "Cantidad Congelada" },
+        { id: "Bin_1", label: "Ubicación Principal" },
+        { id: "Aditional_Bin_Location", label: "Ubicaciones Adicionales" },
+        { id: "ABC_Code_stockroom", label: "Código ABC" },
+        { id: "Weight_per_Unit", label: "Peso por Unidad" },
+        { id: "SupersededBy", label: "Reemplazado Por" }
+    ];
+
+    const handleSearch = async (e) => {
+        if (e) e.preventDefault();
+        if (!searchTerm.trim()) return;
+
         setLoading(true);
         setError(null);
+        setItemData(null);
+
         try {
-            // If query is present, we might use a specific search endpoint or filter client-side if data is small
-            // Given the backend `get_stock` returns all records, we'll fetch all and filter client-side for now
-            // Or use `get_stock_item` for specific single item lookup if strict match.
-
-            // Optimization: If `get_stock` is heavy, we might want to ask backend to filter.
-            // For now, let's assume we fetch all and filter.
-
-            let url = 'http://localhost:8000/api/stock';
-            if (query) {
-                // If the user entered a code, try the specific item endpoint first for speed? 
-                // But the user might want partial match. 
-                // Let's stick to client side filtering of the main list for simplicity unless huge.
-            }
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Error al cargar inventario');
-            }
+            // Usamos el endpoint específico de item en lugar de traer todo el stock
+            const response = await fetch(`http://localhost:8000/api/stock_item/${encodeURIComponent(searchTerm.toUpperCase())}`);
             const data = await response.json();
 
-            // Client side filtering
-            let filtered = data;
-            if (query) {
-                const lowerQ = query.toLowerCase();
-                filtered = data.filter(item =>
-                    String(item.Item_Code).toLowerCase().includes(lowerQ) ||
-                    String(item.Item_Description).toLowerCase().includes(lowerQ)
-                );
+            if (response.ok && !data.error) {
+                setItemData(data);
+                playSound('success');
+            } else {
+                setError(data.error || "Artículo no encontrado");
+                playSound('error');
             }
-            setStockData(filtered);
-
         } catch (err) {
-            setError(err.message);
+            setError("Error de conexión al buscar el artículo");
+            playSound('error');
         } finally {
             setLoading(false);
         }
     };
 
+    // Lógica del Escáner
     useEffect(() => {
-        // Load some initial data or leave empty?
-        // fetchStock(); 
-    }, []);
+        if (scannerOpen && !scannerRef.current) {
+            const html5QrCode = new Html5Qrcode("reader");
+            scannerRef.current = html5QrCode;
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        fetchStock(searchTerm);
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                (decodedText) => {
+                    // Success
+                    setSearchTerm(decodedText);
+                    setScannerOpen(false);
+                    scannerRef.current.stop().then(() => {
+                        scannerRef.current.clear();
+                        scannerRef.current = null;
+                    });
+                    // Trigger search in next tick
+                    setTimeout(() => handleSearch(), 100);
+                },
+                (errorMessage) => { /* ignore */ }
+            ).catch(err => {
+                setError("No se pudo iniciar la cámara");
+                setScannerOpen(false);
+            });
+        }
+    }, [scannerOpen]);
+
+    const closeScanner = () => {
+        if (scannerRef.current) {
+            scannerRef.current.stop().then(() => {
+                scannerRef.current.clear();
+                scannerRef.current = null;
+            });
+        }
+        setScannerOpen(false);
     };
 
     return (
-        <Layout title="Consulta de Stock">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Layout title="Logix - Consultar Inventario">
+            <div className="max-w-[800px] mx-auto px-4 py-3">
+                <div className="bg-white p-6 rounded-md shadow-md border border-[#d9d9d9]">
+                    {/* Header estilo SAP */}
+                    <div className="bg-[#f2f2f2] text-[#32363a] px-4 py-3 -mx-6 -mt-6 mb-4 rounded-t-md border-b border-[#d9d9d9]">
+                        <h1 className="text-base font-semibold m-0 font-sans">Consulta de Inventario</h1>
+                    </div>
 
-                {/* Search Bar */}
-                <div className="mb-8 bg-white p-6 rounded-lg shadow-md border-t-4 border-[#0070d2]">
-                    <form onSubmit={handleSearch} className="flex gap-4 items-end">
+                    {/* Controles de Búsqueda */}
+                    <form onSubmit={handleSearch} className="flex items-end gap-2 mb-4">
                         <div className="flex-grow">
-                            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-                                Buscar Artículo
+                            <label className="block font-semibold mb-1 text-xs text-[#32363a] uppercase tracking-wide">
+                                Ingrese el código del artículo
                             </label>
                             <input
                                 type="text"
-                                name="search"
-                                id="search"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0070d2] focus:ring focus:ring-[#0070d2] focus:ring-opacity-50 py-2 px-3 border"
-                                placeholder="Código o Descripción..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
+                                placeholder="Buscar por Item Code..."
+                                className="w-full border border-[#89919a] p-2 rounded-[3px] text-[13px] bg-white focus:outline-none focus:border-[#0a6ed1] focus:ring-2 focus:ring-[#0a6ed1]/10 transition-all"
+                                autoFocus
                             />
                         </div>
                         <button
+                            type="button"
+                            onClick={() => setScannerOpen(true)}
+                            className="h-[38px] px-3 bg-[#6a6d70] hover:bg-[#5a6d70] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
+                            title="Escanear código"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                                <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                                <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                                <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                                <path d="M12 9h2V8h-2z" />
+                            </svg>
+                        </button>
+                        <button
                             type="submit"
+                            className="h-[38px] px-3 bg-[#6a6d70] hover:bg-[#5a6d70] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
                             disabled={loading}
-                            className="bg-[#0070d2] hover:bg-[#005fb2] text-white font-bold py-2 px-6 rounded shadow transition-colors duration-200 flex items-center"
                         >
                             {loading ? (
-                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
                                 </svg>
                             )}
-                            Buscar
                         </button>
                     </form>
+
+                    {/* Mensaje de Error */}
+                    {error && (
+                        <div className="mb-4 bg-[#fef6f6] border-l-4 border-[#b00] text-[#b00] p-3 text-sm flex items-center">
+                            <span className="font-bold mr-2">Error:</span> {error}
+                        </div>
+                    )}
+
+                    {/* Formulario de Resultados (Card View) */}
+                    <div className="space-y-1 mt-6 grid grid-cols-1 gap-0">
+                        {fields.map((field) => (
+                            <div key={field.id}>
+                                <label className="block font-semibold mb-1 text-xs text-[#32363a] uppercase tracking-wide">
+                                    {field.label}
+                                </label>
+                                <div className="bg-[#f8f9fa] px-3 py-2 rounded-[3px] min-h-[38px] border border-[#d9d9d9] text-[#32363a] text-[13px] leading-relaxed flex items-center break-words">
+                                    {itemData ? (itemData[field.id] !== null && itemData[field.id] !== undefined ? itemData[field.id] : '') : ''}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-red-700">{error}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Results Table */}
-                {stockData.length > 0 && (
-                    <div className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full leading-normal">
-                                <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        <th className="px-5 py-3">Código Item</th>
-                                        <th className="px-5 py-3">Descripción</th>
-                                        <th className="px-5 py-3">Ubicación</th>
-                                        <th className="px-5 py-3">Stock Sistema</th>
-                                        <th className="px-5 py-3 text-right">Costo Unit.</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {stockData.map((item, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200 last:border-b-0">
-                                            <td className="px-5 py-4 text-sm font-medium text-[#0070d2]">
-                                                {item.Item_Code}
-                                            </td>
-                                            <td className="px-5 py-4 text-sm text-gray-700">
-                                                {item.Item_Description}
-                                            </td>
-                                            <td className="px-5 py-4 text-sm text-gray-700 font-bold">
-                                                {item.Bin_1 || 'N/A'}
-                                            </td>
-                                            <td className="px-5 py-4 text-sm text-gray-700">
-                                                {item.Quantity || 0}
-                                            </td>
-                                            <td className="px-5 py-4 text-sm text-gray-700 text-right">
-                                                ${parseFloat(item.Cost_per_Unit || 0).toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500 text-right">
-                            Mostrando {stockData.length} resultados
-                        </div>
-                    </div>
-                )}
-
-                {stockData.length === 0 && !loading && !error && (
-                    <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <p className="mt-2 text-lg">Ingrese un término de búsqueda para comenzar</p>
-                    </div>
-                )}
-
             </div>
+
+            {/* Modal Scanner */}
+            {scannerOpen && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-4 max-w-lg w-full">
+                        <h3 className="text-lg font-bold mb-4 text-center">Escanear Código de Barras</h3>
+                        <div id="reader" className="w-full rounded-md overflow-hidden border"></div>
+                        <button
+                            onClick={closeScanner}
+                            className="mt-4 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 };
