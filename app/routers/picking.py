@@ -290,6 +290,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(login_require
                 {
                     "code": item.item_code,
                     "description": item.description,
+                    "order_line": item.order_line,
                     "qty_req": item.qty_req,
                     "qty_scan": item.qty_scan,
                     "edited": item.edited if item.edited else 0

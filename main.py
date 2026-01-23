@@ -65,6 +65,9 @@ app.add_middleware(
     https_only=False
 )
 
+# --- Montar estáticos (Legacy Support) ---
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # --- Registro de routers ---
 # Routers Principales (JSON)
 app.include_router(api_views.router) # [NUEVO] Reemplaza a views.router HTML

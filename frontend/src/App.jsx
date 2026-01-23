@@ -23,6 +23,9 @@ import Register from './pages/Register';
 import SetPassword from './pages/SetPassword';
 import PackingListPrint from './pages/PackingListPrint';
 import CycleCountHistory from './pages/CycleCountHistory';
+import ManageCountDifferences from './pages/ManageCountDifferences';
+import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
+import ErrorPage from './pages/Error';
 
 // Mock Protected Route (Actual implementation should check token/session)
 const ProtectedRoute = ({ children }) => {
@@ -53,10 +56,12 @@ function App() {
                     <Route path="view_picking_audits" element={<PickingAuditHistory />} />
                     <Route path="counts" element={<CycleCounts />} />
                     <Route path="counts/manage" element={<ManageCounts />} />
+                    <Route path="counts/manage_differences" element={<ManageCountDifferences />} />
                     <Route path="counts/edit/:id" element={<EditCount />} />
                     <Route path="counts/history" element={<CycleCountHistory />} />
                     <Route path="planner" element={<Planner />} />
                     <Route path="planner/execution" element={<PlannerExecution />} />
+                    <Route path="planner/manage_differences" element={<ManageCycleCountDifferences />} />
                     <Route path="picking" element={<PickingAudit />} />
                     <Route path="view_logs" element={<InboundHistory />} />
                     <Route path="packing_list/print/:id" element={<PackingListPrint />} />
@@ -70,6 +75,9 @@ function App() {
                         If the card href is /view_picking_audits, it matches above.
                     */}
                 </Route>
+
+                {/* Catch-all for 404 */}
+                <Route path="*" element={<ErrorPage />} />
             </Routes>
         </Router>
     );

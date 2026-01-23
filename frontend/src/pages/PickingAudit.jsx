@@ -232,6 +232,7 @@ const PickingAudit = () => {
                             <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                                 <tr>
                                     <th className="p-3 text-left">Item</th>
+                                    <th className="p-3 text-center">Línea</th>
                                     <th className="p-3 text-center">Req</th>
                                     <th className="p-3 text-center">Scan</th>
                                     <th className="p-3 text-center">Dif</th>
@@ -247,6 +248,7 @@ const PickingAudit = () => {
                                                 <div className="font-bold text-gray-800">{item.code}</div>
                                                 <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
                                             </td>
+                                            <td className="p-3 text-center text-xs font-mono text-gray-500">{item.order_line}</td>
                                             <td className="p-3 text-center font-bold text-gray-600">{item.qty_req}</td>
                                             <td className="p-3 text-center font-bold text-blue-600 text-lg">{item.qty_scan}</td>
                                             <td className="p-3 text-center font-bold">

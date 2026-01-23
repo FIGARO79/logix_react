@@ -154,11 +154,11 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     if s_date > e_date:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
 
-    # 1. Obtener todos los items del maestro
-    if csv_handler.df_master_cache is None:
-        await csv_handler.load_csv_data()
-    
-    df_master = csv_handler.df_master_cache
+    # 1. Obtener todos los items del maestro (carga on-demand sin cache global)
+    df_master = await csv_handler.load_master_subset(
+        ['Item_Code', 'ABC_Code_stockroom', 'Physical_Qty', 'Item_Description'],
+        positive_stock_only=True
+    )
     if df_master is None or df_master.empty:
         raise HTTPException(status_code=500, detail="No se pudo cargar el maestro de items.")
 
@@ -503,4 +503,113 @@ async def get_execution_stats(
         "executed": executed_grid,
         "delta": delta_grid, # Items con diferencia
         "year": year
+    }
+
+
+# --- NUEVOS ENDPOINTS PARA GESTIÓN DE DIFERENCIAS DE CONTEOS CÍCLICOS ---
+
+class CycleCountDifferenceResponse(BaseModel):
+    id: int
+    item_code: str
+    item_description: str | None
+    bin_location: str | None
+    system_qty: int
+    physical_qty: int
+    difference: int
+    executed_date: str
+    username: str
+    abc_code: str | None
+    planned_date: str
+
+
+@router.get('/cycle_count_differences')
+async def get_cycle_count_differences(
+    year: int = Query(None),
+    month: int = Query(None),
+    only_differences: bool = Query(True),
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtiene un listado de conteos cíclicos.
+    Permite filtrar por año y mes.
+    - only_differences=True (default): Solo registros con difference != 0
+    - only_differences=False: Todos los registros
+    """
+    query = select(CycleCountRecording)
+    
+    # Filtrar solo si hay diferencias
+    if only_differences:
+        query = query.where(CycleCountRecording.difference != 0)
+    
+    if year:
+        query = query.where(CycleCountRecording.executed_date.like(f"{year}-%"))
+    
+    if month:
+        month_str = f"{str(month).zfill(2)}"
+        if year:
+            query = query.where(CycleCountRecording.executed_date.like(f"{year}-{month_str}-%"))
+        else:
+            query = query.where(CycleCountRecording.executed_date.like(f"%-{month_str}-%"))
+    
+    query = query.order_by(CycleCountRecording.executed_date.desc(), CycleCountRecording.item_code)
+    
+    result = await db.execute(query)
+    records = result.scalars().all()
+    
+    return [
+        CycleCountDifferenceResponse(
+            id=r.id,
+            item_code=r.item_code,
+            item_description=r.item_description,
+            bin_location=r.bin_location,
+            system_qty=r.system_qty,
+            physical_qty=r.physical_qty,
+            difference=r.difference,
+            executed_date=r.executed_date,
+            username=r.username,
+            abc_code=r.abc_code,
+            planned_date=r.planned_date
+        )
+        for r in records
+    ]
+
+
+class UpdateCycleCountDifferenceRequest(BaseModel):
+    physical_qty: int
+
+
+@router.put('/cycle_count_differences/{recording_id}')
+async def update_cycle_count_difference(
+    recording_id: int,
+    data: UpdateCycleCountDifferenceRequest,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Actualiza la cantidad física verificada de un conteo cíclico.
+    Recalcula automáticamente la diferencia.
+    """
+    result = await db.execute(
+        select(CycleCountRecording).where(CycleCountRecording.id == recording_id)
+    )
+    record = result.scalar_one_or_none()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    
+    # Actualizar cantidad física y recalcular diferencia
+    record.physical_qty = data.physical_qty
+    record.difference = data.physical_qty - record.system_qty
+    
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    
+    return {
+        "id": record.id,
+        "item_code": record.item_code,
+        "physical_qty": record.physical_qty,
+        "difference": record.difference,
+        "message": "Cantidad verificada actualizada exitosamente"
     }

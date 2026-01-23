@@ -13,6 +13,8 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
             },
+            // Static files (Images, etc)
+            '/static': 'http://localhost:8000',
             // Auth routes
             '/login': 'http://localhost:8000',
             '/logout': 'http://localhost:8000',
