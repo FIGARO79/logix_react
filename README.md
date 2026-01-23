@@ -1,26 +1,35 @@
-# Logix API Router
+# Logix WMS (Warehouse Management System)
 
-Back-end API application specialized in warehouse management, inventory control, and logistics operations. Built with FastAPI for high performance and scalability.
+A comprehensive Warehouse Management System featuring a high-performance FastAPI backend and a modern React frontend. Specialized in inventory control, logistics operations, and stock management.
 
 ## 🚀 Technology Stack
 
+### Backend (`/app`)
 - **Framework**: FastAPI (Python 3.x)
 - **Database**:
     - **Production**: MySQL / MariaDB (via `aiomysql`)
     - **Development**: SQLite (via `aiosqlite`)
 - **ORM**: SQLAlchemy (Async)
-- **Server**: Uvicorn / Gunicorn
-- **Deployment**: Systemd + Nginx on Debian/Ubuntu
+- **Deployment**: Systemd + Nginx
 
-## 🛠️ Installation
+### Frontend (`/frontend`)
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **Routing**: React Router DOM
+- **Features**: QR Code Scanning/Generation, Printable Views
+
+## 🛠️ Installation & Setup
+
+### 1. Backend Setup
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/tu-usuario/logix.git
-    cd logix
+    git clone https://github.com/FIGARO79/logix_react.git
+    cd logix_react
     ```
 
-2.  **Create a virtual environment:**
+2.  **Create virtual environment:**
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate  # Linux/Mac
@@ -32,59 +41,47 @@ Back-end API application specialized in warehouse management, inventory control,
     pip install -r requirements.txt
     ```
 
-## ⚙️ Configuration
+4.  **Configure Environment:**
+    Copy `.env.example` to `.env` and configure your database settings.
 
-The application uses environment variables for configuration.
-
-1.  **Create the `.env` file:**
-    - For **Production**: Copy `env.production.example` to `.env`
-    - For **Development**: Copy `.env.example` to `.env`
-
-2.  **Edit `.env`:**
-
-    ```ini
-    # Database Configuration (Example for Production)
-    DB_TYPE=mysql
-    DB_HOST=localhost
-    DB_NAME=logix_db
-    DB_USER=logix_user
-    DB_PASSWORD=your_secure_password
-
-    # Security
-    SECRET_KEY=your_generated_secret_key
-    UPDATE_PASSWORD=your_update_password
+5.  **Run Server:**
+    ```bash
+    uvicorn main:app --reload --host 0.0.0.0 --port 8000
     ```
 
-## 🏃‍♂️ Running the Application
+### 2. Frontend Setup
 
-### Development (Local)
-To run the server with auto-reload:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Production (VPS / Server)
-The application is designed to run behind Nginx using Systemd.
-
-1.  **Service Configuration**:
-    Use the file `vm_setup/logix.service` to configure the Systemd service. Adjust paths and user as necessary.
-
-2.  **Nginx Configuration**:
-    Use the file `vm_setup/nginx_logix` as a template for your Nginx server block.
-
-3.  **Start Services**:
+1.  **Navigate to frontend:**
     ```bash
-    sudo systemctl enable logix
-    sudo systemctl start logix
-    sudo systemctl restart nginx
+    cd frontend
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Run Development Server:**
+    ```bash
+    npm run dev
     ```
 
 ## 📂 Project Structure
 
-- `app/`: Main application source code.
-    - `core/`: Configuration and database logic.
-    - `routers/`: API endpoints logic.
-    - `models/`: Database models.
-- `vm_setup/`: Deployment configuration files (Systemd, Nginx, Guides).
-- `databases/`: Directory for CSV data imports.
-- `instance/`: Directory for SQLite database (Development).
+- `app/`: FastAPI Backend source code
+    - `core/`: Config & DB logic
+    - `routers/`: API Endpoints
+    - `models/`: Database schemas
+- `frontend/`: React Frontend application
+- `vm_setup/`: Deployment configurations (Nginx, Systemd)
+- `databases/`: CSV data imports storage
+- `instance/`: SQLite database storage (Development)
+
+## ⚙️ Configuration
+
+The application uses `.env` for backend configuration. Ensure you set `DB_TYPE`, `DB_HOST`, `SECRET_KEY`, etc., as per your environment.
+
+## 🏃‍♂️ Deployment
+
+- **Backend:** Designed to run behind Nginx using Systemd. See `vm_setup/` for service files.
+- **Frontend:** Build with `npm run build` and serve static files via Nginx.
