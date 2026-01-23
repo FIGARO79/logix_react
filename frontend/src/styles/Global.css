@@ -1,0 +1,240 @@
+/* src/styles/Global.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+
+/* ===== SAP Business One Inspired Styles ===== */
+:root {
+    --sap-primary: #0070d2;
+    --sap-primary-dark: #005fb2;
+    --sap-header-bg: #2c3e50;
+    --sap-header-text: #ffffff;
+    --sap-border: #d0d7de;
+    --sap-hover: #f3f6f9;
+    --sap-text: #32383e;
+    --sap-table-header: #4a5f7f;
+    --sap-yellow: #fbbf24;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #f5f7fa;
+    color: var(--sap-text);
+}
+
+/* Layout General */
+.container-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ===== Form Elements ===== */
+.form-label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+    color: var(--sap-text);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.data-field {
+    background-color: #f8f9fa;
+    padding: 8px 10px;
+    border-radius: 3px;
+    min-height: 38px;
+    border: 1px solid var(--sap-border);
+    color: var(--sap-text);
+    overflow-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select {
+    border: 1px solid var(--sap-border);
+    padding: 8px 10px;
+    border-radius: 3px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--sap-primary);
+    box-shadow: 0 0 0 2px rgba(0, 112, 210, 0.1);
+}
+
+/* ===== Buttons ===== */
+button,
+.btn-sap {
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    font-size: 13px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: none;
+}
+
+button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 112, 210, 0.3);
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.btn-primary {
+    background-color: var(--sap-yellow);
+    color: #1f2937;
+    border: 1px solid #f59e0b;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #f59e0b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+    background-color: #5a6c7d;
+    color: white;
+    border: 1px solid #4a5c6d;
+    text-decoration: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #4a5c6d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+select.toolbar-btn {
+    padding-right: 24px !important;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    padding: 0.1rem;
+    border-radius: 9999px;
+    color: #6b7280;
+    transition: background-color 0.2s, color 0.2s;
+    box-shadow: none;
+}
+
+.action-btn:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+    box-shadow: none;
+}
+
+/* ===== Tables ===== */
+.sap-table,
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sap-table th,
+th {
+    background: linear-gradient(180deg, var(--sap-table-header) 0%, #3d5068 100%);
+    color: var(--sap-header-text);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    position: relative;
+    border: 1px solid var(--sap-border);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1px 4px;
+    text-align: left;
+    vertical-align: middle;
+    line-height: 0.9;
+}
+
+.sap-table td,
+td {
+    border: 1px solid var(--sap-border);
+    padding: 1px 4px;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 13px;
+    line-height: 2;
+    /* Increased from 0.9 to improve readability */
+}
+
+.sap-table tbody tr:nth-child(even),
+tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+.sap-table tbody tr:hover,
+tbody tr:hover {
+    background-color: var(--sap-hover);
+}
+
+/* Sortable Headers */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 24px !important;
+}
+
+.sortable-header::after {
+    content: "↕";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    pointer-events: none;
+    font-size: 0.875rem;
+    color: #d1d5db;
+}
+
+.sortable-header.sort-asc::after {
+    content: "↑";
+    opacity: 1;
+    color: white;
+}
+
+.sortable-header.sort-desc::after {
+    content: "↓";
+    opacity: 1;
+    color: white;
+}

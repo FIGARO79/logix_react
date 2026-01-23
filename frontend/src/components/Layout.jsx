@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import '../styles/Layout.css';
 
 const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);

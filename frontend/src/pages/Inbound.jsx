@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 import Layout from '../components/Layout';
-import '../styles/Inbound.css'; // Importamos el CSS refactorizado
+import '../styles/Label.css';
+import '../styles/Inbound.css';
 
 const Inbound = () => {
     // --- Estados del Formulario ---

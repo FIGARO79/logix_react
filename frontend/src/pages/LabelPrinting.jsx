@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import Layout from '../components/Layout';
+import '../styles/Label.css';
 
 // Componente imprimible (Etiqueta real)
 const PrintableLabel = React.forwardRef(({ data }, ref) => {
