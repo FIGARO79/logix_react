@@ -56,7 +56,7 @@
     max-height: calc(100vh - 44px);
     background-color: #354a5f;
     box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
-    transform: translateX(-100%);
+    /* transform: translateX(-100%);  <-- REMOVED: Managed by React/Tailwind class now */
     transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
     overflow-y: auto;
     z-index: 999;

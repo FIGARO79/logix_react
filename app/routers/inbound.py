@@ -3,10 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, desc
 from app.core.db import get_db
 from app.utils.auth import login_required
-from app.models.sql_models import Log, StockItem  # Asumiendo que StockItem es tu tabla maestra
+from app.models.sql_models import Log
 from pydantic import BaseModel
 from typing import Optional
 import datetime
+from app.services.csv_handler import get_item_details_from_master_csv
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -33,23 +34,30 @@ async def add_log(
     db: AsyncSession = Depends(get_db),
     user: str = Depends(login_required)
 ):
-    # Buscar info del item para snapshot
-    stock = await db.scalar(select(StockItem).where(StockItem.Item_Code == data.itemCode))
+    # Buscar info del item en el CSV
+    stock = await get_item_details_from_master_csv(data.itemCode)
     if not stock:
         raise HTTPException(404, "Item no encontrado en maestro")
+
+    # Mapping keys: CSV uses Title_Case (e.g. 'Item_Description'), Log model uses camelCase or specific names
+    default_qty_grn = 0
+    if 'Default_Qty_Grn' in stock and stock['Default_Qty_Grn']:
+        try:
+            default_qty_grn = int(float(stock['Default_Qty_Grn']))
+        except:
+            default_qty_grn = 0
 
     new_log = Log(
         importReference=data.importReference,
         waybill=data.waybill,
         itemCode=data.itemCode,
-        itemDescription=stock.Item_Description,
-        binLocation=stock.Bin_1,
+        itemDescription=stock.get('Item_Description'),
+        binLocation=stock.get('Bin_1'),
         qtyReceived=data.quantity,
         relocatedBin=data.relocatedBin,
-        timestamp=datetime.datetime.now(),
-        # Calcular campos
-        qtyGrn=stock.Default_Qty_Grn if hasattr(stock, 'Default_Qty_Grn') else 0,
-        difference=data.quantity - (stock.Default_Qty_Grn if hasattr(stock, 'Default_Qty_Grn') else 0)
+        timestamp=datetime.datetime.now().isoformat(), # Use ISO format for SQLite string storage
+        qtyGrn=default_qty_grn,
+        difference=data.quantity - default_qty_grn
     )
     db.add(new_log)
     await db.commit()

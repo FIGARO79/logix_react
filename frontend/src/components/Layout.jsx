@@ -20,9 +20,10 @@ const Layout = () => {
             {/* Top Header */}
             <header className="top-header bg-[#2c3e50] text-white h-[56px] px-4 flex items-center gap-4 shadow-md sticky top-0 z-50">
                 <button
-                    className="menu-toggle p-2.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-all"
+                    className="menu-toggle p-2.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-all cursor-pointer z-[1001]"
                     onClick={toggleMenu}
                     aria-label="Abrir menú"
+                    type="button"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -35,7 +36,10 @@ const Layout = () => {
             </header>
 
             {/* Sidebar Menu (SAP Fiori Style) */}
-            <div className={`dropdown-menu fixed top-[56px] left-0 w-60 h-[calc(100vh-56px)] bg-[#354a5f] shadow-lg transform transition-transform duration-200 z-[999] overflow-y-auto ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div
+                className={`dropdown-menu ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} fixed left-0 w-60 bg-[#354a5f] shadow-lg z-[999] overflow-y-auto transform transition-transform duration-200`}
+                style={{ top: '56px', height: 'calc(100vh - 56px)' }}
+            >
                 <nav className="py-2">
                     <Link to="/" className="flex items-center gap-3 px-4 py-2 text-white hover:bg-white/10 border-l-[3px] border-transparent hover:border-[#0070d2]" onClick={toggleMenu}>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">

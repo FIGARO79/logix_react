@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
-import Layout from '../components/Layout';
 import '../styles/Label.css';
-import '../styles/Inbound.css';
 
 const Inbound = () => {
+    const { setTitle } = useOutletContext();
+    useEffect(() => { setTitle("Logix - Inbound"); }, [setTitle]);
+    // ... (rest of states)
     // --- Estados del Formulario ---
     const [importRef, setImportRef] = useState('');
     const [waybill, setWaybill] = useState('');
@@ -201,7 +203,7 @@ const Inbound = () => {
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
 
     return (
-        <Layout title="Logix - Inbound">
+        <>
             <div className="container-wrapper px-4 py-4">
                 <form onSubmit={handleSaveLog}>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
@@ -421,7 +423,7 @@ const Inbound = () => {
                     </div>
                 </div>
             )}
-        </Layout>
+        </>
     );
 };
 
