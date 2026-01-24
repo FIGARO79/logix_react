@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 
 const Planner = () => {
+    const { setTitle } = useOutletContext();
     // Estado de configuración y datos crudos
     const [config, setConfig] = useState({ start_date: '', end_date: '', holidays: [] });
     const [planDetails, setPlanDetails] = useState([]); // Lista plana de items
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({ executed: {}, delta: {} }); // Placeholder para stats reales
     const [holidaysText, setHolidaysText] = useState('');
+
+    useEffect(() => {
+        setTitle("Logix - Planeación de Conteos");
+    }, [setTitle]);
 
     // Estado calculado para el Dashboard
     const [dashboardMetrics, setDashboardMetrics] = useState({
@@ -188,187 +192,185 @@ const Planner = () => {
     );
 
     return (
-        <Layout title="Logix - Planeación de Conteos">
-            <div className="max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
+        <div className="container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
 
-                {/* 1. Parámetros Generales */}
-                <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                    <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Parámetros Generales</h2>
-                    <div className="flex flex-wrap items-end gap-6">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
-                            <input
-                                type="date"
-                                className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
-                                value={config.start_date}
-                                onChange={e => setConfig({ ...config, start_date: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
-                            <input
-                                type="date"
-                                className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
-                                value={config.end_date}
-                                onChange={e => setConfig({ ...config, end_date: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
-                            <input readOnly className="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center"
-                                value={config.holidays ? config.holidays.length : 0} />
-                        </div>
-                        <div className="ml-auto flex gap-2">
-                            <button onClick={handleSaveConfig} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar Fechas</button>
-                            <button onClick={handleUpdatePlan} disabled={loading} className="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">
-                                {loading ? 'Calculando...' : 'Actualizar Planificación'}
-                            </button>
-                            <button onClick={() => window.location.href = `http://localhost:8000/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
-                                className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">
-                                Generar Excel
-                            </button>
-                        </div>
+            {/* 1. Parámetros Generales */}
+            <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
+                <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Parámetros Generales</h2>
+                <div className="flex flex-wrap items-end gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
+                        <input
+                            type="date"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
+                            value={config.start_date}
+                            onChange={e => setConfig({ ...config, start_date: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
+                        <input
+                            type="date"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
+                            value={config.end_date}
+                            onChange={e => setConfig({ ...config, end_date: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
+                        <input readOnly className="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center"
+                            value={config.holidays ? config.holidays.length : 0} />
+                    </div>
+                    <div className="ml-auto flex gap-2">
+                        <button onClick={handleSaveConfig} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar Fechas</button>
+                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">
+                            {loading ? 'Calculando...' : 'Actualizar Planificación'}
+                        </button>
+                        <button onClick={() => window.location.href = `http://localhost:8000/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">
+                            Generar Excel
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                {/* 2. Link Ejecución */}
-                <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
-                    <div>
-                        <h2 className="text-base font-bold text-purple-800 mb-0 border-l-4 border-purple-800 pl-2">Ejecución Diaria</h2>
-                        <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
-                    </div>
-                    <Link to="/planner/execution" target="_blank" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
-                        Ir a Pantalla de Conteo
-                    </Link>
+            {/* 2. Link Ejecución */}
+            <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
+                <div>
+                    <h2 className="text-base font-bold text-purple-800 mb-0 border-l-4 border-purple-800 pl-2">Ejecución Diaria</h2>
+                    <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
+                </div>
+                <Link to="/planner/execution" target="_blank" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
+                    Ir a Pantalla de Conteo
+                </Link>
+            </div>
+
+            {/* 3. Grid Layout: Resumen y Leyenda */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* Tabla Resumen ABC */}
+                <div>
+                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Resumen Categorías (ABC)</h3>
+                    <table className="w-full border-collapse text-xs">
+                        <thead>
+                            <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-2 py-1">Categoría</th>
+                                <th className="border border-gray-400 px-2 py-1">N° Items</th>
+                                <th className="border border-gray-400 px-2 py-1">Ciclos</th>
+                                <th className="border border-gray-400 px-2 py-1">Total Req</th>
+                                <th className="border border-gray-400 px-2 py-1">Items/Día</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {['A', 'B', 'C'].map(cat => (
+                                <tr key={cat}>
+                                    <td className="border border-gray-400 px-2 py-1 font-bold text-center">{cat}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.counts[cat]}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center">{cat === 'A' ? 3 : cat === 'B' ? 2 : 1}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.req[cat]}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.daily[cat]}</td>
+                                </tr>
+                            ))}
+                            <tr className="border-t-2 border-gray-400">
+                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Días Útiles:</td>
+                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.workingDays}</td>
+                            </tr>
+                            <tr>
+                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Total Requerido:</td>
+                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.totalReq}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                {/* 3. Grid Layout: Resumen y Leyenda */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {/* Tabla Resumen ABC */}
-                    <div>
-                        <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Resumen Categorías (ABC)</h3>
-                        <table className="w-full border-collapse text-xs">
+                {/* Leyenda y Festivos */}
+                <div>
+                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Leyenda / Festivos</h3>
+                    <div className="flex gap-4">
+                        <table className="w-auto border-collapse text-xs h-fit">
                             <thead>
                                 <tr className="bg-gray-200">
-                                    <th className="border border-gray-400 px-2 py-1">Categoría</th>
-                                    <th className="border border-gray-400 px-2 py-1">N° Items</th>
-                                    <th className="border border-gray-400 px-2 py-1">Ciclos</th>
-                                    <th className="border border-gray-400 px-2 py-1">Total Req</th>
-                                    <th className="border border-gray-400 px-2 py-1">Items/Día</th>
+                                    <th className="border border-gray-400 px-2 py-1">Cód</th>
+                                    <th className="border border-gray-400 px-2 py-1">Hits</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {['A', 'B', 'C'].map(cat => (
-                                    <tr key={cat}>
-                                        <td className="border border-gray-400 px-2 py-1 font-bold text-center">{cat}</td>
-                                        <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.counts[cat]}</td>
-                                        <td className="border border-gray-400 px-2 py-1 text-center">{cat === 'A' ? 3 : cat === 'B' ? 2 : 1}</td>
-                                        <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.req[cat]}</td>
-                                        <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.daily[cat]}</td>
+                                {[
+                                    { c: 'W', h: '>30' }, { c: 'X', h: '11-30' },
+                                    { c: 'Y', h: '7-10' }, { c: 'K', h: '5-6' },
+                                    { c: 'L', h: '3-4' }, { c: 'Z', h: '1-2' }, { c: '0', h: '0' }
+                                ].map(r => (
+                                    <tr key={r.c}>
+                                        <td className="border border-gray-400 px-2 py-1 font-bold text-center">{r.c}</td>
+                                        <td className="border border-gray-400 px-2 py-1 text-left">{r.h} hits</td>
                                     </tr>
                                 ))}
-                                <tr className="border-t-2 border-gray-400">
-                                    <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Días Útiles:</td>
-                                    <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.workingDays}</td>
-                                </tr>
-                                <tr>
-                                    <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Total Requerido:</td>
-                                    <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.totalReq}</td>
-                                </tr>
                             </tbody>
                         </table>
-                    </div>
-
-                    {/* Leyenda y Festivos */}
-                    <div>
-                        <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Leyenda / Festivos</h3>
-                        <div className="flex gap-4">
-                            <table className="w-auto border-collapse text-xs h-fit">
-                                <thead>
-                                    <tr className="bg-gray-200">
-                                        <th className="border border-gray-400 px-2 py-1">Cód</th>
-                                        <th className="border border-gray-400 px-2 py-1">Hits</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[
-                                        { c: 'W', h: '>30' }, { c: 'X', h: '11-30' },
-                                        { c: 'Y', h: '7-10' }, { c: 'K', h: '5-6' },
-                                        { c: 'L', h: '3-4' }, { c: 'Z', h: '1-2' }, { c: '0', h: '0' }
-                                    ].map(r => (
-                                        <tr key={r.c}>
-                                            <td className="border border-gray-400 px-2 py-1 font-bold text-center">{r.c}</td>
-                                            <td className="border border-gray-400 px-2 py-1 text-left">{r.h} hits</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            <div className="flex-grow border border-gray-400 rounded bg-gray-50">
-                                <div className="bg-gray-200 px-2 py-1 text-xs font-bold border-b border-gray-400">Festivos (YYYY-MM-DD)</div>
-                                <textarea
-                                    className="w-full h-32 p-2 text-xs bg-transparent outline-none resize-none font-mono"
-                                    value={holidaysText}
-                                    onChange={e => setHolidaysText(e.target.value)}
-                                    placeholder="2024-01-01&#10;2024-05-01"
-                                ></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Grids Mensuales */}
-                <div className="space-y-8">
-                    {/* PLANEADO */}
-                    <div>
-                        <h3 className="text-base font-bold text-blue-800 mb-2 border-l-4 border-blue-800 pl-2">Planeado (Conteos Programados)</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs">
-                                <thead>
-                                    <tr className="bg-blue-100">
-                                        <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
-                                        {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                            <th key={m} className="border border-gray-400 px-2 py-1">{m}</th>
-                                        ))}
-                                        <th className="border border-gray-400 px-2 py-1 bg-gray-300">TOTAL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <RenderRow label="A" data={dashboardMetrics.monthlyPlanned.A} />
-                                    <RenderRow label="B" data={dashboardMetrics.monthlyPlanned.B} />
-                                    <RenderRow label="C" data={dashboardMetrics.monthlyPlanned.C} />
-                                    <RenderRow label="TOTAL" data={dashboardMetrics.monthlyPlanned.Total} isTotal={true} />
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    {/* EJECUTADO (Placeholder visual para paridad) */}
-                    <div>
-                        <h3 className="text-base font-bold text-green-800 mb-2 border-l-4 border-green-800 pl-2">Ejecutado (Real)</h3>
-                        <div className="overflow-x-auto opacity-70">
-                            <table className="w-full border-collapse text-xs">
-                                <thead>
-                                    <tr className="bg-green-100">
-                                        <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
-                                        <th colSpan="12" className="border border-gray-400 px-2 py-1 text-center">Datos Históricos</th>
-                                        <th className="border border-gray-400 px-2 py-1 bg-gray-300">W2W</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td className="border border-gray-400 px-2 py-1 font-bold">Total</td>
-                                        <td colSpan="12" className="border border-gray-400 px-2 py-1 text-center italic text-gray-500">
-                                            Sin datos de ejecución cargados (Placeholder)
-                                        </td>
-                                        <td className="border border-gray-400 px-2 py-1 text-center">0</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div className="flex-grow border border-gray-400 rounded bg-gray-50">
+                            <div className="bg-gray-200 px-2 py-1 text-xs font-bold border-b border-gray-400">Festivos (YYYY-MM-DD)</div>
+                            <textarea
+                                className="w-full h-32 p-2 text-xs bg-transparent outline-none resize-none font-mono"
+                                value={holidaysText}
+                                onChange={e => setHolidaysText(e.target.value)}
+                                placeholder="2024-01-01&#10;2024-05-01"
+                            ></textarea>
                         </div>
                     </div>
                 </div>
             </div>
-        </Layout>
+
+            {/* 4. Grids Mensuales */}
+            <div className="space-y-8">
+                {/* PLANEADO */}
+                <div>
+                    <h3 className="text-base font-bold text-blue-800 mb-2 border-l-4 border-blue-800 pl-2">Planeado (Conteos Programados)</h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                            <thead>
+                                <tr className="bg-blue-100">
+                                    <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
+                                        <th key={m} className="border border-gray-400 px-2 py-1">{m}</th>
+                                    ))}
+                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <RenderRow label="A" data={dashboardMetrics.monthlyPlanned.A} />
+                                <RenderRow label="B" data={dashboardMetrics.monthlyPlanned.B} />
+                                <RenderRow label="C" data={dashboardMetrics.monthlyPlanned.C} />
+                                <RenderRow label="TOTAL" data={dashboardMetrics.monthlyPlanned.Total} isTotal={true} />
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* EJECUTADO (Placeholder visual para paridad) */}
+                <div>
+                    <h3 className="text-base font-bold text-green-800 mb-2 border-l-4 border-green-800 pl-2">Ejecutado (Real)</h3>
+                    <div className="overflow-x-auto opacity-70">
+                        <table className="w-full border-collapse text-xs">
+                            <thead>
+                                <tr className="bg-green-100">
+                                    <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
+                                    <th colSpan="12" className="border border-gray-400 px-2 py-1 text-center">Datos Históricos</th>
+                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">W2W</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="border border-gray-400 px-2 py-1 font-bold">Total</td>
+                                    <td colSpan="12" className="border border-gray-400 px-2 py-1 text-center italic text-gray-500">
+                                        Sin datos de ejecución cargados (Placeholder)
+                                    </td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 

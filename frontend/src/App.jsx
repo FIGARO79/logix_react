@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Reconciliation from './pages/Reconciliation';
-import InventoryStock from './pages/InventoryStock';
+import StockSearch from './pages/StockSearch';
 import PickingAuditHistory from './pages/PickingAuditHistory';
 import Inbound from './pages/Inbound';
 import CycleCounts from './pages/CycleCounts';
@@ -50,7 +50,7 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="inbound" element={<Inbound />} />
                     <Route path="label" element={<LabelPrinting />} />
-                    <Route path="stock" element={<InventoryStock />} />
+                    <Route path="stock" element={<StockSearch />} />
                     <Route path="update" element={<Update />} />
                     <Route path="reconciliation" element={<Reconciliation />} />
                     <Route path="view_picking_audits" element={<PickingAuditHistory />} />

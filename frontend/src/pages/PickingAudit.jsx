@@ -1,258 +1,303 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Sound effects using Web Audio API
+const createBeep = (frequency, duration) => {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = frequency > 600 ? 'sine' : 'square';
+
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (e) {
+        console.error("Audio error", e);
+    }
+};
+
+const playSuccess = () => createBeep(800, 0.1);
+const playError = () => createBeep(200, 0.2);
 
 const PickingAudit = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
 
-    useEffect(() => { setTitle("Chequeo de Picking"); }, []);
+    // -- State --
+    // Load Section
+    const [orderNumber, setOrderNumber] = useState('');
+    const [despatchNumber, setDespatchNumber] = useState('');
+    const [loadingOrder, setLoadingOrder] = useState(false);
+    const [trackingData, setTrackingData] = useState([]);
 
-    // --- Estados ---
-    const [step, setStep] = useState('load'); // 'load' | 'audit'
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [message, setMessage] = useState(null);
-    const [trackingOrders, setTrackingOrders] = useState([]);
+    // Audit Section
+    const [auditActive, setAuditActive] = useState(false);
+    const [customerName, setCustomerName] = useState('');
+    const [orderItems, setOrderItems] = useState([]);
 
-    // Inputs Carga
-    const [orderInput, setOrderInput] = useState('');
-    const [despatchInput, setDespatchInput] = useState('');
+    // Scanning
+    const [itemCodeInput, setItemCodeInput] = useState('');
+    const [scannerOpen, setScannerOpen] = useState(false);
+    const scannerRef = useRef(null);
 
-    // Datos Auditoría
-    const [currentOrder, setCurrentOrder] = useState(null);
-    const [auditItems, setAuditItems] = useState([]);
-    const [itemInput, setItemInput] = useState('');
+    // Modals & Finalize
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showPackagesModal, setShowPackagesModal] = useState(false);
+    const [packagesCount, setPackagesCount] = useState('');
 
-    // --- Modales ---
-    const [qtyModal, setQtyModal] = useState({ open: false, index: null, value: '' });
-    const [confirmModal, setConfirmModal] = useState(false); // Modal "Confirmar con diferencias"
-    const [packagesModal, setPackagesModal] = useState({ open: false, value: '' }); // Modal "Bultos"
+    useEffect(() => {
+        setTitle("Logix - Chequeo de Picking");
+        loadTrackingData();
+    }, [setTitle]);
 
-    // --- Carga Inicial (Tracking) ---
-    useEffect(() => { fetchTracking(); }, []);
+    // -- API Calls --
 
-    const fetchTracking = async () => {
+    const loadTrackingData = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/picking/tracking');
-            if (res.ok) setTrackingOrders(await res.json());
+            const res = await fetch('/api/picking/tracking');
+            if (res.ok) {
+                setTrackingData(await res.json());
+            }
         } catch (e) { console.error(e); }
     };
 
-    // --- Lógica: Cargar Pedido ---
-    const handleLoadOrder = async (oNum, dNum) => {
-        if (!oNum || !dNum) return;
-        setLoading(true); setError(null);
-        try {
-            const res = await fetch(`http://localhost:8000/api/picking/order/${oNum}/${dNum}`);
-            if (!res.ok) throw new Error('Pedido no encontrado o error en servidor');
-
-            const data = await res.json();
-            if (data.length === 0) throw new Error('El pedido no tiene líneas');
-
-            // Agrupar items (mismo código = misma línea visual)
-            const itemsMap = {};
-            data.forEach(row => {
-                const code = row['Item Code'];
-                if (!itemsMap[code]) {
-                    itemsMap[code] = {
-                        code: code,
-                        description: row['Item Description'],
-                        qty_req: 0,
-                        qty_scan: 0,
-                        order_line: row['Order Line']
-                    };
-                }
-                itemsMap[code].qty_req += parseFloat(row['Qty']);
-            });
-
-            setAuditItems(Object.values(itemsMap));
-            setCurrentOrder({
-                orderNumber: oNum,
-                despatchNumber: dNum,
-                customerName: data[0]['Customer Name']
-            });
-            setStep('audit');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // --- Lógica: Escanear Item ---
-    const handleScan = (e) => {
-        e.preventDefault();
-        const code = itemInput.trim().toUpperCase();
-        if (!code) return;
-
-        const idx = auditItems.findIndex(i => i.code === code);
-        if (idx === -1) {
-            setError(`Item ${code} no pertenece al pedido.`);
-            // Reproducir sonido Error
-        } else {
-            // Abrir modal de cantidad para el item encontrado
-            setQtyModal({ open: true, index: idx, value: '' });
-            setError(null);
-        }
-        setItemInput('');
-    };
-
-    const submitQty = (e) => {
-        e.preventDefault();
-        const q = parseInt(qtyModal.value);
-        if (isNaN(q) || q < 0) return;
-
-        const newItems = [...auditItems];
-        const item = newItems[qtyModal.index];
-
-        // Validación opcional: No escanear más de lo requerido? (El original avisaba pero dejaba)
-        if (item.qty_scan + q > item.qty_req) {
-            if (!confirm(`Estás excediendo la cantidad requerida (${item.qty_req}). ¿Continuar?`)) return;
-        }
-
-        item.qty_scan += q;
-        setAuditItems(newItems);
-        setQtyModal({ open: false, index: null, value: '' });
-
-        // Auto check si completó
-        if (item.qty_scan === item.qty_req) setMessage(`Item ${item.code} COMPLETADO.`);
-    };
-
-    // --- Lógica: Finalizar ---
-    const requestFinalize = () => {
-        const hasDiff = auditItems.some(i => i.qty_scan !== i.qty_req);
-        if (hasDiff) {
-            setConfirmModal(true); // "Hay diferencias, ¿seguro?"
-        } else {
-            setPackagesModal({ open: true, value: '' }); // Directo a bultos
-        }
-    };
-
-    const confirmDifferences = () => {
-        setConfirmModal(false);
-        setPackagesModal({ open: true, value: '' }); // Ir a bultos tras confirmar
-    };
-
-    const submitFinalize = async (e) => {
-        e.preventDefault();
-        const packs = parseInt(packagesModal.value);
-        if (isNaN(packs) || packs < 1) {
-            alert("Ingrese al menos 1 bulto.");
+    const handleLoadOrder = async () => {
+        if (!orderNumber || !despatchNumber) {
+            toast.error("Ingrese Order y Despatch Number");
             return;
         }
-
-        setLoading(true);
-        const hasDiff = auditItems.some(i => i.qty_scan !== i.qty_req);
-        const status = hasDiff ? 'Con Diferencia' : 'Completo';
-
+        setLoadingOrder(true);
         try {
-            const res = await fetch('http://localhost:8000/api/save_picking_audit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    order_number: currentOrder.orderNumber,
-                    despatch_number: currentOrder.despatchNumber,
-                    customer_name: currentOrder.customerName,
-                    status: status,
-                    packages: packs,
-                    items: auditItems
-                })
-            });
-
-            if (!res.ok) throw new Error("Error al guardar");
-
-            alert("¡Auditoría Guardada!");
-            navigate('/view_picking_audits');
-        } catch (err) {
-            setError(err.message);
-            setPackagesModal({ ...packagesModal, open: false }); // Cerrar modal si falla
+            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`); // Matches picking.py endpoint
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    setCustomerName(data[0]['Customer Name']);
+                    // Map CSV columns to internal state
+                    const items = data.map(row => ({
+                        code: row['Item Code'],
+                        description: row['Item Description'],
+                        order_line: row['Order Line'],
+                        qty_req: parseInt(row['Qty'] || 0),
+                        qty_scan: 0,
+                        difference: 0
+                    }));
+                    setOrderItems(items);
+                    setAuditActive(true);
+                    toast.success("Pedido cargado");
+                } else {
+                    toast.error("Pedido vacio o no encontrado");
+                }
+            } else {
+                toast.error("Pedido no encontrado");
+            }
+        } catch (e) {
+            toast.error("Error de conexión");
         } finally {
-            setLoading(false);
+            setLoadingOrder(false);
         }
     };
 
-    return (
-        <div className="max-w-5xl mx-auto px-4 py-6 font-sans">
-            {step === 'load' && (
-                <div className="grid gap-6">
-                    {/* Carga */}
-                    <div className="bg-white p-6 rounded shadow border-l-4 border-blue-600">
-                        <h2 className="text-xl font-bold mb-4 text-gray-800">1. Cargar Pedido</h2>
-                        <div className="flex gap-4">
-                            <input className="border p-2 rounded w-1/2" placeholder="Order Number" value={orderInput} onChange={e => setOrderInput(e.target.value)} />
-                            <input className="border p-2 rounded w-1/2" placeholder="Despatch Number" value={despatchInput} onChange={e => setDespatchInput(e.target.value)} />
-                        </div>
-                        <button onClick={() => handleLoadOrder(orderInput, despatchInput)} disabled={loading} className="mt-4 w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">
-                            {loading ? 'Cargando...' : 'Cargar Pedido'}
-                        </button>
-                    </div>
-                    {/* Tabla Tracking */}
-                    <div className="bg-white p-6 rounded shadow">
-                        <h3 className="text-lg font-bold mb-4">Pedidos Recientes</h3>
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-100 text-gray-600 uppercase"><tr className="border-b"><th className="p-2">Order</th><th className="p-2">Despatch</th><th className="p-2">Cliente</th><th className="p-2">Acción</th></tr></thead>
-                            <tbody>
-                                {trackingOrders.map((o, i) => (
-                                    <tr key={i} className="border-b hover:bg-gray-50">
-                                        <td className="p-2">{o.order_number}</td>
-                                        <td className="p-2">{o.despatch_number}</td>
-                                        <td className="p-2">{o.customer_name}</td>
-                                        <td className="p-2"><button onClick={() => handleLoadOrder(o.order_number, o.despatch_number)} className="text-blue-600 font-bold hover:underline">Auditar</button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+    const handleReset = () => {
+        setAuditActive(false);
+        setOrderItems([]);
+        setOrderNumber('');
+        setDespatchNumber('');
+        setCustomerName('');
+        loadTrackingData();
+    };
 
-            {step === 'audit' && (
-                <div>
-                    {/* Header Pedido */}
-                    <div className="bg-white p-4 rounded shadow border-l-4 border-yellow-500 mb-6 flex justify-between">
+    // -- Audit Logic --
+
+    const handleScan = (code) => {
+        const cleanCode = code.trim().toUpperCase();
+        if (!cleanCode) return;
+
+        // Find item in list
+        const itemIndex = orderItems.findIndex(i => i.code === cleanCode);
+
+        if (itemIndex > -1) {
+            const newItems = [...orderItems];
+            const item = newItems[itemIndex];
+
+            // Increment scan
+            item.qty_scan += 1;
+            item.difference = item.qty_scan - item.qty_req;
+
+            setOrderItems(newItems);
+            setItemCodeInput('');
+
+            // Feedback
+            if (item.qty_scan <= item.qty_req) {
+                playSuccess();
+                toast.success(`Leído: ${item.code}`);
+            } else {
+                playError(); // Over-scan warning
+                toast.warning(`Exceso: ${item.code}`);
+            }
+        } else {
+            playError();
+            toast.error(`Item NO pertenece al pedido: ${cleanCode}`);
+        }
+    };
+
+    const handleFinalize = () => {
+        // Check differences
+        const hasDifferences = orderItems.some(i => i.qty_scan !== i.qty_req);
+        if (hasDifferences) {
+            setShowConfirmModal(true);
+        } else {
+            setShowPackagesModal(true);
+        }
+    };
+
+    const submitAudit = async (statusOverride) => {
+        const payload = {
+            order_number: orderNumber,
+            despatch_number: despatchNumber,
+            customer_name: customerName,
+            status: statusOverride || (orderItems.some(i => i.qty_scan !== i.qty_req) ? 'Con Diferencia' : 'Completo'),
+            items: orderItems.map(i => ({
+                code: i.code,
+                description: i.description,
+                order_line: i.order_line,
+                qty_req: i.qty_req,
+                qty_scan: i.qty_scan
+            })),
+            packages: parseInt(packagesCount || 0)
+        };
+
+        try {
+            const res = await fetch('/api/save_picking_audit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                toast.success("Auditoría Finalizada Correctamente");
+                handleReset();
+                setShowConfirmModal(false);
+                setShowPackagesModal(false);
+                setPackagesCount('');
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Error al guardar");
+            }
+        } catch (e) {
+            toast.error("Error de conexión");
+        }
+    };
+
+    // -- Scanner Effect --
+    useEffect(() => {
+        if (scannerOpen && !scannerRef.current) {
+            import('html5-qrcode').then(({ Html5Qrcode }) => {
+                const html5QrCode = new Html5Qrcode("audit-reader");
+                scannerRef.current = html5QrCode;
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: 250 },
+                    (decodedText) => {
+                        setScannerOpen(false);
+                        scannerRef.current.stop().then(() => {
+                            scannerRef.current.clear();
+                            scannerRef.current = null;
+                            handleScan(decodedText);
+                        });
+                    },
+                    () => { }
+                ).catch(err => {
+                    console.error(err);
+                    setScannerOpen(false);
+                    toast.error("Cámara no disponible");
+                });
+            });
+        }
+    }, [scannerOpen]);
+
+
+    // -- Render --
+
+    if (auditActive) {
+        return (
+            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
+                <ToastContainer position="top-right" autoClose={2000} />
+                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">{currentOrder.customerName}</h1>
-                            <p className="text-gray-600 font-mono">OD: {currentOrder.orderNumber} | DP: {currentOrder.despatchNumber}</p>
+                            <h1 className="text-2xl font-bold text-gray-800">Auditoría en Curso</h1>
+                            <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
+                            <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerName}</span></p>
                         </div>
-                        <button onClick={() => setStep('load')} className="text-gray-500 underline">Cambiar</button>
+                        <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
                     </div>
 
-                    {/* Barra Escáner */}
-                    <form onSubmit={handleScan} className="flex gap-2 mb-4">
-                        <input autoFocus className="flex-grow border-2 border-gray-300 rounded p-3 text-lg" placeholder="Escanear ITEM CODE..." value={itemInput} onChange={e => setItemInput(e.target.value)} />
-                        <button type="submit" className="bg-gray-800 text-white px-6 font-bold rounded">OK</button>
-                    </form>
+                    {/* Scan Input */}
+                    <div className="mb-6 flex gap-2">
+                        <div className="flex-grow">
+                            <label className="form-label">Item Code (Scan)</label>
+                            <input
+                                type="text"
+                                value={itemCodeInput}
+                                onChange={e => setItemCodeInput(e.target.value.toUpperCase())}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleScan(itemCodeInput);
+                                    }
+                                }}
+                                className="w-full uppercase"
+                                placeholder="Escanear o escribir..."
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex items-end gap-2">
+                            <button
+                                onClick={() => setScannerOpen(true)}
+                                className="btn-sap btn-secondary h-[38px] px-3"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
+                            </button>
+                            <button onClick={() => handleScan(itemCodeInput)} className="btn-sap btn-secondary h-[38px]">Buscar</button>
+                        </div>
+                    </div>
 
-                    {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4 font-bold">⚠️ {error}</div>}
-                    {message && <div className="bg-green-100 text-green-800 p-3 rounded mb-4 font-bold">✅ {message}</div>}
-
-                    {/* Tabla Items */}
-                    <div className="bg-white shadow rounded overflow-hidden mb-6">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                    {/* Table */}
+                    <div className="overflow-x-auto border border-gray-300 rounded mb-6">
+                        <table className="w-full text-left sap-table">
+                            <thead>
                                 <tr>
-                                    <th className="p-3 text-left">Item</th>
-                                    <th className="p-3 text-center">Línea</th>
-                                    <th className="p-3 text-center">Req</th>
-                                    <th className="p-3 text-center">Scan</th>
-                                    <th className="p-3 text-center">Dif</th>
+                                    <th>Item</th>
+                                    <th>Descripción</th>
+                                    <th className="text-center w-16">Req</th>
+                                    <th className="text-center w-16">Scan</th>
+                                    <th className="text-center w-16">Dif</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
-                                {auditItems.map((item, i) => {
-                                    const dif = item.qty_scan - item.qty_req;
-                                    const rowClass = dif === 0 && item.qty_scan > 0 ? 'bg-green-50' : dif !== 0 && item.qty_scan > 0 ? 'bg-red-50' : '';
+                            <tbody>
+                                {orderItems.map((item, idx) => {
+                                    const diff = item.qty_scan - item.qty_req;
+                                    const isComplete = item.qty_scan === item.qty_req;
+                                    const isOver = item.qty_scan > item.qty_req;
+
                                     return (
-                                        <tr key={i} className={`hover:bg-gray-50 ${rowClass}`}>
-                                            <td className="p-3">
-                                                <div className="font-bold text-gray-800">{item.code}</div>
-                                                <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
-                                            </td>
-                                            <td className="p-3 text-center text-xs font-mono text-gray-500">{item.order_line}</td>
-                                            <td className="p-3 text-center font-bold text-gray-600">{item.qty_req}</td>
-                                            <td className="p-3 text-center font-bold text-blue-600 text-lg">{item.qty_scan}</td>
-                                            <td className="p-3 text-center font-bold">
-                                                <span className={dif === 0 ? 'text-green-600' : 'text-red-600'}>{dif > 0 ? `+${dif}` : dif}</span>
+                                        <tr key={idx} className={isComplete ? 'bg-green-50' : isOver ? 'bg-red-50' : ''}>
+                                            <td className="font-medium">{item.code}</td>
+                                            <td className="text-sm truncate max-w-[200px]">{item.description}</td>
+                                            <td className="text-center">{item.qty_req}</td>
+                                            <td className="text-center font-bold">{item.qty_scan}</td>
+                                            <td className={`text-center font-bold ${diff !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                {diff > 0 ? `+${diff}` : diff}
                                             </td>
                                         </tr>
                                     );
@@ -261,54 +306,141 @@ const PickingAudit = () => {
                         </table>
                     </div>
 
-                    <button onClick={requestFinalize} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded text-xl shadow-lg transition-transform transform active:scale-95">
-                        {loading ? 'Guardando...' : 'FINALIZAR AUDITORÍA'}
+                    <button onClick={handleFinalize} className="btn-sap btn-primary w-full py-3 text-lg">
+                        Finalizar Auditoría
                     </button>
                 </div>
-            )}
 
-            {/* Modal Cantidad */}
-            {qtyModal.open && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <form onSubmit={submitQty} className="bg-white p-6 rounded-lg shadow-2xl w-80">
-                        <h3 className="font-bold text-lg mb-2 text-gray-800">{auditItems[qtyModal.index].code}</h3>
-                        <p className="text-sm text-gray-500 mb-4 truncate">{auditItems[qtyModal.index].description}</p>
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cantidad Alistada</label>
-                        <input autoFocus type="number" className="w-full border-2 border-blue-500 rounded p-2 text-2xl text-center mb-6 font-bold"
-                            value={qtyModal.value} onChange={e => setQtyModal({ ...qtyModal, value: e.target.value })} />
-                        <div className="flex justify-end gap-2">
-                            <button type="button" onClick={() => setQtyModal({ open: false, index: null, value: '' })} className="px-4 py-2 bg-gray-200 rounded font-bold text-gray-600">Cancelar</button>
-                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded font-bold">Confirmar</button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* Modal Confirmación Diferencias */}
-            {confirmModal && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-2xl w-96 border-t-4 border-yellow-500">
-                        <h3 className="font-bold text-xl mb-4 text-yellow-700">⚠️ Diferencias Detectadas</h3>
-                        <p className="text-gray-600 mb-6">Hay items faltantes o sobrantes en el picking. ¿Deseas finalizar de todos modos?</p>
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => setConfirmModal(false)} className="px-4 py-2 bg-gray-200 rounded font-bold text-gray-700">Revisar</button>
-                            <button onClick={confirmDifferences} className="px-4 py-2 bg-yellow-500 text-white rounded font-bold hover:bg-yellow-600">Sí, Finalizar con Error</button>
+                {/* Modals */}
+                {/* Scanner Modal */}
+                {scannerOpen && (
+                    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg p-4 w-full max-w-md">
+                            <h3 className="text-center font-bold mb-2">Escanear Código</h3>
+                            <div id="audit-reader" className="rounded overflow-hidden"></div>
+                            <button onClick={() => {
+                                if (scannerRef.current) scannerRef.current.stop();
+                                setScannerOpen(false);
+                            }} className="btn-sap bg-red-600 text-white w-full mt-4">Cancelar</button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Modal Bultos */}
-            {packagesModal.open && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <form onSubmit={submitFinalize} className="bg-white p-6 rounded-lg shadow-2xl w-80 border-t-4 border-green-500">
-                        <h3 className="font-bold text-lg mb-4 text-gray-800">📦 Total de Bultos</h3>
-                        <input autoFocus type="number" min="1" className="w-full border-2 border-gray-300 rounded p-2 text-3xl text-center mb-6 font-bold"
-                            value={packagesModal.value} onChange={e => setPackagesModal({ ...packagesModal, value: e.target.value })} placeholder="0" />
-                        <button type="submit" className="w-full py-3 bg-green-600 text-white rounded font-bold text-lg hover:bg-green-700">Guardar y Salir</button>
-                    </form>
+                {/* Confirmation Modal */}
+                {showConfirmModal && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                            <h3 className="text-lg font-bold text-yellow-600 mb-2">Diferencias Detectadas</h3>
+                            <p className="mb-4 text-gray-700">Hay ítems con diferencias. ¿Desea finalizar con errores?</p>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary">Cancelar</button>
+                                <button onClick={() => { setShowConfirmModal(false); setShowPackagesModal(true); }} className="btn-sap btn-primary bg-yellow-500 border-yellow-600">Sí, Continuar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Packages Modal */}
+                {showPackagesModal && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                            <h3 className="text-lg font-bold mb-2">Cantidad de Bultos</h3>
+                            <p className="mb-2 text-gray-600">Ingrese total de paquetes:</p>
+                            <input
+                                type="number"
+                                value={packagesCount}
+                                onChange={e => setPackagesCount(e.target.value)}
+                                className="mb-4 text-center text-xl"
+                                autoFocus
+                                min="0"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => setShowPackagesModal(false)} className="btn-sap btn-secondary">Cancelar</button>
+                                <button onClick={() => submitAudit()} className="btn-sap btn-success bg-green-600 border-green-700 text-white">Finalizar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Load Order View
+    return (
+        <div className="container-wrapper max-w-3xl mx-auto px-4 py-8">
+            <ToastContainer position="top-right" autoClose={3000} />
+
+            <div className="bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Cargar Pedido Picking</h1>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label className="form-label">Order Number</label>
+                        <input
+                            type="text"
+                            value={orderNumber}
+                            onChange={e => setOrderNumber(e.target.value)}
+                            placeholder="Ej: 0043785"
+                        />
+                    </div>
+                    <div>
+                        <label className="form-label">Despatch Number</label>
+                        <input
+                            type="text"
+                            value={despatchNumber}
+                            onChange={e => setDespatchNumber(e.target.value)}
+                            placeholder="Ej: 00"
+                        />
+                    </div>
                 </div>
-            )}
+
+                <button
+                    onClick={handleLoadOrder}
+                    disabled={loadingOrder}
+                    className="btn-sap btn-primary w-full py-3 mb-8 text-base shadow-sm"
+                >
+                    {loadingOrder ? 'Cargando...' : 'Comenzar Auditoría'}
+                </button>
+
+                {/* Tracking Table */}
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-gray-700">Pedidos Recientes</h3>
+                        <button onClick={loadTrackingData} className="text-blue-600 text-sm hover:underline">Actualizar</button>
+                    </div>
+                    <div className="border border-gray-200 rounded overflow-hidden max-h-60 overflow-y-auto">
+                        <table className="w-full text-left text-sm sap-table">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Despatch</th>
+                                    <th>Cliente</th>
+                                    <th>Líneas</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {trackingData.length === 0 ? (
+                                    <tr><td colSpan="5" className="text-center p-4 text-gray-500">No hay pedidos recientes</td></tr>
+                                ) : (
+                                    trackingData.map((t, idx) => (
+                                        <tr key={idx} className="cursor-pointer hover:bg-blue-50" onClick={() => {
+                                            setOrderNumber(t.order_number);
+                                            setDespatchNumber(t.despatch_number);
+                                        }}>
+                                            <td className="font-medium">{t.order_number}</td>
+                                            <td>{t.despatch_number}</td>
+                                            <td className="truncate max-w-[150px]">{t.customer_name}</td>
+                                            <td className="text-center font-bold text-blue-600">{t.total_lines}</td>
+                                            <td className="text-gray-500 text-xs">{t.print_date}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

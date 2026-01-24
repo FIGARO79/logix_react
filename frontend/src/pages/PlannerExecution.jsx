@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useOutletContext } from 'react-router-dom';
 
 const PlannerExecution = () => {
+    const { setTitle } = useOutletContext();
     const [searchParams] = useSearchParams();
     // Default to today or url param
     const today = new Date().toISOString().split('T')[0];
     const [selectedDate, setSelectedDate] = useState(searchParams.get('date') || today);
+
+    useEffect(() => { setTitle("Ejecución Diaria de Conteos"); }, [setTitle]);
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -188,8 +190,8 @@ const PlannerExecution = () => {
                                                     onClick={() => handleSubmit(index)}
                                                     disabled={submitting || item.status !== 'counted'}
                                                     className={`text-white px-3 py-1 rounded text-xs font-bold transition-colors ${item.status === 'counted'
-                                                            ? 'bg-indigo-600 hover:bg-indigo-700'
-                                                            : 'bg-gray-300 cursor-not-allowed'
+                                                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                                                        : 'bg-gray-300 cursor-not-allowed'
                                                         }`}
                                                 >
                                                     Guardar
