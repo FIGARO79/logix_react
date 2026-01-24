@@ -46,14 +46,17 @@ const Planner = () => {
                 const resPlan = await fetch('http://localhost:8000/api/planner/current_plan');
                 if (resPlan.ok) {
                     const data = await resPlan.json();
-                    // El endpoint devuelve lista plana o objeto {details: []}, ajustamos según respuesta
+                    // El endpoint devuelve objeto {details: []} usualmente si se guardó
                     const items = Array.isArray(data) ? data : (data.details || []);
                     setPlanDetails(items);
                 }
 
-                // 3. Ejecución (Stats) - Simulación o llamada real
-                // Aquí deberías llamar a un endpoint de stats si existe, o calcularlo.
-                // Por ahora lo dejamos vacío como en el template original que tenía placeholder.
+                // 3. Ejecución (Stats)
+                const resStats = await fetch('http://localhost:8000/api/planner/execution/stats');
+                if (resStats.ok) {
+                    const data = await resStats.json();
+                    setStats(data);
+                }
 
             } catch (error) {
                 console.error("Error cargando datos planner:", error);
@@ -79,9 +82,14 @@ const Planner = () => {
         };
 
         planDetails.forEach(item => {
-            const cat = item.ABC_Code || 'C'; // Ajustar key según respuesta API
-            const code = item.Item_Code;
-            const date = new Date(item.Planned_Date);
+            // FIX: Access property with keys from JSON (with spaces)
+            const cat = item["ABC Code"] || 'C'; 
+            const code = item["Item Code"];
+            const dateStr = item["Planned Date"];
+            
+            if (!dateStr) return;
+
+            const date = new Date(dateStr);
             const month = date.getMonth(); // 0-11
 
             if (uniqueItems[cat]) uniqueItems[cat].add(code);
@@ -95,7 +103,6 @@ const Planner = () => {
         };
 
         // 2. Requeridos (Regla de negocio: A=3, B=2, C=1 ciclos al año)
-        // Nota: Si el plan es generado dinámicamente, esto debería coincidir con el total de items en el plan
         const req = {
             A: counts.A * 3,
             B: counts.B * 2,
@@ -107,13 +114,11 @@ const Planner = () => {
         if (config.start_date && config.end_date) {
             const start = new Date(config.start_date);
             const end = new Date(config.end_date);
-            // Copia simple de festivos string a array fecha
             const holidayFechas = holidaysText.split('\n').filter(d => d.trim()).map(d => new Date(d).toDateString());
 
             let cur = new Date(start);
             while (cur <= end) {
                 const day = cur.getDay();
-                // Excluir fin de semana (0=Dom, 6=Sab) y festivos
                 if (day !== 0 && day !== 6 && !holidayFechas.includes(cur.toDateString())) {
                     workingDays++;
                 }
@@ -146,7 +151,7 @@ const Planner = () => {
             const res = await fetch(`http://localhost:8000/api/planner/update_plan?${query}`, { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
-                setPlanDetails(data); // Asumiendo que retorna la nueva lista
+                setPlanDetails(data.details || []); // FIX: data.details
                 alert("Planificación actualizada correctamente.");
             } else {
                 alert("Error al actualizar planificación.");
@@ -171,7 +176,7 @@ const Planner = () => {
             if (res.ok) {
                 setConfig(newConfig);
                 alert("Configuración guardada.");
-                calculateDashboard(); // Recalcular días hábiles
+                // trigger recalc via effect
             }
         } catch (e) {
             alert("Error guardando configuración.");
@@ -182,11 +187,11 @@ const Planner = () => {
     const RenderRow = ({ label, data, isTotal = false }) => (
         <tr>
             <td className={`border border-gray-400 px-2 py-1 text-left ${isTotal ? 'font-bold bg-gray-50' : 'font-bold'}`}>{label}</td>
-            {data.map((val, i) => (
+            {data && data.map((val, i) => (
                 <td key={i} className="border border-gray-400 px-2 py-1 text-center">{val}</td>
             ))}
             <td className={`border border-gray-400 px-2 py-1 text-center ${isTotal ? '' : 'font-bold bg-gray-100'}`}>
-                {data.reduce((a, b) => a + b, 0)}
+                {data ? data.reduce((a, b) => a + b, 0) : 0}
             </td>
         </tr>
     );
@@ -345,26 +350,45 @@ const Planner = () => {
                     </div>
                 </div>
 
-                {/* EJECUTADO (Placeholder visual para paridad) */}
+                {/* EJECUTADO REAL */}
                 <div>
                     <h3 className="text-base font-bold text-green-800 mb-2 border-l-4 border-green-800 pl-2">Ejecutado (Real)</h3>
-                    <div className="overflow-x-auto opacity-70">
+                    <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr className="bg-green-100">
                                     <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
-                                    <th colSpan="12" className="border border-gray-400 px-2 py-1 text-center">Datos Históricos</th>
-                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">W2W</th>
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
+                                        <th key={m} className="border border-gray-400 px-2 py-1">{m}</th>
+                                    ))}
+                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td className="border border-gray-400 px-2 py-1 font-bold">Total</td>
-                                    <td colSpan="12" className="border border-gray-400 px-2 py-1 text-center italic text-gray-500">
-                                        Sin datos de ejecución cargados (Placeholder)
-                                    </td>
-                                    <td className="border border-gray-400 px-2 py-1 text-center">0</td>
-                                </tr>
+                                {stats.executed && (
+                                    <>
+                                        <RenderRow label="A" data={stats.executed.A || Array(12).fill(0)} />
+                                        <RenderRow label="B" data={stats.executed.B || Array(12).fill(0)} />
+                                        <RenderRow label="C" data={stats.executed.C || Array(12).fill(0)} />
+                                        {/* Total Row Calculation */}
+                                        <tr>
+                                            <td className="border border-gray-400 px-2 py-1 font-bold bg-gray-50 text-left">TOTAL</td>
+                                            {Array(12).fill(0).map((_, i) => {
+                                                const sum = (stats.executed.A?.[i] || 0) + (stats.executed.B?.[i] || 0) + (stats.executed.C?.[i] || 0);
+                                                return <td key={i} className="border border-gray-400 px-2 py-1 text-center font-bold bg-gray-100">{sum}</td>
+                                            })}
+                                            <td className="border border-gray-400 px-2 py-1 text-center font-bold bg-gray-200">
+                                                 {/* Grand Total */}
+                                                 {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.executed[cat] || []).reduce((a, b) => a + b, 0), 0)}
+                                            </td>
+                                        </tr>
+                                    </>
+                                )}
+                                {!stats.executed && (
+                                    <tr>
+                                        <td colSpan="14" className="text-center py-4 italic text-gray-400">Cargando datos de ejecución...</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
