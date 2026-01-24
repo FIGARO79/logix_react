@@ -47,6 +47,7 @@ const PickingAudit = () => {
     // Scanning
     const [itemCodeInput, setItemCodeInput] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
+    const [torchOn, setTorchOn] = useState(false);
     const scannerRef = useRef(null);
 
     // Modals & Finalize
@@ -199,31 +200,56 @@ const PickingAudit = () => {
     };
 
     // -- Scanner Effect --
+    // -- Scanner Effect --
     useEffect(() => {
-        if (scannerOpen && !scannerRef.current) {
+        if (scannerOpen) {
+            let html5QrCode;
             import('html5-qrcode').then(({ Html5Qrcode }) => {
-                const html5QrCode = new Html5Qrcode("audit-reader");
+                html5QrCode = new Html5Qrcode("audit-reader");
                 scannerRef.current = html5QrCode;
+
                 html5QrCode.start(
                     { facingMode: "environment" },
                     { fps: 10, qrbox: 250 },
                     (decodedText) => {
-                        setScannerOpen(false);
-                        scannerRef.current.stop().then(() => {
-                            scannerRef.current.clear();
+                        // Success
+                        html5QrCode.stop().then(() => {
+                            html5QrCode.clear();
+                            setScannerOpen(false);
                             scannerRef.current = null;
                             handleScan(decodedText);
-                        });
+                        }).catch(console.error);
                     },
-                    () => { }
+                    (errorMessage) => {
+                        // parse error
+                    }
                 ).catch(err => {
                     console.error(err);
                     setScannerOpen(false);
                     toast.error("Cámara no disponible");
                 });
             });
+
+            return () => {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => html5QrCode.clear()).catch(console.error);
+                }
+            };
         }
     }, [scannerOpen]);
+
+    const toggleTorch = () => {
+        if (scannerRef.current) {
+            scannerRef.current.applyVideoConstraints({
+                advanced: [{ torch: !torchOn }]
+            })
+                .then(() => setTorchOn(!torchOn))
+                .catch(err => {
+                    console.error(err);
+                    toast.error("Flash no disponible");
+                });
+        }
+    };
 
 
     // -- Render --
@@ -318,6 +344,9 @@ const PickingAudit = () => {
                         <div className="bg-white rounded-lg p-4 w-full max-w-md">
                             <h3 className="text-center font-bold mb-2">Escanear Código</h3>
                             <div id="audit-reader" className="rounded overflow-hidden"></div>
+                            <button onClick={toggleTorch} className="btn-sap btn-secondary w-full mt-2">
+                                {torchOn ? 'Apagar Flash 🔦' : 'Encender Flash 🔦'}
+                            </button>
                             <button onClick={() => {
                                 if (scannerRef.current) scannerRef.current.stop();
                                 setScannerOpen(false);
