@@ -1,62 +1,16 @@
 /* src/styles/Layout.css */
 
-/* SAP Fiori Shell Bar (Header) */
-.top-header {
-    background-color: var(--sap-header-bg);
-    color: white;
-    padding: 0 1rem;
-    height: 44px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    box-shadow: 0 0.125rem 0.5rem 0 rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-}
-
-.menu-toggle {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-    transition: background-color 0.1s ease;
-}
-
-.menu-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.menu-toggle:active {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.menu-toggle svg {
-    width: 1.25rem;
-    height: 1.25rem;
-}
-
-.header-title {
-    font-size: 1rem;
-    font-weight: 400;
-    margin: 0;
-    color: #fff;
-}
+/* Note: Base header styles are in Global.css (.top-header) */
 
 /* SAP Fiori Side Navigation (Menu Desplegable) */
 .dropdown-menu {
     position: fixed;
-    top: 44px;
+    top: 48px; /* Matches Global.css header height */
     left: 0;
-    width: 15rem;
-    max-height: calc(100vh - 44px);
-    background-color: #354a5f;
+    width: 16rem;
+    max-height: calc(100vh - 48px);
+    background-color: var(--sap-shell-bg);
     box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
-    /* transform: translateX(-100%);  <-- REMOVED: Managed by React/Tailwind class now */
     transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
     overflow-y: auto;
     z-index: 999;
@@ -76,18 +30,23 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.625rem 1rem;
-    color: #fff;
+    color: var(--sap-shell-text);
     text-decoration: none;
     border-radius: 0;
     width: 100%;
 }
 
+.dropdown-menu a:hover,
+.dropdown-menu .logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .menu-overlay {
     position: fixed;
-    top: 44px;
+    top: 48px;
     left: 0;
     width: 100%;
-    height: calc(100vh - 44px);
+    height: calc(100vh - 48px);
     background-color: rgba(0, 0, 0, 0.4);
     z-index: 998;
     transition: opacity 0.2s;
@@ -105,69 +64,18 @@
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 2000;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.85);
     color: white;
     padding: 1rem;
-}
-
-/* Toast Notifications */
-#toast-container {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.toast {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    max-width: 350px;
-    opacity: 0;
-    transform: translateX(100%);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.toast.show {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.toast-icon {
-    margin-right: 0.75rem;
-    flex-shrink: 0;
-}
-
-.toast.success {
-    background-color: #dcfce7;
-    color: #166534;
-    border: 1px solid #4ade80;
-}
-
-.toast.error {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #f87171;
-}
-
-.toast.info {
-    background-color: #e0f2fe;
-    color: #0c4a6e;
-    border: 1px solid #7dd3fc;
 }
 
 /* Spinner */
 .spinner {
     border: 3px solid #f3f3f3;
-    border-top: 3px solid #3498db;
+    border-top: 3px solid var(--sap-primary);
     border-radius: 50%;
     width: 20px;
     height: 20px;
@@ -175,11 +83,6 @@
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

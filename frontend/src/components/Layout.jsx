@@ -11,7 +11,7 @@ const MenuItem = ({ to, icon, label, onClick }) => {
         <Link
             to={to}
             className={`flex items-center px-4 py-3 text-white transition-colors border-l-[4px] 
-            ${isActive ? 'bg-white/10 border-[#0070d2]' : 'hover:bg-white/10 border-transparent hover:border-[#0070d2]'}`}
+            ${isActive ? 'bg-white/10 border-[var(--sap-primary)]' : 'hover:bg-white/10 border-transparent hover:border-[var(--sap-primary)]'}`}
             onClick={onClick}
         >
             <div className="w-8 flex justify-center opacity-80">
@@ -45,7 +45,7 @@ const Layout = () => {
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#f5f7fa] text-[#1f2937] font-inter">
+        <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans">
             {/* Rotate Overlay (Mobile) */}
             <div id="rotate-overlay" className="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 text-white p-4">
                 <div className="max-w-sm text-center">
@@ -54,9 +54,9 @@ const Layout = () => {
             </div>
 
             {/* Top Header */}
-            <header className="top-header bg-[#2c3e50] text-white h-[56px] px-4 flex items-center gap-4 shadow-md sticky top-0 z-50">
+            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-md sticky top-0 z-50">
                 <button
-                    className="menu-toggle p-2.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-all cursor-pointer z-[1001]"
+                    className="menu-toggle p-2 rounded hover:bg-white/10 active:bg-white/20 transition-all cursor-pointer z-[1001]"
                     onClick={toggleMenu}
                     aria-label="Abrir menú"
                     type="button"
@@ -65,18 +65,18 @@ const Layout = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-                <h1 className="header-title text-lg font-semibold flex-grow">{title}</h1>
+                <h1 className="header-title text-lg font-bold flex-grow tracking-wide">{title}</h1>
                 <div className="header-actions flex gap-2">
-                    <Link to="/admin/login" className="text-sm font-medium px-4 py-2 hover:bg-white/15 rounded-lg transition-all">Admin</Link>
+                    <Link to="/admin/login" className="text-sm font-medium px-3 py-1 hover:bg-white/15 rounded transition-all">Admin</Link>
                 </div>
             </header>
 
             {/* Sidebar Menu (SAP Fiori Style) */}
             <div
-                className={`dropdown-menu ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} fixed left-0 w-64 bg-[#354a5f] shadow-lg z-[999] overflow-y-auto transform transition-transform duration-200 ease-in-out`}
-                style={{ top: '56px', height: 'calc(100vh - 56px)' }}
+                className={`dropdown-menu ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-xl z-[999] overflow-y-auto transform transition-transform duration-200 ease-in-out`}
+                style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
-                <nav className="py-2 space-y-1">
+                <nav className="py-2 space-y-0.5">
                     <MenuItem to="/" icon={<HomeIcon />} label="Inicio" onClick={toggleMenu} />
                     <MenuItem to="/stock" icon={<SearchIcon />} label="Consultar Stock" onClick={toggleMenu} />
                     <MenuItem to="/inbound" icon={<DownloadIcon />} label="Inbound" onClick={toggleMenu} />
@@ -93,7 +93,7 @@ const Layout = () => {
 
                     <Link
                         to="#"
-                        className="flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[#f5576c] transition-colors"
+                        className="flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
                         onClick={(e) => {
                             e.preventDefault();
                             window.location.href = '/';
@@ -109,13 +109,13 @@ const Layout = () => {
 
             {/* Overlay */}
             <div
-                className={`menu-overlay fixed top-[56px] left-0 w-full h-[calc(100vh-56px)] bg-black/40 transition-opacity z-[998] ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                className={`menu-overlay fixed top-[48px] left-0 w-full h-[calc(100vh-48px)] bg-black/40 transition-opacity z-[998] ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 onClick={toggleMenu}
             ></div>
 
             {/* Main Content */}
             <main className="main-content flex-grow overflow-y-auto overflow-x-hidden">
-                <div className="container mx-auto px-4 py-8 sm:px-6 md:px-8 lg:px-10">
+                <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 max-w-[1400px]">
                     <Outlet context={{ setTitle }} /> {/* Renders the child route (e.g. Dashboard) */}
                 </div>
             </main>
@@ -124,3 +124,4 @@ const Layout = () => {
 };
 
 export default Layout;
+

@@ -2,6 +2,7 @@
 
 /* ===== Label Container (Screen View) ===== */
 .label-container {
+    font-family: "Arial", "Helvetica", sans-serif !important; /* Force legacy font for labels */
     border: 1px solid #d1d5db;
     padding: 0.75rem;
     background-color: white;
@@ -130,6 +131,7 @@
         background: white !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        font-family: "Arial", "Helvetica", sans-serif !important;
     }
 
     /* Ocultar elementos de UI */
@@ -186,6 +188,7 @@
         display: block;
         box-sizing: border-box;
         overflow: hidden;
+        font-family: "Arial", "Helvetica", sans-serif !important;
     }
 
     .label-item-code {
