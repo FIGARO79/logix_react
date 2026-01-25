@@ -21,7 +21,6 @@ export default defineConfig({
             '/register': 'http://localhost:8000',
             '/set_password': 'http://localhost:8000',
             // Specific feature endpoints
-            '/update': 'http://localhost:8000',
             '/clear_database': 'http://localhost:8000',
             '/export_all_log': 'http://localhost:8000',
             '/get_item_for_counting': 'http://localhost:8000',

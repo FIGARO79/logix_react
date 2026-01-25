@@ -42,7 +42,7 @@ async def update_files_get(request: Request, username: str = Depends(login_requi
     })
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
-@router.post('/update', response_class=JSONResponse)
+@router.post('/api/update', response_class=JSONResponse)
 async def update_files_post(
     request: Request,
     item_master: UploadFile = File(None),

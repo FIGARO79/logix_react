@@ -76,7 +76,7 @@ const Update = () => {
         formData.append('update_option_280', updateOption);
 
         try {
-            const res = await fetch('/update', {
+            const res = await fetch('/api/update', {
                 method: 'POST',
                 body: formData
             });
