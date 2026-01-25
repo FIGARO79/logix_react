@@ -83,10 +83,10 @@ const Planner = () => {
 
         planDetails.forEach(item => {
             // FIX: Access property with keys from JSON (with spaces)
-            const cat = item["ABC Code"] || 'C'; 
+            const cat = item["ABC Code"] || 'C';
             const code = item["Item Code"];
             const dateStr = item["Planned Date"];
-            
+
             if (!dateStr) return;
 
             const date = new Date(dateStr);
@@ -186,11 +186,11 @@ const Planner = () => {
     // Helper para renderizar filas de tabla Excel
     const RenderRow = ({ label, data, isTotal = false }) => (
         <tr>
-            <td className={`border border-gray-400 px-2 py-1 text-left ${isTotal ? 'font-bold bg-gray-50' : 'font-bold'}`}>{label}</td>
+            <td className={`border border-gray-300 px-3 py-1 text-left ${isTotal ? 'font-bold bg-gray-50' : 'font-medium'}`}>{label}</td>
             {data && data.map((val, i) => (
-                <td key={i} className="border border-gray-400 px-2 py-1 text-center">{val}</td>
+                <td key={i} className="border border-gray-300 px-2 py-1 text-center">{val}</td>
             ))}
-            <td className={`border border-gray-400 px-2 py-1 text-center ${isTotal ? '' : 'font-bold bg-gray-100'}`}>
+            <td className={`border border-gray-300 px-2 py-1 text-center ${isTotal ? 'font-bold bg-gray-100' : 'font-bold bg-gray-50 text-gray-900'}`}>
                 {data ? data.reduce((a, b) => a + b, 0) : 0}
             </td>
         </tr>
@@ -287,34 +287,33 @@ const Planner = () => {
                     </table>
                 </div>
 
-                {/* Leyenda y Festivos */}
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Leyenda / Festivos</h3>
+                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Leyenda / Clasificación</h3>
                     <div className="flex gap-4">
-                        <table className="w-auto border-collapse text-xs h-fit">
+                        <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
-                                <tr className="bg-gray-200">
-                                    <th className="border border-gray-400 px-2 py-1">Cód</th>
-                                    <th className="border border-gray-400 px-2 py-1">Hits</th>
+                                <tr className="bg-[#34495e] text-white">
+                                    <th className="border border-gray-400 px-2 py-1 uppercase tracking-wider text-[10px]">Código</th>
+                                    <th className="border border-gray-400 px-2 py-1 uppercase tracking-wider text-[10px] w-32">Criterio (Hits)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {[
-                                    { c: 'W', h: '>30' }, { c: 'X', h: '11-30' },
-                                    { c: 'Y', h: '7-10' }, { c: 'K', h: '5-6' },
-                                    { c: 'L', h: '3-4' }, { c: 'Z', h: '1-2' }, { c: '0', h: '0' }
+                                    { c: 'W', h: 'More than 30 hits' }, { c: 'X', h: '11-30 hits' },
+                                    { c: 'Y', h: '7-10 hits' }, { c: 'K', h: '5-6 hits' },
+                                    { c: 'L', h: '3-4 hits' }, { c: 'Z', h: '1-2 hits' }, { c: '0', h: 'Non moving item' }
                                 ].map(r => (
                                     <tr key={r.c}>
-                                        <td className="border border-gray-400 px-2 py-1 font-bold text-center">{r.c}</td>
-                                        <td className="border border-gray-400 px-2 py-1 text-left">{r.h} hits</td>
+                                        <td className="border border-gray-300 px-2 py-0.5 font-bold text-center bg-gray-50">{r.c}</td>
+                                        <td className="border border-gray-300 px-2 py-0.5 text-left whitespace-nowrap bg-white">{r.h}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        <div className="flex-grow border border-gray-400 rounded bg-gray-50">
-                            <div className="bg-gray-200 px-2 py-1 text-xs font-bold border-b border-gray-400">Festivos (YYYY-MM-DD)</div>
+                        <div className="flex-grow border border-gray-300 rounded bg-white flex flex-col shadow-sm">
+                            <div className="bg-gray-200 px-2 py-1 text-xs font-bold border-b border-gray-300 text-center text-gray-700">Festivos (YYYY-MM-DD)</div>
                             <textarea
-                                className="w-full h-32 p-2 text-xs bg-transparent outline-none resize-none font-mono"
+                                className="w-full p-2 text-xs bg-transparent outline-none resize-none font-mono flex-grow"
                                 value={holidaysText}
                                 onChange={e => setHolidaysText(e.target.value)}
                                 placeholder="2024-01-01&#10;2024-05-01"
@@ -325,22 +324,24 @@ const Planner = () => {
             </div>
 
             {/* 4. Grids Mensuales */}
-            <div className="space-y-8">
+            <div className="space-y-6">
                 {/* PLANEADO */}
-                <div>
-                    <h3 className="text-base font-bold text-blue-800 mb-2 border-l-4 border-blue-800 pl-2">Planeado (Conteos Programados)</h3>
-                    <div className="overflow-x-auto">
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="border-l-4 border-blue-600 bg-gray-50 px-4 py-2">
+                        <h3 className="text-sm font-bold text-blue-800">Planeado (Conteos Programados)</h3>
+                    </div>
+                    <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr className="bg-blue-100">
-                                    <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
+                                <tr className="bg-gray-200 text-gray-700">
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-400 px-2 py-1">{m}</th>
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
                                     ))}
-                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">TOTAL</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="text-gray-600">
                                 <RenderRow label="A" data={dashboardMetrics.monthlyPlanned.A} />
                                 <RenderRow label="B" data={dashboardMetrics.monthlyPlanned.B} />
                                 <RenderRow label="C" data={dashboardMetrics.monthlyPlanned.C} />
@@ -351,20 +352,22 @@ const Planner = () => {
                 </div>
 
                 {/* EJECUTADO REAL */}
-                <div>
-                    <h3 className="text-base font-bold text-green-800 mb-2 border-l-4 border-green-800 pl-2">Ejecutado (Real)</h3>
-                    <div className="overflow-x-auto">
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="border-l-4 border-green-600 bg-gray-50 px-4 py-2">
+                        <h3 className="text-sm font-bold text-green-800">Ejecutado (Real)</h3>
+                    </div>
+                    <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr className="bg-green-100">
-                                    <th className="border border-gray-400 px-2 py-1 text-left min-w-[100px]">Cat / Mes</th>
+                                <tr className="bg-gray-200 text-gray-700">
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-400 px-2 py-1">{m}</th>
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
                                     ))}
-                                    <th className="border border-gray-400 px-2 py-1 bg-gray-300">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">W2W</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="text-gray-600">
                                 {stats.executed && (
                                     <>
                                         <RenderRow label="A" data={stats.executed.A || Array(12).fill(0)} />
@@ -372,14 +375,14 @@ const Planner = () => {
                                         <RenderRow label="C" data={stats.executed.C || Array(12).fill(0)} />
                                         {/* Total Row Calculation */}
                                         <tr>
-                                            <td className="border border-gray-400 px-2 py-1 font-bold bg-gray-50 text-left">TOTAL</td>
+                                            <td className="border border-gray-300 px-3 py-1 text-left font-bold bg-gray-50">TOTAL</td>
                                             {Array(12).fill(0).map((_, i) => {
                                                 const sum = (stats.executed.A?.[i] || 0) + (stats.executed.B?.[i] || 0) + (stats.executed.C?.[i] || 0);
-                                                return <td key={i} className="border border-gray-400 px-2 py-1 text-center font-bold bg-gray-100">{sum}</td>
+                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-50">{sum}</td>
                                             })}
-                                            <td className="border border-gray-400 px-2 py-1 text-center font-bold bg-gray-200">
-                                                 {/* Grand Total */}
-                                                 {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.executed[cat] || []).reduce((a, b) => a + b, 0), 0)}
+                                            <td className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-200">
+                                                {/* Grand Total */}
+                                                {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.executed[cat] || []).reduce((a, b) => a + b, 0), 0)}
                                             </td>
                                         </tr>
                                     </>
@@ -388,6 +391,47 @@ const Planner = () => {
                                     <tr>
                                         <td colSpan="14" className="text-center py-4 italic text-gray-400">Cargando datos de ejecución...</td>
                                     </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* DELTA (DIFERENCIA) */}
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="border-l-4 border-red-600 bg-gray-50 px-4 py-2">
+                        <h3 className="text-sm font-bold text-red-800">Delta (Diferencia)</h3>
+                    </div>
+                    <div className="p-0 overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                            <thead>
+                                <tr className="bg-gray-200 text-gray-700">
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
+                                    ))}
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-gray-600">
+                                {stats.delta && (
+                                    <>
+                                        <RenderRow label="A" data={stats.delta.A || Array(12).fill(0)} />
+                                        <RenderRow label="B" data={stats.delta.B || Array(12).fill(0)} />
+                                        <RenderRow label="C" data={stats.delta.C || Array(12).fill(0)} />
+                                        {/* Total Row Calculation */}
+                                        <tr>
+                                            <td className="border border-gray-300 px-3 py-1 text-left font-bold bg-gray-50">TOTAL</td>
+                                            {Array(12).fill(0).map((_, i) => {
+                                                const sum = (stats.delta.A?.[i] || 0) + (stats.delta.B?.[i] || 0) + (stats.delta.C?.[i] || 0);
+                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-50">{sum}</td>
+                                            })}
+                                            <td className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-200">
+                                                {/* Grand Total */}
+                                                {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.delta[cat] || []).reduce((a, b) => a + b, 0), 0)}
+                                            </td>
+                                        </tr>
+                                    </>
                                 )}
                             </tbody>
                         </table>
