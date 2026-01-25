@@ -60,7 +60,7 @@ function App() {
                     <Route path="view_counts" element={<ViewCounts />} />
                     <Route path="counts/manage_differences" element={<ManageCountDifferences />} />
                     <Route path="counts/edit/:id" element={<EditCount />} />
-                    <Route path="counts/history" element={<CycleCountHistory />} />
+                    <Route path="view_counts/recordings" element={<CycleCountHistory />} />
                     <Route path="planner" element={<Planner />} />
                     <Route path="planner/execution" element={<PlannerExecution />} />
                     <Route path="planner/manage_differences" element={<ManageCycleCountDifferences />} />

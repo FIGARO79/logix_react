@@ -14,7 +14,7 @@ from app.core.db import get_db
 import numpy as np
 
 from app.models.schemas import StockCount, Count
-from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel
+from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel, CycleCountRecording
 from app.services import db_counts, csv_handler
 from app.services.csv_handler import master_qty_map, get_locations_with_stock_count # Importar el mapa de memoria y helper
 from app.utils.auth import login_required
@@ -333,4 +333,63 @@ async def debug_last_counts(limit: int = 20, username: str = Depends(login_requi
     """Endpoint de diagnóstico: devuelve los últimos `limit` registros de conteos."""
     all_counts = await db_counts.load_all_counts_db_async(db)
     return JSONResponse(content=all_counts[:int(limit)])
+
+
+@router.get('/counts/recordings')
+async def get_cycle_count_recordings(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """
+    Obtiene el historial detallado de conteos cíclicos (CycleCountRecordings)
+    incluyendo valoración monetaria basada en Cost_per_Unit del maestro.
+    """
+    try:
+        result = await db.execute(
+            select(CycleCountRecording).order_by(CycleCountRecording.executed_date.desc())
+        )
+        recordings = result.scalars().all()
+        
+        enriched_data = []
+        for rec in recordings:
+            # Obtener detalles del maestro (costo)
+            details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+            cost = 0.0
+            stockroom = "N/A"
+            
+            if details:
+                stockroom = details.get('Stockroom', 'N/A')
+                try:
+                    cost_str = details.get('Cost_per_Unit', '0').replace(',', '')
+                    cost = float(cost_str)
+                except (ValueError, AttributeError):
+                    cost = 0.0
+            
+            value_diff = rec.difference * cost
+            count_value = rec.physical_qty * cost
+            
+            enriched_data.append({
+                'id': rec.id,
+                'executed_date': rec.executed_date,
+                'username': rec.username,
+                'item_code': rec.item_code,
+                'description': rec.item_description,
+                'stockroom': stockroom,
+                'item_type': details.get('Item_Type', '') if details else '',
+                'item_class': details.get('Item_Class', '') if details else '',
+                'item_group': details.get('Item_Group_Major', '') if details else '',
+                'sic_company': details.get('SIC_Code_Company', '') if details else '',
+                'sic_stockroom': details.get('SIC_Code_stockroom', '') if details else '',
+                'weight': details.get('Weight_per_Unit', '') if details else '',
+                'abc_code': rec.abc_code,
+                'bin_location': rec.bin_location,
+                'physical_qty': rec.physical_qty,
+                'system_qty': rec.system_qty,
+                'difference': rec.difference,
+                'cost': cost,
+                'value_diff': value_diff,
+                'count_value': count_value
+            })
+            
+        return JSONResponse(content=enriched_data)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error obteniendo historial: {e}")
 

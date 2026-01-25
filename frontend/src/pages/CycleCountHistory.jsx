@@ -10,8 +10,8 @@ const CycleCountHistory = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        setTitle("Historial de Conteos Cíclicos");
-    }, []);
+        setTitle("Logix - Registro de Conteos");
+    }, [setTitle]);
 
     useEffect(() => {
         const fetchRecordings = async () => {
@@ -34,6 +34,14 @@ const CycleCountHistory = () => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
     };
 
+    const handleExport = () => {
+        // Basic naive export for now, or trigger backend export if available
+        // User asked for style matching, button is there.
+        // We can reuse the view_counts export or simple window print for now as placeholder
+        // But better to implement a simple CSV export logic client side or look for existing
+        alert("Función de exportar pendiente de implementar en backend específico para historial.");
+    };
+
     const filteredRecordings = recordings.filter(rec =>
         (rec.item_code && rec.item_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (rec.description && rec.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -41,75 +49,113 @@ const CycleCountHistory = () => {
     );
 
     return (
-        <div className="max-w-8xl mx-auto px-4 py-8"> {/* Wide container for big table */}
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Historial de Conteos (Detallado)</h1>
-                <div className="flex gap-4">
+        <div className="w-full bg-gray-50 min-h-screen font-sans text-[#333]">
+            {/* Header bar similiar to screenshot */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20">
+                <div>
+                    <h1 className="text-lg font-semibold text-gray-800">Registro Histórico</h1>
+                    <p className="text-xs text-gray-500">Detalle de todas las ejecuciones de conteo cíclico</p>
+                </div>
+                <div className="flex gap-3">
                     <input
                         type="text"
                         placeholder="Buscar..."
-                        className="border p-2 rounded shadow-sm w-64"
+                        className="border border-gray-300 px-3 py-1.5 rounded text-sm w-64 focus:outline-none focus:border-blue-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <button onClick={() => navigate('/counts')} className="bg-gray-100 text-blue-600 px-4 py-2 rounded hover:bg-gray-200 border">
-                        Volver al Tablero
+                    <button
+                        onClick={handleExport}
+                        className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
+                        Exportar
+                    </button>
+                    {/* Add Back button just in case */}
+                    <button onClick={() => navigate('/counts')} className="text-gray-500 hover:text-gray-700">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
             </div>
 
-            {loading && <div className="text-center p-8">Cargando historial completo...</div>}
-            {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>}
+            <div className="p-4 overflow-x-auto">
+                {loading && <div className="text-center p-8 text-sm text-gray-500">Cargando datos...</div>}
+                {error && <div className="bg-red-100 text-red-700 p-3 rounded text-sm mb-4">{error}</div>}
 
-            {!loading && !error && (
-                <div className="bg-white shadow rounded-lg overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 text-xs">
-                        <thead>
+                {!loading && !error && (
+                    <table className="w-full text-left border-collapse bg-white shadow-sm text-[11px] leading-tight">
+                        <thead className="bg-gray-100 text-gray-600 border-b border-gray-200">
                             <tr>
-                                <th className="px-3 py-2 text-left font-bold uppercase">ID</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Fecha</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Usuario</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Item</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Desc</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Stockroom</th>
-                                <th className="px-3 py-2 text-left font-bold uppercase">Bin</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase bg-blue-50/20">Físico</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase">Sistema</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase">Dif</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase">Costo Unit.</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase">Valor Dif.</th>
-                                <th className="px-3 py-2 text-right font-bold uppercase">Valor Total</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">STOCKROOM</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">ITEM CODE</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider w-64">DESCRIPTION</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">ITEM TYPE</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">CLASS</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">GROUP</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">SIC (CO)</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">SIC (STK)</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">WEIGHT</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-center">ABC</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">BIN</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">SYS STOCK</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">COUNTED</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">DIFF</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">VALUE (DIFFERENCE)</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">ITEM COST</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">COUNT VALUE</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider text-right">DATE</th>
+                                <th className="px-2 py-3 font-bold uppercase tracking-wider">USER</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredRecordings.map(rec => (
-                                <tr key={rec.id} className="hover:bg-gray-50">
-                                    <td className="px-3 py-2 text-gray-500">{rec.id}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-gray-600">{rec.executed_date ? new Date(rec.executed_date).toLocaleString() : '-'}</td>
-                                    <td className="px-3 py-2 text-gray-600">{rec.username}</td>
-                                    <td className="px-3 py-2 font-medium text-blue-600">{rec.item_code}</td>
-                                    <td className="px-3 py-2 truncate max-w-xs text-gray-500" title={rec.description}>{rec.description}</td>
-                                    <td className="px-3 py-2 text-gray-500">{rec.stockroom}</td>
-                                    <td className="px-3 py-2 text-gray-600">{rec.bin_location}</td>
-                                    <td className="px-3 py-2 text-right font-bold bg-blue-50 border-l border-r border-blue-100">{rec.physical_qty}</td>
-                                    <td className="px-3 py-2 text-right text-gray-600">{rec.system_qty}</td>
-                                    <td className={`px-3 py-2 text-right font-bold ${rec.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                        {rec.difference > 0 ? `+${rec.difference}` : rec.difference}
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredRecordings.map((rec, idx) => (
+                                <tr key={rec.id} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                                    <td className="px-2 py-2 font-medium text-gray-900">{rec.stockroom}</td>
+                                    <td className="px-2 py-2">
+                                        <span className="text-blue-600 font-medium hover:underline cursor-pointer">{rec.item_code}</span>
                                     </td>
-                                    <td className="px-3 py-2 text-right text-gray-500">{formatMoney(rec.cost)}</td>
-                                    <td className={`px-3 py-2 text-right font-bold ${rec.value_diff !== 0 ? 'text-orange-600' : 'text-gray-400'}`}>
-                                        {formatMoney(rec.value_diff)}
+                                    <td className="px-2 py-2 truncate max-w-[200px]" title={rec.description}>{rec.description}</td>
+                                    <td className="px-2 py-2 text-gray-500">{rec.item_type}</td>
+                                    <td className="px-2 py-2 text-gray-500">{rec.item_class}</td>
+                                    <td className="px-2 py-2 text-gray-500">{rec.item_group}</td>
+                                    <td className="px-2 py-2 text-gray-500">{rec.sic_company}</td>
+                                    <td className="px-2 py-2 text-gray-500">{rec.sic_stockroom}</td>
+                                    <td className="px-2 py-2 text-right">{rec.weight}</td>
+                                    <td className="px-2 py-2 text-center">
+                                        {rec.abc_code && (
+                                            <span className={`inline-block w-5 h-5 leading-5 rounded-full text-[9px] font-bold 
+                                                ${rec.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                                    rec.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                                {rec.abc_code}
+                                            </span>
+                                        )}
                                     </td>
-                                    <td className="px-3 py-2 text-right font-semibold text-gray-800">{formatMoney(rec.count_value)}</td>
+                                    <td className="px-2 py-2 font-mono text-gray-700">{rec.bin_location}</td>
+                                    <td className="px-2 py-2 text-right font-medium text-gray-600">{rec.system_qty}</td>
+                                    <td className="px-2 py-2 text-right font-bold text-gray-900">{rec.physical_qty}</td>
+                                    <td className={`px-2 py-2 text-right font-bold ${rec.difference !== 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                                        {rec.difference}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-500">{formatMoney(rec.value_diff)}</td>
+                                    <td className="px-2 py-2 text-right text-gray-500">{formatMoney(rec.cost)}</td>
+                                    <td className="px-2 py-2 text-right text-gray-800 font-medium">{formatMoney(rec.count_value)}</td>
+                                    <td className="px-2 py-2 text-right whitespace-nowrap text-gray-500">
+                                        {rec.executed_date ? new Date(rec.executed_date).toISOString().slice(0, 10) : '-'}
+                                    </td>
+                                    <td className="px-2 py-2 text-gray-500 truncate max-w-[100px]">{rec.username}</td>
                                 </tr>
                             ))}
                             {filteredRecordings.length === 0 && (
-                                <tr><td colSpan="13" className="p-4 text-center text-gray-500">No se encontraron registros.</td></tr>
+                                <tr>
+                                    <td colSpan="19" className="px-4 py-12 text-center text-gray-400">
+                                        No se encontraron registros que coincidan con la búsqueda.
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
