@@ -22,9 +22,16 @@ h2,
 h3,
 h4,
 h5,
-h6,
-.header-title {
+h6 {
     font-family: var(--sap-font-family);
     font-weight: 500;
     /* Usually SAP headers are not super bold */
+}
+
+.header-title {
+    font-family: var(--sap-font-family);
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+    color: #fff;
 }

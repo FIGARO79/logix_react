@@ -35,11 +35,7 @@ const CycleCountHistory = () => {
     };
 
     const handleExport = () => {
-        // Basic naive export for now, or trigger backend export if available
-        // User asked for style matching, button is there.
-        // We can reuse the view_counts export or simple window print for now as placeholder
-        // But better to implement a simple CSV export logic client side or look for existing
-        alert("Función de exportar pendiente de implementar en backend específico para historial.");
+        window.location.href = '/api/counts/export_recordings';
     };
 
     const filteredRecordings = recordings.filter(rec =>

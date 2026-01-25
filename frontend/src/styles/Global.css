@@ -20,16 +20,19 @@
 /* ===== SAP Fiori Inspired Theme (Quartz Light / Belize) ===== */
 :root {
     /* Colors */
-    --sap-primary: #0a6ed1; /* Belize Blue */
+    --sap-primary: #0a6ed1;
+    /* Belize Blue */
     --sap-primary-dark: #005483;
-    --sap-accent: #eebf22; /* Gold/Yellow */
-    --sap-bg: #f7f7f7; /* Quartz Light Background */
+    --sap-accent: #eebf22;
+    /* Gold/Yellow */
+    --sap-bg: #f7f7f7;
+    /* Quartz Light Background */
     --sap-surface: #ffffff;
     --sap-text: #32363a;
     --sap-text-light: #6a6d70;
     --sap-border: #d9d9d9;
     --sap-input-border: #89919a;
-    
+
     /* Semantic Colors */
     --sap-success: #107e3e;
     --sap-warning: #e9730c;
@@ -43,7 +46,7 @@
     /* Shell / Header */
     --sap-shell-bg: #354a5f;
     --sap-shell-text: #ffffff;
-    
+
     /* Tables */
     --sap-table-header-bg: #f2f2f2;
     --sap-table-border: #e5e5e5;
@@ -51,7 +54,8 @@
 
     /* Fonts */
     --sap-font-family: '72', 'Roboto', 'Segoe UI', Arial, Helvetica, sans-serif;
-    --sap-font-size: 0.875rem; /* 14px */
+    --sap-font-size: 0.875rem;
+    /* 14px */
 }
 
 body {
@@ -68,23 +72,31 @@ body {
 /* Layout General */
 .container-wrapper {
     width: 100%;
-    max-width: 1400px; /* Matched from templates */
+    max-width: 1400px;
+    /* Matched from templates */
     margin-left: auto;
     margin-right: auto;
     padding: 1.5rem;
 }
 
 /* ===== Typography ===== */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-weight: normal;
     color: var(--sap-text);
 }
 
 /* ===== SAP Fiori Shell Bar (Header) ===== */
-.fiori-shell-bar, .top-header {
+.fiori-shell-bar,
+.top-header {
     background-color: var(--sap-shell-bg);
     color: var(--sap-shell-text);
-    height: 48px; /* Fixed height from templates */
+    height: 48px;
+    /* Fixed height from templates */
     display: flex;
     align-items: center;
     padding: 0 1rem;
@@ -95,7 +107,7 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1000;
 }
 
-.header-title, .fiori-shell-title {
+.fiori-shell-title {
     font-size: 1.125rem;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -103,14 +115,25 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--sap-shell-text);
 }
 
+.header-title {
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+    color: #fff;
+}
+
 /* ===== Cards / Tiles ===== */
-.fiori-tile, .sap-card, .bg-white.shadow {
+.fiori-tile,
+.sap-card,
+.bg-white.shadow {
     background-color: var(--sap-surface);
-    border-radius: 0.25rem; /* 4px */
+    border-radius: 0.25rem;
+    /* 4px */
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
-    border: 1px solid transparent; /* Consistent border box */
+    border: 1px solid transparent;
+    /* Consistent border box */
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -129,9 +152,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===== Forms & Inputs ===== */
-.fiori-label, .form-label {
+.fiori-label,
+.form-label {
     display: block;
-    font-size: 0.75rem; /* 12px */
+    font-size: 0.75rem;
+    /* 12px */
     color: var(--sap-text-light);
     margin-bottom: 0.25rem;
     font-weight: 600;
@@ -139,10 +164,16 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.5px;
 }
 
-.fiori-input, input[type="text"], input[type="number"], input[type="password"], input[type="email"], select {
+.fiori-input,
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select {
     width: 100%;
     border: 1px solid var(--sap-input-border);
-    padding: 0.5rem 0.75rem; /* 8px 12px */
+    padding: 0.5rem 0.75rem;
+    /* 8px 12px */
     border-radius: 0.25rem;
     background-color: transparent;
     font-family: inherit;
@@ -150,10 +181,13 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--sap-text);
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
-    height: 36px; /* Consistent height */
+    height: 36px;
+    /* Consistent height */
 }
 
-.fiori-input:focus, input:focus, select:focus {
+.fiori-input:focus,
+input:focus,
+select:focus {
     border-color: var(--sap-primary);
     box-shadow: 0 0 0 2px rgba(10, 110, 209, 0.1);
 }
@@ -165,13 +199,15 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 0;
     padding: 0.5rem 0;
 }
+
 .fiori-input-underlined:focus {
     border-bottom: 2px solid var(--sap-primary);
     box-shadow: none;
 }
 
 .data-field {
-    background-color: #f8f9fa; /* Light gray for read-only */
+    background-color: #f8f9fa;
+    /* Light gray for read-only */
     padding: 0.5rem 0.75rem;
     border-radius: 0.25rem;
     min-height: 36px;
@@ -183,12 +219,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===== Buttons ===== */
-.fiori-button, .btn-sap, button {
+.fiori-button,
+.btn-sap,
+button {
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
     padding: 0 1rem;
-    height: 36px; /* Standard button height */
+    height: 36px;
+    /* Standard button height */
     border-radius: 0.25rem;
     border: 1px solid transparent;
     cursor: pointer;
@@ -201,42 +240,55 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Primary Button */
-.fiori-button-primary, .btn-primary, .btn-sap.btn-primary {
+.fiori-button-primary,
+.btn-primary,
+.btn-sap.btn-primary {
     background-color: var(--sap-primary);
     color: white;
     border-color: var(--sap-primary);
 }
-.fiori-button-primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) {
+
+.fiori-button-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
     background-color: var(--sap-primary-dark);
     border-color: var(--sap-primary-dark);
 }
 
 /* Secondary / Ghost Button */
-.fiori-button-secondary, .btn-secondary, .btn-sap.btn-secondary {
+.fiori-button-secondary,
+.btn-secondary,
+.btn-sap.btn-secondary {
     background-color: transparent;
     color: var(--sap-primary);
     border-color: var(--sap-primary);
 }
-.fiori-button-secondary:hover:not(:disabled), .btn-secondary:hover:not(:disabled) {
+
+.fiori-button-secondary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
     background-color: rgba(10, 110, 209, 0.05);
 }
 
 /* Negative / Danger Button */
-.fiori-button-negative, .btn-danger {
+.fiori-button-negative,
+.btn-danger {
     background-color: transparent;
     color: var(--sap-error);
     border-color: var(--sap-error);
 }
-.fiori-button-negative:hover:not(:disabled), .btn-danger:hover:not(:disabled) {
+
+.fiori-button-negative:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
     background-color: rgba(187, 0, 0, 0.05);
 }
 
 /* Success Button */
-.fiori-button-success, .btn-success {
+.fiori-button-success,
+.btn-success {
     background-color: var(--sap-success);
     color: white;
     border-color: var(--sap-success);
 }
+
 .fiori-button-success:hover:not(:disabled) {
     background-color: #0d6b34;
 }
@@ -250,17 +302,23 @@ button:disabled {
 }
 
 /* ===== Tables ===== */
-.fiori-table, .sap-table, table {
+.fiori-table,
+.sap-table,
+table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
 }
 
-.fiori-table th, .sap-table th, table th {
+.fiori-table th,
+.sap-table th,
+table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%); /* Original Dark Gradient */
-    color: #ffffff; /* White text for contrast */
+    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%);
+    /* Original Dark Gradient */
+    color: #ffffff;
+    /* White text for contrast */
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -270,19 +328,25 @@ button:disabled {
     z-index: 10;
 }
 
-.fiori-table td, .sap-table td, table td {
+.fiori-table td,
+.sap-table td,
+table td {
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--sap-table-border);
     color: var(--sap-text);
     vertical-align: middle;
 }
 
-.fiori-table tr:hover, .sap-table tr:hover, table tbody tr:hover {
+.fiori-table tr:hover,
+.sap-table tr:hover,
+table tbody tr:hover {
     background-color: var(--sap-list-hover);
 }
 
 /* ===== Alerts / Message Strips ===== */
-.fiori-message-strip, .alert, .message-strip {
+.fiori-message-strip,
+.alert,
+.message-strip {
     padding: 0.75rem 1rem;
     border-radius: 0.25rem;
     margin-bottom: 1rem;
@@ -291,42 +355,61 @@ button:disabled {
     align-items: center;
     border-left: 0.25rem solid;
     background-color: var(--sap-surface);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.alert-success, .message-strip.success {
+.alert-success,
+.message-strip.success {
     border-left-color: var(--sap-success);
     background-color: #f1fdf6;
     color: #107e3e;
 }
 
-.alert-error, .message-strip.error {
+.alert-error,
+.message-strip.error {
     border-left-color: var(--sap-error);
     background-color: #fef6f6;
     color: #bb0000;
 }
 
-.alert-info, .message-strip.information {
+.alert-info,
+.message-strip.information {
     border-left-color: var(--sap-informative);
     background-color: #f0f7fe;
     color: #0a6ed1;
 }
 
-.alert-warning, .message-strip.warning {
+.alert-warning,
+.message-strip.warning {
     border-left-color: var(--sap-warning);
     background-color: #fef9f0;
     color: #e9730c;
 }
 
 /* ===== Utilities ===== */
-.text-sap-primary { color: var(--sap-primary); }
-.text-sap-text { color: var(--sap-text); }
-.text-sap-text-light { color: var(--sap-text-light); }
+.text-sap-primary {
+    color: var(--sap-primary);
+}
+
+.text-sap-text {
+    color: var(--sap-text);
+}
+
+.text-sap-text-light {
+    color: var(--sap-text-light);
+}
 
 /* Animation Utils */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-fade-in {
@@ -338,6 +421,7 @@ button:disabled {
     .container-wrapper {
         padding: 1rem;
     }
+
     .fiori-shell-bar {
         padding: 0 0.5rem;
     }

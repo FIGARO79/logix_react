@@ -403,6 +403,10 @@ const Inbound = () => {
                         <h2 className="text-base font-semibold tracking-tight">Registros de Inbound</h2>
                         <div className="flex gap-2">
                             <button onClick={() => window.location.href = '/update'} className="btn-sap btn-secondary toolbar-btn">Act. Archivos</button>
+                            <button onClick={() => window.location.href = '/api/inbound/export'} className="btn-sap btn-secondary toolbar-btn flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
+                                Exportar
+                            </button>
                             <select onChange={(e) => loadLogs(e.target.value)} className="h-8 text-black text-xs rounded border border-gray-300">
                                 <option value="">-- Versión Actual --</option>
                                 {versions.map(v => (

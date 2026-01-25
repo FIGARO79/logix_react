@@ -40,15 +40,21 @@ const LabelPrinting = () => {
         setItemData(null);
 
         try {
-            // Using generic find logic - reusing Inbound endpoint or Stock check
-            const res = await fetch(`http://localhost:8000/api/find_item/${encodeURIComponent(itemCode.toUpperCase())}/NA`);
+            const res = await fetch(`http://localhost:8000/api/get_item_details/${encodeURIComponent(itemCode.toUpperCase())}`);
             const data = await res.json();
 
             if (res.ok) {
-                setItemData(data);
+                // Map API response (snake_case) to component expectation or use directly
+                setItemData({
+                    itemCode: data.item_code,
+                    description: data.description,
+                    binLocation: data.bin_location, // Effective bin (relocated or original)
+                    aditionalBins: data.additional_bins,
+                    weight: data.weight_kg
+                });
                 toast.success("Item encontrado");
             } else {
-                toast.error(data.error || "Item no encontrado");
+                toast.error(data.detail || "Item no encontrado");
             }
         } catch (e) {
             console.error(e);
