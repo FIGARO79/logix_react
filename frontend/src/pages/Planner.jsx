@@ -333,12 +333,12 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr className="bg-gray-200 text-gray-700">
+                                <tr>
                                     <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
                                         <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -359,12 +359,12 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr className="bg-gray-200 text-gray-700">
+                                <tr>
                                     <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
                                         <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">W2W</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">W2W</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -405,12 +405,12 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr className="bg-gray-200 text-gray-700">
+                                <tr>
                                     <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
                                         <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold bg-gray-300">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">

@@ -259,8 +259,8 @@ const Inbound = () => {
                         {/* COLUMNA IZQUIERDA: FORMULARIO */}
                         <div className="lg:col-span-2 bg-white p-4 rounded shadow border border-gray-200">
                             {/* Header Form */}
-                            <div className="bg-gray-700 text-white px-3 py-2 -mx-4 -mt-4 mb-4 rounded-t">
-                                <h1 className="text-sm font-semibold uppercase tracking-wide">Inbound - Recepción</h1>
+                            <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-4 -mt-4 mb-4 rounded-t border-b border-gray-200">
+                                <h1 className="text-base font-semibold tracking-tight">Inbound - Recepción</h1>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
@@ -399,8 +399,8 @@ const Inbound = () => {
 
                 {/* TABLA DE REGISTROS */}
                 <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
-                    <div className="bg-gray-700 text-white px-4 py-2 flex justify-between items-center">
-                        <h2 className="text-sm font-semibold">Registros de Inbound</h2>
+                    <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h2 className="text-base font-semibold tracking-tight">Registros de Inbound</h2>
                         <div className="flex gap-2">
                             <button onClick={() => window.location.href = '/update'} className="btn-sap btn-secondary toolbar-btn">Act. Archivos</button>
                             <select onChange={(e) => loadLogs(e.target.value)} className="h-8 text-black text-xs rounded border border-gray-300">

@@ -146,10 +146,10 @@ const ViewCounts = () => {
                 </div>
                 <div className="overflow-x-auto max-h-[70vh]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="bg-[#f2f2f2] sticky top-0 z-10">
+                        <thead className="sticky top-0 z-10">
                             <tr>
                                 {['Etapa', 'ID Sesión', 'Usuario', 'Timestamp', 'Item Code', 'Descripción', 'Ubic. Contada', 'Cant. Sistema', 'Cant. Contada', 'Diferencia', 'Ubic. Sistema', 'Acciones'].map((h, i) => (
-                                    <th key={i} className="px-4 py-2 border-b border-[#e5e5e5] text-xs font-semibold uppercase tracking-wider text-[#32363a] whitespace-nowrap">
+                                    <th key={i} className="px-4 py-2 border-b border-[#e5e5e5] text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
                                         {h}
                                     </th>
                                 ))}

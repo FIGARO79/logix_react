@@ -139,13 +139,13 @@ const Reconciliation = () => {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full leading-normal">
-                            <thead className="bg-[#eff1f4] border-b-2 border-gray-200">
+                            <thead className="border-b-2 border-gray-200">
                                 <tr>
                                     {['GRN', 'Codigo_Item', 'Descripcion', 'Ubicacion', 'Reubicado', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
                                         <th 
                                             key={head}
                                             onClick={() => requestSort(head)}
-                                            className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition select-none whitespace-nowrap"
+                                            className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none whitespace-nowrap"
                                         >
                                             <div className="flex items-center">
                                                 {head.replace('_', ' ')}

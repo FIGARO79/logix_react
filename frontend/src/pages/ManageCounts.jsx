@@ -193,18 +193,17 @@ const ManageCounts = () => {
                     </div>
                     <span className="text-xs px-2 py-1 rounded bg-[#f2f2f2] text-[#6a6d70]">{counts.length} registros</span>
                 </div>
-                <div className="overflow-x-auto max-h-[70vh]">
-                    <table className="min-w-full text-left border-collapse">
-                        <thead className="bg-[#f2f2f2] sticky top-0 z-10">
-                            <tr>
-                                {['ID Conteo', 'ID Sesión', 'Usuario', 'Timestamp', 'Item Code', 'Descripción', 'Ubic. Contada', 'Cant. Contada', 'Acción'].map((h, i) => (
-                                    <th key={i} className="px-4 py-2 border-b border-[#e5e5e5] text-xs font-semibold uppercase tracking-wider text-[#32363a] whitespace-nowrap">
-                                        {h}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#e5e5e5]">
+                                    <div className="overflow-x-auto max-h-[70vh]">
+                                        <table className="min-w-full text-left border-collapse">
+                                            <thead className="sticky top-0 z-10">
+                                                <tr>
+                                                    {['ID Conteo', 'ID Sesión', 'Usuario', 'Timestamp', 'Item Code', 'Descripción', 'Ubic. Contada', 'Cant. Contada', 'Acción'].map((h, i) => (
+                                                        <th key={i} className="px-4 py-2 border-b border-[#e5e5e5] text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                                                            {h}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>                        <tbody className="divide-y divide-[#e5e5e5]">
                             {loading ? (
                                 <tr><td colSpan="9" className="p-8 text-center text-gray-500">Cargando...</td></tr>
                             ) : counts.length === 0 ? (

@@ -64,21 +64,21 @@ const CycleCountHistory = () => {
             {!loading && !error && (
                 <div className="bg-white shadow rounded-lg overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 text-xs">
-                        <thead className="bg-slate-50">
+                        <thead>
                             <tr>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">ID</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Fecha</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Usuario</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Item</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Desc</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Stockroom</th>
-                                <th className="px-3 py-2 text-left font-bold text-gray-600 uppercase">Bin</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase bg-blue-50">Físico</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase">Sistema</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase">Dif</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase">Costo Unit.</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase">Valor Dif.</th>
-                                <th className="px-3 py-2 text-right font-bold text-gray-600 uppercase">Valor Total</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">ID</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Fecha</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Usuario</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Item</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Desc</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Stockroom</th>
+                                <th className="px-3 py-2 text-left font-bold uppercase">Bin</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase bg-blue-50/20">Físico</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase">Sistema</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase">Dif</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase">Costo Unit.</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase">Valor Dif.</th>
+                                <th className="px-3 py-2 text-right font-bold uppercase">Valor Total</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">

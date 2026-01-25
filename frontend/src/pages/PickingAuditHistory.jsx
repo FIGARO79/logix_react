@@ -61,7 +61,7 @@ const PickingAuditHistory = () => {
                     <div className="overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="bg-gray-100 border-b border-gray-200 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                <tr className="border-b border-gray-200 text-left text-xs font-bold uppercase tracking-wider">
                                     <th className="px-5 py-3 text-center w-10"></th>
                                     <th className="px-5 py-3">ID</th>
                                     <th className="px-5 py-3">Pedido</th>

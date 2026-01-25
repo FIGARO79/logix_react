@@ -85,7 +85,7 @@ const AdminUsers = () => {
             {/* Users Tile */}
             <div className="bg-white rounded shadow-sm border border-transparent hover:shadow-md transition-shadow">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center p-6 bg-gray-50 border-b border-gray-200">
                     <h2 className="text-xl font-normal text-gray-800">Usuarios Registrados</h2>
                     <span className="text-sm text-gray-500">{users.length} Usuarios</span>
                 </div>
@@ -93,7 +93,7 @@ const AdminUsers = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-transparent text-gray-500 uppercase font-normal text-xs border-b border-gray-200">
+                        <thead className="uppercase font-normal text-xs border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-3 text-center w-16">ID</th>
                                 <th className="px-6 py-3 font-normal">Usuario</th>

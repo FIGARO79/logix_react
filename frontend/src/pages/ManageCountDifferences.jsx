@@ -176,7 +176,7 @@ const ManageCountDifferences = () => {
                 <div className="bg-white rounded shadow overflow-hidden border border-gray-200">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 text-gray-600 uppercase font-semibold border-b">
+                            <thead className="uppercase font-semibold border-b">
                                 <tr>
                                     <th className="p-3 w-20">Acciones</th>
                                     <th className="p-3">Item Code</th>

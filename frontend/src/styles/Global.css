@@ -259,14 +259,15 @@ button:disabled {
 .fiori-table th, .sap-table th, table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    background-color: var(--sap-table-header-bg); /* #f2f2f2 */
-    color: var(--sap-text-light);
-    font-weight: 600; /* Semibold */
-    font-size: 0.75rem; /* 12px */
+    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%); /* Original Dark Gradient */
+    color: #ffffff; /* White text for contrast */
+    font-weight: 600;
+    font-size: 0.75rem;
     text-transform: uppercase;
     border-bottom: 1px solid var(--sap-table-border);
     position: sticky;
     top: 0;
+    z-index: 10;
 }
 
 .fiori-table td, .sap-table td, table td {
@@ -277,7 +278,7 @@ button:disabled {
 }
 
 .fiori-table tr:hover, .sap-table tr:hover, table tbody tr:hover {
-    background-color: var(--sap-list-hover); /* #f5f5f5 */
+    background-color: var(--sap-list-hover);
 }
 
 /* ===== Alerts / Message Strips ===== */

@@ -237,15 +237,15 @@ const PlannerExecution = () => {
             ) : (
                 <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ABC</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sistema</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Físico</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dif</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Item</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Ubicación</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ABC</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Sistema</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider w-32">Físico</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Dif</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Acción</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">

@@ -118,7 +118,7 @@ const ManageCycleCountDifferences = () => {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-xs border-b">
+                            <thead className="font-semibold uppercase text-xs border-b">
                                 <tr>
                                     <th className="px-4 py-3">Fecha</th>
                                     <th className="px-4 py-3">Item</th>
