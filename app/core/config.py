@@ -55,7 +55,7 @@ COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_De
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Cargar desde variables de entorno (OBLIGATORIAS)
 SECRET_KEY = os.getenv('SECRET_KEY')
-UPDATE_PASSWORD = os.getenv('UPDATE_PASSWORD')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
 # Validar que las variables críticas estén configuradas
 if not SECRET_KEY:
@@ -65,8 +65,8 @@ if not SECRET_KEY:
         "   y agrégala a tu archivo .env"
     )
 
-if not UPDATE_PASSWORD:
+if not ADMIN_PASSWORD:
     raise ValueError(
-        "❌ ERROR: La variable de entorno 'UPDATE_PASSWORD' es obligatoria.\n"
+        "❌ ERROR: La variable de entorno 'ADMIN_PASSWORD' es obligatoria.\n"
         "   Define una contraseña segura en tu archivo .env"
     )

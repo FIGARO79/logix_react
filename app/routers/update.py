@@ -18,7 +18,7 @@ from app.core.config import (
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
     GRN_COLUMN_NAME_IN_CSV,
-    UPDATE_PASSWORD
+    ADMIN_PASSWORD
 )
 from app.services.csv_handler import load_csv_data
 from app.utils.auth import login_required
@@ -164,7 +164,7 @@ async def preview_grn_file(file: UploadFile = File(...)):
 @router.post('/api/clear_database')
 async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Limpia la base de datos de logs (Zona de Peligro)."""
-    if password != UPDATE_PASSWORD:
+    if password != ADMIN_PASSWORD:
         return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     
     try:
@@ -179,7 +179,7 @@ async def clear_database(request: Request, password: str = Form(...), db: AsyncS
     # La URL de redirección debe ser construida correctamente
     redirect_url = request.url_for('update_files_get')
 
-    if password != UPDATE_PASSWORD:
+    if password != ADMIN_PASSWORD:
         query_params = urlencode({'error': 'Contraseña incorrecta'})
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
     
@@ -199,7 +199,7 @@ async def clear_database(request: Request, password: str = Form(...), db: AsyncS
 @router.post('/api/export_all_log')
 async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Exporta TODOS los registros (activos y archivados)."""
-    if password != UPDATE_PASSWORD:
+    if password != ADMIN_PASSWORD:
          return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
 
     try:
@@ -266,7 +266,7 @@ async def export_all_log(request: Request, password: str = Form(...), db: AsyncS
     """Exporta TODOS los registros (activos y archivados) a Excel como backup."""
     redirect_url = request.url_for('update_files_get')
 
-    if password != UPDATE_PASSWORD:
+    if password != ADMIN_PASSWORD:
         query_params = urlencode({'error': 'Contraseña incorrecta'})
         return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
 

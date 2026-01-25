@@ -31,7 +31,7 @@ const Layout = () => {
                 </button>
                 <h1 className="header-title text-lg font-semibold flex-grow">{title}</h1>
                 <div className="header-actions flex gap-2">
-                    <Link to="/admin" className="text-sm font-medium px-4 py-2 hover:bg-white/15 rounded-lg transition-all">Admin</Link>
+                    <Link to="/admin/login" className="text-sm font-medium px-4 py-2 hover:bg-white/15 rounded-lg transition-all">Admin</Link>
                 </div>
             </header>
 

@@ -16,6 +16,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminUsers from './pages/AdminUsers';
 import AdminInventory from './pages/AdminInventory';
 import ManageCounts from './pages/ManageCounts';
+import ViewCounts from './pages/ViewCounts';
 import EditCount from './pages/EditCount';
 import InboundHistory from './pages/InboundHistory';
 import Update from './pages/Update';
@@ -35,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
     return (
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -56,6 +57,7 @@ function App() {
                     <Route path="view_picking_audits" element={<PickingAuditHistory />} />
                     <Route path="counts" element={<CycleCounts />} />
                     <Route path="counts/manage" element={<ManageCounts />} />
+                    <Route path="view_counts" element={<ViewCounts />} />
                     <Route path="counts/manage_differences" element={<ManageCountDifferences />} />
                     <Route path="counts/edit/:id" element={<EditCount />} />
                     <Route path="counts/history" element={<CycleCountHistory />} />
