@@ -91,15 +91,19 @@ const Layout = () => {
                     <MenuItem to="/planner" icon={<ChartIcon />} label="Planificador" onClick={toggleMenu} />
                     <MenuItem to="/view_counts/recordings" icon={<ReportIcon />} label="Reporte Conteos" onClick={toggleMenu} />
 
-                    <button
-                        className="w-full flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[#f5576c] transition-colors"
-                        onClick={() => { window.location.href = '/'; }}
+                    <Link
+                        to="#"
+                        className="flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[#f5576c] transition-colors"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = '/';
+                        }}
                     >
                         <div className="w-8 flex justify-center opacity-80">
                             <LogoutIcon />
                         </div>
                         <span className="text-sm font-medium tracking-wide ml-2">Cerrar Sesión</span>
-                    </button>
+                    </Link>
                 </nav>
             </div>
 
