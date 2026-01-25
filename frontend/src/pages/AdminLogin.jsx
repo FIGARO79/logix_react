@@ -16,7 +16,7 @@ const AdminLogin = () => {
             });
 
             if (res.ok) {
-                navigate('/admin/inventory');
+                navigate('/admin/users');
             } else {
                 setError('Contraseña incorrecta');
             }
