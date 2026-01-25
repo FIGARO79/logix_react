@@ -65,7 +65,7 @@ const Layout = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-                <h1 className="header-title text-lg font-bold flex-grow tracking-wide">{title}</h1>
+                <h1 className="header-title flex-grow tracking-wide">{title}</h1>
                 <div className="header-actions flex gap-2">
                     <Link to="/admin/login" className="text-sm font-medium px-3 py-1 hover:bg-white/15 rounded transition-all">Admin</Link>
                 </div>

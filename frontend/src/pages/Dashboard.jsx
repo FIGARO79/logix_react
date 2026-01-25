@@ -81,12 +81,12 @@ const Dashboard = () => {
                 </p>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl w-full">
                 {menuItems.map((item) => (
                     <Link
                         key={item.id}
                         to={item.href}
-                        className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center py-12 px-8 text-center group h-64"
+                        className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center py-4 px-4 text-center group h-48"
                     >
                         <div className="text-[#0070d2] mb-6 transition-transform duration-300 group-hover:scale-110">
                             {item.icon}
