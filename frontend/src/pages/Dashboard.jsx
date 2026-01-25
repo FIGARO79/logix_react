@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-    InboundIcon, StockIcon, LabelIcon, PickingIcon,
-    CycleIcon, CalculatorIcon, ViewCountsIcon, ViewPickingIcon,
-    UpdateIcon, CountsIcon
+    DownloadIcon, SearchIcon, TagIcon, CartIcon,
+    HomeIcon, ChecklistIcon, CalculatorIcon, CheckCircleIcon,
+    ChartIcon, ReportIcon, UploadIcon, DocumentIcon
 } from '../components/Icons';
 
 const menuItems = [
@@ -11,31 +11,31 @@ const menuItems = [
         id: 'inbound',
         href: '/inbound',
         text: 'Inbound',
-        icon: <InboundIcon className="w-12 h-12" />
+        icon: <DownloadIcon className="w-12 h-12" />
     },
     {
         id: 'stock',
         href: '/stock',
         text: 'Consultar Stock',
-        icon: <StockIcon className="w-12 h-12" />
+        icon: <SearchIcon className="w-12 h-12" />
     },
     {
         id: 'label',
         href: '/label',
         text: 'Etiquetado',
-        icon: <LabelIcon className="w-12 h-12" />
+        icon: <TagIcon className="w-12 h-12" />
     },
     {
         id: 'picking',
         href: '/picking',
         text: 'Auditoria Picking',
-        icon: <PickingIcon className="w-12 h-12" />
+        icon: <CartIcon className="w-12 h-12" />
     },
     {
         id: 'ciclicos',
         href: '/planner',
         text: 'Cíclicos',
-        icon: <CycleIcon className="w-12 h-12" />
+        icon: <HomeIcon className="w-12 h-12" />
     },
     {
         id: 'diff_cycles',
@@ -47,25 +47,25 @@ const menuItems = [
         id: 'view_counts',
         href: '/view_counts',
         text: 'Validar Conteos',
-        icon: <ViewCountsIcon className="w-12 h-12" />
+        icon: <ChecklistIcon className="w-12 h-12" />
     },
     {
         id: 'view_picking_audits',
         href: '/view_picking_audits',
         text: 'Ver Auditorías Picking',
-        icon: <ViewPickingIcon className="w-12 h-12 text-[#0070d2]" />
+        icon: <ChartIcon className="w-12 h-12" />
     },
     {
         id: 'update',
         href: '/update',
         text: 'Actualizar Ficheros',
-        icon: <UpdateIcon className="w-12 h-12" />
+        icon: <UploadIcon className="w-12 h-12" />
     },
     {
         id: 'counts',
         href: '/counts',
         text: 'Conteos',
-        icon: <CountsIcon className="w-12 h-12" />
+        icon: <DocumentIcon className="w-12 h-12" />
     }
 ];
 
