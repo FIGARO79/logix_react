@@ -19,6 +19,53 @@ const Update = () => {
     const [clearPassword, setClearPassword] = useState('');
     const [backupPassword, setBackupPassword] = useState('');
 
+    // GRN Selection State
+    const [availableGrns, setAvailableGrns] = useState([]);
+    const [selectedGrns, setSelectedGrns] = useState([]);
+    const [isPreviewing, setIsPreviewing] = useState(false);
+
+    // Effect to preview GRNs when files change
+    useEffect(() => {
+        const grnFile = files.find(f => {
+            const name = f.name.toLowerCase();
+            return name.includes('280') || name.includes('pedido') || name.includes('reporte');
+        });
+
+        if (grnFile) {
+            if (availableGrns.length === 0 && !isPreviewing) {
+                fetchPreviewGrns(grnFile);
+            }
+        } else {
+            // Reset if no GRN file
+            setAvailableGrns([]);
+            setSelectedGrns([]);
+        }
+    }, [files]);
+
+    const fetchPreviewGrns = async (file) => {
+        setIsPreviewing(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('/api/preview_grn_file', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok && data.grns) {
+                setAvailableGrns(data.grns);
+                setSelectedGrns(data.grns); // Default select all
+            }
+        } catch (err) {
+            console.error("Error previewing GRNs:", err);
+            setMessages({ success: '', error: "Error al leer las GRNs del archivo." });
+        } finally {
+            setIsPreviewing(false);
+        }
+    };
+
     // Drag Handlers
     const handleDrag = (e) => {
         e.preventDefault();
@@ -75,6 +122,11 @@ const Update = () => {
 
         formData.append('update_option_280', updateOption);
 
+        // Append selected GRNs if applicable
+        if (availableGrns.length > 0) {
+            formData.append('selected_grns_280', JSON.stringify(selectedGrns));
+        }
+
         try {
             const res = await fetch('/api/update', {
                 method: 'POST',
@@ -84,7 +136,9 @@ const Update = () => {
 
             if (res.ok) {
                 setMessages({ success: data.message, error: '' });
-                setFiles([]); // Clear files after success
+                setFiles([]);
+                setAvailableGrns([]);
+                setSelectedGrns([]);
             } else {
                 setMessages({ success: '', error: data.error || "Error uploading files" });
             }
@@ -224,20 +278,54 @@ const Update = () => {
                             </div>
                         )}
 
-                        {/* Update Options */}
-                        <div className="mb-6 flex gap-6 items-center bg-gray-50 p-3 rounded border border-gray-200">
-                            <span className="text-sm font-bold text-gray-700">Opciones de carga:</span>
-                            <div className="flex gap-4">
-                                <label className="inline-flex items-center cursor-pointer">
-                                    <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
-                                    <span className="ml-2 text-sm text-gray-700">Combinar (Agregar nuevas)</span>
-                                </label>
-                                <label className="inline-flex items-center cursor-pointer">
-                                    <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
-                                    <span className="ml-2 text-sm text-gray-700">Reemplazar Todo</span>
-                                </label>
+                        {/* Update Options (Only visible if GRN file present) */}
+                        {availableGrns.length > 0 && (
+                            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <p className="font-medium text-gray-700 mb-3">Opción de actualización para el archivo 280:</p>
+                                <div className="flex items-center gap-6 mb-4">
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
+                                        <span className="ml-2 text-sm text-gray-700">Combinar (Agregar nuevas)</span>
+                                    </label>
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
+                                        <span className="ml-2 text-sm text-gray-700">Reemplazar Todo</span>
+                                    </label>
+                                </div>
+
+                                <div className="border-t border-gray-200 pt-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <p className="font-medium text-gray-700 text-sm">Seleccionar GRNs a importar:</p>
+                                        <div className="text-xs">
+                                            <button type="button" onClick={() => setSelectedGrns([...availableGrns])} className="text-blue-600 hover:underline mr-2">Seleccionar Todas</button>
+                                            <span className="text-gray-300">|</span>
+                                            <button type="button" onClick={() => setSelectedGrns([])} className="text-blue-600 hover:underline ml-2">Deseleccionar Todas</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="max-h-48 overflow-y-auto bg-white p-3 rounded border border-gray-200 grid grid-cols-2 gap-2">
+                                        {availableGrns.map(grn => (
+                                            <div key={grn} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`grn-${grn}`}
+                                                    checked={selectedGrns.includes(grn)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedGrns(prev => [...prev, grn]);
+                                                        else setSelectedGrns(prev => prev.filter(g => g !== grn));
+                                                    }}
+                                                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                />
+                                                <label htmlFor={`grn-${grn}`} className="ml-2 text-xs text-gray-700 truncate cursor-pointer" title={grn}>
+                                                    {grn}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">Solo se importarán las filas correspondientes a las GRNs marcadas.</p>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <button disabled={isLoading || files.length === 0} type="submit" className="w-full bg-[#1e73be] hover:bg-blue-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 shadow-sm">
                             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
