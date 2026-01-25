@@ -23,6 +23,7 @@ const Update = () => {
     const [availableGrns, setAvailableGrns] = useState([]);
     const [selectedGrns, setSelectedGrns] = useState([]);
     const [isPreviewing, setIsPreviewing] = useState(false);
+    const [previewedFile, setPreviewedFile] = useState(null);
 
     // Effect to preview GRNs when files change
     useEffect(() => {
@@ -32,18 +33,21 @@ const Update = () => {
         });
 
         if (grnFile) {
-            if (availableGrns.length === 0 && !isPreviewing) {
+            if (grnFile !== previewedFile && !isPreviewing) {
                 fetchPreviewGrns(grnFile);
             }
         } else {
             // Reset if no GRN file
             setAvailableGrns([]);
             setSelectedGrns([]);
+            setPreviewedFile(null);
         }
-    }, [files]);
+    }, [files, previewedFile, isPreviewing]);
 
     const fetchPreviewGrns = async (file) => {
         setIsPreviewing(true);
+        setPreviewedFile(file);
+
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -61,6 +65,7 @@ const Update = () => {
         } catch (err) {
             console.error("Error previewing GRNs:", err);
             setMessages({ success: '', error: "Error al leer las GRNs del archivo." });
+            setPreviewedFile(null);
         } finally {
             setIsPreviewing(false);
         }
