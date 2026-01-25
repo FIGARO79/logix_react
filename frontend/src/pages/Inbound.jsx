@@ -78,8 +78,7 @@ const Inbound = () => {
             const data = await res.json();
             if (res.ok) {
                 setItemData(data);
-                // Si estamos editando, mantenemos la cantidad del log, si no, vacía o 1
-                if (!editId && quantity === '') setQuantity('1');
+                if (!editId) setQuantity('');
                 quantityRef.current?.focus();
             } else {
                 alert(data.error || "Item no encontrado");
@@ -238,7 +237,7 @@ const Inbound = () => {
                     setItemData(null);
                 } else {
                     setItemData(data);
-                    if (!editId && quantity === '') setQuantity('1');
+                    if (!editId) setQuantity('');
                     quantityRef.current?.focus();
                 }
             })

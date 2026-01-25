@@ -1,4 +1,8 @@
-# 📚 Documentación de Infraestructura y Configuración del Servidor
+# ⚠️ ARCHIVO DEPRECADO / LEGACY
+> **ADVERTENCIA**: Este documento describe la arquitectura monolítica antigua (FastAPI + Jinja2). El proyecto ha migrado a una arquitectura **Headless** (React + FastAPI JSON API).
+> Para información actualizada, consultar `README.md` y `Architecture_Review_and_Comparison.md`.
+
+# 📚 Documentación de Infraestructura y Configuración del Servidor (LEGACY)
 
 Este documento detalla la arquitectura, configuración y mantenimiento del servidor para la aplicación **Logix_ApiRouter**.
 

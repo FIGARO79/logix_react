@@ -68,8 +68,9 @@ server {
     }
 
     # Proxy para endpoints de Auth y otros que no empiezan por /api (si no los moviste todos)
-    location /login { proxy_pass http://127.0.0.1:8000; }
-    location /logout { proxy_pass http://127.0.0.1:8000; }
+    # location /login ... ELIMINADO: React Router maneja /login
+    location /docs { proxy_pass http://127.0.0.1:8000; }
+    location /openapi.json { proxy_pass http://127.0.0.1:8000; }
     location /static { proxy_pass http://127.0.0.1:8000; } # Si el backend sirve estáticos propios
 }
 ```

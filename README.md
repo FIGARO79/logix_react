@@ -1,6 +1,8 @@
 # Logix WMS (Warehouse Management System)
 
-A comprehensive Warehouse Management System featuring a high-performance FastAPI backend and a modern React frontend. Specialized in inventory control, logistics operations, and stock management.
+A comprehensive Warehouse Management System featuring a high-performance **Headless FastAPI backend** and a modern **React SPA frontend**. Specialized in inventory control, logistics operations, and stock management.
+
+> **Architecture Note**: This project uses a decoupled architecture. The Backend serves a JSON API (no HTML rendering), and the Frontend is a single-page application built with React/Vite.
 
 ## 🚀 Technology Stack
 
