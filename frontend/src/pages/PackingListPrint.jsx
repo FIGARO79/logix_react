@@ -35,7 +35,10 @@ const PackingListPrint = () => {
             <style>{`
                 @media print {
                     @page { margin: 1cm; size: A4; }
-                    body { -webkit-print-color-adjust: exact; }
+                    body { 
+                        -webkit-print-color-adjust: exact; 
+                        font-family: Arial, Helvetica, sans-serif !important;
+                    }
                     .no-print { display: none !important; }
                     .page-break { page-break-inside: avoid; margin-bottom: 2rem; }
                 }

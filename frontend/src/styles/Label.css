@@ -2,7 +2,8 @@
 
 /* ===== Label Container (Screen View) ===== */
 .label-container {
-    font-family: "Arial", "Helvetica", sans-serif !important; /* Force legacy font for labels */
+    font-family: "Arial", "Helvetica", sans-serif !important;
+    /* Force legacy font for labels */
     border: 1px solid #d1d5db;
     padding: 0.75rem;
     background-color: white;
@@ -171,6 +172,8 @@
         align-items: center;
         justify-content: center;
         background: white !important;
+        /* Force print font as per requirements */
+        font-family: Arial, Helvetica, sans-serif !important;
     }
 
     .label-container {
