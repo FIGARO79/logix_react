@@ -3,16 +3,16 @@ Description=Gunicorn Logix
 After=network.target
 
 [Service]
-# IMPORTANTE: Cambia 'ubuntu' por tu usuario real (ej. 'admin' o 'root')
-User=admin
+# IMPORTANTE: Cambia 'tu_usuario' por el usuario linux real (ej. 'ubuntu', 'root', 'fabio')
+User=tu_usuario
 Group=www-data
 WorkingDirectory=/var/www/logix
-Environment="PATH=/var/www/logix/venv/bin"
-Environment="DB_TYPE=mysql"
-Environment="DB_HOST=localhost"
-Environment="DB_User=logix_user"
-Environment="DB_Password=TuPasswordSeguro"
-Environment="DB_Name=logix_db"
+
+# Cargar variables de entorno desde archivo .env
+EnvironmentFile=/var/www/logix/.env
+
+# Variables extra si son necesarias (PATH suele requerirse explícitamente)
+Environment="PATH=/var/www/logix/venv/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/var/www/logix/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000
 
 [Install]
