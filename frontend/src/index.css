@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+    --sap-font-family: 'Roboto', sans-serif;
+    --sap-primary: #354a5f;
+    --sap-shell-bg: #354a5f;
+    --sap-bg: #f5f7fa;
+    --sap-text: #32363a;
+}
+
+body {
+    font-family: var(--sap-font-family);
+    color: var(--sap-text);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.header-title {
+    font-family: var(--sap-font-family);
+    font-weight: 500;
+    /* Usually SAP headers are not super bold */
+}

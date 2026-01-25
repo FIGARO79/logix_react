@@ -51,7 +51,7 @@ const CycleCountHistory = () => {
     return (
         <div className="w-full bg-gray-50 min-h-screen font-sans text-[#333]">
             {/* Header bar similiar to screenshot */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20">
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-[48px] z-20">
                 <div>
                     <h1 className="text-lg font-semibold text-gray-800">Registro Histórico</h1>
                     <p className="text-xs text-gray-500">Detalle de todas las ejecuciones de conteo cíclico</p>
