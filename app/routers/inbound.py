@@ -8,6 +8,11 @@ from pydantic import BaseModel
 from typing import Optional
 import datetime
 from app.services.csv_handler import get_item_details_from_master_csv
+import pandas as pd
+from io import BytesIO
+import openpyxl
+from openpyxl.utils import get_column_letter
+from fastapi.responses import Response
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -100,3 +105,59 @@ async def archive_logs(db: AsyncSession = Depends(get_db)):
 async def get_versions(db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(Log.archived_at).distinct().where(Log.archived_at != None).order_by(desc(Log.archived_at)))
     return res.scalars().all()
+
+
+# 5. Exportar Logs (Excel)
+@router.get("/export")
+async def export_logs(
+    version: Optional[str] = None, 
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(login_required)
+):
+    query = select(Log)
+    
+    if version:
+        query = query.where(Log.archived_at == version)
+    else:
+        # Default: logs activos (no archivados)
+        query = query.where(Log.archived_at == None)
+        
+    result = await db.execute(query.order_by(Log.timestamp.desc()))
+    logs = result.scalars().all()
+    
+    data = []
+    for log in logs:
+        data.append({
+            'Import Reference': log.importReference,
+            'Waybill': log.waybill,
+            'Item Code': log.itemCode,
+            'Description': log.itemDescription,
+            'Bin Location': log.binLocation,
+            'Qty Received': log.qtyReceived,
+            'Relocated Bin': log.relocatedBin,
+            'Date': log.timestamp,
+            'Qty GRN': log.qtyGrn,
+            'Difference': log.difference
+        })
+        
+    df = pd.DataFrame(data)
+    
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Logs')
+        worksheet = writer.sheets['Logs']
+        for i, col_name in enumerate(df.columns):
+            column_letter = get_column_letter(i + 1)
+            max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
+            worksheet.column_dimensions[column_letter].width = max_len
+
+    output.seek(0)
+    filename_version = version.replace(':', '-').replace('.', '-') if version else "active"
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"inbound_logs_{filename_version}_{timestamp_str}.xlsx"
+    
+    return Response(
+        content=output.getvalue(), 
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

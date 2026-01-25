@@ -393,3 +393,86 @@ async def get_cycle_count_recordings(username: str = Depends(login_required), db
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo historial: {e}")
 
+
+@router.get('/counts/export_recordings')
+async def export_cycle_count_recordings(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+    """
+    Exporta el historial detallado de conteos cíclicos a Excel.
+    """
+    try:
+        result = await db.execute(
+            select(CycleCountRecording).order_by(CycleCountRecording.executed_date.desc())
+        )
+        recordings = result.scalars().all()
+        
+        enriched_data = []
+        for rec in recordings:
+            details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+            cost = 0.0
+            stockroom = "N/A"
+            
+            if details:
+                stockroom = details.get('Stockroom', 'N/A')
+                try:
+                    cost_str = details.get('Cost_per_Unit', '0').replace(',', '')
+                    cost = float(cost_str)
+                except (ValueError, AttributeError):
+                    cost = 0.0
+            
+            value_diff = rec.difference * cost
+            count_value = rec.physical_qty * cost
+            
+            enriched_data.append({
+                'ID': rec.id,
+                'Stockroom': stockroom,
+                'Item Code': rec.item_code,
+                'Description': rec.item_description,
+                'Type': details.get('Item_Type', '') if details else '',
+                'Class': details.get('Item_Class', '') if details else '',
+                'Group': details.get('Item_Group_Major', '') if details else '',
+                'SICs': details.get('SIC_Code_Company', '') if details else '',
+                'Weight': details.get('Weight_per_Unit', '') if details else '',
+                'ABC': rec.abc_code,
+                'Bin': rec.bin_location,
+                'Sys Stock': rec.system_qty,
+                'Counted': rec.physical_qty,
+                'Diff': rec.difference,
+                'Value Diff': value_diff,
+                'Item Cost': cost,
+                'Count Value': count_value,
+                'Date': rec.executed_date,
+                'User': rec.username
+            })
+            
+        df = pd.DataFrame(enriched_data)
+        
+        # Reorder columns as per UI
+        columns_order = [
+            'ID', 'Stockroom', 'Item Code', 'Description', 'Type', 'Class', 'Group', 
+            'SICs', 'Weight', 'ABC', 'Bin', 'Sys Stock', 'Counted', 'Diff', 
+            'Value Diff', 'Item Cost', 'Count Value', 'Date', 'User'
+        ]
+        # Ensure only existing columns are selected (in case some are missing keys)
+        df = df[[c for c in columns_order if c in df.columns]]
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='History')
+            worksheet = writer.sheets['History']
+            for i, col_name in enumerate(df.columns):
+                column_letter = get_column_letter(i + 1)
+                max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = max_len
+
+        output.seek(0)
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"cycle_count_history_{timestamp_str}.xlsx"
+        
+        return Response(
+            content=output.getvalue(), 
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error exportando historial: {e}")
