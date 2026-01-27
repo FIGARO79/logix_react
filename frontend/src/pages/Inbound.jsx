@@ -494,23 +494,23 @@ const Inbound = () => {
                 <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
                     <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                         <h2 className="text-base font-semibold tracking-tight">Registros de Inbound</h2>
-                        <div className="flex gap-2">
-                            <button onClick={() => window.location.href = '/update'} className="btn-sap btn-secondary toolbar-btn">Act. Archivos</button>
-                            <button onClick={() => window.location.href = '/api/inbound/export'} className="btn-sap btn-secondary toolbar-btn flex items-center gap-1">
+                        <div className="flex gap-2 items-center">
+                            <button onClick={() => window.location.href = '/update'} className="btn-sap btn-secondary h-8 w-24 py-0 text-xs flex items-center justify-center">Act. Archivos</button>
+                            <button onClick={() => window.location.href = '/api/inbound/export'} className="btn-sap btn-secondary h-8 w-24 py-0 text-xs flex items-center justify-center gap-1">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar
                             </button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 text-black text-xs rounded border border-gray-300">
+                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-40 py-0 px-2 text-black text-xs rounded border border-gray-300 bg-white">
                                 <option value="">-- Versión Actual --</option>
                                 {versions.map(v => (
                                     <option key={v} value={v}>Archivado: {new Date(v).toLocaleString()}</option>
                                 ))}
                             </select>
-                            <button onClick={handleArchive} className="btn-sap bg-red-600 text-white border-red-700 hover:bg-red-700 toolbar-btn">Base Limpia</button>
+                            <button onClick={handleArchive} className="btn-sap bg-red-600 text-white border-red-700 hover:bg-red-700 h-8 w-24 py-0 text-xs flex items-center justify-center">Base Limpia</button>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse sap-table">
+                        <table className="w-full text-left border-collapse sap-table leading-tight">
                             <thead>
                                 <tr>
                                     <th>Ref</th>
