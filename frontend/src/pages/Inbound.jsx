@@ -30,6 +30,7 @@ const Inbound = () => {
     // --- Refs ---
     const scannerRef = useRef(null);
     const quantityRef = useRef(null);
+    const printFrameRef = useRef(null);
 
     // Carga inicial
     useEffect(() => {
@@ -249,6 +250,96 @@ const Inbound = () => {
     const diff = itemData ? (parseInt(quantity || 0) - (itemData.defaultQtyGrn || 0)) : 0;
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
 
+    const handlePrint = () => {
+        const frame = printFrameRef.current;
+        if (!frame) {
+            alert("Error: No se encontró el marco de impresión.");
+            return;
+        }
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Etiqueta ${itemData ? itemData.itemCode : ''}</title>
+                <style>
+                    @page { size: 70mm 100mm; margin: 0; }
+                    html, body { 
+                        width: 70mm; height: 100mm; margin: 0; padding: 0; 
+                        overflow: hidden; background: white; 
+                        font-family: Arial, sans-serif; 
+                    }
+                    .label-container {
+                        width: 100%; height: 100%; box-sizing: border-box;
+                        padding: 1mm; display: flex; flex-direction: column;
+                        justify-content: space-between; overflow: hidden;
+                        border: none;
+                    }
+                    .label-logo { max-width: 55%; max-height: 7mm; margin-bottom: 2mm; display: block; }
+                    .label-item-code { font-size: 14pt; font-weight: bold; margin: 0 0 1mm 0; line-height: 1.1; }
+                    .label-item-description { font-size: 11pt; font-weight: bold; margin: 0 0 4mm 0; line-height: 1.1; max-height: 22mm; overflow: hidden; }
+                    
+                    .label-data-field { 
+                        display: grid; grid-template-columns: auto 1fr; gap: 4px; 
+                        align-items: baseline; margin-bottom: 1mm; font-size: 9pt; line-height: 1.2;
+                    }
+                    .label-data-field span:first-child { font-weight: bold; color: #333; }
+                    .label-data-field span:last-child { text-align: right; }
+                    
+                    .label-bottom-section { 
+                        display: flex; align-items: flex-end; justify-content: space-between; 
+                        margin-top: auto; padding-top: 2mm;
+                    }
+                    .label-disclaimer { font-size: 6pt; color: #555; max-width: 65%; line-height: 1; margin: 0; }
+                    #qrCodeContainer { width: 25mm; height: 25mm; display: flex; justify-content: center; align-items: center; }
+                    #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
+                </style>
+            </head>
+            <body>
+                <div class="label-container">
+                    <div>
+                        <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
+                        <div class="label-item-code">${itemData?.itemCode || 'CODE'}</div>
+                        <div class="label-item-description">${itemData?.description || 'Description'}</div>
+
+                        <div class="label-data-field">
+                            <span>Quantity Received</span>
+                            <span>${quantity || 1}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Product weight</span>
+                            <span>${totalWeight}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Bin Location</span>
+                            <span>${relocatedBin || itemData?.binLocation || 'BIN'}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Reception Date</span>
+                            <span>${new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</span>
+                        </div>
+                    </div>
+
+                    <div class="label-bottom-section">
+                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                        <div id="qrCodeContainer">
+                            ${qrImage ? `<img src="${qrImage}" />` : ''}
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() { setTimeout(function(){ window.print(); }, 200); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        const doc = frame.contentWindow.document;
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+    };
+
     return (
         <>
             <div className="container-wrapper px-4 py-4">
@@ -389,9 +480,11 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <button type="button" onClick={() => window.print()} className="btn-sap btn-primary w-full mt-4 h-10" disabled={!itemData}>
-                                Imprimir Etiqueta
-                            </button>
+                            <div className="w-full flex justify-center mt-4">
+                                <button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>
+                                    Imprimir Etiqueta
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -460,6 +553,13 @@ const Inbound = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Hidden Iframe for Printing Labels */}
+            <iframe
+                ref={printFrameRef}
+                title="print-label-frame"
+                style={{ position: 'fixed', top: '-1000px', left: '-1000px', width: '1px', height: '1px', border: 'none' }}
+            />
 
             {/* Modal Scanner */}
             {scannerOpen && (
