@@ -18,6 +18,7 @@ const LabelPrinting = () => {
 
     // Refs
     const itemCodeInputRef = useRef(null);
+    const printFrameRef = useRef(null);
 
     // QR Code Generation
     useEffect(() => {
@@ -65,8 +66,96 @@ const LabelPrinting = () => {
     };
 
     const handlePrint = () => {
+        const frame = printFrameRef.current;
+        if (!frame) {
+            toast.error("Error: No se encontró el marco de impresión.");
+            return;
+        }
+
         if (!itemData) return;
-        window.print();
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Etiqueta ${itemData ? itemData.itemCode : ''}</title>
+                <style>
+                    @page { size: 70mm 100mm; margin: 0; }
+                    html, body { 
+                        width: 70mm; height: 100mm; margin: 0; padding: 0; 
+                        overflow: hidden; background: white; 
+                        font-family: Arial, sans-serif; 
+                    }
+                    .label-container {
+                        width: 100%; height: 100%; box-sizing: border-box;
+                        padding: 3mm; display: flex; flex-direction: column;
+                        justify-content: space-between; overflow: hidden;
+                        border: 1px solid #d1d5db;
+                        border-radius: 4px;
+                    }
+                    .label-logo { max-width: 50%; max-height: 8mm; margin-bottom: 3mm; display: block; }
+                    .label-item-code { font-size: 14pt; font-weight: bold; margin: 0 0 1mm 0; line-height: 1.1; color: #1f2937; }
+                    .label-item-description { font-size: 12pt; font-weight: bold; margin: 0 0 5mm 0; line-height: 1.1; color: #1f2937; max-height: 20mm; overflow: hidden; }
+                    
+                    .label-data-field { 
+                        display: grid; grid-template-columns: auto 1fr; gap: 8px; 
+                        align-items: start; margin-bottom: 0.5mm; font-size: 9pt; line-height: 1.25;
+                    }
+                    .label-data-field span:first-child { font-weight: 500; color: #4b5563; }
+                    .label-data-field span:last-child { text-align: right; font-weight: normal; color: #1f2937; }
+                    
+                    .label-bottom-section { 
+                        display: flex; align-items: flex-end; justify-content: space-between; 
+                        margin-top: auto; padding-top: 2mm;
+                    }
+                    .label-disclaimer { font-size: 6pt; color: #6b7280; max-width: 65%; line-height: 1; margin: 0; text-align: left; }
+                    #qrCodeContainer { width: 25mm; height: 25mm; display: flex; justify-content: center; align-items: center; }
+                    #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
+                </style>
+            </head>
+            <body>
+                <div class="label-container">
+                    <div>
+                        <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
+                        <div class="label-item-code">${itemData?.itemCode || 'CODE'}</div>
+                        <div class="label-item-description">${itemData?.description || 'Description'}</div>
+
+                        <div class="label-data-field">
+                            <span>Quantity Received</span>
+                            <span>${quantity || 1}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Product weight</span>
+                            <span>${totalWeight} ${totalWeight !== 'N/A' ? 'kg' : ''}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Bin Location</span>
+                            <span>${itemData?.binLocation || 'BIN'}</span>
+                        </div>
+                        <div class="label-data-field">
+                            <span>Packing Date</span>
+                            <span>${new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</span>
+                        </div>
+                    </div>
+
+                    <div class="label-bottom-section">
+                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                        <div id="qrCodeContainer">
+                            ${qrImage ? `<img src="${qrImage}" />` : ''}
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() { setTimeout(function(){ window.print(); }, 200); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        const doc = frame.contentWindow.document;
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
     };
 
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
@@ -174,22 +263,31 @@ const LabelPrinting = () => {
                                 <p className="label-disclaimer text-[10px] leading-tight text-gray-500 max-w-[60%]">
                                     All trademarks and logotypes appearing on this label are owned by Sandvik Group
                                 </p>
-                                <div id="qrCodeContainer" className="border border-gray-200 rounded p-1">
+                                <div id="qrCodeContainer" className="rounded p-1">
                                     {qrImage ? <img src={qrImage} alt="QR" className="w-full h-full object-contain" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">QR Code</div>}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <button
-                        onClick={handlePrint}
-                        disabled={!itemData}
-                        className="btn-sap btn-primary w-full mt-6 py-2"
-                    >
-                        Imprimir Etiqueta
-                    </button>
+                    <div className="w-full flex justify-center mt-6">
+                        <button
+                            onClick={handlePrint}
+                            disabled={!itemData}
+                            className="btn-sap btn-primary btn-print-label h-10"
+                        >
+                            Imprimir Etiqueta
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* Hidden Iframe for Printing Labels */}
+            <iframe
+                ref={printFrameRef}
+                title="print-label-frame"
+                style={{ position: 'fixed', top: '-1000px', left: '-1000px', width: '1px', height: '1px', border: 'none' }}
+            />
         </div>
     );
 };
