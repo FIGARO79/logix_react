@@ -495,18 +495,22 @@ const Inbound = () => {
                     <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                         <h2 className="text-base font-semibold tracking-tight">Registros de Inbound</h2>
                         <div className="flex gap-2 items-center">
-                            <button onClick={() => window.location.href = '/update'} className="btn-sap btn-secondary h-8 w-24 py-0 text-xs flex items-center justify-center">Act. Archivos</button>
-                            <button onClick={() => window.location.href = '/api/inbound/export'} className="btn-sap btn-secondary h-8 w-24 py-0 text-xs flex items-center justify-center gap-1">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
+                            <button onClick={() => window.location.href = '/update'} className="h-8 px-4 text-xs font-medium bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 flex items-center justify-center">
+                                Act. Archivos
+                            </button>
+                            <button onClick={() => window.location.href = '/api/inbound/export'} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar
                             </button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-40 py-0 px-2 text-black text-xs rounded border border-gray-300 bg-white">
+                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-44 px-3 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 cursor-pointer">
                                 <option value="">-- Versión Actual --</option>
                                 {versions.map(v => (
                                     <option key={v} value={v}>Archivado: {new Date(v).toLocaleString()}</option>
                                 ))}
                             </select>
-                            <button onClick={handleArchive} className="btn-sap bg-red-600 text-white border-red-700 hover:bg-red-700 h-8 w-24 py-0 text-xs flex items-center justify-center">Base Limpia</button>
+                            <button onClick={handleArchive} className="h-8 px-4 text-xs font-medium bg-red-600 text-white border border-red-700 rounded-md shadow-sm hover:bg-red-700 transition-all duration-150 flex items-center justify-center">
+                                Base Limpia
+                            </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
