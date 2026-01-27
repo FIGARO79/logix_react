@@ -15,18 +15,6 @@ export default defineConfig({
             },
             // Static files (Images, etc)
             '/static': 'http://localhost:8000',
-            // Auth routes
-            '/login': 'http://localhost:8000',
-            '/logout': 'http://localhost:8000',
-            '/register': 'http://localhost:8000',
-            '/set_password': 'http://localhost:8000',
-            // Specific feature endpoints
-            '/clear_database': 'http://localhost:8000',
-            '/export_all_log': 'http://localhost:8000',
-            '/get_item_for_counting': 'http://localhost:8000',
-            '/save_count': 'http://localhost:8000',
-            '/export_counts': 'http://localhost:8000',
-            '/health': 'http://localhost:8000',
         }
     }
 })

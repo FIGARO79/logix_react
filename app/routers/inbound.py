@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, desc
 from app.core.db import get_db
-from app.utils.auth import login_required
+from app.utils.auth import login_required, api_login_required
 from app.models.sql_models import Log
 from pydantic import BaseModel
 from typing import Optional
@@ -37,7 +37,7 @@ class UpdateLogRequest(BaseModel):
 async def add_log(
     data: AddLogRequest,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(login_required)
+    user: str = Depends(api_login_required)
 ):
     # Buscar info del item en el CSV
     stock = await get_item_details_from_master_csv(data.itemCode)
@@ -112,7 +112,7 @@ async def get_versions(db: AsyncSession = Depends(get_db)):
 async def export_logs(
     version: Optional[str] = None, 
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(login_required)
+    user: str = Depends(api_login_required)
 ):
     query = select(Log)
     

@@ -45,7 +45,7 @@ const Layout = () => {
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans">
+        <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
             {/* Rotate Overlay (Mobile) */}
             <div id="rotate-overlay" className="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 text-white p-4">
                 <div className="max-w-sm text-center">
@@ -54,7 +54,7 @@ const Layout = () => {
             </div>
 
             {/* Top Header */}
-            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-md sticky top-0 z-50">
+            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-md sticky top-0 z-50 print:hidden">
                 <button
                     className="menu-toggle p-2 rounded hover:bg-white/10 active:bg-white/20 transition-all cursor-pointer z-[1001]"
                     onClick={toggleMenu}
@@ -94,9 +94,15 @@ const Layout = () => {
                     <Link
                         to="#"
                         className="flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.preventDefault();
-                            window.location.href = '/';
+                            try {
+                                await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+                            } catch (err) {
+                                console.error('Logout failed', err);
+                            } finally {
+                                window.location.href = '/login';
+                            }
                         }}
                     >
                         <div className="w-8 flex justify-center opacity-80">
@@ -109,12 +115,12 @@ const Layout = () => {
 
             {/* Overlay */}
             <div
-                className={`menu-overlay fixed top-[48px] left-0 w-full h-[calc(100vh-48px)] bg-black/40 transition-opacity z-[998] ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                className={`menu-overlay fixed top-[48px] left-0 w-full h-[calc(100vh-48px)] bg-black/40 transition-opacity z-[998] print:hidden ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 onClick={toggleMenu}
             ></div>
 
             {/* Main Content */}
-            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden">
+            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto">
                 <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 max-w-[1400px]">
                     <Outlet context={{ setTitle }} /> {/* Renders the child route (e.g. Dashboard) */}
                 </div>

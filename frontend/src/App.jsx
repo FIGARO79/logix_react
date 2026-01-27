@@ -66,7 +66,7 @@ function App() {
                     <Route path="planner/manage_differences" element={<ManageCycleCountDifferences />} />
                     <Route path="picking" element={<PickingAudit />} />
                     <Route path="view_logs" element={<InboundHistory />} />
-                    <Route path="packing_list/print/:id" element={<PackingListPrint />} />
+
 
                     {/* Admin Routes */}
                     <Route path="admin/login" element={<AdminLogin />} />
@@ -77,6 +77,13 @@ function App() {
                         If the card href is /view_picking_audits, it matches above.
                     */}
                 </Route>
+
+                {/* Standalone Protected Routes (No Layout) */}
+                <Route path="/packing_list/print/:id" element={
+                    <ProtectedRoute>
+                        <PackingListPrint />
+                    </ProtectedRoute>
+                } />
 
                 {/* Catch-all for 404 */}
                 <Route path="*" element={<ErrorPage />} />

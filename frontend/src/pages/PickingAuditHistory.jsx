@@ -15,7 +15,7 @@ const PickingAuditHistory = () => {
     useEffect(() => {
         const fetchAudits = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/views/view_picking_audits');
+                const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
                 if (!response.ok) {
                     throw new Error('Error al cargar auditorías');
                 }
@@ -104,7 +104,7 @@ const PickingAuditHistory = () => {
                                             </td>
                                             <td className="px-5 py-4 text-center">
                                                 <Link
-                                                    to={`/print-packing-list/${audit.id}`}
+                                                    to={`/packing_list/print/${audit.id}`}
                                                     className="text-gray-500 hover:text-[#0070d2]"
                                                     onClick={(e) => e.stopPropagation()}
                                                     title="Imprimir Packing List"

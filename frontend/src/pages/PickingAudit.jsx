@@ -53,18 +53,47 @@ const PickingAudit = () => {
     // Modals & Finalize
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showPackagesModal, setShowPackagesModal] = useState(false);
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const [packagesCount, setPackagesCount] = useState('');
+    const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
 
     useEffect(() => {
         setTitle("Logix - Chequeo de Picking");
         loadTrackingData();
     }, [setTitle]);
 
+    // Initialize assignments when entering assignment modal
+    const prepareAssignment = () => {
+        const count = parseInt(packagesCount);
+        if (!count || count <= 0) {
+            submitAudit(); // No packages, just submit
+            return;
+        }
+
+        // Init structure: { "ITEM01": { 1: 0, 2: 0 }, ... }
+        const initialAssignments = {};
+        orderItems.forEach(item => {
+            const row = {};
+            for (let i = 1; i <= count; i++) {
+                row[i] = 0;
+            }
+            // Auto-assign to box 1 if only 1 box? Optional, let's keep it 0 for explicit user input
+            // OR if only 1 box, pre-fill it?
+            if (count === 1) {
+                row[1] = item.qty_scan;
+            }
+            initialAssignments[item.code] = row;
+        });
+        setPackageAssignments(initialAssignments);
+        setShowPackagesModal(false);
+        setShowAssignmentModal(true);
+    };
+
     // -- API Calls --
 
     const loadTrackingData = async () => {
         try {
-            const res = await fetch('/api/picking/tracking');
+            const res = await fetch('/api/picking/tracking', { credentials: 'include' });
             if (res.ok) {
                 setTrackingData(await res.json());
             }
@@ -78,7 +107,7 @@ const PickingAudit = () => {
         }
         setLoadingOrder(true);
         try {
-            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`); // Matches picking.py endpoint
+            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`, { credentials: 'include' }); // Matches picking.py endpoint
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.length > 0) {
@@ -114,7 +143,21 @@ const PickingAudit = () => {
         setOrderNumber('');
         setDespatchNumber('');
         setCustomerName('');
+        setShowAssignmentModal(false);
+        setPackageAssignments({});
+        setPackagesCount('');
         loadTrackingData();
+    };
+
+    const handleAssignmentChange = (itemCode, pkgNum, value) => {
+        const val = parseInt(value) || 0;
+        setPackageAssignments(prev => ({
+            ...prev,
+            [itemCode]: {
+                ...prev[itemCode],
+                [pkgNum]: val
+            }
+        }));
     };
 
     // -- Audit Logic --
@@ -174,13 +217,15 @@ const PickingAudit = () => {
                 qty_req: i.qty_req,
                 qty_scan: i.qty_scan
             })),
-            packages: parseInt(packagesCount || 0)
+            packages: parseInt(packagesCount || 0),
+            packages_assignment: packageAssignments
         };
 
         try {
             const res = await fetch('/api/save_picking_audit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(payload)
             });
 
@@ -189,6 +234,7 @@ const PickingAudit = () => {
                 handleReset();
                 setShowConfirmModal(false);
                 setShowPackagesModal(false);
+                setShowAssignmentModal(false);
                 setPackagesCount('');
             } else {
                 const err = await res.json();
@@ -385,7 +431,73 @@ const PickingAudit = () => {
                             />
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setShowPackagesModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => submitAudit()} className="btn-sap btn-success bg-green-600 border-green-700 text-white">Finalizar</button>
+                                <button onClick={() => prepareAssignment()} className="btn-sap btn-primary bg-blue-600 border-blue-700 text-white">Continuar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Assignment Modal */}
+                {showAssignmentModal && (
+                    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                            <h3 className="text-lg font-bold mb-4">Distribuir Ítems en Bultos</h3>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-100">
+                                            <th className="p-2 text-left border">Item</th>
+                                            <th className="p-2 text-center border w-24">Total Scan</th>
+                                            {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
+                                                <th key={i} className="p-2 text-center border w-20">Bulto {i + 1}</th>
+                                            ))}
+                                            <th className="p-2 text-center border w-24">Asignado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {orderItems.map(item => {
+                                            const assignments = packageAssignments[item.code] || {};
+                                            const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
+                                            const isMatch = totalAssigned === item.qty_scan;
+
+                                            // Only show items that have been scanned
+                                            if (item.qty_scan === 0) return null;
+
+                                            return (
+                                                <tr key={item.code} className="border-b hover:bg-gray-50">
+                                                    <td className="p-2 border font-medium">
+                                                        {item.code}
+                                                        <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
+                                                    </td>
+                                                    <td className="p-2 text-center border font-bold">{item.qty_scan}</td>
+                                                    {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
+                                                        <td key={i} className="p-1 border text-center">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                className="w-16 text-center border rounded p-1"
+                                                                value={assignments[i + 1] || 0}
+                                                                onChange={(e) => handleAssignmentChange(item.code, i + 1, e.target.value)}
+                                                                onFocus={(e) => e.target.select()}
+                                                            />
+                                                        </td>
+                                                    ))}
+                                                    <td className={`p-2 text-center border font-bold ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {totalAssigned}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button onClick={() => setShowAssignmentModal(false)} className="btn-sap btn-secondary">Atrás</button>
+                                <button onClick={() => submitAudit()} className="btn-sap btn-success bg-green-600 border-green-700 text-white">
+                                    Guardar y Finalizar
+                                </button>
                             </div>
                         </div>
                     </div>

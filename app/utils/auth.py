@@ -1,4 +1,4 @@
-from fastapi import Request, status
+from fastapi import Request, status, HTTPException
 from starlette.responses import RedirectResponse
 from werkzeug.security import generate_password_hash, check_password_hash
 from typing import List, Dict, Any, Optional
@@ -157,3 +157,17 @@ def admin_login_required(request: Request) -> bool | RedirectResponse:
         except Exception:
             return RedirectResponse(url='/admin/login', status_code=status.HTTP_302_FOUND)
     return True
+
+def api_login_required(request: Request) -> str:
+    """
+    Dependencia de FastAPI para APIs que verifica si un usuario está logueado.
+    Si el usuario no está en la sesión, lanza una excepción HTTP 401.
+    Si está logueado, devuelve el nombre de usuario.
+    """
+    username = get_current_user(request)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado"
+        )
+    return username

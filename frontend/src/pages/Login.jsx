@@ -19,6 +19,7 @@ const Login = () => {
 
             const res = await fetch('/api/login', {
                 method: 'POST',
+                credentials: 'include',
                 body: formData
             });
 

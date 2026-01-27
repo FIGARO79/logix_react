@@ -17,7 +17,7 @@ from app.models.schemas import StockCount, Count
 from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel, CycleCountRecording
 from app.services import db_counts, csv_handler
 from app.services.csv_handler import master_qty_map, get_locations_with_stock_count # Importar el mapa de memoria y helper
-from app.utils.auth import login_required
+from app.utils.auth import login_required, api_login_required
 from app.core.config import ASYNC_DB_URL
 
 # --- Inicialización de elementos compartidos ---
@@ -26,7 +26,7 @@ async_engine = create_async_engine(ASYNC_DB_URL)
 
 
 @router.get('/get_item_for_counting/{item_code}')
-async def get_item_for_counting(item_code: str, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_item_for_counting(item_code: str, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     
     current_stage = 1 # Default
     
@@ -70,13 +70,13 @@ async def get_item_for_counting(item_code: str, username: str = Depends(login_re
 
 
 @router.post('/counts')
-async def add_count(data: Count, username: str = Depends(login_required)):
+async def add_count(data: Count, username: str = Depends(api_login_required)):
     """Añade un conteo básico."""
     return JSONResponse({'message': 'Endpoint de conteo no implementado en esta versión.'}, status_code=501)
 
 
 @router.post('/save_count')
-async def save_count(data: StockCount, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def save_count(data: StockCount, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Guarda un conteo de stock con sesión."""
     # Lógica existente...
     item_details = await csv_handler.get_item_details_from_master_csv(data.item_code)
@@ -99,7 +99,7 @@ async def save_count(data: StockCount, username: str = Depends(login_required), 
 
 
 @router.get('/counts/differences')
-async def get_count_differences(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_count_differences(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene todos los registros de conteo con diferencias entre qty sistema y contada."""
     try:
         all_counts = await db_counts.load_all_counts_db_async(db)
@@ -155,7 +155,7 @@ async def get_count_differences(username: str = Depends(login_required), db: Asy
 
 
 @router.put("/counts/{count_id}")
-async def update_stock_count(count_id: int, data: dict, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def update_stock_count(count_id: int, data: dict, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Actualiza la cantidad contada de un registro de conteo."""
     try:
         # Obtener el registro actual
@@ -185,7 +185,7 @@ async def update_stock_count(count_id: int, data: dict, username: str = Depends(
 
 
 @router.delete("/counts/{count_id}", status_code=status.HTTP_200_OK)
-async def delete_stock_count(count_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def delete_stock_count(count_id: int, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Elimina un conteo de stock."""
     success = await db_counts.delete_stock_count(db, count_id)
     if success:
@@ -194,7 +194,7 @@ async def delete_stock_count(count_id: int, username: str = Depends(login_requir
 
 
 @router.get('/export_counts')
-async def export_counts(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def export_counts(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Exporta todos los conteos enriquecidos a Excel."""
     all_counts = await db_counts.load_all_counts_db_async(db)
     
@@ -251,7 +251,7 @@ async def export_counts(username: str = Depends(login_required), db: AsyncSessio
 
 
 @router.get('/counts/stats')
-async def get_count_stats(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_count_stats(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Devuelve estadísticas sobre los conteos de stock."""
     try:
         # 1. Total de ubicaciones contadas (global)
@@ -314,7 +314,7 @@ async def get_count_stats(username: str = Depends(login_required), db: AsyncSess
 
 
 @router.get('/counts/debug/master_qty_map')
-async def debug_master_qty_map(username: str = Depends(login_required)):
+async def debug_master_qty_map(username: str = Depends(api_login_required)):
     """Endpoint de debug para verificar el estado del master_qty_map."""
     total_items = len(master_qty_map)
     items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
@@ -329,14 +329,14 @@ async def debug_master_qty_map(username: str = Depends(login_required)):
 
 
 @router.get('/debug/last_counts')
-async def debug_last_counts(limit: int = 20, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def debug_last_counts(limit: int = 20, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Endpoint de diagnóstico: devuelve los últimos `limit` registros de conteos."""
     all_counts = await db_counts.load_all_counts_db_async(db)
     return JSONResponse(content=all_counts[:int(limit)])
 
 
 @router.get('/counts/recordings')
-async def get_cycle_count_recordings(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_cycle_count_recordings(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """
     Obtiene el historial detallado de conteos cíclicos (CycleCountRecordings)
     incluyendo valoración monetaria basada en Cost_per_Unit del maestro.
@@ -395,7 +395,7 @@ async def get_cycle_count_recordings(username: str = Depends(login_required), db
 
 
 @router.get('/counts/export_recordings')
-async def export_cycle_count_recordings(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def export_cycle_count_recordings(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """
     Exporta el historial detallado de conteos cíclicos a Excel.
     """

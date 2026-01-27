@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
 from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem, PickingPackageItem
-from app.utils.auth import login_required
+from app.utils.auth import login_required, api_login_required
 from app.core.db import get_db
 
 router = APIRouter(prefix="/api", tags=["picking"])
@@ -158,7 +158,7 @@ async def get_picking_tracking():
 
 
 @router.get('/picking/packing_list/{audit_id}')
-async def get_packing_list_data(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db)):
     """API: Obtiene datos del packing list (bultos) para impresión."""
     try:
         # Obtener la auditoría
@@ -205,7 +205,7 @@ async def get_packing_list_data(audit_id: int, username: str = Depends(login_req
          raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
 
 @router.get('/picking_audit/{audit_id}/print')
-async def get_picking_audit_for_print(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_picking_audit_for_print(audit_id: int, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
     try:
         # Obtener la auditoría
@@ -251,7 +251,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(log
 
 
 @router.get('/picking_audit/{audit_id}')
-async def get_picking_audit(audit_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_picking_audit(audit_id: int, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""
     try:
         # Obtener la auditoría
@@ -307,7 +307,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(login_require
 
 
 @router.put('/update_picking_audit/{audit_id}')
-async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Actualiza una auditoría de picking existente. Solo permite editar auditorías del mismo día."""
     try:
         # Verificar que la auditoría existe y es del mismo día
@@ -377,7 +377,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
 
 
 @router.post('/save_picking_audit')
-async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
     """Guarda una auditoría de picking en la base de datos."""
     try:
         # 1. Crear la auditoría principal
@@ -408,6 +408,24 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(l
             )
             db.add(new_item)
         
+        # 3. [NUEVO] Insertar asignación de bultos
+        if audit_data.packages_assignment:
+            for item_code, assignments in audit_data.packages_assignment.items():
+                # assignments es un dict: {"1": 5, "2": 3} (bulto -> cantidad)
+                # Buscar descripción del item en los items principales
+                item_desc = next((i.description for i in audit_data.items if i.code == item_code), "")
+                
+                for pkg_num, qty in assignments.items():
+                    if qty > 0:
+                        new_pkg_item = PickingPackageItem(
+                            audit_id=new_audit.id,
+                            package_number=int(pkg_num),
+                            item_code=item_code,
+                            description=item_desc,
+                            qty_scan=qty
+                        )
+                        db.add(new_pkg_item)
+
         await db.commit()
         
         return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
