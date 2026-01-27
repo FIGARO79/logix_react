@@ -514,42 +514,44 @@ const Inbound = () => {
                         </div>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse sap-table leading-tight">
-                            <thead>
+                        <table className="w-full text-xs border-collapse">
+                            <thead className="bg-slate-700 text-white">
                                 <tr>
-                                    <th>Ref</th>
-                                    <th>Waybill</th>
-                                    <th>Item Code</th>
-                                    <th>Descripción</th>
-                                    <th>Bin (Orig)</th>
-                                    <th>Bin (New)</th>
-                                    <th>Qty Rec</th>
-                                    <th>Qty Exp</th>
-                                    <th>Dif</th>
-                                    <th>Hora</th>
-                                    <th>Acciones</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Ref</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Waybill</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Item Code</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Descripción</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Bin (Orig)</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Bin (New)</th>
+                                    <th className="px-2 py-1.5 text-center font-medium">Qty Rec</th>
+                                    <th className="px-2 py-1.5 text-center font-medium">Qty Exp</th>
+                                    <th className="px-2 py-1.5 text-center font-medium">Dif</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Hora</th>
+                                    <th className="px-2 py-1.5 text-center font-medium">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-gray-200">
                                 {logs.length === 0 ? (
-                                    <tr><td colSpan="11" className="text-center p-4 text-gray-500">No hay registros</td></tr>
-                                ) : logs.map(log => (
-                                    <tr key={log.id}>
-                                        <td>{log.importReference}</td>
-                                        <td>{log.waybill}</td>
-                                        <td>{log.itemCode}</td>
-                                        <td className="max-w-[200px] truncate" title={log.itemDescription}>{log.itemDescription}</td>
-                                        <td>{log.binLocation}</td>
-                                        <td>{log.relocatedBin}</td>
-                                        <td>{log.qtyReceived}</td>
-                                        <td>{log.qtyGrn}</td>
-                                        <td className={log.difference < 0 ? 'text-red-600 font-bold' : log.difference > 0 ? 'text-blue-600 font-bold' : ''}>
-                                            {log.difference}
+                                    <tr><td colSpan="11" className="text-center py-4 text-gray-500">No hay registros</td></tr>
+                                ) : logs.map((log, idx) => (
+                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                                        <td className="px-2 py-1.5">{log.importReference}</td>
+                                        <td className="px-2 py-1.5">{log.waybill}</td>
+                                        <td className="px-2 py-1.5 font-mono">{log.itemCode}</td>
+                                        <td className="px-2 py-1.5 max-w-[180px] truncate" title={log.itemDescription}>{log.itemDescription}</td>
+                                        <td className="px-2 py-1.5">{log.binLocation}</td>
+                                        <td className="px-2 py-1.5">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
+                                        <td className="px-2 py-1.5 text-center">{log.qtyGrn}</td>
+                                        <td className={`px-2 py-1.5 text-center font-semibold ${log.difference < 0 ? 'text-red-600' : log.difference > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
+                                            {log.difference > 0 ? `+${log.difference}` : log.difference}
                                         </td>
-                                        <td>{new Date(log.timestamp).toLocaleTimeString()}</td>
-                                        <td className="flex gap-1 justify-center">
-                                            <button onClick={() => startEdit(log)} className="text-blue-600 hover:bg-blue-50 p-1 rounded">✎</button>
-                                            <button onClick={() => handleDelete(log.id)} className="text-red-600 hover:bg-red-50 p-1 rounded">🗑</button>
+                                        <td className="px-2 py-1.5 text-gray-600">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                                        <td className="px-2 py-1.5">
+                                            <div className="flex gap-1 justify-center">
+                                                <button onClick={() => startEdit(log)} className="w-6 h-6 text-blue-600 hover:bg-blue-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
+                                                <button onClick={() => handleDelete(log.id)} className="w-6 h-6 text-red-600 hover:bg-red-100 rounded flex items-center justify-center transition-colors" title="Eliminar">🗑</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
