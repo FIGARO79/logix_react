@@ -271,26 +271,27 @@ const Inbound = () => {
                     }
                     .label-container {
                         width: 100%; height: 100%; box-sizing: border-box;
-                        padding: 1mm; display: flex; flex-direction: column;
+                        padding: 3mm; display: flex; flex-direction: column;
                         justify-content: space-between; overflow: hidden;
-                        border: none;
+                        border: 1px solid #d1d5db; /* Added border to match screen */
+                        border-radius: 4px; /* Slight radius matching screen */
                     }
-                    .label-logo { max-width: 55%; max-height: 7mm; margin-bottom: 2mm; display: block; }
-                    .label-item-code { font-size: 14pt; font-weight: bold; margin: 0 0 1mm 0; line-height: 1.1; }
-                    .label-item-description { font-size: 11pt; font-weight: bold; margin: 0 0 4mm 0; line-height: 1.1; max-height: 22mm; overflow: hidden; }
+                    .label-logo { max-width: 50%; max-height: 8mm; margin-bottom: 3mm; display: block; }
+                    .label-item-code { font-size: 14pt; font-weight: bold; margin: 0 0 1mm 0; line-height: 1.1; color: #1f2937; }
+                    .label-item-description { font-size: 12pt; font-weight: bold; margin: 0 0 5mm 0; line-height: 1.1; color: #1f2937; max-height: 20mm; overflow: hidden; }
                     
                     .label-data-field { 
-                        display: grid; grid-template-columns: auto 1fr; gap: 4px; 
-                        align-items: baseline; margin-bottom: 1mm; font-size: 9pt; line-height: 1.2;
+                        display: grid; grid-template-columns: auto 1fr; gap: 8px; 
+                        align-items: start; margin-bottom: 0.5mm; font-size: 9pt; line-height: 1.25;
                     }
-                    .label-data-field span:first-child { font-weight: bold; color: #333; }
-                    .label-data-field span:last-child { text-align: right; }
+                    .label-data-field span:first-child { font-weight: 500; color: #4b5563; }
+                    .label-data-field span:last-child { text-align: right; font-weight: normal; color: #1f2937; }
                     
                     .label-bottom-section { 
                         display: flex; align-items: flex-end; justify-content: space-between; 
                         margin-top: auto; padding-top: 2mm;
                     }
-                    .label-disclaimer { font-size: 6pt; color: #555; max-width: 65%; line-height: 1; margin: 0; }
+                    .label-disclaimer { font-size: 6pt; color: #6b7280; max-width: 65%; line-height: 1; margin: 0; text-align: left; }
                     #qrCodeContainer { width: 25mm; height: 25mm; display: flex; justify-content: center; align-items: center; }
                     #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
                 </style>

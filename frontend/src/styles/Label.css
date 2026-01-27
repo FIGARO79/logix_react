@@ -78,7 +78,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    /* border: 1px solid #e5e7eb; Removed per user request */
     border-radius: 0.25rem;
     flex-shrink: 0;
 }
