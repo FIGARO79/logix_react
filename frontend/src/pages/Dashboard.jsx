@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
     DownloadIcon, SearchIcon, TagIcon, CartIcon,
-    HomeIcon, ChecklistIcon, CalculatorIcon, CheckCircleIcon,
-    ChartIcon, ReportIcon, UploadIcon, DocumentIcon
+    HomeIcon, ChecklistIcon, CalculatorIcon,
+    ChartIcon, UploadIcon, DocumentIcon
 } from '../components/Icons';
 
 const menuItems = [
@@ -11,91 +11,141 @@ const menuItems = [
         id: 'inbound',
         href: '/inbound',
         text: 'Inbound',
-        icon: <DownloadIcon className="w-12 h-12" />
+        description: 'Registro de entradas',
+        icon: <DownloadIcon className="w-6 h-6" />
     },
     {
         id: 'stock',
         href: '/stock',
         text: 'Consultar Stock',
-        icon: <SearchIcon className="w-12 h-12" />
+        description: 'Búsqueda de inventario',
+        icon: <SearchIcon className="w-6 h-6" />
     },
     {
         id: 'label',
         href: '/label',
         text: 'Etiquetado',
-        icon: <TagIcon className="w-12 h-12" />
+        description: 'Impresión de etiquetas',
+        icon: <TagIcon className="w-6 h-6" />
     },
     {
         id: 'picking',
         href: '/picking',
-        text: 'Auditoria Picking',
-        icon: <CartIcon className="w-12 h-12" />
+        text: 'Auditoría Picking',
+        description: 'Verificación de pedidos',
+        icon: <CartIcon className="w-6 h-6" />
     },
     {
         id: 'ciclicos',
         href: '/planner',
         text: 'Cíclicos',
-        icon: <HomeIcon className="w-12 h-12" />
+        description: 'Planificador de conteos',
+        icon: <HomeIcon className="w-6 h-6" />
     },
     {
         id: 'diff_cycles',
         href: '/planner/manage_differences',
-        text: 'Diferencias en Cíclicos',
-        icon: <CalculatorIcon className="w-12 h-12" />
+        text: 'Diferencias Cíclicos',
+        description: 'Gestión de diferencias',
+        icon: <CalculatorIcon className="w-6 h-6" />
     },
     {
         id: 'view_counts',
         href: '/view_counts',
         text: 'Validar Conteos',
-        icon: <ChecklistIcon className="w-12 h-12" />
+        description: 'Revisión y aprobación',
+        icon: <ChecklistIcon className="w-6 h-6" />
     },
     {
         id: 'view_picking_audits',
         href: '/view_picking_audits',
-        text: 'Ver Auditorías Picking',
-        icon: <ChartIcon className="w-12 h-12" />
+        text: 'Ver Auditorías',
+        description: 'Historial de picking',
+        icon: <ChartIcon className="w-6 h-6" />
     },
     {
         id: 'update',
         href: '/update',
         text: 'Actualizar Ficheros',
-        icon: <UploadIcon className="w-12 h-12" />
+        description: 'Carga de datos maestros',
+        icon: <UploadIcon className="w-6 h-6" />
     },
     {
         id: 'counts',
         href: '/counts',
         text: 'Conteos',
-        icon: <DocumentIcon className="w-12 h-12" />
+        description: 'Conteo de inventario',
+        icon: <DocumentIcon className="w-6 h-6" />
     }
 ];
 
 const Dashboard = () => {
     return (
-        <div className="flex flex-col items-center justify-start min-h-[calc(100vh-100px)] pt-16 px-4">
-            <header className="mb-16 text-center">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-[#0070d2]">
-                    Bienvenido a Logix
-                </h1>
-                <p className="text-lg md:text-xl text-gray-500 font-normal">
-                    Seleccione un proceso para comenzar
-                </p>
-            </header>
+        <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-slate-50 to-slate-100">
+            {/* Header Section */}
+            <div className="px-4 py-8 sm:py-12">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-8 sm:mb-12">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+                            Panel de Control
+                        </h1>
+                        <p className="text-sm sm:text-base text-slate-500">
+                            Seleccione un módulo para comenzar
+                        </p>
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl w-full">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.id}
-                        to={item.href}
-                        className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center py-4 px-4 text-center group h-48"
-                    >
-                        <div className="text-[#0070d2] mb-6 transition-transform duration-300 group-hover:scale-110">
-                            {item.icon}
+                    {/* Menu Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                        {menuItems.map((item) => (
+                            <Link
+                                key={item.id}
+                                to={item.href}
+                                className="group bg-white rounded-xl shadow-sm border border-slate-200/60 hover:shadow-lg hover:border-slate-300 transition-all duration-300 overflow-hidden"
+                            >
+                                {/* Icon Header */}
+                                <div className="bg-[#0070d2] p-3 sm:p-4 flex items-center justify-center">
+                                    <div className="text-white group-hover:scale-110 transition-transform duration-300">
+                                        {item.icon}
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-3 sm:p-4">
+                                    <h3 className="font-semibold text-xs sm:text-sm text-slate-800 mb-0.5 leading-tight">
+                                        {item.text}
+                                    </h3>
+                                    <p className="text-[10px] sm:text-xs text-slate-400 leading-tight hidden sm:block">
+                                        {item.description}
+                                    </p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Quick Stats Section (Optional) */}
+                    <div className="mt-8 sm:mt-12 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">Hoy</p>
+                            <p className="text-2xl font-bold text-slate-800">--</p>
+                            <p className="text-xs text-slate-400">Entradas</p>
                         </div>
-                        <span className="font-medium text-lg text-gray-700 group-hover:text-[#005fb2] transition-colors">
-                            {item.text}
-                        </span>
-                    </Link>
-                ))}
+                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">Pendiente</p>
+                            <p className="text-2xl font-bold text-slate-800">--</p>
+                            <p className="text-xs text-slate-400">Conteos</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">Auditorías</p>
+                            <p className="text-2xl font-bold text-slate-800">--</p>
+                            <p className="text-xs text-slate-400">Esta semana</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">Diferencias</p>
+                            <p className="text-2xl font-bold text-slate-800">--</p>
+                            <p className="text-xs text-slate-400">Activas</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
