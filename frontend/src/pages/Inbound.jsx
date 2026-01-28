@@ -526,7 +526,7 @@ const Inbound = () => {
                                     <th className="px-2 py-1.5 text-center font-medium">Qty Rec</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Qty Exp</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Dif</th>
-                                    <th className="px-2 py-1.5 text-left font-medium">Hora</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Fecha/Hora</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Acciones</th>
                                 </tr>
                             </thead>
@@ -546,7 +546,7 @@ const Inbound = () => {
                                         <td className={`px-2 py-1.5 text-center font-semibold ${log.difference < 0 ? 'text-red-600' : log.difference > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
                                             {log.difference > 0 ? `+${log.difference}` : log.difference}
                                         </td>
-                                        <td className="px-2 py-1.5 text-gray-600">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
