@@ -424,34 +424,59 @@ async def save_daily_execution(
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
-    """Guarda los conteos ejecutados del día en la tabla dedicada."""
+    """Guarda los conteos ejecutados del día en la tabla dedicada.
+    Si el item ya fue contado hoy, SUMA la cantidad al registro existente."""
     try:
         saved_count = 0
+        updated_count = 0
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
         
         for item in execution_data.items:
-            # Calcular diferencia
             physical = item.physical_qty
             system = item.system_qty
-            diff = physical - system
             
-            # Crear registro
-            new_record = CycleCountRecording(
-                planned_date=execution_data.date,
-                executed_date=datetime.datetime.now().strftime("%Y-%m-%d"),
-                item_code=item.item_code,
-                item_description=item.description,
-                bin_location=item.bin_location,
-                system_qty=system,
-                physical_qty=physical,
-                difference=diff,
-                username=username,
-                abc_code=item.abc_code
+            # Buscar si ya existe un registro para este item en la fecha planificada
+            existing_query = select(CycleCountRecording).where(
+                CycleCountRecording.item_code == item.item_code,
+                CycleCountRecording.planned_date == execution_data.date
             )
-            db.add(new_record)
-            saved_count += 1
+            result = await db.execute(existing_query)
+            existing_record = result.scalar_one_or_none()
+            
+            if existing_record:
+                # SUMAR a la cantidad existente
+                existing_record.physical_qty += physical
+                existing_record.difference = existing_record.physical_qty - existing_record.system_qty
+                existing_record.username = username  # Actualizar usuario
+                db.add(existing_record)
+                updated_count += 1
+            else:
+                # Crear nuevo registro
+                diff = physical - system
+                new_record = CycleCountRecording(
+                    planned_date=execution_data.date,
+                    executed_date=today,
+                    item_code=item.item_code,
+                    item_description=item.description,
+                    bin_location=item.bin_location,
+                    system_qty=system,
+                    physical_qty=physical,
+                    difference=diff,
+                    username=username,
+                    abc_code=item.abc_code
+                )
+                db.add(new_record)
+                saved_count += 1
             
         await db.commit()
-        return {"message": f"Se guardaron {saved_count} conteos correctamente.", "success": True}
+        
+        msg_parts = []
+        if saved_count > 0:
+            msg_parts.append(f"{saved_count} nuevos")
+        if updated_count > 0:
+            msg_parts.append(f"{updated_count} actualizados (sumados)")
+        
+        return {"message": f"Conteos guardados: {', '.join(msg_parts)}.", "success": True}
         
     except Exception as e:
         await db.rollback()

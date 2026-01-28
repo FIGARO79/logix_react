@@ -191,37 +191,44 @@ const PlannerExecution = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
 
-            {/* Date Selection */}
-            <div className="bg-white p-4 rounded-lg shadow mb-6 flex items-center gap-4">
-                <label className="font-semibold text-gray-700">Fecha de Ejecución:</label>
-                <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-                <button
-                    onClick={() => fetchDailyItems(selectedDate)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-                >
-                    Actualizar
-                </button>
-                <button
-                    onClick={() => setScannerOpen(true)}
-                    className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-2 ml-auto"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
-                        <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
-                        <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
-                        <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
-                        <path d="M12 9h2V8h-2z" />
-                    </svg>
-                    Escanear
-                </button>
-                {message && <span className="text-green-600 text-sm font-medium ml-auto">{message}</span>}
+            {/* Date Selection - Mobile Optimized */}
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1">
+                        <label className="font-semibold text-gray-700 text-sm whitespace-nowrap">Fecha:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="flex-1 rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => fetchDailyItems(selectedDate)}
+                            className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded text-sm font-medium transition-colors"
+                        >
+                            Actualizar
+                        </button>
+                        <button
+                            onClick={() => setScannerOpen(true)}
+                            className="flex-1 sm:flex-none bg-gray-700 hover:bg-gray-800 text-white px-4 py-2.5 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                                <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                                <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                                <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                                <path d="M12 9h2V8h-2z" />
+                            </svg>
+                            <span className="hidden sm:inline">Escanear</span>
+                            <span className="sm:hidden">Scan</span>
+                        </button>
+                    </div>
+                </div>
+                {message && <span className="block mt-2 text-green-600 text-sm font-medium">{message}</span>}
             </div>
 
             {loading ? (
@@ -235,67 +242,70 @@ const PlannerExecution = () => {
                     No hay ítems planificados para esta fecha.
                 </div>
             ) : (
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead>
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Item</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Ubicación</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ABC</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Sistema</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider w-32">Físico</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Dif</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {items.map((item, index) => (
-                                <tr key={index} className={item.saved ? "bg-green-50" : ""}>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
-                                        <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">{item.bin_location || 'N/A'}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{item.abc_code}</td>
-                                    <td className="px-6 py-4 text-sm text-right text-gray-900 font-medium">{item.system_qty || 0}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <input
-                                            type="number"
-                                            className="w-24 text-right p-1 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                            value={item.physical_qty}
-                                            onChange={(e) => handleCountChange(index, e.target.value)}
-                                            onBlur={() => calculateDifference(index)}
-                                            disabled={item.saved}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        {item.difference !== null && (
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.difference === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {item.difference > 0 ? `+${item.difference}` : item.difference}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {!item.saved ? (
-                                            <button
-                                                onClick={() => handleSubmit(index)}
-                                                disabled={submitting || item.status !== 'counted'}
-                                                className={`text-white px-3 py-1 rounded text-xs font-bold transition-colors ${item.status === 'counted'
-                                                    ? 'bg-indigo-600 hover:bg-indigo-700'
-                                                    : 'bg-gray-300 cursor-not-allowed'
-                                                    }`}
-                                            >
-                                                Guardar
-                                            </button>
-                                        ) : (
-                                            <span className="text-green-600 font-bold text-xs">OK</span>
-                                        )}
-                                    </td>
+                <div className="bg-white shadow overflow-hidden rounded-lg">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-[#34495e] text-white">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-auto">Item</th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-24">Ubicación</th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">ABC</th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Sistema</th>
+                                    <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Físico</th>
+                                    <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Dif</th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-20">Acción</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {items.map((item, index) => (
+                                    <tr key={index} className={item.saved ? "bg-green-50" : ""}>
+                                        <td className="px-2 py-2">
+                                            <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
+                                            <div className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
+                                        </td>
+                                        <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">{item.bin_location || 'N/A'}</td>
+                                        <td className="px-1 py-2 text-sm text-gray-500 text-center">{item.abc_code}</td>
+                                        <td className="px-1 py-2 text-sm text-center text-gray-900 font-medium">{item.system_qty || 0}</td>
+                                        <td className="px-0 py-2 text-center">
+                                            <input
+                                                id={`qty-${index}`}
+                                                type="number"
+                                                className="w-10 sm:w-12 text-center p-0 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm no-spinner"
+                                                value={item.physical_qty}
+                                                onChange={(e) => handleCountChange(index, e.target.value)}
+                                                onBlur={() => calculateDifference(index)}
+                                                disabled={item.saved}
+                                            />
+                                        </td>
+                                        <td className="px-1 py-2 text-center">
+                                            {item.difference !== null && (
+                                                <span className={`px-1.5 inline-flex text-xs leading-5 font-semibold rounded-full ${item.difference === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    {item.difference > 0 ? `+${item.difference}` : item.difference}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-1 py-2 text-center">
+                                            {!item.saved ? (
+                                                <button
+                                                    onClick={() => handleSubmit(index)}
+                                                    disabled={submitting || item.status !== 'counted'}
+                                                    className={`text-white px-2 py-1 rounded text-xs font-bold transition-colors ${item.status === 'counted'
+                                                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                                                        : 'bg-gray-300 cursor-not-allowed'
+                                                        }`}
+                                                >
+                                                    Guardar
+                                                </button>
+                                            ) : (
+                                                <span className="text-green-600 font-bold text-xs">OK</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

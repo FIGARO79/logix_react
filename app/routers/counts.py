@@ -69,6 +69,52 @@ async def get_item_for_counting(item_code: str, username: str = Depends(api_logi
             raise HTTPException(status_code=404, detail="Artículo no encontrado en el maestro de items.")
 
 
+@router.get('/counts/all')
+async def get_all_counts(username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+    """Obtiene todos los registros de conteo con información enriquecida."""
+    try:
+        all_counts = await db_counts.load_all_counts_db_async(db)
+        
+        # Obtener detalles de sesiones
+        session_ids = list({c.get('session_id') for c in all_counts if c.get('session_id') is not None})
+        session_map = {}
+        
+        if session_ids:
+            result = await db.execute(select(CountSession).where(CountSession.id.in_(session_ids)))
+            sessions = result.scalars().all()
+            session_map = {s.id: {'user': s.user_username, 'stage': s.inventory_stage} for s in sessions}
+
+        enriched_counts = []
+        for count in all_counts:
+            item_code = count.get('item_code')
+            system_qty_raw = master_qty_map.get(item_code)
+            system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
+            counted_qty = int(count.get('counted_qty', 0))
+            difference = (counted_qty - system_qty) if system_qty is not None else None
+            
+            session_info = session_map.get(count.get('session_id'), {})
+            
+            enriched_counts.append({
+                'id': count.get('id'),
+                'session_id': count.get('session_id'),
+                'inventory_stage': session_info.get('stage'),
+                'username': count.get('username') or session_info.get('user'),
+                'timestamp': str(count.get('timestamp', '')).split('.')[0] if count.get('timestamp') else '',
+                'item_code': item_code,
+                'item_description': count.get('item_description'),
+                'counted_location': count.get('counted_location'),
+                'counted_qty': counted_qty,
+                'system_qty': system_qty,
+                'difference': difference,
+                'bin_location_system': count.get('bin_location_system')
+            })
+        
+        return JSONResponse(content=enriched_counts)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {e}")
+
+
 @router.post('/counts')
 async def add_count(data: Count, username: str = Depends(api_login_required)):
     """Añade un conteo básico."""
