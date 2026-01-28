@@ -43,6 +43,7 @@ mysql.txt
 *.egg
 *.bak
 *.backup
+VPS_ubuntu.md
 
 # Mantener archivos importantes aunque sean txt o md
 !requirements.txt
