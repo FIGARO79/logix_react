@@ -121,7 +121,7 @@ const Layout = () => {
 
             {/* Main Content */}
             <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto">
-                <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 max-w-[1400px]">
+                <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
                     <Outlet context={{ setTitle }} /> {/* Renders the child route (e.g. Dashboard) */}
                 </div>
             </main>
