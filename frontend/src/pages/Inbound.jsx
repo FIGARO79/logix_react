@@ -549,8 +549,8 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5 text-gray-600">{new Date(log.timestamp).toLocaleTimeString()}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
-                                                <button onClick={() => startEdit(log)} className="w-6 h-6 text-blue-600 hover:bg-blue-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
-                                                <button onClick={() => handleDelete(log.id)} className="w-6 h-6 text-red-600 hover:bg-red-100 rounded flex items-center justify-center transition-colors" title="Eliminar">🗑</button>
+                                                <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
+                                                <button onClick={() => handleDelete(log.id)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Eliminar">🗑</button>
                                             </div>
                                         </td>
                                     </tr>
