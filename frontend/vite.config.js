@@ -17,5 +17,31 @@ export default defineConfig({
             // Static files (Images, etc)
             '/static': 'http://localhost:8000',
         }
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Separar React y React Router
+                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+                    // Separar bibliotecas de UI y utilidades
+                    'ui-vendor': ['react-toastify', 'react-to-print'],
+                    // Separar QR Code (librería grande)
+                    'qrcode-vendor': ['html5-qrcode', 'qrcode'],
+                    // Separar Axios (HTTP client)
+                    'http-vendor': ['axios']
+                }
+            }
+        },
+        // Aumentar el límite de advertencia a 600kb para chunks individuales
+        chunkSizeWarningLimit: 600,
+        // Minificación mejorada
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Eliminar console.log en producción
+                drop_debugger: true
+            }
+        }
     }
 })
