@@ -121,30 +121,6 @@ const Dashboard = () => {
                             </Link>
                         ))}
                     </div>
-
-                    {/* Quick Stats Section (Optional) */}
-                    <div className="mt-8 sm:mt-12 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide">Hoy</p>
-                            <p className="text-2xl font-bold text-slate-800">--</p>
-                            <p className="text-xs text-slate-400">Entradas</p>
-                        </div>
-                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide">Pendiente</p>
-                            <p className="text-2xl font-bold text-slate-800">--</p>
-                            <p className="text-xs text-slate-400">Conteos</p>
-                        </div>
-                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide">Auditorías</p>
-                            <p className="text-2xl font-bold text-slate-800">--</p>
-                            <p className="text-xs text-slate-400">Esta semana</p>
-                        </div>
-                        <div className="bg-white rounded-lg p-4 border border-slate-200/60 shadow-sm">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide">Diferencias</p>
-                            <p className="text-2xl font-bold text-slate-800">--</p>
-                            <p className="text-xs text-slate-400">Activas</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
