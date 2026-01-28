@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import {
     DownloadIcon, SearchIcon, TagIcon, CartIcon,
     HomeIcon, ChecklistIcon, CalculatorIcon,
@@ -80,6 +80,12 @@ const menuItems = [
 ];
 
 const Dashboard = () => {
+    const { setTitle } = useOutletContext();
+
+    useEffect(() => {
+        setTitle("Dashboard");
+    }, [setTitle]);
+
     return (
         <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header Section */}

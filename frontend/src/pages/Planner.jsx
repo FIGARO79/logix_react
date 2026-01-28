@@ -245,7 +245,7 @@ const Planner = () => {
                     <h2 className="text-base font-bold text-purple-800 mb-0 border-l-4 border-purple-800 pl-2">Ejecución Diaria</h2>
                     <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
                 </div>
-                <Link to="/planner/execution" target="_blank" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
+                <Link to="/planner/execution" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
                     Ir a Pantalla de Conteo
                 </Link>
             </div>
