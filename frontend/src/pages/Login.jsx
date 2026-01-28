@@ -29,7 +29,7 @@ const Login = () => {
                 // Login successful
                 console.log("Login successful", data);
                 // Force full reload to ensure session cookies are picked up and App component re-mounts
-                window.location.href = '/';
+                window.location.href = '/dashboard';
             } else {
                 setError(data.error || "Error al iniciar sesión");
             }
