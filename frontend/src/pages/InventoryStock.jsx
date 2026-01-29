@@ -58,9 +58,10 @@ const InventoryStock = () => {
         { id: "SupersededBy", label: "Reemplazado Por" }
     ];
 
-    const handleSearch = async (e) => {
-        if (e) e.preventDefault();
-        if (!searchTerm.trim()) return;
+    const handleSearch = async (e, term = null) => {
+        if (e?.preventDefault) e.preventDefault();
+        const searchValue = term || searchTerm;
+        if (!searchValue.trim()) return;
 
         setLoading(true);
         setError(null);
@@ -68,7 +69,34 @@ const InventoryStock = () => {
 
         try {
             // Usamos el endpoint específico de item en lugar de traer todo el stock
-            const response = await fetch(`/api/stock_item/${encodeURIComponent(searchTerm.toUpperCase())}`);
+            const response = await fetch(`/api/stock_item/${encodeURIComponent(searchValue.toUpperCase())}`);
+            const data = await response.json();
+
+            if (response.ok && !data.error) {
+                setItemData(data);
+                playSound('success');
+            } else {
+                setError(data.error || "Artículo no encontrado");
+                playSound('error');
+            }
+        } catch (err) {
+            setError("Error de conexión al buscar el artículo");
+            playSound('error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Función para ejecutar búsqueda directamente (usada por el scanner)
+    const executeSearch = async (term) => {
+        if (!term.trim()) return;
+
+        setLoading(true);
+        setError(null);
+        setItemData(null);
+
+        try {
+            const response = await fetch(`/api/stock_item/${encodeURIComponent(term.toUpperCase())}`);
             const data = await response.json();
 
             if (response.ok && !data.error) {
@@ -96,15 +124,23 @@ const InventoryStock = () => {
                 { facingMode: "environment" },
                 { fps: 10, qrbox: 250 },
                 (decodedText) => {
-                    // Success
+                    // Success - guardar término, cerrar y buscar directamente
                     setSearchTerm(decodedText);
                     setScannerOpen(false);
-                    scannerRef.current.stop().then(() => {
-                        try { scannerRef.current.clear(); } catch (e) { }
-                        scannerRef.current = null;
-                        // Trigger search in next tick
-                        setTimeout(() => handleSearch(), 100);
-                    }).catch(console.error);
+
+                    // Detener escáner
+                    const scanner = scannerRef.current;
+                    scannerRef.current = null;
+
+                    scanner.stop().then(() => {
+                        try { scanner.clear(); } catch (e) { }
+                        // Ejecutar búsqueda directamente
+                        executeSearch(decodedText);
+                    }).catch((err) => {
+                        console.error(err);
+                        // Aún así intentar la búsqueda
+                        executeSearch(decodedText);
+                    });
                 },
                 (errorMessage) => { /* ignore */ }
             ).catch(err => {
@@ -116,7 +152,6 @@ const InventoryStock = () => {
         return () => {
             if (scannerRef.current) {
                 try {
-                    // Try to stop if it looks like it's scanning, silence errors
                     scannerRef.current.stop().catch(() => { });
                     try { scannerRef.current.clear(); } catch (e) { }
                 } catch (e) { }

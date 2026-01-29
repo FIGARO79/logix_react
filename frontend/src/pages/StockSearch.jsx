@@ -17,6 +17,33 @@ const StockSearch = () => {
         setTitle('Logix - Consultar Stock');
     }, [setTitle]);
 
+    // Función para ejecutar búsqueda directamente (usada por el scanner)
+    const executeSearch = async (code) => {
+        if (!code.trim()) return;
+
+        setLoading(true);
+        setError('');
+        setItemData(null);
+
+        try {
+            const res = await fetch(`/api/find_item/${encodeURIComponent(code)}/NA`);
+            const data = await res.json();
+
+            if (res.ok) {
+                setItemData(data);
+            } else {
+                setError(data.error || 'Item no encontrado');
+                toast.error(data.error || 'Item no encontrado');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Error de conexión');
+            toast.error('Error de conexión al servidor');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Robust Scanner Effect
     React.useEffect(() => {
         if (scannerOpen) {
@@ -32,17 +59,43 @@ const StockSearch = () => {
                 html5QrCode.start(
                     { facingMode: "environment" },
                     { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => {
-                        // Success callback
-                        setItemCode(decodedText.toUpperCase());
+                    async (decodedText) => {
+                        // Success callback - código detectado
+                        const code = decodedText.toUpperCase();
+                        setItemCode(code);
 
-                        // Stop scanning safely
-                        if (html5QrCode.isScanning) {
-                            html5QrCode.stop().then(() => {
-                                html5QrCode.clear();
-                                setScannerOpen(false);
-                                scannerRef.current = null;
-                            }).catch(console.error);
+                        // Detener escáner inmediatamente
+                        try {
+                            await html5QrCode.stop();
+                            html5QrCode.clear();
+                        } catch (e) {
+                            console.error("Error stopping scanner:", e);
+                        }
+
+                        setScannerOpen(false);
+                        scannerRef.current = null;
+
+                        // Ejecutar búsqueda INLINE
+                        setLoading(true);
+                        setError('');
+                        setItemData(null);
+
+                        try {
+                            const res = await fetch(`/api/find_item/${encodeURIComponent(code)}/NA`);
+                            const data = await res.json();
+
+                            if (res.ok) {
+                                setItemData(data);
+                            } else {
+                                setError(data.error || 'Item no encontrado');
+                                toast.error(data.error || 'Item no encontrado');
+                            }
+                        } catch (err) {
+                            console.error("Error fetching:", err);
+                            setError('Error de conexión');
+                            toast.error('Error de conexión al servidor');
+                        } finally {
+                            setLoading(false);
                         }
                     },
                     (errorMessage) => {
@@ -60,7 +113,6 @@ const StockSearch = () => {
         return () => {
             if (scannerRef.current) {
                 try {
-                    // Try to stop if it looks like it's scanning, silence errors
                     scannerRef.current.stop().catch(() => { });
                     try { scannerRef.current.clear(); } catch (e) { }
                 } catch (e) { }
@@ -152,7 +204,7 @@ const StockSearch = () => {
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full uppercase"
-                                placeholder="Ej: 80205555"
+                                placeholder=""
                                 autoFocus
                             />
                         </div>
