@@ -47,10 +47,13 @@ async def find_item(item_code: str, import_reference: str, username: str = Depen
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
+        "physicalQty": item_details.get('Physical_Qty', '0'),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
         "defaultQtyGrn": expected_quantity,
         "itemType": item_details.get('ABC_Code_stockroom', 'N/A'),
-        "sicCode": item_details.get('SIC_Code_stockroom', 'N/A')
+        "sicCode": item_details.get('SIC_Code_stockroom', 'N/A'),
+        "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
+        "supersededBy": item_details.get('SupersededBy', 'N/A')
     }
     return JSONResponse(content=response_data)
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ScannerModal from '../components/ScannerModal';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
@@ -10,12 +11,30 @@ const StockSearch = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
-    const [torchOn, setTorchOn] = useState(false);
-    const scannerRef = React.useRef(null);
 
     React.useEffect(() => {
         setTitle('Logix - Consultar Stock');
     }, [setTitle]);
+
+    // Audio Beep Function
+    const playBeep = () => {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // 800Hz beep
+        oscillator.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.1);
+
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.15);
+    };
 
     // Función para ejecutar búsqueda directamente (usada por el scanner)
     const executeSearch = async (code) => {
@@ -31,6 +50,7 @@ const StockSearch = () => {
 
             if (res.ok) {
                 setItemData(data);
+                playBeep(); // Beep on success
             } else {
                 setError(data.error || 'Item no encontrado');
                 toast.error(data.error || 'Item no encontrado');
@@ -44,134 +64,16 @@ const StockSearch = () => {
         }
     };
 
-    // Robust Scanner Effect
-    React.useEffect(() => {
-        if (scannerOpen) {
-            import('html5-qrcode').then(({ Html5Qrcode }) => {
-                // Ensure proper cleanup of previous instances
-                if (scannerRef.current) {
-                    try { scannerRef.current.clear(); } catch (e) { }
-                }
-
-                const html5QrCode = new Html5Qrcode("reader");
-                scannerRef.current = html5QrCode;
-
-                html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    async (decodedText) => {
-                        // Success callback - código detectado
-                        const code = decodedText.toUpperCase();
-                        setItemCode(code);
-
-                        // Detener escáner inmediatamente
-                        try {
-                            await html5QrCode.stop();
-                            html5QrCode.clear();
-                        } catch (e) {
-                            console.error("Error stopping scanner:", e);
-                        }
-
-                        setScannerOpen(false);
-                        scannerRef.current = null;
-
-                        // Ejecutar búsqueda INLINE
-                        setLoading(true);
-                        setError('');
-                        setItemData(null);
-
-                        try {
-                            const res = await fetch(`/api/find_item/${encodeURIComponent(code)}/NA`);
-                            const data = await res.json();
-
-                            if (res.ok) {
-                                setItemData(data);
-                            } else {
-                                setError(data.error || 'Item no encontrado');
-                                toast.error(data.error || 'Item no encontrado');
-                            }
-                        } catch (err) {
-                            console.error("Error fetching:", err);
-                            setError('Error de conexión');
-                            toast.error('Error de conexión al servidor');
-                        } finally {
-                            setLoading(false);
-                        }
-                    },
-                    (errorMessage) => {
-                        // parse error, ignore loop
-                    }
-                ).catch((err) => {
-                    console.error("Error starting scanner", err);
-                    toast.error("Error al iniciar cámara: " + err);
-                    setScannerOpen(false);
-                });
-            });
-        }
-
-        // Cleanup function when component unmounts or scanner closes
-        return () => {
-            if (scannerRef.current) {
-                try {
-                    scannerRef.current.stop().catch(() => { });
-                    try { scannerRef.current.clear(); } catch (e) { }
-                } catch (e) { }
-            }
-        };
-    }, [scannerOpen]);
-
-    const toggleTorch = () => {
-        if (scannerRef.current) {
-            scannerRef.current.applyVideoConstraints({
-                advanced: [{ torch: !torchOn }]
-            })
-                .then(() => setTorchOn(!torchOn))
-                .catch(err => {
-                    console.error(err);
-                    toast.error("Flash no disponible");
-                });
-        }
+    const handleScan = (code) => {
+        setScannerOpen(false);
+        setItemCode(code);
+        executeSearch(code);
     };
 
-    const handleStopScanner = () => {
-        if (scannerRef.current) {
-            scannerRef.current.stop().then(() => {
-                try { scannerRef.current.clear(); } catch (e) { }
-                setScannerOpen(false);
-                scannerRef.current = null;
-            }).catch((err) => {
-                console.error(err);
-                setScannerOpen(false);
-            });
-        } else {
-            setScannerOpen(false);
-        }
-    };
     const handleSearch = async (e) => {
         e.preventDefault();
         if (!itemCode.trim()) return;
-
-        setLoading(true);
-        setError('');
-        setItemData(null);
-
-        try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/NA`);
-            const data = await res.json();
-
-            if (res.ok) {
-                setItemData(data);
-            } else {
-                setError(data.error || 'Item no encontrado');
-                toast.error(data.error || 'Item no encontrado');
-            }
-        } catch (err) {
-            console.error(err);
-            setError('Error de conexión');
-            toast.error('Error de conexión al servidor');
-        } finally {
-            setLoading(false);
-        }
+        executeSearch(itemCode);
     };
 
     const clearSearch = () => {
@@ -266,7 +168,7 @@ const StockSearch = () => {
 
                         <div>
                             <label className="form-label text-gray-500">Stock Físico</label>
-                            <div className="data-field font-bold text-lg">
+                            <div className="data-field font-bold bg-blue-50 text-blue-900 border-blue-200">
                                 {itemData.physicalQty || 0}
                             </div>
                         </div>
@@ -274,8 +176,14 @@ const StockSearch = () => {
                         {itemData.aditionalBins && (
                             <div className="col-span-1 md:col-span-2">
                                 <label className="form-label text-gray-500">Ubicaciones Adicionales</label>
-                                <div className="data-field text-sm">
-                                    {itemData.aditionalBins}
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {itemData.aditionalBins.split(',').map((bin, index) => (
+                                        bin.trim() && (
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-sm">
+                                                {bin.trim()}
+                                            </span>
+                                        )
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -286,8 +194,12 @@ const StockSearch = () => {
                                 <div>{itemData.weight || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">Cantidad GRN</label>
-                                <div>{itemData.defaultQtyGrn || '-'}</div>
+                                <label className="form-label text-gray-500">Última Fecha Ingreso</label>
+                                <div>{itemData.dateLastReceived || '-'}</div>
+                            </div>
+                            <div>
+                                <label className="form-label text-gray-500">Reemplazado Por</label>
+                                <div>{itemData.supersededBy || '-'}</div>
                             </div>
                         </div>
                     </div>
@@ -305,32 +217,12 @@ const StockSearch = () => {
             )}
 
             {/* Scanner Modal */}
+            {/* Scanner Modal */}
             {scannerOpen && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
-                        <h3 className="text-center font-bold text-lg mb-4 text-gray-800">Apunta la cámara al código de barras</h3>
-                        <div id="reader" className="rounded-lg overflow-hidden mb-4 border-2 border-gray-100"></div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={toggleTorch}
-                                className={`flex-1 h-12 flex items-center justify-center gap-2 rounded bg-[#34495e] hover:bg-[#2c3e50] text-white font-medium transition-colors ${torchOn ? 'ring-2 ring-yellow-400' : ''}`}
-                                title={torchOn ? "Apagar Flash" : "Encender Flash"}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z" />
-                                </svg>
-                                Flash
-                            </button>
-                            <button
-                                onClick={handleStopScanner}
-                                className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ScannerModal
+                    onScan={handleScan}
+                    onClose={() => setScannerOpen(false)}
+                />
             )}
         </div>
     );

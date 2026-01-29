@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ScannerModal from '../components/ScannerModal';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -47,8 +48,6 @@ const PickingAudit = () => {
     // Scanning
     const [itemCodeInput, setItemCodeInput] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
-    const [torchOn, setTorchOn] = useState(false);
-    const scannerRef = useRef(null);
 
     // Modals & Finalize
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -253,58 +252,8 @@ const PickingAudit = () => {
 
     // -- Scanner Effect --
     // -- Scanner Effect --
-    useEffect(() => {
-        if (scannerOpen) {
-            let html5QrCode;
-            import('html5-qrcode').then(({ Html5Qrcode }) => {
-                html5QrCode = new Html5Qrcode("audit-reader");
-                scannerRef.current = html5QrCode;
-
-                html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: 250 },
-                    (decodedText) => {
-                        // Success
-                        html5QrCode.stop().then(() => {
-                            try { html5QrCode.clear(); } catch (e) { }
-                            setScannerOpen(false);
-                            scannerRef.current = null;
-                            handleScan(decodedText);
-                        }).catch(() => setScannerOpen(false));
-                    },
-                    (errorMessage) => {
-                        // parse error
-                    }
-                ).catch(err => {
-                    console.error(err);
-                    setScannerOpen(false);
-                    toast.error("Cámara no disponible");
-                });
-            });
-
-            return () => {
-                if (html5QrCode) {
-                    try {
-                        html5QrCode.stop().catch(() => { });
-                        try { html5QrCode.clear(); } catch (e) { }
-                    } catch (e) { }
-                }
-            };
-        }
-    }, [scannerOpen]);
-
-    const toggleTorch = () => {
-        if (scannerRef.current) {
-            scannerRef.current.applyVideoConstraints({
-                advanced: [{ torch: !torchOn }]
-            })
-                .then(() => setTorchOn(!torchOn))
-                .catch(err => {
-                    console.error(err);
-                    toast.error("Flash no disponible");
-                });
-        }
-    };
+    // -- Scanner Logic --
+    // The previous manual useEffect is removed in favor of ScannerModal
 
 
     // -- Render --
@@ -395,37 +344,14 @@ const PickingAudit = () => {
                 {/* Modals */}
                 {/* Scanner Modal */}
                 {scannerOpen && (
-                    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-                            <h3 className="text-center font-bold text-lg mb-4 text-gray-800">Escanear Código</h3>
-                            <div id="audit-reader" className="rounded-lg overflow-hidden mb-4 border-2 border-gray-100"></div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={toggleTorch}
-                                    className={`flex-1 h-12 flex items-center justify-center gap-2 rounded bg-[#34495e] hover:bg-[#2c3e50] text-white font-medium transition-colors ${torchOn ? 'ring-2 ring-yellow-400' : ''}`}
-                                    title={torchOn ? "Apagar Flash" : "Encender Flash"}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z" />
-                                    </svg>
-                                    Flash
-                                </button>
-                                <button onClick={() => {
-                                    if (scannerRef.current) {
-                                        scannerRef.current.stop()
-                                            .then(() => {
-                                                try { scannerRef.current.clear(); } catch (e) { }
-                                                setScannerOpen(false);
-                                                scannerRef.current = null;
-                                            })
-                                            .catch(() => setScannerOpen(false));
-                                    } else {
-                                        setScannerOpen(false);
-                                    }
-                                }} className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors">Cancelar</button>
-                            </div>
-                        </div>
-                    </div>
+                    <ScannerModal
+                        title="Escanear Código"
+                        onScan={(code) => {
+                            setScannerOpen(false);
+                            handleScan(code);
+                        }}
+                        onClose={() => setScannerOpen(false)}
+                    />
                 )}
 
                 {/* Confirmation Modal */}
