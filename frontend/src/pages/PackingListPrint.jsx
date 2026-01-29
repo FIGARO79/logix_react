@@ -64,11 +64,12 @@ const PackingListPrint = () => {
             <head>
                 <title>Packing List - ${data.order_number}</title>
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; color: black; }
+                    body { font-family: Arial, sans-serif; padding: 0; margin: 0; color: black; }
+                    .package-page { padding: 40px; box-sizing: border-box; height: 100vh; position: relative; }
                     .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
                     .header h1 { margin: 0; font-size: 24px; color: #0a6ed1; }
                     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; font-size: 14px; }
-                    .package { border: 1px solid #ccc; margin-bottom: 20px; page-break-inside: avoid; }
+                    .package-content { border: 1px solid #ccc; margin-bottom: 20px; }
                     .package-header { background: #f0f0f0; padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; }
                     table { width: 100%; border-collapse: collapse; font-size: 12px; }
                     th { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; background: #fafafa; }
@@ -76,57 +77,65 @@ const PackingListPrint = () => {
                     .text-right { text-align: right; }
                     @media print {
                         .no-print { display: none; }
-                        @page { margin: 1cm; size: A4; }
+                        @page { margin: 0; size: A4; }
                         body { -webkit-print-color-adjust: exact; }
                         .package-header { background: #f0f0f0 !important; }
+                        .package-page { height: auto; page-break-after: always; padding: 1cm; }
+                        .package-page:last-child { page-break-after: auto; }
                     }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h1>PACKING LIST</h1>
-                    <div>${data.timestamp}</div>
-                </div>
-
-                <div class="info-grid">
-                    <div>
-                        <strong>CLIENTE:</strong><br>${data.customer_name}
-                    </div>
-                    <div class="text-right">
-                        <strong>TOTAL BULTOS:</strong><br>${data.total_packages}
-                    </div>
-                    <div>
-                        <strong>PEDIDO:</strong><br>${data.order_number}
-                    </div>
-                    <div class="text-right">
-                        <strong>DESPACHO:</strong><br>${data.despatch_number}
-                    </div>
-                </div>
-
-                ${sortedPackageKeys.map(key => `
-                    <div class="package">
-                        <div class="package-header">
-                            <span>BULTO #${key}</span>
-                            <span>BOX-${key.padStart(3, '0')}</span>
+                ${sortedPackageKeys.map((key, index) => `
+                    <div class="package-page" style="${index < sortedPackageKeys.length - 1 ? 'page-break-after: always;' : ''}">
+                        <div class="header">
+                            <h1>PACKING LIST</h1>
+                            <div>${data.timestamp}</div>
                         </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>CÓDIGO</th>
-                                    <th>DESCRIPCIÓN</th>
-                                    <th class="text-right">CANTIDAD</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${packages[key].map(item => `
+
+                        <div class="info-grid">
+                            <div>
+                                <strong>CLIENTE:</strong><br>${data.customer_name}
+                            </div>
+                            <div class="text-right">
+                                <strong>BULTO:</strong><br><span style="font-size: 1.2em; font-weight: bold;">${key}</span> / ${data.total_packages}
+                            </div>
+                            <div>
+                                <strong>PEDIDO:</strong><br>${data.order_number}
+                            </div>
+                            <div class="text-right">
+                                <strong>DESPACHO:</strong><br>${data.despatch_number}
+                            </div>
+                        </div>
+
+                        <div class="package-content">
+                            <div class="package-header">
+                                <span>CONTENIDO BULTO #${key}</span>
+                                <span>BOX-${key.padStart(3, '0')}</span>
+                            </div>
+                            <table>
+                                <thead>
                                     <tr>
-                                        <td>${item.item_code}</td>
-                                        <td>${item.description}</td>
-                                        <td class="text-right">${item.quantity}</td>
+                                        <th>CÓDIGO</th>
+                                        <th>DESCRIPCIÓN</th>
+                                        <th class="text-right">CANTIDAD</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${packages[key].map(item => `
+                                        <tr>
+                                            <td>${item.item_code}</td>
+                                            <td>${item.description}</td>
+                                            <td class="text-right">${item.quantity}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #999;">
+                            Página ${index + 1} de ${sortedPackageKeys.length}
+                        </div>
                     </div>
                 `).join('')}
             </body>

@@ -167,7 +167,13 @@ const PickingAudit = () => {
         if (!cleanCode) return;
 
         // Find item in list
-        const itemIndex = orderItems.findIndex(i => i.code === cleanCode);
+        // Prioridad: Buscar primero una línea que NO esté completa
+        let itemIndex = orderItems.findIndex(i => i.code === cleanCode && i.qty_scan < i.qty_req);
+
+        // Si todas están completas (o no encontró), buscar la primera coincidencia general para sumar el exceso
+        if (itemIndex === -1) {
+            itemIndex = orderItems.findIndex(i => i.code === cleanCode);
+        }
 
         if (itemIndex > -1) {
             const newItems = [...orderItems];

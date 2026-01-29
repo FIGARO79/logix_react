@@ -35,9 +35,17 @@ async def get_picking_order(order_number: str, despatch_number: str):
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
+        # Limpiar espacios en blanco en columnas clave
+        df["ORDER_"] = df["ORDER_"].astype(str).str.strip()
+        df["DESPATCH_"] = df["DESPATCH_"].astype(str).str.strip()
+
+        # Limpiar inputs
+        order_number_clean = str(order_number).strip()
+        despatch_number_clean = str(despatch_number).strip()
+
         order_data = df[
-            (df["ORDER_"] == order_number) & 
-            (df["DESPATCH_"] == despatch_number)
+            (df["ORDER_"] == order_number_clean) & 
+            (df["DESPATCH_"] == despatch_number_clean)
         ]
 
         if order_data.empty:
@@ -53,8 +61,8 @@ async def get_picking_order(order_number: str, despatch_number: str):
             "ORDER_LINE": "Order Line"
         })
 
-        order_data = order_data.where(pd.notnull(order_data), None)
-
+        order_data = order_data.fillna("")
+        
         return JSONResponse(content=order_data.to_dict(orient="records"))
 
     except Exception as e:
@@ -88,6 +96,10 @@ async def get_picking_tracking():
                 if pd.notna(val) and str(val).strip() != "":
                     return str(val).strip()
             return None
+
+        # Limpiar datos clave antes de agrupar
+        df["ORDER_"] = df["ORDER_"].astype(str).str.strip()
+        df["DESPATCH_"] = df["DESPATCH_"].astype(str).str.strip()
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
         grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER_NAME"], as_index=False).agg(
