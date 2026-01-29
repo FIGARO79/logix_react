@@ -23,7 +23,7 @@ const StockSearch = () => {
             import('html5-qrcode').then(({ Html5Qrcode }) => {
                 // Ensure proper cleanup of previous instances
                 if (scannerRef.current) {
-                    scannerRef.current.clear().catch(console.error);
+                    try { scannerRef.current.clear(); } catch (e) { }
                 }
 
                 const html5QrCode = new Html5Qrcode("reader");
@@ -35,9 +35,15 @@ const StockSearch = () => {
                     (decodedText) => {
                         // Success callback
                         setItemCode(decodedText.toUpperCase());
-                        handleStopScanner();
-                        // Optional: Trigger search immediately
-                        // handleSearch(new Event('submit')); 
+
+                        // Stop scanning safely
+                        if (html5QrCode.isScanning) {
+                            html5QrCode.stop().then(() => {
+                                html5QrCode.clear();
+                                setScannerOpen(false);
+                                scannerRef.current = null;
+                            }).catch(console.error);
+                        }
                     },
                     (errorMessage) => {
                         // parse error, ignore loop
@@ -52,8 +58,12 @@ const StockSearch = () => {
 
         // Cleanup function when component unmounts or scanner closes
         return () => {
-            if (scannerRef.current && scannerRef.current.isScanning) {
-                scannerRef.current.stop().then(() => scannerRef.current.clear()).catch(console.error);
+            if (scannerRef.current) {
+                try {
+                    // Try to stop if it looks like it's scanning, silence errors
+                    scannerRef.current.stop().catch(() => { });
+                    try { scannerRef.current.clear(); } catch (e) { }
+                } catch (e) { }
             }
         };
     }, [scannerOpen]);
@@ -74,9 +84,13 @@ const StockSearch = () => {
     const handleStopScanner = () => {
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
-                scannerRef.current.clear();
+                try { scannerRef.current.clear(); } catch (e) { }
                 setScannerOpen(false);
-            }).catch(console.error);
+                scannerRef.current = null;
+            }).catch((err) => {
+                console.error(err);
+                setScannerOpen(false);
+            });
         } else {
             setScannerOpen(false);
         }
@@ -90,7 +104,7 @@ const StockSearch = () => {
         setItemData(null);
 
         try {
-            const res = await fetch(`http://localhost:8000/api/find_item/${encodeURIComponent(itemCode)}/NA`);
+            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/NA`);
             const data = await res.json();
 
             if (res.ok) {

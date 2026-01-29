@@ -260,11 +260,11 @@ const PickingAudit = () => {
                     (decodedText) => {
                         // Success
                         html5QrCode.stop().then(() => {
-                            html5QrCode.clear();
+                            try { html5QrCode.clear(); } catch (e) { }
                             setScannerOpen(false);
                             scannerRef.current = null;
                             handleScan(decodedText);
-                        }).catch(console.error);
+                        }).catch(() => setScannerOpen(false));
                     },
                     (errorMessage) => {
                         // parse error
@@ -277,8 +277,11 @@ const PickingAudit = () => {
             });
 
             return () => {
-                if (html5QrCode && html5QrCode.isScanning) {
-                    html5QrCode.stop().then(() => html5QrCode.clear()).catch(console.error);
+                if (html5QrCode) {
+                    try {
+                        html5QrCode.stop().catch(() => { });
+                        try { html5QrCode.clear(); } catch (e) { }
+                    } catch (e) { }
                 }
             };
         }
@@ -402,8 +405,17 @@ const PickingAudit = () => {
                                     Flash
                                 </button>
                                 <button onClick={() => {
-                                    if (scannerRef.current) scannerRef.current.stop();
-                                    setScannerOpen(false);
+                                    if (scannerRef.current) {
+                                        scannerRef.current.stop()
+                                            .then(() => {
+                                                try { scannerRef.current.clear(); } catch (e) { }
+                                                setScannerOpen(false);
+                                                scannerRef.current = null;
+                                            })
+                                            .catch(() => setScannerOpen(false));
+                                    } else {
+                                        setScannerOpen(false);
+                                    }
                                 }} className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors">Cancelar</button>
                             </div>
                         </div>

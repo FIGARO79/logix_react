@@ -57,3 +57,14 @@ databases/*.csv
 
 # Ignorar archivos de caché generados automáticamente
 databases/stock_qty_cache.json
+
+# Certificados SSL locales
+certs/
+*.crt
+*.key
+*.pem
+
+# Frontend Dist (Si se desea versionar el build, comentar esta línea)
+# frontend/dist/
+frontend/node_modules/
+

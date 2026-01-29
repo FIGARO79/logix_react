@@ -35,7 +35,7 @@ const Planner = () => {
         const loadInitialData = async () => {
             try {
                 // 1. Configuración
-                const resConfig = await fetch('http://localhost:8000/api/planner/config');
+                const resConfig = await fetch('/api/planner/config');
                 if (resConfig.ok) {
                     const data = await resConfig.json();
                     setConfig(data);
@@ -43,7 +43,7 @@ const Planner = () => {
                 }
 
                 // 2. Plan Actual (Items planos)
-                const resPlan = await fetch('http://localhost:8000/api/planner/current_plan');
+                const resPlan = await fetch('/api/planner/current_plan');
                 if (resPlan.ok) {
                     const data = await resPlan.json();
                     // El endpoint devuelve objeto {details: []} usualmente si se guardó
@@ -52,7 +52,7 @@ const Planner = () => {
                 }
 
                 // 3. Ejecución (Stats)
-                const resStats = await fetch('http://localhost:8000/api/planner/execution/stats');
+                const resStats = await fetch('/api/planner/execution/stats');
                 if (resStats.ok) {
                     const data = await resStats.json();
                     setStats(data);
@@ -148,7 +148,7 @@ const Planner = () => {
         setLoading(true);
         try {
             const query = new URLSearchParams({ start_date: config.start_date, end_date: config.end_date }).toString();
-            const res = await fetch(`http://localhost:8000/api/planner/update_plan?${query}`, { method: 'POST' });
+            const res = await fetch(`/api/planner/update_plan?${query}`, { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
                 setPlanDetails(data.details || []); // FIX: data.details
@@ -168,7 +168,7 @@ const Planner = () => {
         const newConfig = { ...config, holidays: holidaysArray };
 
         try {
-            const res = await fetch('http://localhost:8000/api/planner/config', {
+            const res = await fetch('/api/planner/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newConfig)
@@ -231,7 +231,7 @@ const Planner = () => {
                         <button onClick={handleUpdatePlan} disabled={loading} className="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">
                             {loading ? 'Calculando...' : 'Actualizar Planificación'}
                         </button>
-                        <button onClick={() => window.location.href = `http://localhost:8000/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
+                        <button onClick={() => window.location.href = `/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
                             className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">
                             Generar Excel
                         </button>

@@ -244,17 +244,23 @@ const CycleCounts = () => {
                     { facingMode: "environment" },
                     { fps: 10, qrbox: 250 },
                     (decodedText) => {
-                        setScannerOpen(false);
-                        scannerRef.current.stop().then(() => {
-                            scannerRef.current.clear();
-                            scannerRef.current = null;
-                            if (scanTarget === 'location') {
-                                setCountedLocation(decodedText.toUpperCase());
-                            } else if (scanTarget === 'item') {
-                                setItemCode(decodedText.toUpperCase());
-                                fetchItemData(decodedText.toUpperCase());
-                            }
-                        });
+                        // FIX: Stop scanner first, then close modal
+                        if (scannerRef.current) {
+                            scannerRef.current.stop().then(() => {
+                                try { scannerRef.current.clear(); } catch (e) { }
+                                scannerRef.current = null;
+                                setScannerOpen(false); // Close UI here
+
+                                if (scanTarget === 'location') {
+                                    setCountedLocation(decodedText.toUpperCase());
+                                } else if (scanTarget === 'item') {
+                                    setItemCode(decodedText.toUpperCase());
+                                    fetchItemData(decodedText.toUpperCase());
+                                }
+                            }).catch(() => setScannerOpen(false));
+                        } else {
+                            setScannerOpen(false);
+                        }
                     },
                     () => { }
                 ).catch(err => {
@@ -263,6 +269,15 @@ const CycleCounts = () => {
                 });
             });
         }
+
+        return () => {
+            if (scannerRef.current) {
+                try {
+                    scannerRef.current.stop().catch(() => { });
+                    try { scannerRef.current.clear(); } catch (e) { }
+                } catch (e) { }
+            }
+        };
     }, [scannerOpen]);
 
 
@@ -427,8 +442,17 @@ const CycleCounts = () => {
                                 Flash
                             </button>
                             <button onClick={() => {
-                                if (scannerRef.current) scannerRef.current.stop();
-                                setScannerOpen(false);
+                                if (scannerRef.current) {
+                                    scannerRef.current.stop()
+                                        .then(() => {
+                                            try { scannerRef.current.clear(); } catch (e) { }
+                                            setScannerOpen(false);
+                                            scannerRef.current = null;
+                                        })
+                                        .catch(() => setScannerOpen(false));
+                                } else {
+                                    setScannerOpen(false);
+                                }
                             }} className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors">Cancelar</button>
                         </div>
                     </div>

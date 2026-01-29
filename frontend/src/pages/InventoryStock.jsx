@@ -68,7 +68,7 @@ const InventoryStock = () => {
 
         try {
             // Usamos el endpoint específico de item en lugar de traer todo el stock
-            const response = await fetch(`http://localhost:8000/api/stock_item/${encodeURIComponent(searchTerm.toUpperCase())}`);
+            const response = await fetch(`/api/stock_item/${encodeURIComponent(searchTerm.toUpperCase())}`);
             const data = await response.json();
 
             if (response.ok && !data.error) {
@@ -100,11 +100,11 @@ const InventoryStock = () => {
                     setSearchTerm(decodedText);
                     setScannerOpen(false);
                     scannerRef.current.stop().then(() => {
-                        scannerRef.current.clear();
+                        try { scannerRef.current.clear(); } catch (e) { }
                         scannerRef.current = null;
-                    });
-                    // Trigger search in next tick
-                    setTimeout(() => handleSearch(), 100);
+                        // Trigger search in next tick
+                        setTimeout(() => handleSearch(), 100);
+                    }).catch(console.error);
                 },
                 (errorMessage) => { /* ignore */ }
             ).catch(err => {
@@ -112,16 +112,28 @@ const InventoryStock = () => {
                 setScannerOpen(false);
             });
         }
+        // Cleanup
+        return () => {
+            if (scannerRef.current) {
+                try {
+                    // Try to stop if it looks like it's scanning, silence errors
+                    scannerRef.current.stop().catch(() => { });
+                    try { scannerRef.current.clear(); } catch (e) { }
+                } catch (e) { }
+            }
+        };
     }, [scannerOpen]);
 
     const closeScanner = () => {
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
-                scannerRef.current.clear();
+                try { scannerRef.current.clear(); } catch (e) { }
+                setScannerOpen(false);
                 scannerRef.current = null;
-            });
+            }).catch(() => setScannerOpen(false));
+        } else {
+            setScannerOpen(false);
         }
-        setScannerOpen(false);
     };
 
     return (

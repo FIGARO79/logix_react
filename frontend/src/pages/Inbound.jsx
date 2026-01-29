@@ -54,8 +54,8 @@ const Inbound = () => {
     const loadLogs = async (version = '') => {
         try {
             const url = version
-                ? `http://localhost:8000/api/get_logs?version_date=${version}`
-                : `http://localhost:8000/api/get_logs`;
+                ? `/api/get_logs?version_date=${version}`
+                : `/api/get_logs`;
             const res = await fetch(url);
             if (res.ok) setLogs(await res.json());
         } catch (e) { console.error("Error loading logs", e); }
@@ -63,7 +63,7 @@ const Inbound = () => {
 
     const loadVersions = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/inbound/versions');
+            const res = await fetch('/api/inbound/versions');
             if (res.ok) setVersions(await res.json());
         } catch (e) { console.error(e); }
     };
@@ -75,7 +75,7 @@ const Inbound = () => {
         }
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/find_item/${encodeURIComponent(itemCode)}/${encodeURIComponent(importRef)}`);
+            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/${encodeURIComponent(importRef)}`);
             const data = await res.json();
             if (res.ok) {
                 setItemData(data);
@@ -108,7 +108,7 @@ const Inbound = () => {
             let res;
             if (editId) {
                 // Endpoint para actualizar
-                res = await fetch(`http://localhost:8000/api/inbound/log/${editId}`, {
+                res = await fetch(`/api/inbound/log/${editId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -119,7 +119,7 @@ const Inbound = () => {
                 });
             } else {
                 // Endpoint para crear
-                res = await fetch(`http://localhost:8000/api/add_log`, {
+                res = await fetch(`/api/add_log`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -139,7 +139,7 @@ const Inbound = () => {
     const handleDelete = async (id) => {
         if (!confirm("¿Eliminar registro?")) return;
         try {
-            await fetch(`http://localhost:8000/api/delete_log/${id}`, { method: 'DELETE' });
+            await fetch(`/api/delete_log/${id}`, { method: 'DELETE' });
             loadLogs();
         } catch (e) { alert("Error"); }
     };
@@ -147,7 +147,7 @@ const Inbound = () => {
     const handleArchive = async () => {
         if (!confirm("¿Archivar registros actuales y limpiar base?")) return;
         try {
-            await fetch(`http://localhost:8000/api/inbound/archive`, { method: 'POST' });
+            await fetch(`/api/inbound/archive`, { method: 'POST' });
             loadLogs();
             loadVersions();
         } catch (e) { alert("Error"); }
@@ -171,7 +171,7 @@ const Inbound = () => {
         setQuantity(log.qtyReceived);
         setRelocatedBin(log.relocatedBin || '');
         // Buscar datos del item para llenar la UI
-        fetch(`http://localhost:8000/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
+        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
             .then(r => r.json())
             .then(data => setItemData(data));
     };
@@ -206,8 +206,16 @@ const Inbound = () => {
         }
 
         return () => {
-            if (scannerRef.current && scannerRef.current.isScanning) {
-                scannerRef.current.stop().catch(console.error);
+            // Cleanup safety net
+            if (scannerRef.current) {
+                try {
+                    if (scannerRef.current.isScanning) {
+                        scannerRef.current.stop().catch(console.error);
+                    }
+                    scannerRef.current.clear();
+                } catch (e) {
+                    // Ignore clear errors on unmount
+                }
             }
         };
     }, [scannerOpen]);
@@ -230,7 +238,7 @@ const Inbound = () => {
         if (!code || !importRef) return; // Silent return if missing deps
         // Logic duplicated from findItem but accepts code arg
         setLoading(true);
-        fetch(`http://localhost:8000/api/find_item/${encodeURIComponent(code)}/${encodeURIComponent(importRef)}`)
+        fetch(`/api/find_item/${encodeURIComponent(code)}/${encodeURIComponent(importRef)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
@@ -587,8 +595,17 @@ const Inbound = () => {
                                 Flash
                             </button>
                             <button onClick={() => {
-                                if (scannerRef.current) scannerRef.current.stop();
-                                setScannerOpen(false);
+                                if (scannerRef.current) {
+                                    scannerRef.current.stop()
+                                        .then(() => {
+                                            try { scannerRef.current.clear(); } catch (e) { }
+                                            setScannerOpen(false);
+                                            scannerRef.current = null;
+                                        })
+                                        .catch(() => setScannerOpen(false));
+                                } else {
+                                    setScannerOpen(false);
+                                }
                             }} className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors">Cancelar</button>
                         </div>
                     </div>

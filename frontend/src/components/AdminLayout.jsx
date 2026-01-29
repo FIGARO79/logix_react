@@ -6,7 +6,7 @@ const AdminLayout = ({ children, title }) => {
 
     const handleLogout = async () => {
         // Logic to logout
-        navigate('/');
+        navigate('/dashboard');
     };
 
     return (

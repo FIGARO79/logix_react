@@ -52,8 +52,11 @@ const PlannerExecution = () => {
         }
 
         return () => {
-            if (scannerRef.current && scannerRef.current.isScanning) {
-                scannerRef.current.stop().then(() => scannerRef.current.clear()).catch(console.error);
+            if (scannerRef.current) {
+                try {
+                    scannerRef.current.stop().catch(() => { });
+                    try { scannerRef.current.clear(); } catch (e) { }
+                } catch (e) { }
             }
         };
     }, [scannerOpen]);
@@ -91,8 +94,20 @@ const PlannerExecution = () => {
             }, 100);
 
             // Stop scanner? User choice usually. Let's close it to let them count.
-            setScannerOpen(false);
-            if (scannerRef.current) scannerRef.current.stop().then(() => scannerRef.current.clear());
+            // Stop scanner safely
+            // Stop scanner safely
+            if (scannerRef.current) {
+                scannerRef.current.stop().then(() => {
+                    try { scannerRef.current.clear(); } catch (e) { }
+                    scannerRef.current = null;
+                    setScannerOpen(false); // Close modal only ONLY after stop
+                }).catch((err) => {
+                    console.error("Failed to stop scanner", err);
+                    setScannerOpen(false); // Force close on error
+                });
+            } else {
+                setScannerOpen(false);
+            }
 
         } else {
             toast.warning("Item no está en la lista de hoy");
@@ -105,7 +120,7 @@ const PlannerExecution = () => {
         setError(null);
         setItems([]);
         try {
-            const response = await fetch(`http://localhost:8000/api/planner/execution/daily_items?date=${date}`);
+            const response = await fetch(`/api/planner/execution/daily_items?date=${date}`);
             if (!response.ok) throw new Error('Error al cargar ítems planificados');
 
             const data = await response.json();
@@ -166,7 +181,7 @@ const PlannerExecution = () => {
                 abc_code: item.abc_code
             };
 
-            const response = await fetch('http://localhost:8000/api/planner/save_execution', {
+            const response = await fetch('/api/planner/save_execution', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -328,8 +343,17 @@ const PlannerExecution = () => {
                                 Flash
                             </button>
                             <button onClick={() => {
-                                if (scannerRef.current) scannerRef.current.stop();
-                                setScannerOpen(false);
+                                if (scannerRef.current) {
+                                    scannerRef.current.stop()
+                                        .then(() => {
+                                            try { scannerRef.current.clear(); } catch (e) { }
+                                            setScannerOpen(false);
+                                            scannerRef.current = null;
+                                        })
+                                        .catch(() => setScannerOpen(false));
+                                } else {
+                                    setScannerOpen(false);
+                                }
                             }} className="flex-1 h-12 flex items-center justify-center bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded transition-colors">Cancelar</button>
                         </div>
                     </div>

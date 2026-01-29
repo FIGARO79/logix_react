@@ -41,7 +41,7 @@ const LabelPrinting = () => {
         setItemData(null);
 
         try {
-            const res = await fetch(`http://localhost:8000/api/get_item_details/${encodeURIComponent(itemCode.toUpperCase())}`);
+            const res = await fetch(`/api/get_item_details/${encodeURIComponent(itemCode.toUpperCase())}`);
             const data = await res.json();
 
             if (res.ok) {

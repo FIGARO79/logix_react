@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 import pandas as pd
 import os
@@ -45,6 +45,7 @@ async def update_files_get(request: Request, username: str = Depends(login_requi
 @router.post('/api/update', response_class=JSONResponse)
 async def update_files_post(
     request: Request,
+    background_tasks: BackgroundTasks,
     item_master: UploadFile = File(None),
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
@@ -61,74 +62,68 @@ async def update_files_post(
 
     # Manejo del maestro de items
     if item_master and item_master.filename:
-        if item_master.filename == os.path.basename(ITEM_MASTER_CSV_PATH):
-            with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
-                shutil.copyfileobj(item_master.file, buffer)
-            message += f'Archivo "{item_master.filename}" actualizado. '
-            files_uploaded = True
-        else:
-            error += f'Nombre incorrecto para maestro de items. Se esperaba "{os.path.basename(ITEM_MASTER_CSV_PATH)}". '
+        # Permitir cualquier nombre, confiamos en la clasificación del frontend
+        with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
+            shutil.copyfileobj(item_master.file, buffer)
+        message += f'Archivo "{item_master.filename}" actualizado (Maestro). '
+        files_uploaded = True
 
     # Manejo del archivo GRN (280)
     if grn_file and grn_file.filename:
-        if grn_file.filename == os.path.basename(GRN_CSV_FILE_PATH):
-            try:
-                new_data_df = pd.read_csv(grn_file.file, dtype=str)
-                
-                if selected_grns_280:
-                    try:
-                        selected_list = json.loads(selected_grns_280)
-                        if selected_list:
-                            original_count = len(new_data_df)
-                            new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
-                            message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
-                    except json.JSONDecodeError:
-                        pass
+        try:
+            new_data_df = pd.read_csv(grn_file.file, dtype=str)
+            
+            if selected_grns_280:
+                try:
+                    selected_list = json.loads(selected_grns_280)
+                    if selected_list:
+                        original_count = len(new_data_df)
+                        new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
+                        message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
+                except json.JSONDecodeError:
+                    pass
 
-                if update_option_280 == 'combine':
-                    if os.path.exists(GRN_CSV_FILE_PATH):
-                        existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
-                        
-                        # Obtener las GRNs que vienen en el archivo nuevo
-                        new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
-                        
-                        # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
-                        # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
-                        existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
-                        
-                        # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
-                        combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
-                    else:
-                        combined_df = new_data_df
+            if update_option_280 == 'combine':
+                if os.path.exists(GRN_CSV_FILE_PATH):
+                    existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
+                    
+                    # Obtener las GRNs que vienen en el archivo nuevo
+                    new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
+                    
+                    # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
+                    # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
+                    existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
+                    
+                    # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
+                    combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
+                else:
+                    combined_df = new_data_df
 
-                    combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
-                    message += f'Archivo "{grn_file.filename}" combinado. '
-                
-                else:  # 'replace'
-                    new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
-                    message += f'Archivo "{grn_file.filename}" reemplazado. '
-                
-                files_uploaded = True
-            except Exception as e:
-                import traceback
-                print(f"ERROR procesando archivo GRN: {str(e)}")
-                print(traceback.format_exc())
-                error += f'Error procesando archivo GRN: {str(e)}. '
-        else:
-            error += f'Nombre incorrecto para archivo GRN. Se esperaba "{os.path.basename(GRN_CSV_FILE_PATH)}". '
+                combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                message += f'Archivo "{grn_file.filename}" combinado. '
+            
+            else:  # 'replace'
+                new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                message += f'Archivo "{grn_file.filename}" reemplazado. '
+            
+            files_uploaded = True
+        except Exception as e:
+            import traceback
+            print(f"ERROR procesando archivo GRN: {str(e)}")
+            print(traceback.format_exc())
+            error += f'Error procesando archivo GRN: {str(e)}. '
 
     # Manejo del archivo de picking (240)
     if picking_file and picking_file.filename:
-        if picking_file.filename == os.path.basename(PICKING_CSV_PATH):
-            with open(PICKING_CSV_PATH, "wb") as buffer:
-                shutil.copyfileobj(picking_file.file, buffer)
-            message += f'Archivo "{picking_file.filename}" actualizado. '
-            files_uploaded = True
-        else:
-            error += f'Nombre incorrecto para archivo de picking. Se esperaba "{os.path.basename(PICKING_CSV_PATH)}". '
+        with open(PICKING_CSV_PATH, "wb") as buffer:
+            shutil.copyfileobj(picking_file.file, buffer)
+        message += f'Archivo "{picking_file.filename}" actualizado (Picking). '
+        files_uploaded = True
 
     if files_uploaded:
-        await load_csv_data()
+        # Procesar en segundo plano para no bloquear al usuario
+        background_tasks.add_task(load_csv_data)
+        message += " Procesamiento de datos iniciado en segundo plano."
 
     if not files_uploaded and not error:
         error = "No seleccionaste ningún archivo para subir."

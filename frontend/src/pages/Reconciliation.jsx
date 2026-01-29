@@ -9,7 +9,7 @@ const Reconciliation = () => {
     // Fetch data
     const fetchData = () => {
         setLoading(true);
-        fetch('http://localhost:8000/api/views/reconciliation')
+        fetch('/api/views/reconciliation')
             .then(res => res.json())
             .then(response => {
                 if (response.data) setData(response.data);

@@ -77,7 +77,7 @@ const Layout = () => {
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
                 <nav className="py-2 space-y-0.5">
-                    <MenuItem to="/" icon={<HomeIcon />} label="Inicio" onClick={toggleMenu} />
+                    <MenuItem to="/dashboard" icon={<HomeIcon />} label="Inicio" onClick={toggleMenu} />
                     <MenuItem to="/stock" icon={<SearchIcon />} label="Consultar Stock" onClick={toggleMenu} />
                     <MenuItem to="/inbound" icon={<DownloadIcon />} label="Inbound" onClick={toggleMenu} />
                     <MenuItem to="/label" icon={<TagIcon />} label="Etiquetado" onClick={toggleMenu} />

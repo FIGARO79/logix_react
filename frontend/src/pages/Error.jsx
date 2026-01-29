@@ -1,10 +1,7 @@
 import React from 'react';
-import { useRouteError, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const ErrorPage = () => {
-    const error = useRouteError();
-    console.error(error);
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-xl shadow-2xl">
@@ -15,15 +12,15 @@ const ErrorPage = () => {
                 </div>
                 <div>
                     <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                        ¡Algo salió mal!
+                        Página no encontrada
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
-                        {error?.statusText || error?.message || "Ha ocurrido un error inesperado."}
+                        La ruta que buscas no existe o ha sido movida.
                     </p>
                 </div>
                 <div className="mt-8">
                     <Link
-                        to="/"
+                        to="/dashboard"
                         className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg transition duration-150 ease-in-out"
                     >
                         Volver al Inicio

@@ -64,39 +64,36 @@ function App() {
                     <Route path="/set_password" element={<SetPassword />} />
 
                     {/* Protected Routes wrapped in Layout */}
-                    <Route path="/dashboard" element={
+                    {/* Protected Routes wrapped in Layout */}
+                    <Route element={
                         <ProtectedRoute>
                             <Layout />
                         </ProtectedRoute>
                     }>
-                        <Route index element={<Dashboard />} />
-                        <Route path="inbound" element={<Inbound />} />
-                        <Route path="label" element={<LabelPrinting />} />
-                        <Route path="stock" element={<StockSearch />} />
-                        <Route path="update" element={<Update />} />
-                        <Route path="reconciliation" element={<Reconciliation />} />
-                        <Route path="view_picking_audits" element={<PickingAuditHistory />} />
-                        <Route path="counts" element={<CycleCounts />} />
-                        <Route path="counts/manage" element={<ManageCounts />} />
-                        <Route path="view_counts" element={<ViewCounts />} />
-                        <Route path="counts/manage_differences" element={<ManageCountDifferences />} />
-                        <Route path="counts/edit/:id" element={<EditCount />} />
-                        <Route path="view_counts/recordings" element={<CycleCountHistory />} />
-                        <Route path="planner" element={<Planner />} />
-                        <Route path="planner/execution" element={<PlannerExecution />} />
-                        <Route path="planner/manage_differences" element={<ManageCycleCountDifferences />} />
-                        <Route path="picking" element={<PickingAudit />} />
-                        <Route path="view_logs" element={<InboundHistory />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/inbound" element={<Inbound />} />
+                        <Route path="/label" element={<LabelPrinting />} />
+                        <Route path="/stock" element={<StockSearch />} />
+                        <Route path="/update" element={<Update />} />
+                        <Route path="/reconciliation" element={<Reconciliation />} />
+                        <Route path="/view_picking_audits" element={<PickingAuditHistory />} />
+                        <Route path="/counts" element={<CycleCounts />} />
+                        <Route path="/counts/manage" element={<ManageCounts />} />
+                        <Route path="/view_counts" element={<ViewCounts />} />
+                        <Route path="/counts/manage_differences" element={<ManageCountDifferences />} />
+                        <Route path="/counts/edit/:id" element={<EditCount />} />
+                        <Route path="/view_counts/recordings" element={<CycleCountHistory />} />
+                        <Route path="/planner" element={<Planner />} />
+                        <Route path="/planner/execution" element={<PlannerExecution />} />
+                        <Route path="/planner/manage_differences" element={<ManageCycleCountDifferences />} />
+                        <Route path="/picking" element={<PickingAudit />} />
+                        <Route path="/view_logs" element={<InboundHistory />} />
 
 
                         {/* Admin Routes */}
-                        <Route path="admin/login" element={<AdminLogin />} />
-                        <Route path="admin/users" element={<AdminUsers />} />
-                        <Route path="admin/inventory" element={<AdminInventory />} />
-                        {/* Maps to "Auditoria Picking" but usually user clicks card to go there. 
-                            If the card href is /picking, create that page. 
-                            If the card href is /view_picking_audits, it matches above.
-                        */}
+                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route path="/admin/users" element={<AdminUsers />} />
+                        <Route path="/admin/inventory" element={<AdminInventory />} />
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}

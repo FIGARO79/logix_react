@@ -28,7 +28,7 @@ const ManageCountDifferences = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('http://localhost:8000/api/counts/differences');
+            const res = await fetch('/api/counts/differences');
             if (!res.ok) throw new Error('Error al cargar datos');
             const json = await res.json();
             setData(json.items || []);
@@ -75,7 +75,7 @@ const ManageCountDifferences = () => {
         }
 
         try {
-            const res = await fetch(`http://localhost:8000/api/counts/${editModal.id}`, {
+            const res = await fetch(`/api/counts/${editModal.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ counted_qty: qty })
@@ -98,7 +98,7 @@ const ManageCountDifferences = () => {
 
     const handleConfirmDelete = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/api/counts/${deleteModal.id}`, {
+            const res = await fetch(`/api/counts/${deleteModal.id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error("Error al eliminar");
@@ -114,7 +114,7 @@ const ManageCountDifferences = () => {
 
     // Exportar a Excel (reutiliza endpoint backend)
     const handleExport = () => {
-        window.location.href = 'http://localhost:8000/api/export_counts';
+        window.location.href = '/api/export_counts';
     };
 
     return (
