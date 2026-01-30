@@ -87,59 +87,123 @@ const LabelPrinting = () => {
                         font-family: Arial, sans-serif; 
                     }
                     .label-container {
-                        width: 100%; height: 100%; box-sizing: border-box;
-                        padding: 3mm; display: flex; flex-direction: column;
-                        justify-content: space-between; overflow: hidden;
-                        border: 1px solid #d1d5db;
-                        border-radius: 4px;
+                        width: 70mm; height: 100mm; 
+                        box-sizing: border-box;
+                        padding: 3.5mm; 
+                        position: relative;
+                        background: white;
                     }
-                    .label-logo { max-width: 50%; max-height: 8mm; margin-bottom: 3mm; display: block; }
-                    .label-item-code { font-size: 14pt; font-weight: bold; margin: 0 0 1mm 0; line-height: 1.1; color: #1f2937; }
-                    .label-item-description { font-size: 12pt; font-weight: bold; margin: 0 0 5mm 0; line-height: 1.1; color: #1f2937; max-height: 20mm; overflow: hidden; }
+                    .label-logo { 
+                        height: 7mm; 
+                        display: block; 
+                        margin-bottom: 3.5mm; 
+                    }
+                    .label-item-code { 
+                        font-family: Arial, sans-serif;
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin: 0; 
+                        line-height: 1.2; 
+                        color: #000; 
+                    }
+                    .label-item-description { 
+                        font-family: Arial, sans-serif;
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin: 0 0 18mm 0; 
+                        line-height: 1.2; 
+                        color: #000; 
+                    }
                     
-                    .label-data-field { 
-                        display: grid; grid-template-columns: auto 1fr; gap: 8px; 
-                        align-items: start; margin-bottom: 0.5mm; font-size: 9pt; line-height: 1.25;
+                    /* Grid Data Table */
+                    .label-data-table {
+                        width: 100%;
+                        font-size: 9pt;
+                        line-height: 1.4;
+                        margin-bottom: 9mm;
                     }
-                    .label-data-field span:first-child { font-weight: 500; color: #4b5563; }
-                    .label-data-field span:last-child { text-align: right; font-weight: normal; color: #1f2937; }
+                    .label-row {
+                        display: grid;
+                        grid-template-columns: 28mm 1fr; /* Approx split */
+                    }
+                    .label-label {
+                         font-weight: normal; color: #000;
+                    }
+                    .label-value {
+                         font-weight: normal; color: #000;
+                    }
                     
-                    .label-bottom-section { 
-                        display: flex; align-items: flex-end; justify-content: space-between; 
-                        margin-top: auto; padding-top: 2mm;
+                    /* Footer */
+                    .label-footer { 
+                        position: absolute; 
+                        bottom: 3.5mm; 
+                        left: 3.5mm; 
+                        right: 3.5mm;
+                        display: flex; 
+                        align-items: flex-end; 
+                        justify-content: space-between; 
                     }
-                    .label-disclaimer { font-size: 6pt; color: #6b7280; max-width: 65%; line-height: 1; margin: 0; text-align: left; }
-                    #qrCodeContainer { width: 25mm; height: 25mm; display: flex; justify-content: center; align-items: center; }
+                    
+                    .label-disclaimer { 
+                        font-size: 7pt; 
+                        color: #000; 
+                        max-width: 40mm; 
+                        line-height: 1.1; 
+                        margin: 0; 
+                    }
+                    
+                    #qrCodeContainer { 
+                        width: 25mm; 
+                        height: 25mm; 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                    }
                     #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
+                    
+                    .origin-text {
+                        position: absolute;
+                        bottom: 3.5mm;
+                        left: 3.5mm;
+                        font-size: 9pt;
+                    }
                 </style>
             </head>
             <body>
                 <div class="label-container">
-                    <div>
-                        <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
-                        <div class="label-item-code">${itemData?.itemCode || 'CODE'}</div>
-                        <div class="label-item-description">${itemData?.description || 'Description'}</div>
+                    <!-- Logo -->
+                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
+                    
+                    <!-- Header -->
+                    <div class="label-item-code">${itemData?.itemCode || ''}</div>
+                    <div class="label-item-description">${itemData?.description || ''}</div>
 
-                        <div class="label-data-field">
-                            <span>Quantity Received</span>
-                            <span>${quantity || 1}</span>
+                    <!-- Data Grid -->
+                    <div class="label-data-table">
+                        <div class="label-row">
+                            <div class="label-label">Quantity/pack</div>
+                            <div class="label-value">${quantity} EA</div>
                         </div>
-                        <div class="label-data-field">
-                            <span>Product weight</span>
-                            <span>${totalWeight} ${totalWeight !== 'N/A' ? 'kg' : ''}</span>
+                        <div class="label-row">
+                            <div class="label-label">Product weight</div>
+                            <div class="label-value">${totalWeight} kg</div>
                         </div>
-                        <div class="label-data-field">
-                            <span>Bin Location</span>
-                            <span>${itemData?.binLocation || 'BIN'}</span>
+                        <div class="label-row">
+                            <div class="label-label">Packaging date</div>
+                            <div class="label-value">${new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
                         </div>
-                        <div class="label-data-field">
-                            <span>Packing Date</span>
-                            <span>${new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</span>
+                        <div class="label-row">
+                            <div class="label-label">Bin location</div>
+                            <div class="label-value">${itemData?.binLocation || ''}</div>
                         </div>
                     </div>
 
-                    <div class="label-bottom-section">
-                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                    <!-- Footer -->
+                    <div class="label-footer">
+                        <div style="display:flex; flex-direction:column; justify-content:flex-end; height: 25mm;">
+                             <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
+                        </div>
+                     
                         <div id="qrCodeContainer">
                             ${qrImage ? `<img src="${qrImage}" />` : ''}
                         </div>
@@ -231,40 +295,54 @@ const LabelPrinting = () => {
                 <div className="lg:col-span-1">
                     <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Previa</h2>
 
-                    {/* Print Area - Classes trigger print visibility */}
-                    <div className="label-print-area flex justify-center">
-                        <div className="label-container bg-white">
-                            <div>
-                                <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" className="label-logo" />
-                                <p className="label-item-code">{itemData?.itemCode || 'ITEM CODE'}</p>
-                                <p className="label-item-description">{itemData?.description || 'Item Description'}</p>
+                    {/* Print Area Preview */}
+                    <div className="flex justify-center">
+                        <div style={{
+                            width: '70mm',
+                            height: '100mm',
+                            padding: '3.5mm',
+                            boxSizing: 'border-box',
+                            background: 'white',
+                            border: '1px solid #ccc',
+                            position: 'relative',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
+                            {/* Logo */}
+                            <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm' }} />
 
-                                <div className="space-y-1">
-                                    <div className="label-data-field">
-                                        <span>Quantity Received</span>
-                                        <span>{quantity}</span>
-                                    </div>
-                                    <div className="label-data-field">
-                                        <span>Product weight</span>
-                                        <span>{totalWeight} {totalWeight !== 'N/A' ? 'kg' : ''}</span>
-                                    </div>
-                                    <div className="label-data-field">
-                                        <span>Bin Location</span>
-                                        <span>{itemData?.binLocation || 'BIN'}</span>
-                                    </div>
-                                    <div className="label-data-field">
-                                        <span>Packing Date</span>
-                                        <span>{new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</span>
-                                    </div>
+                            {/* Header */}
+                            <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2 }}>{itemData?.itemCode || 'ITEM CODE'}</div>
+                            <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, marginBottom: '18mm' }}>{itemData?.description || 'Description'}</div>
+
+                            {/* Data Table */}
+                            <div style={{ fontSize: '9pt', lineHeight: 1.4, marginBottom: '9mm' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
+                                    <div>Quantity/pack</div>
+                                    <div>{quantity} EA</div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
+                                    <div>Product weight</div>
+                                    <div>{totalWeight} kg</div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
+                                    <div>Packaging date</div>
+                                    <div>{new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
+                                    <div>Bin location</div>
+                                    <div>{itemData?.binLocation || ''}</div>
                                 </div>
                             </div>
 
-                            <div className="label-bottom-section mt-auto pt-4 flex items-end justify-between">
-                                <p className="label-disclaimer text-[10px] leading-tight text-gray-500 max-w-[60%]">
-                                    All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                </p>
-                                <div id="qrCodeContainer" className="rounded p-1">
-                                    {qrImage ? <img src={qrImage} alt="QR" className="w-full h-full object-contain" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">QR Code</div>}
+                            {/* Footer */}
+                            <div style={{ position: 'absolute', bottom: '3.5mm', left: '3.5mm', right: '3.5mm', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '25mm' }}>
+                                    <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
+                                        All trademarks and logotypes appearing on this label are owned by Sandvik Group
+                                    </p>
+                                </div>
+                                <div style={{ width: '25mm', height: '25mm' }}>
+                                    {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
                                 </div>
                             </div>
                         </div>

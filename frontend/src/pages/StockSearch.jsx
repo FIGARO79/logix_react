@@ -18,6 +18,10 @@ const StockSearch = () => {
 
     // Audio Beep Function
     const playBeep = () => {
+        // Only play sound on mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (!isMobile) return;
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
@@ -51,6 +55,7 @@ const StockSearch = () => {
             if (res.ok) {
                 setItemData(data);
                 playBeep(); // Beep on success
+                setItemCode(''); // Clear input on success
             } else {
                 setError(data.error || 'Item no encontrado');
                 toast.error(data.error || 'Item no encontrado');
@@ -161,15 +166,19 @@ const StockSearch = () => {
 
                         <div>
                             <label className="form-label text-gray-500">Ubicación Principal</label>
-                            <div className="data-field bg-blue-50 text-blue-900 border-blue-200">
-                                {itemData.binLocation || 'N/A'}
+                            <div className="mt-1">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                    {itemData.binLocation || 'N/A'}
+                                </span>
                             </div>
                         </div>
 
                         <div>
                             <label className="form-label text-gray-500">Stock Físico</label>
-                            <div className="data-field font-bold bg-blue-50 text-blue-900 border-blue-200">
-                                {itemData.physicalQty || 0}
+                            <div className="mt-1">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                    {parseInt(itemData.physicalQty || 0)}
+                                </span>
                             </div>
                         </div>
 
@@ -179,7 +188,7 @@ const StockSearch = () => {
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )
@@ -188,7 +197,7 @@ const StockSearch = () => {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2 border-t pt-4 mt-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 col-span-1 md:col-span-2 border-t pt-4 mt-2">
                             <div>
                                 <label className="form-label text-gray-500">Peso (kg)</label>
                                 <div>{itemData.weight || '-'}</div>
@@ -200,6 +209,14 @@ const StockSearch = () => {
                             <div>
                                 <label className="form-label text-gray-500">Reemplazado Por</label>
                                 <div>{itemData.supersededBy || '-'}</div>
+                            </div>
+                            <div>
+                                <label className="form-label text-gray-500">SIC Code</label>
+                                <div className="font-medium text-gray-700">{itemData.sicCode || '-'}</div>
+                            </div>
+                            <div>
+                                <label className="form-label text-gray-500">ABC Code</label>
+                                <div className="font-medium text-gray-700">{itemData.itemType || '-'}</div>
                             </div>
                         </div>
                     </div>
