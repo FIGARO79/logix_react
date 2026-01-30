@@ -1,11 +1,15 @@
 """
 Router para endpoints administrativos.
 """
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from pydantic import BaseModel
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
-from app.utils.auth import get_all_users, approve_user_by_id, delete_user_by_id, reset_user_password
+from app.utils.auth import get_all_users, approve_user_by_id, delete_user_by_id, reset_user_password, get_user_by_id
+from app.models.sql_models import User
+from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD
 from app.core.templates import templates
 from app.services.csv_handler import load_csv_data # Importar función de recarga
@@ -136,6 +140,24 @@ async def reset_password_api(request: Request, user_id: int, new_password: str =
     if success:
         return JSONResponse({'message': f'Contraseña del usuario {user_id} restablecida.'})
     raise HTTPException(status_code=500, detail="Error al restablecer contraseña.")
+
+class PermissionUpdate(BaseModel):
+    permissions: List[str]
+
+@api_router.post('/permissions/{user_id}')
+async def update_user_permissions(user_id: int, request: Request, data: PermissionUpdate, db: AsyncSession = Depends(get_db)):
+    """API: Actualiza los permisos de un usuario."""
+    if not request.session.get("admin_logged_in"):
+        raise HTTPException(status_code=403, detail="No autorizado.")
+    
+    permissions_list = data.permissions
+    permissions_str = ",".join(permissions_list)
+    
+    stmt = update(User).where(User.id == user_id).values(permissions=permissions_str)
+    result = await db.execute(stmt)
+    await db.commit()
+    
+    return JSONResponse({'message': f'Permisos actualizados para usuario {user_id}'})
 
 
 # ===== APIs FOR REACT ADMIN =====

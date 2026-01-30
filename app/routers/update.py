@@ -136,7 +136,7 @@ async def update_files_post(
 
 # --- Endpoint para previsualizar las GRNs de un archivo ---
 @router.post("/api/preview_grn_file")
-async def preview_grn_file(file: UploadFile = File(...)):
+async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(login_required)):
     try:
         contents = await file.read()
         df = pd.read_csv(BytesIO(contents), dtype=str, keep_default_na=True)

@@ -1,13 +1,14 @@
-from fastapi import Request, status, HTTPException
+from fastapi import Request, status, HTTPException, Depends
 from starlette.responses import RedirectResponse
 from werkzeug.security import generate_password_hash, check_password_hash
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 import secrets
 import datetime
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from app.models.sql_models import User, PasswordResetToken
+from app.core.db import get_db
 
 # --- Funciones de Lógica de Usuario ---
 
@@ -17,7 +18,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[Dict[str, A
     user = result.scalar_one_or_none()
     return user.to_dict() if user else None
 
-async def create_user(db: AsyncSession, username: str, password: str, is_approved: int = 0) -> bool:
+async def create_user(db: AsyncSession, username: str, password: str, is_approved: int = 0, permissions: str = "") -> bool:
     """
     Crea un nuevo usuario en la base de datos.
     Devuelve True si se creó con éxito, False si el usuario ya existe.
@@ -31,7 +32,7 @@ async def create_user(db: AsyncSession, username: str, password: str, is_approve
         return False
 
     hashed_password = generate_password_hash(password)
-    new_user = User(username=username, password_hash=hashed_password, is_approved=is_approved)
+    new_user = User(username=username, password_hash=hashed_password, is_approved=is_approved, permissions=permissions)
     
     db.add(new_user)
     await db.commit()
@@ -171,3 +172,40 @@ def api_login_required(request: Request) -> str:
             detail="No autenticado"
         )
     return username
+
+def permission_required(module: str | List[str]) -> Callable:
+    """
+    Dependencia factory para verificar permisos de módulo.
+    Si module es str: requiere ese permiso específico.
+    Si module es list: requiere AL MENOS UNO de los permisos en la lista.
+    """
+    async def _check_permission(request: Request, db: AsyncSession = Depends(get_db)):
+        username = api_login_required(request) # Verifica login y obtiene username
+        
+        # Obtener usuario y permisos
+        result = await db.execute(select(User).where(User.username == username))
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Usuario no encontrado")
+            
+        # Si es admin, permitir todo
+        if username == 'admin':
+            return username
+
+        perms = user.permissions.split(',') if user.permissions else []
+        
+        required_modules = [module] if isinstance(module, str) else module
+        
+        # Verificar si tiene AL MENOS UNO de los requeridos
+        has_permission = any(m in perms for m in required_modules)
+        
+        if not has_permission:
+            detail_msg = f"Acceso denegado: Se requiere permiso '{module}'" if isinstance(module, str) else f"Acceso denegado: Se requiere uno de los permisos {required_modules}"
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail=detail_msg
+            )
+        return username
+        
+    return _check_permission

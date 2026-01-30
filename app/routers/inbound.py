@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, desc
 from app.core.db import get_db
-from app.utils.auth import login_required, api_login_required
+from app.utils.auth import login_required, api_login_required, permission_required
 from app.models.sql_models import Log
 from pydantic import BaseModel
 from typing import Optional
@@ -37,7 +37,7 @@ class UpdateLogRequest(BaseModel):
 async def add_log(
     data: AddLogRequest,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(api_login_required)
+    user: str = Depends(permission_required("inbound"))
 ):
     # Buscar info del item en el CSV
     stock = await get_item_details_from_master_csv(data.itemCode)
@@ -74,7 +74,8 @@ async def add_log(
 async def update_log(
     log_id: int, 
     data: UpdateLogRequest, 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
 ):
     log = await db.get(Log, log_id)
     if not log:
@@ -93,7 +94,10 @@ async def update_log(
 
 # 3. Archivar (Limpieza de Base)
 @router.post("/archive")
-async def archive_logs(db: AsyncSession = Depends(get_db)):
+async def archive_logs(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
     now = datetime.datetime.now().isoformat()
     # Archivar todo lo que no tenga fecha de archivo
     await db.execute(update(Log).where(Log.archived_at == None).values(archived_at=now))
@@ -102,7 +106,10 @@ async def archive_logs(db: AsyncSession = Depends(get_db)):
 
 # 4. Listar Versiones
 @router.get("/versions")
-async def get_versions(db: AsyncSession = Depends(get_db)):
+async def get_versions(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
     res = await db.execute(select(Log.archived_at).distinct().where(Log.archived_at != None).order_by(desc(Log.archived_at)))
     return res.scalars().all()
 
@@ -112,7 +119,7 @@ async def get_versions(db: AsyncSession = Depends(get_db)):
 async def export_logs(
     version: Optional[str] = None, 
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(api_login_required)
+    user: str = Depends(permission_required("inbound"))
 ):
     query = select(Log)
     

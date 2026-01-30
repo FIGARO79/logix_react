@@ -10,13 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
 from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem, PickingPackageItem
-from app.utils.auth import login_required, api_login_required
+from app.utils.auth import login_required, api_login_required, permission_required
 from app.core.db import get_db
 
 router = APIRouter(prefix="/api", tags=["picking"])
 
 @router.get("/picking/order/{order_number}/{despatch_number}")
-async def get_picking_order(order_number: str, despatch_number: str):
+async def get_picking_order(order_number: str, despatch_number: str, username: str = Depends(permission_required("picking"))):
     """Obtiene los detalles de un pedido de picking desde el CSV."""
     try:
         from app.core.config import DATABASE_FOLDER
@@ -70,7 +70,7 @@ async def get_picking_order(order_number: str, despatch_number: str):
 
 
 @router.get("/picking/tracking")
-async def get_picking_tracking():
+async def get_picking_tracking(username: str = Depends(permission_required("picking"))):
     """Obtiene un resumen de todos los pedidos de picking desde el CSV para seguimiento."""
     try:
         from app.core.config import DATABASE_FOLDER
@@ -170,7 +170,7 @@ async def get_picking_tracking():
 
 
 @router.get('/picking/packing_list/{audit_id}')
-async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db)):
+async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db), username: str = Depends(permission_required("picking"))):
     """API: Obtiene datos del packing list (bultos) para impresión."""
     try:
         # Obtener la auditoría
@@ -217,7 +217,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
          raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
 
 @router.get('/picking_audit/{audit_id}/print')
-async def get_picking_audit_for_print(audit_id: int, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+async def get_picking_audit_for_print(audit_id: int, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
     try:
         # Obtener la auditoría
@@ -263,7 +263,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(api
 
 
 @router.get('/picking_audit/{audit_id}')
-async def get_picking_audit(audit_id: int, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+async def get_picking_audit(audit_id: int, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""
     try:
         # Obtener la auditoría
@@ -319,7 +319,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(api_login_req
 
 
 @router.put('/update_picking_audit/{audit_id}')
-async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Actualiza una auditoría de picking existente. Solo permite editar auditorías del mismo día."""
     try:
         # Verificar que la auditoría existe y es del mismo día
@@ -389,7 +389,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
 
 
 @router.post('/save_picking_audit')
-async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Guarda una auditoría de picking en la base de datos."""
     try:
         # 1. Crear la auditoría principal

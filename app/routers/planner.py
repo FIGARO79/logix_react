@@ -15,7 +15,7 @@ from app.core.db import get_db
 from app.models.schemas import CountExecutionRequest
 from app.models.sql_models import CycleCount, CycleCountRecording
 from app.services import csv_handler
-from app.utils.auth import login_required
+from app.utils.auth import login_required, permission_required
 import json
 import os
 from pydantic import BaseModel
@@ -239,7 +239,7 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
 async def preview_count_plan(
     start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
     end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """Devuelve el plan en formato JSON para previsualización."""
@@ -266,7 +266,7 @@ async def preview_count_plan(
 async def generate_count_plan(
     start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
     end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """Genera y descarga el Excel."""
@@ -301,14 +301,14 @@ async def generate_count_plan(
     )
 
 @router.get("/config")
-async def get_planner_config(username: str = Depends(login_required)):
+async def get_planner_config(username: str = Depends(permission_required("planner"))):
     """Obtiene la configuración actual (fechas)."""
     return PLANNER_CONFIG
 
 @router.post("/config")
 async def update_planner_config(
     config: PlannerConfigModel,
-    username: str = Depends(login_required)
+    username: str = Depends(permission_required("planner"))
 ):
     """Actualiza la configuración (fechas) y la guarda."""
     try:
@@ -330,7 +330,7 @@ async def update_planner_config(
 
 
 @router.get("/current_plan")
-async def get_current_plan(username: str = Depends(login_required)):
+async def get_current_plan(username: str = Depends(permission_required("planner"))):
     """Obtiene el plan guardado (persistente)."""
     data = load_plan_data()
     if not data:
@@ -341,7 +341,7 @@ async def get_current_plan(username: str = Depends(login_required)):
 async def update_count_plan(
     start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
     end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """Calcula el plan (igual que preview) PERO lo guarda en JSON para persistencia."""
@@ -373,7 +373,7 @@ async def update_count_plan(
 @router.get("/execution/daily_items")
 async def get_daily_items_for_execution(
     date: str = Query(..., description="Fecha de ejecución (YYYY-MM-DD)"),
-    username: str = Depends(login_required)
+    username: str = Depends(permission_required("planner"))
 ):
     """Obtiene los items planificados para una fecha específica, enriquecidos con datos del maestro."""
     plan_data = load_plan_data()
@@ -421,7 +421,7 @@ async def get_daily_items_for_execution(
 @router.post("/execution/save")
 async def save_daily_execution(
     execution_data: CountExecutionRequest,
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """Guarda los conteos ejecutados del día en la tabla dedicada.
@@ -486,7 +486,7 @@ async def save_daily_execution(
 @router.get("/execution/stats")
 async def get_execution_stats(
     year: int = Query(datetime.datetime.now().year),
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -552,7 +552,7 @@ async def get_cycle_count_differences(
     year: int = Query(None),
     month: int = Query(None),
     only_differences: bool = Query(True),
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -608,7 +608,7 @@ class UpdateCycleCountDifferenceRequest(BaseModel):
 async def update_cycle_count_difference(
     recording_id: int,
     data: UpdateCycleCountDifferenceRequest,
-    username: str = Depends(login_required),
+    username: str = Depends(permission_required("planner")),
     db: AsyncSession = Depends(get_db)
 ):
     """

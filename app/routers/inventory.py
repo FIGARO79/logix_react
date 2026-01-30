@@ -19,7 +19,7 @@ from app.core.db import get_db
 from app.core.templates import templates
 from app.services.csv_handler import master_qty_map
 from app.services import db_counts
-from app.utils.auth import login_required, admin_login_required
+from app.utils.auth import login_required, admin_login_required, permission_required
 from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation
 
 # --- Inicialización ---
@@ -132,11 +132,10 @@ async def redirect_admin_inventory():
 
 
 @router.get('/admin/inventory', response_class=HTMLResponse, name='admin_inventory')
-async def admin_inventory_get(request: Request, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def admin_inventory_get(request: Request, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Página principal de administración de inventario."""
-    if not isinstance(admin, bool): # Si devuelve redirect, ya se manejó
-        return admin
-
+    # admin middleware check replaced by permission_required
+    
     result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
     stage = result.scalar_one_or_none()
     
@@ -163,10 +162,8 @@ async def admin_inventory_get(request: Request, admin: bool = Depends(admin_logi
 
 
 @router.post('/admin/inventory/start_stage_1', name='start_inventory_stage_1')
-async def start_inventory_stage_1(request: Request, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def start_inventory_stage_1(request: Request, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Inicia un nuevo ciclo de inventario en Etapa 1."""
-    if not isinstance(admin, bool):
-        return admin
     
     try:
         print("Limpiando tablas de inventario para un nuevo ciclo...")
@@ -193,10 +190,8 @@ async def start_inventory_stage_1(request: Request, admin: bool = Depends(admin_
 
 
 @router.post('/admin/inventory/advance/{next_stage}', name='advance_inventory_stage')
-async def advance_inventory_stage(request: Request, next_stage: int, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def advance_inventory_stage(request: Request, next_stage: int, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Avanza el inventario a la siguiente etapa."""
-    if not isinstance(admin, bool):
-        return admin
 
     prev_stage = next_stage - 1
     
@@ -243,10 +238,8 @@ async def advance_inventory_stage(request: Request, next_stage: int, admin: bool
 
 
 @router.post('/admin/inventory/finalize', name='finalize_inventory')
-async def finalize_inventory(request: Request, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def finalize_inventory(request: Request, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Finaliza el ciclo de inventario."""
-    if not isinstance(admin, bool):
-        return admin
     
     try:
         stmt_update = update(AppState).where(AppState.key == 'current_inventory_stage').values(value='0')
@@ -261,10 +254,8 @@ async def finalize_inventory(request: Request, admin: bool = Depends(admin_login
 
 
 @router.get('/admin/inventory/report', name='generate_inventory_report')
-async def generate_inventory_report(request: Request, admin: bool = Depends(admin_login_required)):
+async def generate_inventory_report(request: Request, user: str = Depends(permission_required("inventory"))):
     """Genera un reporte Excel del inventario."""
-    if not isinstance(admin, bool):
-        return admin
 
     try:
         # Usamos pandas read_sql con connection para queries complejos de reporte
@@ -344,10 +335,8 @@ async def generate_inventory_report(request: Request, admin: bool = Depends(admi
 
 
 @router.get('/api/export_recount_list/{stage_number}', name='export_recount_list')
-async def export_recount_list(request: Request, stage_number: int, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def export_recount_list(request: Request, stage_number: int, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Exporta la lista de items a recontar para una etapa específica."""
-    if not isinstance(admin, bool):
-        return admin
 
     result = await db.execute(select(RecountList.item_code).where(RecountList.stage_to_count == stage_number))
     items_to_recount = result.all() # list of Row objects
@@ -400,7 +389,7 @@ async def export_recount_list(request: Request, stage_number: int, admin: bool =
 # ===== APIs PARA REACT ADMIN INVENTORY =====
 
 @router.get('/api/admin/inventory/summary')
-async def get_inventory_summary_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def get_inventory_summary_api(user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """API: Obtiene el resumen del estado del inventario."""
     stats = await get_inventory_summary_stats(db)
     
@@ -415,7 +404,7 @@ async def get_inventory_summary_api(admin: bool = Depends(admin_login_required),
     })
 
 @router.post('/api/admin/inventory/start_stage_1')
-async def start_inventory_stage_1_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def start_inventory_stage_1_api(user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """API: Inicia Etapa 1."""
     # Reset Current Stage to 1
     result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
@@ -436,7 +425,7 @@ async def start_inventory_stage_1_api(admin: bool = Depends(admin_login_required
     return JSONResponse(content={"message": "Inventario Etapa 1 iniciado correctamente", "stage": 1})
 
 @router.post('/api/admin/inventory/advance_stage/{next_stage}')
-async def advance_inventory_stage_api(next_stage: int, admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def advance_inventory_stage_api(next_stage: int, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """API: Avanza etapa."""
     # Validar next_stage logic...
     result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
@@ -478,7 +467,7 @@ async def advance_inventory_stage_api(next_stage: int, admin: bool = Depends(adm
     return JSONResponse(content={"message": f"Avanzado a Etapa {next_stage}", "stage": next_stage})
 
 @router.post('/api/admin/inventory/finalize')
-async def finalize_inventory_api(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def finalize_inventory_api(user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """API: Finaliza inventario."""
     result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
     stage_state = result.scalar_one_or_none()
@@ -491,7 +480,7 @@ async def finalize_inventory_api(admin: bool = Depends(admin_login_required), db
 # ===== RUTAS DE MANAGE COUNTS =====
 
 @router.get('/manage_counts', response_class=HTMLResponse, name='manage_counts_page')
-async def manage_counts_page(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def manage_counts_page(request: Request, username: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Página de gestión de conteos."""
     if not isinstance(username, str):
         return username

@@ -44,10 +44,37 @@ const LoadingFallback = () => (
     </div>
 );
 
-// Mock Protected Route (Actual implementation should check token/session)
-const ProtectedRoute = ({ children }) => {
-    const isAuthenticated = true; // Replace with actual auth logic (context or prop)
-    return isAuthenticated ? children : <Navigate to="/login" />;
+// Protected Route Component
+const ProtectedRoute = ({ children, requiredPermission }) => {
+    // Basic auth check
+    const userJson = localStorage.getItem('user');
+    const isAuthenticated = !!userJson;
+
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+    // Permission check
+    if (requiredPermission) {
+        try {
+            const user = JSON.parse(userJson);
+            // If admin, allow everything
+            if (user.username === 'admin') return children;
+
+            const perms = user.permissions ? user.permissions.split(',') : [];
+            const hasPermission = Array.isArray(requiredPermission)
+                ? requiredPermission.some(p => perms.includes(p))
+                : perms.includes(requiredPermission);
+
+            if (!hasPermission) {
+                // Determine where to redirect if unauthorized
+                return <Navigate to="/dashboard" replace />; // Or an Unauthorized page
+            }
+        } catch (e) {
+            console.error("Error parsing user data", e);
+            return <Navigate to="/login" replace />;
+        }
+    }
+
+    return children;
 };
 
 function App() {
@@ -71,23 +98,77 @@ function App() {
                         </ProtectedRoute>
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/inbound" element={<Inbound />} />
+                        <Route path="/inbound" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <Inbound />
+                            </ProtectedRoute>
+                        } />
                         <Route path="/label" element={<LabelPrinting />} />
-                        <Route path="/stock" element={<StockSearch />} />
-                        <Route path="/update" element={<Update />} />
-                        <Route path="/reconciliation" element={<Reconciliation />} />
-                        <Route path="/view_picking_audits" element={<PickingAuditHistory />} />
-                        <Route path="/counts" element={<CycleCounts />} />
-                        <Route path="/counts/manage" element={<ManageCounts />} />
-                        <Route path="/view_counts" element={<ViewCounts />} />
-                        <Route path="/counts/manage_differences" element={<ManageCountDifferences />} />
-                        <Route path="/counts/edit/:id" element={<EditCount />} />
-                        <Route path="/view_counts/recordings" element={<CycleCountHistory />} />
-                        <Route path="/planner" element={<Planner />} />
-                        <Route path="/planner/execution" element={<PlannerExecution />} />
-                        <Route path="/planner/manage_differences" element={<ManageCycleCountDifferences />} />
-                        <Route path="/picking" element={<PickingAudit />} />
-                        <Route path="/view_logs" element={<InboundHistory />} />
+                        <Route path="/stock" element={
+                            <ProtectedRoute requiredPermission={['stock', 'inbound']}>
+                                <StockSearch />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/view_picking_audits" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <PickingAuditHistory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/counts" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <CycleCounts />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/counts/manage" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <ManageCounts />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/view_counts" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <ViewCounts />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/counts/manage_differences" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <ManageCountDifferences />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/counts/edit/:id" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <EditCount />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/view_counts/recordings" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <CycleCountHistory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/planner" element={
+                            <ProtectedRoute requiredPermission="planner">
+                                <Planner />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/planner/execution" element={
+                            <ProtectedRoute requiredPermission="planner">
+                                <PlannerExecution />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/planner/manage_differences" element={
+                            <ProtectedRoute requiredPermission="planner">
+                                <ManageCycleCountDifferences />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/picking" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <PickingAudit />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/view_logs" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <InboundHistory />
+                            </ProtectedRoute>
+                        } />
 
 
                         {/* Admin Routes */}

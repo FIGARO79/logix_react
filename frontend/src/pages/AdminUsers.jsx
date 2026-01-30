@@ -63,6 +63,52 @@ const AdminUsers = () => {
         } catch (e) { setError(e.message); }
     };
 
+    const MODULES = ['stock', 'inbound', 'picking', 'inventory', 'planner'];
+
+    const handlePermissionChange = async (userId, module) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        // Clean split: handle null, undefined, and empty strings correctly
+        const currentPerms = user.permissions
+            ? user.permissions.split(',').map(p => p.trim()).filter(p => p !== '')
+            : [];
+
+        let newPerms;
+        if (currentPerms.includes(module)) {
+            newPerms = currentPerms.filter(p => p !== module);
+        } else {
+            newPerms = [...currentPerms, module];
+        }
+
+        // Optimistic update
+        const updatedUsers = users.map(u => {
+            if (u.id === userId) {
+                return { ...u, permissions: newPerms.join(',') };
+            }
+            return u;
+        });
+        setUsers(updatedUsers);
+
+        try {
+            const res = await fetch(`/api/admin/permissions/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ permissions: newPerms })
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                console.error("Permission save error:", errData);
+                throw new Error(errData.detail || "Error saving permissions");
+            }
+        } catch (e) {
+            console.error(e);
+            setError(e.message);
+            // Revert on error
+            fetchUsers();
+        }
+    };
+
     return (
         <AdminLayout title="Gestión de Usuarios">
             {message && (
@@ -98,6 +144,9 @@ const AdminUsers = () => {
                                 <th className="px-6 py-3 text-center w-16">ID</th>
                                 <th className="px-6 py-3 font-normal">Usuario</th>
                                 <th className="px-6 py-3 text-center font-normal">Estado</th>
+                                {MODULES.map(m => (
+                                    <th key={m} className="px-2 py-3 text-center font-normal text-xs">{m.toUpperCase()}</th>
+                                ))}
                                 <th className="px-6 py-3 text-center font-normal">Acciones</th>
                             </tr>
                         </thead>
@@ -117,6 +166,22 @@ const AdminUsers = () => {
                                             </span>
                                         )}
                                     </td>
+                                    {MODULES.map(m => {
+                                        const perms = u.permissions
+                                            ? u.permissions.split(',').map(p => p.trim()).filter(p => p !== '')
+                                            : [];
+                                        const hasPerm = perms.includes(m);
+                                        return (
+                                            <td key={m} className="px-2 py-4 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={hasPerm}
+                                                    onChange={() => handlePermissionChange(u.id, m)}
+                                                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                />
+                                            </td>
+                                        );
+                                    })}
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             <button

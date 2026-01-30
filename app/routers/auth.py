@@ -16,6 +16,8 @@ from app.utils.auth import (
     mark_token_as_used,
     reset_user_password
 )
+from app.models.sql_models import User
+from sqlalchemy import select
 import datetime
 from typing import Optional
 
@@ -42,7 +44,12 @@ async def login_api(request: Request, username: str = Form(...), password: str =
     
     if status_msg == "approved":
         request.session['user'] = username
-        return JSONResponse(content={"message": "Login successful", "username": username})
+        # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
+        result = await db.execute(select(User).where(User.username == username))
+        user_obj = result.scalar_one_or_none()
+        user_data = user_obj.to_dict() if user_obj else {"username": username, "permissions": ""}
+        
+        return JSONResponse(content={"message": "Login successful", "user": user_data})
     elif status_msg == "pending":
         return JSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
     else:

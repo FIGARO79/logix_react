@@ -6,13 +6,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.services import csv_handler, db_logs
-from app.utils.auth import login_required
+from app.utils.auth import login_required, permission_required
 
 router = APIRouter(prefix="/api", tags=["stock"])
 
 
 @router.get('/stock')
-async def get_stock():
+async def get_stock(username: str = Depends(permission_required("stock"))):
     """Obtiene datos de stock desde el CSV."""
     stock_data = await csv_handler.get_stock_data()
     if stock_data is not None:
@@ -21,7 +21,7 @@ async def get_stock():
 
 
 @router.get('/stock_item/{item_code}')
-async def get_stock_item(item_code: str, username: str = Depends(login_required)):
+async def get_stock_item(item_code: str, username: str = Depends(permission_required("stock"))):
     """Obtiene información de stock para un item específico."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
@@ -30,7 +30,7 @@ async def get_stock_item(item_code: str, username: str = Depends(login_required)
 
 
 @router.get('/get_item_details/{item_code}')
-async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(get_db)):
+async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(get_db), username: str = Depends(permission_required("stock"))):
     """Obtiene detalles de un item para generar etiquetas."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if not item_details:

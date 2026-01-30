@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import LogEntry
 from app.services import db_logs, csv_handler
-from app.utils.auth import login_required
+from app.utils.auth import login_required, permission_required
 from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
@@ -31,7 +31,12 @@ router = APIRouter(prefix="/api", tags=["logs"])
 
 
 @router.get('/find_item/{item_code}/{import_reference}')
-async def find_item(item_code: str, import_reference: str, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def find_item(
+    item_code: str, 
+    import_reference: str, 
+    username: str = Depends(permission_required(["stock", "inbound"])), 
+    db: AsyncSession = Depends(get_db)
+):
     """Busca un item en el maestro y calcula cantidades."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
@@ -59,7 +64,7 @@ async def find_item(item_code: str, import_reference: str, username: str = Depen
 
 
 @router.post('/add_log')
-async def add_log(data: LogEntry, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def add_log(data: LogEntry, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Añade un registro de entrada."""
     if data.quantity <= 0:
         raise HTTPException(status_code=400, detail="Cantidad debe ser > 0")
@@ -108,7 +113,7 @@ async def add_log(data: LogEntry, username: str = Depends(login_required), db: A
 
 
 @router.put('/update_log/{log_id}')
-async def update_log(log_id: int, data: dict, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def update_log(log_id: int, data: dict, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Actualiza un registro de entrada existente."""
     existing_log = await db_logs.get_log_entry_by_id_async(db, log_id)
     if not existing_log:
@@ -145,7 +150,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(login_requ
 
 
 @router.get('/get_logs')
-async def get_logs(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_logs(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """
     Obtiene los registros de entrada.
     Si version_date is None: obtiene los logs ACTIVOS.
@@ -159,7 +164,7 @@ async def get_logs(version_date: Optional[str] = None, username: str = Depends(l
 
 
 @router.post('/logs/archive')
-async def archive_logs(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def archive_logs(username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Archiva los logs actuales para limpiar la base."""
     success = await db_logs.archive_current_logs_db_async(db)
     if success:
@@ -168,14 +173,14 @@ async def archive_logs(username: str = Depends(login_required), db: AsyncSession
 
 
 @router.get('/logs/versions')
-async def get_log_versions(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def get_log_versions(username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Obtiene las fechas disponibles de archivos históricos."""
     versions = await db_logs.get_archived_versions_db_async(db)
     return JSONResponse(content=versions)
 
 
 @router.delete('/delete_log/{log_id}')
-async def delete_log_api(log_id: int, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def delete_log_api(log_id: int, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Elimina un registro de entrada."""
     success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
@@ -184,7 +189,7 @@ async def delete_log_api(log_id: int, username: str = Depends(login_required), d
 
 
 @router.get('/export_log')
-async def export_log(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta todos los registros de inbound a un archivo Excel."""
     if version_date:
         logs_data = await db_logs.load_archived_log_data_db_async(db, version_date)
@@ -238,7 +243,7 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
 
 
 @router.get('/items_without_grn')
-async def get_items_without_grn(username: str = Depends(login_required)):
+async def get_items_without_grn(username: str = Depends(permission_required("inbound"))):
     """Obtiene un reporte de items en el log que no están en ningún GRN."""
     try:
         async with async_engine.connect() as conn:
@@ -310,7 +315,7 @@ async def get_items_without_grn(username: str = Depends(login_required)):
 
 
 @router.get('/export_items_without_grn')
-async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(login_required)):
+async def export_items_without_grn(timezone_offset: int = 0, username: str = Depends(permission_required("inbound"))):
     """Exporta el reporte de items sin GRN a Excel."""
     try:
         async with async_engine.connect() as conn:
@@ -387,7 +392,7 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
 
 
 @router.get('/export_reconciliation')
-async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(login_required)):
+async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(permission_required("inbound"))):
     """Genera y exporta el reporte de conciliación."""
     try:
         async with async_engine.connect() as conn:

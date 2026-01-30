@@ -28,6 +28,12 @@ const Login = () => {
             if (res.ok) {
                 // Login successful
                 console.log("Login successful", data);
+
+                // Save user data to localStorage for frontend permission checks
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                }
+
                 // Force full reload to ensure session cookies are picked up and App component re-mounts
                 window.location.href = '/dashboard';
             } else {
