@@ -1,197 +1,206 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const ManageCycleCountDifferences = () => {
     const { setTitle } = useOutletContext();
-    const [loading, setLoading] = useState(false);
-    const [auditItems, setAuditItems] = useState([]);
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Filters
-    const [filterYear, setFilterYear] = useState('');
-    const [filterMonth, setFilterMonth] = useState('');
-    const [filterItemCode, setFilterItemCode] = useState('');
-    const [filterOnlyDiff, setFilterOnlyDiff] = useState(true);
+    // Filtros
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [onlyDifferences, setOnlyDifferences] = useState(true);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Edit Modal
-    const [editModalOpen, setEditModalOpen] = useState(false);
-    const [currentItem, setCurrentItem] = useState(null);
-    const [editPhysicalQty, setEditPhysicalQty] = useState('');
+    // Modal Edit
+    const [editingItem, setEditingItem] = useState(null);
+    const [newPhysicalQty, setNewPhysicalQty] = useState('');
 
     useEffect(() => {
-        setTitle("Logix - Gestión de Diferencias");
-        loadDifferences();
+        setTitle("Gestión de Diferencias - Conteos Cíclicos");
     }, [setTitle]);
 
-    const loadDifferences = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (filterYear) params.append('year', filterYear);
-            if (filterMonth) params.append('month', filterMonth);
-            params.append('only_differences', filterOnlyDiff);
-
-            const res = await fetch(`/api/planner/cycle_count_differences?${params.toString()}`);
-            if (res.ok) {
-                let data = await res.json();
-                if (filterItemCode) {
-                    data = data.filter(i => i.item_code.includes(filterItemCode.toUpperCase()));
-                }
-                setAuditItems(data);
-            } else {
-                toast.error("Error cargando diferencias");
-            }
-        } catch (e) {
-            toast.error("Error de conexión");
+            const queryParams = new URLSearchParams({
+                year: year,
+                month: month,
+                only_differences: onlyDifferences
+            });
+            const res = await fetch(`/api/planner/cycle_count_differences?${queryParams}`);
+            if (!res.ok) throw new Error("Error cargando datos");
+            const result = await res.json();
+            setData(result);
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEditClick = (item) => {
-        setCurrentItem(item);
-        setEditPhysicalQty(item.physical_qty);
-        setEditModalOpen(true);
+    useEffect(() => {
+        fetchData();
+    }, [year, month, onlyDifferences, refreshTrigger]);
+
+
+    const handleEdit = (item) => {
+        setEditingItem(item);
+        setNewPhysicalQty(item.physical_qty);
     };
 
     const handleSaveEdit = async () => {
-        if (!currentItem) return;
+        if (!editingItem) return;
+
         try {
-            const res = await fetch(`/api/planner/cycle_count_differences/${currentItem.id}`, {
+            const res = await fetch(`/api/planner/cycle_count_differences/${editingItem.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ physical_qty: parseInt(editPhysicalQty) })
+                body: JSON.stringify({ physical_qty: parseInt(newPhysicalQty) })
             });
 
             if (res.ok) {
-                toast.success("Cantidad actualizada");
-                setEditModalOpen(false);
-                loadDifferences();
+                setEditingItem(null);
+                setRefreshTrigger(prev => prev + 1); // Recargar datos
+                alert("Cantidad actualizada correctamente");
             } else {
-                toast.error("Error al guardar");
+                const err = await res.json();
+                alert(err.detail || "Error al actualizar");
             }
         } catch (e) {
-            toast.error("Error de conexión");
+            alert("Error de conexión");
         }
     };
 
+    // Helper para formatear fecha
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        return dateStr;
+    };
+
     return (
-        <div className="container-wrapper max-w-6xl mx-auto px-4 py-6">
-            <ToastContainer position="top-right" autoClose={3000} />
-
-            <div className="mb-6">
-                <h1 className="text-xl font-normal text-gray-800 mb-2">Gestión de Diferencias</h1>
-                <p className="text-sm text-gray-500">Verifique y edite las cantidades encontradas en los conteos cíclicos</p>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-end gap-4 mb-6 bg-white p-4 rounded shadow-sm border border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-6 font-sans text-xs">
+            {/* Filtros */}
+            <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-4 items-end">
                 <div>
-                    <label className="form-label text-xs">Año</label>
-                    <input type="number" value={filterYear} onChange={e => setFilterYear(e.target.value)} className="w-24 p-1 border rounded" placeholder="YYYY" />
+                    <label className="block text-gray-700 font-medium mb-1">Año</label>
+                    <input
+                        type="number"
+                        value={year}
+                        onChange={(e) => setYear(e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 w-20"
+                    />
                 </div>
                 <div>
-                    <label className="form-label text-xs">Mes</label>
-                    <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="w-32 p-1 border rounded">
-                        <option value="">Todos</option>
-                        {[...Array(12)].map((_, i) => <option key={i} value={i + 1}>{new Date(0, i).toLocaleString('es', { month: 'long' })}</option>)}
+                    <label className="block text-gray-700 font-medium mb-1">Mes</label>
+                    <select
+                        value={month}
+                        onChange={(e) => setMonth(e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 w-32"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                            <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('es-ES', { month: 'long' })}</option>
+                        ))}
                     </select>
                 </div>
-                <div className="flex-grow">
-                    <label className="form-label text-xs">Código Item</label>
-                    <input type="text" value={filterItemCode} onChange={e => setFilterItemCode(e.target.value)} className="w-full p-1 border rounded uppercase" placeholder="Buscar..." />
+                <div className="flex items-center pb-2">
+                    <input
+                        type="checkbox"
+                        checked={onlyDifferences}
+                        onChange={(e) => setOnlyDifferences(e.target.checked)}
+                        id="onlyDiff"
+                        className="mr-2"
+                    />
+                    <label htmlFor="onlyDiff" className="cursor-pointer select-none">Solo Diferencias</label>
                 </div>
-                <div className="flex items-center mb-2">
-                    <input type="checkbox" checked={filterOnlyDiff} onChange={e => setFilterOnlyDiff(e.target.checked)} className="mr-2" />
-                    <span className="text-sm">Solo diferencias</span>
-                </div>
-                <button onClick={loadDifferences} className="btn-sap btn-primary text-xs py-2 px-4 h-[34px]">Filtrar</button>
+                <div className="flex-grow"></div>
+                <button onClick={fetchData} className="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 transition">
+                    Actualizar
+                </button>
             </div>
 
-            {/* Table */}
-            <div className="bg-white shadow rounded overflow-hidden border border-gray-200">
-                {loading ? (
-                    <div className="p-8 text-center text-gray-500">Cargando...</div>
-                ) : auditItems.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">No se encontraron registros</div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="font-semibold uppercase text-xs border-b">
-                                <tr>
-                                    <th className="px-4 py-3">Fecha</th>
-                                    <th className="px-4 py-3">Item</th>
-                                    <th className="px-4 py-3">Descripción</th>
-                                    <th className="px-4 py-3">Ubicación</th>
-                                    <th className="px-4 py-3">ABC</th>
-                                    <th className="px-4 py-3 text-right">Sis</th>
-                                    <th className="px-4 py-3 text-right">Físico</th>
-                                    <th className="px-4 py-3 text-right">Dif</th>
-                                    <th className="px-4 py-3">Usuario</th>
-                                    <th className="px-4 py-3">Acciones</th>
+            {/* Tabla */}
+            <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-700 text-white">
+                        <tr>
+                            <th className="px-3 py-2">Fecha Ejec.</th>
+                            <th className="px-3 py-2">Item Code</th>
+                            <th className="px-3 py-2">Descripción</th>
+                            <th className="px-3 py-2">Ubicación</th>
+                            <th className="px-3 py-2 text-center">ABC</th>
+                            <th className="px-3 py-2 text-right">Cant. Sistema</th>
+                            <th className="px-3 py-2 text-right">Cant. Física</th>
+                            <th className="px-3 py-2 text-right">Diferencia</th>
+                            <th className="px-3 py-2">Usuario</th>
+                            <th className="px-3 py-2 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                        {loading ? (
+                            <tr><td colSpan="10" className="text-center py-4 text-gray-500">Cargando...</td></tr>
+                        ) : data.length === 0 ? (
+                            <tr><td colSpan="10" className="text-center py-4 text-gray-500">No se encontraron registros.</td></tr>
+                        ) : (
+                            data.map((row) => (
+                                <tr key={row.id} className="hover:bg-blue-50 transition-colors">
+                                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.executed_date)}</td>
+                                    <td className="px-3 py-2 font-mono font-medium text-blue-700">{row.item_code}</td>
+                                    <td className="px-3 py-2 truncate max-w-[200px]" title={row.item_description}>{row.item_description}</td>
+                                    <td className="px-3 py-2">{row.bin_location}</td>
+                                    <td className="px-3 py-2 text-center">{row.abc_code}</td>
+                                    <td className="px-3 py-2 text-right font-mono">{row.system_qty}</td>
+                                    <td className="px-3 py-2 text-right font-mono">{row.physical_qty}</td>
+                                    <td className={`px-3 py-2 text-right font-bold ${row.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {row.difference > 0 ? `+${row.difference}` : row.difference}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-600">{row.username}</td>
+                                    <td className="px-3 py-2 text-center">
+                                        <button
+                                            onClick={() => handleEdit(row)}
+                                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 text-[10px]"
+                                        >
+                                            RECOUNT
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {auditItems.map(item => (
-                                    <tr key={item.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-2 text-xs">{item.executed_date}</td>
-                                        <td className="px-4 py-2 font-medium">{item.item_code}</td>
-                                        <td className="px-4 py-2 text-xs truncate max-w-[200px]" title={item.item_description}>{item.item_description}</td>
-                                        <td className="px-4 py-2">{item.bin_location}</td>
-                                        <td className="px-4 py-2"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{item.abc_code}</span></td>
-                                        <td className="px-4 py-2 text-right">{item.system_qty}</td>
-                                        <td className="px-4 py-2 text-right font-bold">{item.physical_qty}</td>
-                                        <td className={`px-4 py-2 text-right font-bold ${item.difference !== 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                            {item.difference > 0 ? '+' : ''}{item.difference}
-                                        </td>
-                                        <td className="px-4 py-2 text-xs text-gray-500">{item.username}</td>
-                                        <td className="px-4 py-2">
-                                            <button onClick={() => handleEditClick(item)} className="text-blue-600 hover:text-blue-800 text-xs font-semibold border border-blue-200 px-2 py-1 rounded bg-blue-50">
-                                                Editar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Edit Modal */}
-            {editModalOpen && currentItem && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-                        <h2 className="text-lg font-bold mb-4 text-gray-800">Editar Cantidad</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="form-label">Item</label>
-                                <div className="p-2 bg-gray-50 border rounded text-sm text-gray-600">{currentItem.item_code}</div>
-                            </div>
-                            <div>
-                                <label className="form-label">Cantidad Sistema</label>
-                                <div className="p-2 bg-gray-50 border rounded text-sm text-gray-600">{currentItem.system_qty}</div>
-                            </div>
-                            <div>
-                                <label className="form-label">Cantidad Física (Nueva)</label>
-                                <input
-                                    type="number"
-                                    value={editPhysicalQty}
-                                    onChange={e => setEditPhysicalQty(e.target.value)}
-                                    className="w-full p-2 border rounded font-bold text-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="form-label">Diferencia Resultante</label>
-                                <div className={`p-2 border rounded text-sm font-bold ${parseInt(editPhysicalQty) - currentItem.system_qty !== 0 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
-                                    {parseInt(editPhysicalQty) - currentItem.system_qty}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setEditModalOpen(false)} className="btn-sap btn-secondary">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="btn-sap btn-primary">Guardar</button>
+            {/* Modal Editar */}
+            {editingItem && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full">
+                        <h3 className="text-lg font-semibold mb-4">Actualizar Cantidad Física</h3>
+                        <p className="mb-2 text-gray-600">Item: <strong>{editingItem.item_code}</strong></p>
+                        <p className="mb-4 text-gray-600">Cant. Sistema: {editingItem.system_qty}</p>
+
+                        <label className="block mb-1 text-sm font-medium">Nueva Cantidad Física:</label>
+                        <input
+                            type="number"
+                            className="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={newPhysicalQty}
+                            onChange={(e) => setNewPhysicalQty(e.target.value)}
+                            autoFocus
+                        />
+
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setEditingItem(null)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Guardar
+                            </button>
                         </div>
                     </div>
                 </div>

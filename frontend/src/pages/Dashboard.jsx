@@ -3,7 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import {
     DownloadIcon, SearchIcon, TagIcon, CartIcon,
     HomeIcon, ChecklistIcon, CalculatorIcon,
-    ChartIcon, UploadIcon, DocumentIcon
+    ChartIcon, ArrowPathIcon, DocumentIcon
 } from '../components/Icons';
 
 const menuItems = [
@@ -68,7 +68,7 @@ const menuItems = [
         href: '/update',
         text: 'Actualizar Ficheros',
         description: 'Carga de datos maestros',
-        icon: <UploadIcon className="w-6 h-6" />
+        icon: <ArrowPathIcon className="w-6 h-6" />
     },
     {
         id: 'counts',

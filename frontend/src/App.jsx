@@ -114,6 +114,17 @@ function App() {
                                 <PickingAuditHistory />
                             </ProtectedRoute>
                         } />
+
+                        <Route path="/reconciliation" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <Reconciliation />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/update" element={
+                            <ProtectedRoute>
+                                <Update />
+                            </ProtectedRoute>
+                        } />
                         <Route path="/counts" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <CycleCounts />

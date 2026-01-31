@@ -30,7 +30,8 @@ const InboundHistory = () => {
 
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.user && log.user.toLowerCase().includes(searchTerm.toLowerCase()))
+        (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -41,8 +42,8 @@ const InboundHistory = () => {
                 <div className="flex gap-2 items-center">
                     <input
                         type="text"
-                        placeholder="Buscar por item o usuario..."
-                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none w-56 transition-all duration-150"
+                        placeholder="Buscar por Item, Waybill o I.R..."
+                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none w-64 transition-all duration-150"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -65,25 +66,33 @@ const InboundHistory = () => {
                         <thead className="bg-slate-700 text-white">
                             <tr>
                                 <th className="px-2 py-1.5 text-left font-medium">ID</th>
-                                <th className="px-2 py-1.5 text-left font-medium">Timestamp</th>
-                                <th className="px-2 py-1.5 text-left font-medium">Usuario</th>
-                                <th className="px-2 py-1.5 text-left font-medium">Item</th>
-                                <th className="px-2 py-1.5 text-center font-medium">Recibido</th>
-                                <th className="px-2 py-1.5 text-center font-medium">Sistema</th>
-                                <th className="px-2 py-1.5 text-center font-medium">Diferencia</th>
+                                <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
+                                <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
+                                <th className="px-2 py-1.5 text-left font-medium">WAYBILL</th>
+                                <th className="px-2 py-1.5 text-left font-medium">ITEM CODE</th>
+                                <th className="px-2 py-1.5 text-left font-medium">DESCRIPCIÓN</th>
+                                <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN</th>
+                                <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN NUEVA</th>
+                                <th className="px-2 py-1.5 text-center font-medium">CANT. RECIBIDA</th>
+                                <th className="px-2 py-1.5 text-center font-medium">CANT. GRN</th>
+                                <th className="px-2 py-1.5 text-center font-medium">DIFERENCIA</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {loading && <tr><td colSpan="7" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
-                            {filteredLogs.length === 0 && !loading && <tr><td colSpan="7" className="py-4 text-center text-gray-500">No encontrado.</td></tr>}
+                            {loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
+                            {filteredLogs.length === 0 && !loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">No encontrado.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.timestamp}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap font-medium text-gray-900">{log.user}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-blue-600 font-mono font-medium">{log.itemCode}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 truncate max-w-xs" title={log.itemDescription}>{log.itemDescription}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.binLocation}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.qtySystem}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.qtyGrn}</td>
                                     <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.difference < 0 ? 'text-red-600' : log.difference > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
                                         {log.difference > 0 ? `+${log.difference}` : log.difference}
                                     </td>
