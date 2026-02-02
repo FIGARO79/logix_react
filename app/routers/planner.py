@@ -410,6 +410,7 @@ async def get_daily_items_for_execution(
             "description": item.get("Description"),
             "abc_code": item.get("ABC Code"),
             "bin_location": bin_loc,
+            "additional_locations": details.get("Aditional_Bin_Location", ""),
             "system_qty": system_qty, # Se envía para cálculo de diferencias (Frontend debe ocultarlo si es ciego)
             "planned_date": date
         })

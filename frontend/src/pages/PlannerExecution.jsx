@@ -99,27 +99,36 @@ const PlannerExecution = () => {
         setItems(newItems);
     };
 
-    const handleSubmit = async (index) => {
-        const item = items[index];
-        if (item.status !== 'counted') return;
+    const handleBulkSave = async () => {
+        // Filter items that have actual counts
+        const countedItems = items.filter(item => item.status === 'counted' && !item.saved);
+
+        if (countedItems.length === 0) {
+            toast.warning("No hay items nuevos para guardar.");
+            return;
+        }
+
+        if (!window.confirm(`¿Estás seguro de guardar ${countedItems.length} items?`)) {
+            return;
+        }
 
         setSubmitting(true);
         setError(null);
         setMessage(null);
 
         try {
-            const itemPayload = {
+            const itemsPayload = countedItems.map(item => ({
                 item_code: item.item_code,
                 description: item.description,
                 bin_location: item.bin_location || 'N/A',
                 system_qty: item.system_qty || 0,
                 physical_qty: parseInt(item.physical_qty),
                 abc_code: item.abc_code
-            };
+            }));
 
             const payload = {
                 date: selectedDate,
-                items: [itemPayload]
+                items: itemsPayload
             };
 
             const response = await fetch('/api/planner/execution/save', {
@@ -128,19 +137,23 @@ const PlannerExecution = () => {
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error('Error al guardar el conteo');
+            if (!response.ok) throw new Error('Error al guardar los conteos');
 
-            setMessage(`Conteo guardado para ${item.item_code}`);
-            toast.success(`Guardado: ${item.item_code}`);
+            const result = await response.json();
+            toast.success(result.message || "Conteos guardados exitosamente");
+            setMessage("Guardado exitoso. Puede continuar o cambiar de fecha.");
 
-            // Mark as saved visually
-            const newItems = [...items];
-            newItems[index].saved = true;
+            // Mark saved items visually
+            const newItems = items.map(item => {
+                const isSaved = countedItems.some(c => c.item_code === item.item_code);
+                return isSaved ? { ...item, saved: true } : item;
+            });
             setItems(newItems);
 
         } catch (err) {
+            console.error(err);
             setError(err.message);
-            toast.error("Error al guardar");
+            toast.error("Error al guardar conteos");
         } finally {
             setSubmitting(false);
         }
@@ -199,7 +212,8 @@ const PlannerExecution = () => {
                 </div>
             ) : (
                 <div className="bg-white shadow overflow-hidden rounded-lg">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-[#34495e] text-white">
                                 <tr>
@@ -207,7 +221,6 @@ const PlannerExecution = () => {
                                     <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-24">Ubicación</th>
                                     <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">ABC</th>
                                     <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Físico</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-20">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -217,52 +230,119 @@ const PlannerExecution = () => {
                                             <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
                                             <div className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
                                         </td>
-                                        <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">{item.bin_location || 'N/A'}</td>
+                                        <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">
+                                            <div>{item.bin_location || 'N/A'}</div>
+                                            {item.additional_locations && (
+                                                <div className="text-[10px] text-gray-400 mt-0.5" title="Ubicaciones Adicionales">
+                                                    {item.additional_locations}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-1 py-2 text-sm text-gray-500 text-center">{item.abc_code}</td>
                                         <td className="px-0 py-2 text-center">
                                             <input
                                                 id={`qty-${index}`}
                                                 type="number"
-                                                className="w-10 sm:w-12 text-center p-0 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm no-spinner"
+                                                className="w-16 text-center p-1 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm no-spinner"
                                                 value={item.physical_qty}
                                                 onChange={(e) => handleCountChange(index, e.target.value)}
                                                 onBlur={() => calculateDifference(index)}
                                                 disabled={item.saved}
+                                                placeholder="-"
                                             />
-                                        </td>
-                                        <td className="px-1 py-2 text-center">
-                                            {!item.saved ? (
-                                                <button
-                                                    onClick={() => handleSubmit(index)}
-                                                    disabled={submitting || item.status !== 'counted'}
-                                                    className={`text-white px-2 py-1 rounded text-xs font-bold transition-colors ${item.status === 'counted'
-                                                        ? 'bg-indigo-600 hover:bg-indigo-700'
-                                                        : 'bg-gray-300 cursor-not-allowed'
-                                                        }`}
-                                                >
-                                                    Guardar
-                                                </button>
-                                            ) : (
-                                                <span className="text-green-600 font-bold text-xs">OK</span>
-                                            )}
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Card View */}
+                    <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
+                        {items.map((item, index) => (
+                            <div key={index} className={`bg-white rounded-lg shadow-sm p-3 border ${item.saved ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <span className="text-lg font-bold text-indigo-700 block">{item.item_code}</span>
+                                        <span className="text-xs text-gray-500">{item.description}</span>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                        item.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-blue-100 text-blue-800'
+                                        }`}>
+                                        {item.abc_code}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-center mt-3">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Ubicación</span>
+                                        <span className="text-sm font-mono font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded self-start">
+                                            {item.bin_location || 'N/A'}
+                                        </span>
+                                        {item.additional_locations && (
+                                            <span className="text-[10px] text-gray-500 mt-1 pl-1">
+                                                <span className="font-bold">Adic:</span> {item.additional_locations}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-1">Cant. Física</span>
+                                        <input
+                                            id={`qty-mobile-${index}`}
+                                            type="number"
+                                            className="w-24 text-center p-2 border rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-bold shadow-sm"
+                                            value={item.physical_qty}
+                                            onChange={(e) => handleCountChange(index, e.target.value)}
+                                            onBlur={() => calculateDifference(index)}
+                                            disabled={item.saved}
+                                            placeholder="0"
+                                            inputMode="numeric"
+                                        />
+                                    </div>
+                                </div>
+                                {item.saved && (
+                                    <div className="mt-2 text-right">
+                                        <span className="text-xs font-bold text-green-600 flex items-center justify-end gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Guardado
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Bulk Save Footer */}
+                    <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
+                        <div className="text-sm text-gray-700">
+                            Items contados: <span className="font-bold">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
+                        </div>
+                        <button
+                            onClick={handleBulkSave}
+                            disabled={submitting || items.filter(i => i.status === 'counted').length === 0}
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-bold text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                                }`}
+                        >
+                            {submitting ? 'Guardando...' : 'Guardar y Finalizar'}
+                        </button>
+                    </div>
                 </div>
             )}
 
             {/* Scanner Modal */}
-            {/* Scanner Modal */}
-            {scannerOpen && (
-                <ScannerModal
-                    onScan={handleScan}
-                    onClose={() => setScannerOpen(false)}
-                />
-            )}
-        </div>
+            {
+                scannerOpen && (
+                    <ScannerModal
+                        onScan={handleScan}
+                        onClose={() => setScannerOpen(false)}
+                    />
+                )
+            }
+        </div >
     );
 };
 
