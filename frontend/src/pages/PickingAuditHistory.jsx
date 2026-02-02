@@ -58,7 +58,8 @@ const PickingAuditHistory = () => {
 
             {!loading && !error && (
                 <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-                    <div className="overflow-x-auto">
+                    {/* Desktop View */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
                                 <tr className="border-b border-gray-200 text-left text-xs font-bold uppercase tracking-wider">
@@ -154,6 +155,80 @@ const PickingAuditHistory = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
+                        {audits.map((audit) => (
+                            <div key={audit.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${expandedAuditId === audit.id ? 'ring-2 ring-indigo-100' : ''}`}>
+                                <div className="p-4" onClick={() => toggleExpand(audit.id)}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg font-bold text-[#0070d2]">{audit.order_number}</span>
+                                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">{audit.despatch_number}</span>
+                                        </div>
+                                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${audit.status === 'Completado' || audit.status === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                                            audit.status === 'Rechazado' || audit.status === 'Error' ? 'bg-red-100 text-red-800' :
+                                                'bg-yellow-100 text-yellow-800'
+                                            }`}>
+                                            {audit.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="text-sm font-medium text-gray-800 mb-2">{audit.customer_name || 'Sin Cliente'}</div>
+
+                                    <div className="flex justify-between items-end text-xs text-gray-500">
+                                        <div>
+                                            <div><span className="font-semibold">Usuario:</span> {audit.username}</div>
+                                            <div>{formatDate(audit.timestamp)}</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <Link
+                                                to={`/packing_list/print/${audit.id}`}
+                                                className="text-gray-400 hover:text-blue-600 p-1"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                </svg>
+                                            </Link>
+                                            <button className="text-gray-400 hover:text-indigo-600">
+                                                <svg
+                                                    className={`w-6 h-6 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-180' : ''}`}
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Expanded Details (Mobile) */}
+                                {expandedAuditId === audit.id && (
+                                    <div className="bg-gray-50 border-t border-gray-100 p-3">
+                                        <h4 className="font-bold text-gray-500 mb-2 text-xs uppercase tracking-wide">Detalles</h4>
+                                        <div className="space-y-2">
+                                            {audit.items.map((item, idx) => (
+                                                <div key={idx} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-sm">
+                                                    <div className="flex-1 min-w-0 pr-2">
+                                                        <div className="font-medium text-gray-900 truncate">{item.item_code}</div>
+                                                        <div className="text-xs text-gray-500 truncate">{item.description}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-xs text-gray-500">Req: {item.qty_req}</div>
+                                                        <div className="font-bold">Scan: {item.qty_scan}</div>
+                                                    </div>
+                                                    <div className={`ml-3 w-8 text-right font-bold ${item.difference !== 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                                        {item.difference > 0 ? `+${item.difference}` : item.difference}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
