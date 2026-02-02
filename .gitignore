@@ -44,6 +44,9 @@ mysql.txt
 *.bak
 *.backup
 VPS_ubuntu.md
+iniciar_app.sh
+*.conf
+
 
 # Mantener archivos importantes aunque sean txt o md
 !requirements.txt

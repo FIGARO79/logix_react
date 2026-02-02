@@ -204,9 +204,7 @@ const PlannerExecution = () => {
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-auto">Item</th>
                                     <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-24">Ubicación</th>
                                     <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">ABC</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Sistema</th>
                                     <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Físico</th>
-                                    <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Dif</th>
                                     <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-20">Acción</th>
                                 </tr>
                             </thead>
@@ -219,7 +217,6 @@ const PlannerExecution = () => {
                                         </td>
                                         <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">{item.bin_location || 'N/A'}</td>
                                         <td className="px-1 py-2 text-sm text-gray-500 text-center">{item.abc_code}</td>
-                                        <td className="px-1 py-2 text-sm text-center text-gray-900 font-medium">{item.system_qty || 0}</td>
                                         <td className="px-0 py-2 text-center">
                                             <input
                                                 id={`qty-${index}`}
@@ -230,14 +227,6 @@ const PlannerExecution = () => {
                                                 onBlur={() => calculateDifference(index)}
                                                 disabled={item.saved}
                                             />
-                                        </td>
-                                        <td className="px-1 py-2 text-center">
-                                            {item.difference !== null && (
-                                                <span className={`px-1.5 inline-flex text-xs leading-5 font-semibold rounded-full ${item.difference === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {item.difference > 0 ? `+${item.difference}` : item.difference}
-                                                </span>
-                                            )}
                                         </td>
                                         <td className="px-1 py-2 text-center">
                                             {!item.saved ? (
