@@ -19,6 +19,7 @@ const Inbound = () => {
     const [itemData, setItemData] = useState(null);
     const [logs, setLogs] = useState([]);
     const [versions, setVersions] = useState([]);
+    const [currentVersion, setCurrentVersion] = useState('');
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ const Inbound = () => {
 
     // --- Refs ---
     const quantityRef = useRef(null);
+    const itemCodeRef = useRef(null);
     const printFrameRef = useRef(null);
 
     // Carga inicial
@@ -50,18 +52,24 @@ const Inbound = () => {
     // --- Funciones API ---
 
     const loadLogs = async (version = '') => {
+        setCurrentVersion(version);
         try {
             const url = version
                 ? `/api/get_logs?version_date=${version}`
                 : `/api/get_logs`;
-            const res = await fetch(url);
-            if (res.ok) setLogs(await res.json());
+            const res = await fetch(url, { credentials: 'include' });
+            if (res.ok) {
+                setLogs(await res.json());
+            } else {
+                console.error("Failed to load logs:", res.status, res.statusText);
+                if (res.status === 401) window.location.href = '/login';
+            }
         } catch (e) { console.error("Error loading logs", e); }
     };
 
     const loadVersions = async () => {
         try {
-            const res = await fetch('/api/inbound/versions');
+            const res = await fetch('/api/inbound/versions', { credentials: 'include' });
             if (res.ok) setVersions(await res.json());
         } catch (e) { console.error(e); }
     };
@@ -73,7 +81,7 @@ const Inbound = () => {
         }
         setLoading(true);
         try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/${encodeURIComponent(importRef)}`);
+            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
             const data = await res.json();
             if (res.ok) {
                 setItemData(data);
@@ -106,9 +114,10 @@ const Inbound = () => {
             let res;
             if (editId) {
                 // Endpoint para actualizar
-                res = await fetch(`/api/inbound/log/${editId}`, {
+                res = await fetch(`/api/update_log/${editId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         waybill: payload.waybill,
                         qtyReceived: payload.quantity,
@@ -120,6 +129,7 @@ const Inbound = () => {
                 res = await fetch(`/api/add_log`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(payload)
                 });
             }
@@ -137,7 +147,7 @@ const Inbound = () => {
     const handleDelete = async (id) => {
         if (!confirm("¿Eliminar registro?")) return;
         try {
-            await fetch(`/api/delete_log/${id}`, { method: 'DELETE' });
+            await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
             loadLogs();
         } catch (e) { alert("Error"); }
     };
@@ -145,7 +155,7 @@ const Inbound = () => {
     const handleArchive = async () => {
         if (!confirm("¿Archivar registros actuales y limpiar base?")) return;
         try {
-            await fetch(`/api/inbound/archive`, { method: 'POST' });
+            await fetch(`/api/inbound/archive`, { method: 'POST', credentials: 'include' });
             loadLogs();
             loadVersions();
         } catch (e) { alert("Error"); }
@@ -159,6 +169,8 @@ const Inbound = () => {
         setRelocatedBin('');
         setItemData(null);
         // Mantener Import Ref y Waybill por comodidad (UX legacy)
+        // Focus en itemCode para entrada rápida de datos
+        setTimeout(() => itemCodeRef.current?.focus(), 300);
     };
 
     const startEdit = (log) => {
@@ -375,7 +387,7 @@ const Inbound = () => {
                                 <div className="sm:col-span-2">
                                     <label className="form-label">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())}
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())}
                                             placeholder="Escanear o Escribir" required disabled={!!editId} />
                                         {!editId && (
@@ -527,7 +539,7 @@ const Inbound = () => {
                             <button onClick={() => window.location.href = '/update'} className="h-8 px-4 text-xs font-medium bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 flex items-center justify-center">
                                 Act. Archivos
                             </button>
-                            <button onClick={() => window.location.href = '/api/inbound/export'} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
+                            <button onClick={() => window.location.href = currentVersion ? `/api/inbound/export?version=${currentVersion}` : '/api/inbound/export'} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar
                             </button>

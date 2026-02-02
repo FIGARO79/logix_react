@@ -108,19 +108,21 @@ const PlannerExecution = () => {
         setMessage(null);
 
         try {
-            const payload = {
+            const itemPayload = {
                 item_code: item.item_code,
-                item_description: item.description,
+                description: item.description,
                 bin_location: item.bin_location || 'N/A',
                 system_qty: item.system_qty || 0,
                 physical_qty: parseInt(item.physical_qty),
-                difference: item.difference,
-                executed_date: selectedDate,
-                username: "admin",
                 abc_code: item.abc_code
             };
 
-            const response = await fetch('/api/planner/save_execution', {
+            const payload = {
+                date: selectedDate,
+                items: [itemPayload]
+            };
+
+            const response = await fetch('/api/planner/execution/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
