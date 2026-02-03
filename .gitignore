@@ -68,6 +68,6 @@ certs/
 *.pem
 
 # Frontend Dist (Si se desea versionar el build, comentar esta línea)
-# frontend/dist/
+frontend/dist/
 frontend/node_modules/
 

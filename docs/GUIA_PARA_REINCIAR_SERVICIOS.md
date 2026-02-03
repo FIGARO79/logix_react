@@ -25,3 +25,8 @@ Backend	Reiniciar servicio	sudo systemctl restart logix-backend
 Frontend	Recompilar cambios	./deploy.sh
 Nginx	Cambios de config	sudo systemctl restart nginx
 Logs	Ver errores backend	journalctl -u logix-backend -f
+
+
+sudo cp /home/debian/logix_react/nginx_logix.conf /etc/nginx/sites-available/logix
+
+sudo systemctl restart logix-backend nginx
