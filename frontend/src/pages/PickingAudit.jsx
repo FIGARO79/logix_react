@@ -39,6 +39,7 @@ const PickingAudit = () => {
     const [despatchNumber, setDespatchNumber] = useState('');
     const [loadingOrder, setLoadingOrder] = useState(false);
     const [trackingData, setTrackingData] = useState([]);
+    const [sortOrder, setSortOrder] = useState('desc');
 
     // Audit Section
     const [auditActive, setAuditActive] = useState(false);
@@ -90,13 +91,22 @@ const PickingAudit = () => {
 
     // -- API Calls --
 
+    const [loadingTracking, setLoadingTracking] = useState(false);
+
     const loadTrackingData = async () => {
+        setLoadingTracking(true);
         try {
             const res = await fetch('/api/picking/tracking', { credentials: 'include' });
             if (res.ok) {
                 setTrackingData(await res.json());
+                toast.success("Lista actualizada");
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error actualizando lista");
+        } finally {
+            setLoadingTracking(false);
+        }
     };
 
     const handleLoadOrder = async () => {
@@ -586,36 +596,57 @@ const PickingAudit = () => {
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="font-semibold text-gray-700">Pedidos Recientes</h3>
-                        <button onClick={loadTrackingData} className="text-blue-600 text-sm hover:underline">Actualizar</button>
+                        <button
+                            onClick={loadTrackingData}
+                            disabled={loadingTracking}
+                            className={`text-sm ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:underline'}`}
+                        >
+                            {loadingTracking ? 'Actualizando...' : 'Actualizar'}
+                        </button>
                     </div>
                     {/* Desktop View */}
                     <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-60 overflow-y-auto">
                         <table className="w-full text-left text-sm sap-table">
-                            <thead>
+                            <thead className="sticky top-0 z-10 bg-slate-700 text-white shadow-sm">
                                 <tr>
-                                    <th>Order</th>
-                                    <th>Despatch</th>
-                                    <th>Cliente</th>
-                                    <th>Líneas</th>
-                                    <th>Fecha</th>
+                                    <th className="py-2.5 px-3 font-semibold">Order</th>
+                                    <th className="py-2.5 px-3 font-semibold">Despatch</th>
+                                    <th className="py-2.5 px-3 font-semibold">Cliente</th>
+                                    <th className="py-2.5 px-3 font-semibold text-center">Líneas</th>
+                                    <th
+                                        className="py-2.5 px-3 font-semibold cursor-pointer hover:bg-slate-600 select-none flex items-center gap-1"
+                                        onClick={() => {
+                                            setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+                                        }}
+                                        title="Ordenar por fecha"
+                                    >
+                                        Fecha
+                                        <span className="text-xs">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {trackingData.length === 0 ? (
                                     <tr><td colSpan="5" className="text-center p-4 text-gray-500">No hay pedidos recientes</td></tr>
                                 ) : (
-                                    trackingData.map((t, idx) => (
-                                        <tr key={idx} className="cursor-pointer hover:bg-blue-50" onClick={() => {
-                                            setOrderNumber(t.order_number);
-                                            setDespatchNumber(t.despatch_number);
-                                        }}>
-                                            <td className="font-medium">{t.order_number}</td>
-                                            <td>{t.despatch_number}</td>
-                                            <td className="truncate max-w-[150px]">{t.customer_name}</td>
-                                            <td className="text-center font-bold text-blue-600">{t.total_lines}</td>
-                                            <td className="text-gray-500 text-xs">{t.print_date}</td>
-                                        </tr>
-                                    ))
+                                    [...trackingData]
+                                        .sort((a, b) => {
+                                            const dateA = new Date(a.print_date);
+                                            const dateB = new Date(b.print_date);
+                                            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+                                        })
+                                        .map((t, idx) => (
+                                            <tr key={idx} className="cursor-pointer hover:bg-blue-50" onClick={() => {
+                                                setOrderNumber(t.order_number);
+                                                setDespatchNumber(t.despatch_number);
+                                            }}>
+                                                <td className="font-medium">{t.order_number}</td>
+                                                <td>{t.despatch_number}</td>
+                                                <td className="truncate max-w-[150px]">{t.customer_name}</td>
+                                                <td className="text-center font-bold text-blue-600">{t.total_lines}</td>
+                                                <td className="text-gray-500 text-xs">{t.print_date}</td>
+                                            </tr>
+                                        ))
                                 )}
                             </tbody>
                         </table>

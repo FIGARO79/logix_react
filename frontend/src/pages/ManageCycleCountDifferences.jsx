@@ -24,11 +24,13 @@ const ManageCycleCountDifferences = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const queryParams = new URLSearchParams({
+            const params = {
                 year: year,
-                month: month,
                 only_differences: onlyDifferences
-            });
+            };
+            if (month) params.month = month;
+
+            const queryParams = new URLSearchParams(params);
             const res = await fetch(`/api/planner/cycle_count_differences?${queryParams}`);
             if (!res.ok) throw new Error("Error cargando datos");
             const result = await res.json();
@@ -99,6 +101,7 @@ const ManageCycleCountDifferences = () => {
                         onChange={(e) => setMonth(e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1 w-32"
                     >
+                        <option value="">Todos</option>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                             <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('es-ES', { month: 'long' })}</option>
                         ))}
