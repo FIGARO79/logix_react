@@ -155,7 +155,7 @@ async def export_logs(
         worksheet = writer.sheets['Logs']
         for i, col_name in enumerate(df.columns):
             column_letter = get_column_letter(i + 1)
-            max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
+            max_len = max(df[col_name].fillna("").astype(str).map(len).max(), len(col_name)) + 2
             worksheet.column_dimensions[column_letter].width = max_len
 
     output.seek(0)
