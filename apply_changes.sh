@@ -43,6 +43,7 @@ sudo cp -r dist/* "$PROD_FRONTEND_DIR/"
 
 # 3. REINICIO DE SERVICIOS
 # Reiniciar el backend recargará el código Python en TODOS los workers.
+#sudo systemctl restart logix-backend
 echo ""
 echo "Bg  [3/4] Reiniciando servicios de Backend (Workers)..."
 sudo systemctl restart logix-backend
