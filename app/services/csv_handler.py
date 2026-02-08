@@ -44,83 +44,188 @@ async def read_csv_safe(file_path: str, columns: list = None):
 async def load_csv_data():
     """
     Carga (o recarga) los datos de los archivos CSV principales.
-    Construye master_qty_map y persiste stock_qty_cache.json, pero libera df_master_cache para ahorrar RAM.
+    OPTIMIZACIÓN: Intenta cargar desde JSON cache primero, solo lee CSV si es necesario.
     """
     global df_master_cache, df_grn_cache, master_qty_map, grn_file_mtime, master_file_mtime
     print("Cargando datos CSV en caché ligera...")
 
-    # Solo se mantiene en memoria el GRN; el maestro se lee y se libera.
-    df_master = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
-    df_grn_cache = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
-
-    if df_master is not None:
-        print(f"Cargados {len(df_master)} registros del maestro de items.")
-        # Guardar timestamp del archivo maestro para detectar cambios
-        if os.path.exists(ITEM_MASTER_CSV_PATH):
-            master_file_mtime = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-        try:
-            master_qty_map.clear()
-            items = df_master['Item_Code'].values
-            quantities = pd.to_numeric(df_master['Physical_Qty'], errors='coerce').fillna(0).astype(int).values
-            master_qty_map.update(dict(zip(items, quantities)))
-            print(f"master_qty_map construido con {len(master_qty_map)} items, {sum(1 for q in master_qty_map.values() if q > 0)} con stock > 0")
-
-            # Persistir master_qty_map a JSON
+    # --- OPTIMIZACIÓN: Cargar master_qty_map desde JSON si existe y está actualizado ---
+    json_cache_path = os.path.join(os.path.dirname(ITEM_MASTER_CSV_PATH), 'stock_qty_cache.json')
+    csv_exists = os.path.exists(ITEM_MASTER_CSV_PATH)
+    json_exists = os.path.exists(json_cache_path)
+    
+    should_read_csv = True
+    
+    if json_exists and csv_exists:
+        # Comparar timestamps: solo leer CSV si es más nuevo que el JSON
+        csv_mtime = os.path.getmtime(ITEM_MASTER_CSV_PATH)
+        json_mtime = os.path.getmtime(json_cache_path)
+        
+        if json_mtime >= csv_mtime:
+            # JSON está actualizado, cargar desde ahí
             try:
-                json_cache_path = os.path.join(os.path.dirname(ITEM_MASTER_CSV_PATH), 'stock_qty_cache.json')
-
-                def numpy_converter(obj):
-                    if isinstance(obj, np.integer):
-                        return int(obj)
-                    if isinstance(obj, np.floating):
-                        return float(obj)
-                    raise TypeError(f"Type {type(obj)} not serializable")
-
-                with open(json_cache_path, 'w') as f:
-                    json.dump(master_qty_map, f, default=numpy_converter)
-                print(f"Mapa de stock guardado en JSON cache: {json_cache_path}")
+                print(f"⚡ Cargando master_qty_map desde JSON cache (más rápido)...")
+                with open(json_cache_path, 'r') as f:
+                    master_qty_map_data = json.load(f)
+                master_qty_map.clear()
+                master_qty_map.update(master_qty_map_data)
+                master_file_mtime = csv_mtime
+                print(f"✅ master_qty_map cargado desde JSON: {len(master_qty_map)} items")
+                should_read_csv = False
             except Exception as e:
-                print(f"No se pudo guardar la cache JSON de stock: {e}")
+                print(f"⚠️ Error leyendo JSON cache, fallback a CSV: {e}")
+                should_read_csv = True
+    
+    # Solo leer CSV si es necesario (JSON no existe o está desactualizado)
+    if should_read_csv:
+        print(f"📖 Leyendo CSV maestro (JSON no disponible o desactualizado)...")
+        df_master = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
+        
+        if df_master is not None:
+            print(f"Cargados {len(df_master)} registros del maestro de items.")
+            # Guardar timestamp del archivo maestro para detectar cambios
+            if os.path.exists(ITEM_MASTER_CSV_PATH):
+                master_file_mtime = os.path.getmtime(ITEM_MASTER_CSV_PATH)
+            try:
+                master_qty_map.clear()
+                items = df_master['Item_Code'].values
+                quantities = pd.to_numeric(df_master['Physical_Qty'], errors='coerce').fillna(0).astype(int).values
+                master_qty_map.update(dict(zip(items, quantities)))
+                print(f"master_qty_map construido con {len(master_qty_map)} items, {sum(1 for q in master_qty_map.values() if q > 0)} con stock > 0")
 
-        except Exception as e:
-            print(f"Warning: no se pudo construir master_qty_map: {e}")
-            master_qty_map.clear()
+                # Persistir master_qty_map a JSON
+                try:
+                    def numpy_converter(obj):
+                        if isinstance(obj, np.integer):
+                            return int(obj)
+                        if isinstance(obj, np.floating):
+                            return float(obj)
+                        raise TypeError(f"Type {type(obj)} not serializable")
 
-    if df_grn_cache is not None:
-        print(f"Cargados {len(df_grn_cache)} registros del archivo GRN.")
-        # Guardar timestamp del archivo GRN para detectar cambios
-        if os.path.exists(GRN_CSV_FILE_PATH):
-            grn_file_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
+                    with open(json_cache_path, 'w') as f:
+                        json.dump(master_qty_map, f, default=numpy_converter)
+                    print(f"💾 Mapa de stock guardado en JSON cache: {json_cache_path}")
+                except Exception as e:
+                    print(f"No se pudo guardar la cache JSON de stock: {e}")
+
+            except Exception as e:
+                print(f"Warning: no se pudo construir master_qty_map: {e}")
+                master_qty_map.clear()
+
+    # Cargar GRN usando estrategia JSON cache para optimizar
+    await load_grn_data_optimized()
 
     # Liberar df_master_cache para conservar memoria
     df_master_cache = None
+
+async def load_grn_data_optimized():
+    """
+    Carga el GRN. Primero intenta desde cache JSON. Si el CSV cambió, regenera el JSON.
+    Reconstruye df_grn_cache para compatibilidad.
+    """
+    global df_grn_cache, grn_file_mtime
+    
+    if not os.path.exists(GRN_CSV_FILE_PATH):
+        print("Archivo GRN no encontrado.")
+        df_grn_cache = None
+        return
+
+    json_cache_path = os.path.join(os.path.dirname(GRN_CSV_FILE_PATH), 'grn_cache.json')
+    current_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
+    
+    # Verificar si necesitamos regenerar cache
+    need_regenerate = True
+    if os.path.exists(json_cache_path) and grn_file_mtime == current_mtime:
+        need_regenerate = False
+        print("Usando cache JSON para GRN...")
+    
+    if need_regenerate:
+        print("Regenerando cache JSON para GRN desde CSV...")
+        df_grn_raw = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
+        if df_grn_raw is not None:
+            # Guardamos datos crudos o agregados?
+            # Para reconciliación necesitamos detalle de líneas (GRN_Number, Item_Code, Qty).
+            # No podemos agregar solo por Item_Code si el reporte pide detalle por GRN.
+            # Guardaremos la lista de registros completa en JSON.
+            grn_data = df_grn_raw.to_dict(orient='records')
+            
+            try:
+                with open(json_cache_path, 'w') as f:
+                    json.dump(grn_data, f)
+                grn_file_mtime = current_mtime
+                # Cargar en memoria
+                df_grn_cache = df_grn_raw
+                print(f"GRN Cache regenerado: {len(grn_data)} registros.")
+            except Exception as e:
+                print(f"Error guardando cache GRN: {e}")
+                df_grn_cache = df_grn_raw # Fallback
+        else:
+            df_grn_cache = None
+    else:
+        # Cargar desde JSON
+        try:
+            with open(json_cache_path, 'r') as f:
+                grn_data = json.load(f)
+            df_grn_cache = pd.DataFrame(grn_data)
+            # Asegurar tipos
+            if not df_grn_cache.empty:
+                df_grn_cache['Quantity'] = pd.to_numeric(df_grn_cache['Quantity'], errors='coerce').fillna(0)
+            grn_file_mtime = current_mtime
+        except Exception as e:
+            print(f"Error leyendo cache JSON GRN, reintentando CSV: {e}")
+            # Fallback a CSV directo
+            df_grn_cache = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
+            grn_file_mtime = current_mtime
+
 
 
 async def reload_cache_if_needed():
     """
     Verifica si los archivos CSV (Maestro o GRN) cambiaron y recarga el cache si es necesario.
     Se ejecuta al inicio de cada request. Cada worker detecta cambios independientemente.
+    
+    OPTIMIZACIÓN: Solo verifica timestamps cada 5 segundos para evitar I/O excesivo.
     """
-    global grn_file_mtime, master_file_mtime
+    global grn_file_mtime, master_file_mtime, _last_check_time
+    
+    import time
+    current_time = time.time()
+    
+    # THROTTLE: Solo verificar cada 5 segundos
+    if hasattr(reload_cache_if_needed, '_last_check') and (current_time - reload_cache_if_needed._last_check) < 5:
+        return  # Skip check, too soon
+    
+    reload_cache_if_needed._last_check = current_time
     
     need_reload = False
     
     # Verificar archivo Maestro
     if os.path.exists(ITEM_MASTER_CSV_PATH):
         current_master_mtime = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-        if master_file_mtime is None or current_master_mtime != master_file_mtime:
-            print(f"Archivo Maestro modificado detectado. Recargando cache...")
+        # Solo recargar si el timestamp cambió (no si es None en la primera carga)
+        if master_file_mtime is not None and current_master_mtime != master_file_mtime:
+            print(f"⚠️ Archivo Maestro modificado detectado. Recargando cache...")
             need_reload = True
+        elif master_file_mtime is None:
+            # Primera carga, solo actualizar el timestamp sin recargar
+            # (ya se cargó en el startup de la app)
+            master_file_mtime = current_master_mtime
     
     # Verificar archivo GRN
     if os.path.exists(GRN_CSV_FILE_PATH):
         current_grn_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
-        if grn_file_mtime is None or current_grn_mtime != grn_file_mtime:
-            print(f"Archivo GRN modificado detectado. Recargando cache...")
+        # Solo recargar si el timestamp cambió (no si es None en la primera carga)
+        if grn_file_mtime is not None and current_grn_mtime != grn_file_mtime:
+            print(f"⚠️ Archivo GRN modificado detectado. Recargando cache...")
             need_reload = True
+        elif grn_file_mtime is None:
+            # Primera carga, solo actualizar el timestamp sin recargar
+            grn_file_mtime = current_grn_mtime
     
     if need_reload:
         await load_csv_data()
+
+
 
 
 async def get_item_details_from_master_csv(item_code: str):

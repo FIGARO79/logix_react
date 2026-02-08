@@ -216,8 +216,12 @@ const Inbound = () => {
             .finally(() => setLoading(false));
     };
 
-    // Cálculos
-    const diff = itemData ? (parseInt(quantity || 0) - (itemData.defaultQtyGrn || 0)) : 0;
+    // Cálculos para Inbound Ciego
+    const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode);
+    const cumulativeQty = itemLogs.reduce((acc, curr) => acc + curr.qtyReceived, 0);
+    const auditCount = itemLogs.length;
+    const displayQty = (cumulativeQty + parseInt(quantity || 0));
+
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
 
     const handlePrint = () => {
@@ -436,16 +440,18 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            {/* Resumen Cantidades */}
+                            {/* Resumen Cantidades (Proceso Ciego) */}
                             <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
                                 <h3 className="text-xs font-bold uppercase text-gray-700 border-b-2 border-blue-600 pb-1 mb-3">Resumen de Cantidades</h3>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label">Qty Received</label><div className="data-field">{quantity || 0}</div></div>
-                                    <div><label className="form-label">Qty Expected (GRN)</label><div className="data-field">{itemData?.defaultQtyGrn || 0}</div></div>
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="form-label">Difference</label>
-                                        <div className={`data-field font-bold ${diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : ''}`}>
-                                            {diff > 0 ? `+${diff}` : diff}
+                                        <label className="form-label">Qty Received (Total)</label>
+                                        <div className="data-field font-bold text-blue-700">{displayQty}</div>
+                                    </div>
+                                    <div>
+                                        <label className="form-label">Contado</label>
+                                        <div className="data-field font-bold text-gray-700">
+                                            {auditCount} {auditCount === 1 ? 'vez' : 'veces'}
                                         </div>
                                     </div>
                                 </div>
@@ -565,15 +571,13 @@ const Inbound = () => {
                                     <th className="px-2 py-1.5 text-left font-medium">Bin (Orig)</th>
                                     <th className="px-2 py-1.5 text-left font-medium">Bin (New)</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Qty Rec</th>
-                                    <th className="px-2 py-1.5 text-center font-medium">Qty Exp</th>
-                                    <th className="px-2 py-1.5 text-center font-medium">Dif</th>
                                     <th className="px-2 py-1.5 text-left font-medium">Fecha/Hora</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {logs.length === 0 ? (
-                                    <tr><td colSpan="11" className="text-center py-4 text-gray-500">No hay registros</td></tr>
+                                    <tr><td colSpan="9" className="text-center py-4 text-gray-500">No hay registros</td></tr>
                                 ) : logs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                         <td className="px-2 py-1.5">{log.importReference}</td>
@@ -583,10 +587,6 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5">{log.binLocation}</td>
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1.5 text-center">{log.qtyGrn}</td>
-                                        <td className={`px-2 py-1.5 text-center font-semibold ${log.difference < 0 ? 'text-red-600' : log.difference > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
-                                            {log.difference > 0 ? `+${log.difference}` : log.difference}
-                                        </td>
                                         <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">

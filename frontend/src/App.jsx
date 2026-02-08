@@ -28,6 +28,7 @@ const PackingListPrint = lazy(() => import('./pages/PackingListPrint'));
 const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
 const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
 const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
+const WaybillGRN = lazy(() => import('./pages/WaybillGRN'));
 const ErrorPage = lazy(() => import('./pages/Error'));
 
 // Componente de carga
@@ -101,6 +102,11 @@ function App() {
                         <Route path="/inbound" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <Inbound />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/waybill-grn" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <WaybillGRN />
                             </ProtectedRoute>
                         } />
                         <Route path="/label" element={<LabelPrinting />} />

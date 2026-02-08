@@ -69,3 +69,37 @@ class CountExecutionItem(BaseModel):
 class CountExecutionRequest(BaseModel):
     date: str
     items: List[CountExecutionItem]
+
+class GRNMasterBase(BaseModel):
+    import_reference: str
+    waybill: str
+    grn_number: Optional[str] = None
+    packs: Optional[float] = None
+    lines: Optional[str] = None
+    aaf_date: Optional[str] = None
+    grn1_date: Optional[str] = None
+    aaf_grn1: Optional[float] = None
+    grn3_date: Optional[str] = None
+    grn1_grn3: Optional[float] = None
+    ct: Optional[str] = None
+
+class GRNMasterCreate(GRNMasterBase):
+    pass
+
+class GRNMasterUpdate(BaseModel):
+    grn_number: Optional[str] = None
+    packs: Optional[float] = None
+    lines: Optional[str] = None
+    aaf_date: Optional[str] = None
+    grn1_date: Optional[str] = None
+    aaf_grn1: Optional[float] = None
+    grn3_date: Optional[str] = None
+    grn1_grn3: Optional[float] = None
+    ct: Optional[str] = None
+
+class GRNMasterResponse(GRNMasterBase):
+    id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True

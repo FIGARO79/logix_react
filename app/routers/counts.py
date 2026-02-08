@@ -387,25 +387,57 @@ async def get_cycle_count_recordings(username: str = Depends(api_login_required)
     Obtiene el historial detallado de conteos cíclicos (CycleCountRecordings)
     incluyendo valoración monetaria basada en Cost_per_Unit del maestro.
     """
+    from app.models.sql_models import MasterItem
+    
     try:
         result = await db.execute(
             select(CycleCountRecording).order_by(CycleCountRecording.executed_date.desc())
         )
         recordings = result.scalars().all()
         
+        if not recordings:
+            return JSONResponse(content=[])
+        
+        # OPTIMIZACIÓN: Batch query para todos los item codes de una vez
+        item_codes = list({rec.item_code for rec in recordings})
+        
+        # Consultar todos los items necesarios en una sola query
+        result_items = await db.execute(
+            select(MasterItem).where(MasterItem.item_code.in_(item_codes))
+        )
+        master_items = result_items.scalars().all()
+        
+        # Crear un mapa para lookup rápido
+        master_map = {item.item_code: item for item in master_items}
+        
         enriched_data = []
         for rec in recordings:
-            # Obtener detalles del maestro (costo)
-            details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+            # Buscar detalles en el mapa (O(1) lookup)
+            master_item = master_map.get(rec.item_code)
+            
+            # Valores por defecto
             cost = 0.0
             stockroom = "N/A"
+            item_type = ""
+            item_class = ""
+            item_group = ""
+            sic_company = ""
+            sic_stockroom = ""
+            weight = ""
             
-            if details:
-                stockroom = details.get('Stockroom', 'N/A')
+            if master_item:
+                # Leer desde la tabla master_items
+                stockroom = master_item.stockroom or "N/A"
+                item_type = master_item.item_type or ""
+                item_class = master_item.item_class or ""
+                item_group = master_item.item_group_major or ""
+                sic_company = master_item.sic_code_company or ""
+                sic_stockroom = master_item.sic_code_stockroom or ""
+                weight = str(master_item.weight_per_unit) if master_item.weight_per_unit else ""
+                
                 try:
-                    cost_str = details.get('Cost_per_Unit', '0').replace(',', '')
-                    cost = float(cost_str)
-                except (ValueError, AttributeError):
+                    cost = float(master_item.cost_per_unit) if master_item.cost_per_unit else 0.0
+                except (ValueError, TypeError):
                     cost = 0.0
             
             value_diff = rec.difference * cost
@@ -418,12 +450,12 @@ async def get_cycle_count_recordings(username: str = Depends(api_login_required)
                 'item_code': rec.item_code,
                 'description': rec.item_description,
                 'stockroom': stockroom,
-                'item_type': details.get('Item_Type', '') if details else '',
-                'item_class': details.get('Item_Class', '') if details else '',
-                'item_group': details.get('Item_Group_Major', '') if details else '',
-                'sic_company': details.get('SIC_Code_Company', '') if details else '',
-                'sic_stockroom': details.get('SIC_Code_stockroom', '') if details else '',
-                'weight': details.get('Weight_per_Unit', '') if details else '',
+                'item_type': item_type,
+                'item_class': item_class,
+                'item_group': item_group,
+                'sic_company': sic_company,
+                'sic_stockroom': sic_stockroom,
+                'weight': weight,
                 'abc_code': rec.abc_code,
                 'bin_location': rec.bin_location,
                 'physical_qty': rec.physical_qty,

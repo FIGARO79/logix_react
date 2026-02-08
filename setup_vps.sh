@@ -23,7 +23,7 @@ echo "🚀 Iniciando instalación para usuario: $USER_NAME..."
 # 1. Actualizar sistema e instalar dependencias base
 echo "📦 Actualizando sistema e instalando dependencias..."
 apt-get update && apt-get upgrade -y
-apt-get install -y python3-venv python3-pip python3-dev nginx git curl build-essential libmysqlclient-dev
+apt-get install -y python3-venv python3-pip python3-dev nginx git curl build-essential libmariadb-dev-compat libmariadb-dev pkg-config
 
 # 2. Instalar Node.js (versión LTS)
 if ! command -v node &> /dev/null; then
@@ -58,7 +58,7 @@ fi
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install gunicorn
+pip install granian
 
 # 5. Configurar Frontend (React)
 echo "⚛️ Construyendo Frontend..."
@@ -83,7 +83,7 @@ nginx -t && systemctl restart nginx
 
 # 7. Configurar Systemd Service
 echo "⚙️ Configurando servicio Systemd..."
-cp vm_setup/logix.service /etc/systemd/system/
+cp vm_setup/logix.service /etc/systemd/system/logix.service
 # Reemplazar el usuario placeholder en el archivo de servicio
 sed -i "s/User=tu_usuario/User=$USER_NAME/g" /etc/systemd/system/logix.service
 
@@ -97,7 +97,7 @@ echo ""
 echo "PASOS RESTANTES PARA TI:"
 echo "1. Crea el archivo .env en $APP_DIR/.env"
 echo "   (Puedes usar cp env.production.example .env y editarlo)"
-echo "2. Edita /etc/nginx/sites-available/logix y pon tu DOMINIO real."
+echo "2. Edita /etc/nginx/sites-available/logix si necesitas dominios."
 echo "3. Reinicia servicios:"
 echo "   sudo systemctl restart nginx"
 echo "   sudo systemctl start logix"

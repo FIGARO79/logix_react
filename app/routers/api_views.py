@@ -290,21 +290,43 @@ async def get_cycle_count_recordings(
     username: str = Depends(login_required), 
     db: AsyncSession = Depends(get_db)
 ):
+    import time
+    start_time = time.time()
+    from app.models.sql_models import MasterItem
+    
     # Cargar registros de la DB
+    t1 = time.time()
     result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
     recordings = result.scalars().all()
+    print(f"⏱️ Query recordings: {time.time() - t1:.2f}s")
+
+    if not recordings:
+        return []
+
+    # OPTIMIZACIÓN: Batch query para todos los item codes de una vez
+    item_codes = list({rec.item_code for rec in recordings})
+    
+    # Consultar todos los items necesarios en una sola query
+    t2 = time.time()
+    result_items = await db.execute(
+        select(MasterItem).where(MasterItem.item_code.in_(item_codes))
+    )
+    master_items = result_items.scalars().all()
+    print(f"⏱️ Query master_items ({len(item_codes)} codes): {time.time() - t2:.2f}s")
+    
+    # Crear un mapa para lookup rápido
+    t3 = time.time()
+    master_map = {item.item_code: item for item in master_items}
+    print(f"⏱️ Build master_map: {time.time() - t3:.2f}s")
 
     data = []
     
-    # Asegurar que el CSV esté cargado (para campo Costo, Peso, etc)
-    if csv_handler.df_master_cache is None:
-        await csv_handler.load_csv_data()
-
+    t4 = time.time()
     for rec in recordings:
-        # Buscar detalles en el maestro
-        details = await csv_handler.get_item_details_from_master_csv(rec.item_code)
+        # Buscar detalles en el mapa (O(1) lookup)
+        master_item = master_map.get(rec.item_code)
         
-        # Valores por defecto si no se encuentra en CSV
+        # Valores por defecto si no se encuentra
         cost = 0.0
         weight = 0.0
         stockroom = ""
@@ -314,23 +336,24 @@ async def get_cycle_count_recordings(
         sic_company = ""
         sic_stockroom = ""
 
-        if details:
+        if master_item:
+            # Ahora tenemos todos los campos necesarios en la tabla
             try:
-                cost = float(details.get("Cost_per_Unit", 0))
+                cost = float(master_item.cost_per_unit) if master_item.cost_per_unit else 0.0
             except (ValueError, TypeError):
                 cost = 0.0
             
             try:
-                weight = float(details.get("Weight_per_Unit", 0))
+                weight = float(master_item.weight_per_unit) if master_item.weight_per_unit else 0.0
             except (ValueError, TypeError):
                 weight = 0.0
                 
-            stockroom = details.get("Stockroom", "")
-            item_type = details.get("Item_Type", "")
-            item_class = details.get("Item_Class", "")
-            group_major = details.get("Item_Group_Major", "")
-            sic_company = details.get("SIC_Code_Company", "")
-            sic_stockroom = details.get("SIC_Code_stockroom", "")
+            stockroom = master_item.stockroom or ""
+            item_type = master_item.item_type or ""
+            item_class = master_item.item_class or ""
+            group_major = master_item.item_group_major or ""
+            sic_company = master_item.sic_code_company or ""
+            sic_stockroom = master_item.sic_code_stockroom or ""
 
         # Cálculos de valor
         diff = rec.difference if rec.difference is not None else 0
@@ -353,14 +376,14 @@ async def get_cycle_count_recordings(
             "physical_qty": rec.physical_qty,
             "difference": rec.difference,
             "value_diff": value_diff,
-            # "value_diff_formatted": fmt_money(value_diff), # Frontend can format this
             "cost": cost,
-            # "cost_formatted": fmt_money(cost),
             "count_value": count_value,
-            # "count_value_formatted": fmt_money(count_value),
             "executed_date": rec.executed_date,
             "username": rec.username
         })
+    
+    print(f"⏱️ Build response data: {time.time() - t4:.2f}s")
+    print(f"⏱️ TOTAL endpoint time: {time.time() - start_time:.2f}s")
 
     return data
 

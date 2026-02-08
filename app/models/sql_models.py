@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Text, Numeric
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db import Base
 from typing import Optional
+import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -177,3 +178,40 @@ class CycleCountRecording(Base):
     difference: Mapped[int] = mapped_column(Integer, default=0)
     username: Mapped[str] = mapped_column(String(100))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+
+
+class MasterItem(Base):
+    __tablename__ = "master_items"
+
+    item_code: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10), index=True)
+    physical_qty: Mapped[int] = mapped_column(Integer, default=0)
+    bin_1: Mapped[Optional[str]] = mapped_column(String(100), index=True)
+    additional_bin: Mapped[Optional[str]] = mapped_column(String(100))
+    weight_per_unit: Mapped[Optional[str]] = mapped_column(String(50))
+    item_type: Mapped[Optional[str]] = mapped_column(String(50))
+    item_class: Mapped[Optional[str]] = mapped_column(String(50))
+    item_group_major: Mapped[Optional[str]] = mapped_column(String(50))
+    stockroom: Mapped[Optional[str]] = mapped_column(String(50))
+    cost_per_unit: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    sic_code_company: Mapped[Optional[str]] = mapped_column(String(50))
+    sic_code_stockroom: Mapped[Optional[str]] = mapped_column(String(50))
+    updated_at: Mapped[str] = mapped_column(String(50), nullable=True)
+
+class GRNMaster(Base):
+    __tablename__ = "grn_master"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    import_reference: Mapped[str] = mapped_column(String(100), index=True)
+    waybill: Mapped[str] = mapped_column(String(100), index=True)
+    grn_number: Mapped[str] = mapped_column(String(255), nullable=True)
+    packs: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    lines: Mapped[Optional[str]] = mapped_column(String(50))
+    aaf_date: Mapped[Optional[str]] = mapped_column(String(50))
+    grn1_date: Mapped[Optional[str]] = mapped_column(String(50))
+    aaf_grn1: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
+    grn3_date: Mapped[Optional[str]] = mapped_column(String(50))
+    grn1_grn3: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
+    ct: Mapped[Optional[str]] = mapped_column(String(50))
+    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now().isoformat())

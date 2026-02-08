@@ -636,11 +636,19 @@ const PickingAudit = () => {
                                             return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
                                         })
                                         .map((t, idx) => (
-                                            <tr key={idx} className="cursor-pointer hover:bg-blue-50" onClick={() => {
-                                                setOrderNumber(t.order_number);
-                                                setDespatchNumber(t.despatch_number);
-                                            }}>
-                                                <td className="font-medium">{t.order_number}</td>
+                                            <tr key={idx}
+                                                className={`cursor-pointer ${t.is_audited ? 'bg-slate-100 opacity-75' : 'hover:bg-blue-50'}`}
+                                                onClick={() => {
+                                                    setOrderNumber(t.order_number);
+                                                    setDespatchNumber(t.despatch_number);
+                                                }}
+                                            >
+                                                <td className="font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        {t.order_number}
+                                                        {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded">AUDITADO</span>}
+                                                    </div>
+                                                </td>
                                                 <td>{t.despatch_number}</td>
                                                 <td className="truncate max-w-[150px]">{t.customer_name}</td>
                                                 <td className="text-center font-bold text-blue-600">{t.total_lines}</td>
@@ -658,16 +666,20 @@ const PickingAudit = () => {
                             <div className="text-center p-4 text-gray-500 bg-gray-50 rounded">No hay pedidos recientes</div>
                         ) : (
                             trackingData.map((t, idx) => (
-                                <div key={idx} className="bg-blue-50 p-3 rounded border border-blue-100 cursor-pointer active:bg-blue-100" onClick={() => {
-                                    setOrderNumber(t.order_number);
-                                    setDespatchNumber(t.despatch_number);
-                                }}>
+                                <div key={idx}
+                                    className={`${t.is_audited ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
+                                    onClick={() => {
+                                        setOrderNumber(t.order_number);
+                                        setDespatchNumber(t.despatch_number);
+                                    }}
+                                >
                                     <div className="flex justify-between items-center mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-blue-800 text-lg">{t.order_number}</span>
+                                            <span className={`font-bold ${t.is_audited ? 'text-slate-600' : 'text-blue-800'} text-lg`}>{t.order_number}</span>
                                             <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
+                                            {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
                                         </div>
-                                        <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{t.total_lines} líneas</span>
+                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-blue-600'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                     </div>
                                     <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
                                     <div className="text-right text-xs text-gray-400">

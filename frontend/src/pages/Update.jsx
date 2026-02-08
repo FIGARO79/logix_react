@@ -116,12 +116,17 @@ const Update = () => {
         // Auto-detect file types based on keywords
         files.forEach(file => {
             const name = file.name.toLowerCase();
-            if (name.includes('master') || name.includes('item')) {
+            // Expanded keywords for better detection
+            if (name.includes('master') || name.includes('item') || name.includes('maestro') || name.includes('inventario') || name.includes('250')) {
                 formData.append('item_master', file);
-            } else if (name.includes('280') || name.includes('pedido') || name.includes('reporte')) {
+            } else if (name.includes('280') || name.includes('pedido') || name.includes('reporte') || name.includes('grn') || name.includes('entrada')) {
                 formData.append('grn_file', file);
-            } else if (name.includes('240') || name.includes('picking')) {
+            } else if (name.includes('240') || name.includes('picking') || name.includes('salida')) {
                 formData.append('picking_file', file);
+            } else {
+                // Determine type by content size or default? 
+                // For now, if single file and unknown, assume master if it looks like one, or just log warning
+                console.warn(`File ${name} did not match any known pattern (master/item, 280/grn, 240/picking)`);
             }
         });
 

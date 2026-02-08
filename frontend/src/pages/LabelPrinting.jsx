@@ -23,7 +23,7 @@ const LabelPrinting = () => {
     // QR Code Generation
     useEffect(() => {
         if (itemData?.itemCode) {
-            QRCode.toDataURL(itemData.itemCode, { width: 96, margin: 1 })
+            QRCode.toDataURL(itemData.itemCode, { width: 256, margin: 0 })
                 .then(url => setQrImage(url))
                 .catch(err => console.error(err));
         } else {
@@ -147,7 +147,7 @@ const LabelPrinting = () => {
                     .label-disclaimer { 
                         font-size: 7pt; 
                         color: #000; 
-                        max-width: 40mm; 
+                        max-width: 35mm; 
                         line-height: 1.1; 
                         margin: 0; 
                     }
@@ -337,7 +337,7 @@ const LabelPrinting = () => {
                             {/* Footer */}
                             <div style={{ position: 'absolute', bottom: '3.5mm', left: '3.5mm', right: '3.5mm', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '25mm' }}>
-                                    <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
+                                    <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
                                         All trademarks and logotypes appearing on this label are owned by Sandvik Group
                                     </p>
                                 </div>

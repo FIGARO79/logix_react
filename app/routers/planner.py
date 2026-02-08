@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_db
 from app.models.schemas import CountExecutionRequest
-from app.models.sql_models import CycleCount, CycleCountRecording
+from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
 import json
@@ -154,27 +154,31 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     if s_date > e_date:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
 
-    # 1. Obtener todos los items del maestro (carga on-demand sin cache global)
-    df_master = await csv_handler.load_master_subset(
-        ['Item_Code', 'ABC_Code_stockroom', 'Physical_Qty', 'Item_Description'],
-        positive_stock_only=True
-    )
-    if df_master is None or df_master.empty:
-        raise HTTPException(status_code=500, detail="No se pudo cargar el maestro de items.")
+    # 1. Obtener todos los items del maestro desde DB (Optimizado)
+    stmt_master = select(MasterItem).where(MasterItem.physical_qty > 0)
+    result_master = await db.execute(stmt_master)
+    items_db = result_master.scalars().all()
+    
+    if not items_db:
+        # Fallback: Si la tabla está vacía, intentar sincronizar al vuelo
+        from app.services.csv_to_db import sync_master_csv_to_db
+        await sync_master_csv_to_db(db)
+        # Re-intentar
+        result_master = await db.execute(stmt_master)
+        items_db = result_master.scalars().all()
 
-    # Filtrar columnas necesarias y limpiar
-    try:
-        items_data = df_master[['Item_Code', 'ABC_Code_stockroom', 'Physical_Qty', 'Item_Description']].copy()
-        items_data['Item_Code'] = items_data['Item_Code'].astype(str).str.strip().str.upper()
-        items_data['ABC_Code_stockroom'] = items_data['ABC_Code_stockroom'].astype(str).str.strip().str.upper()
-        items_data['Item_Description'] = items_data['Item_Description'].astype(str).str.strip()
-        items_data['Physical_Qty'] = pd.to_numeric(items_data['Physical_Qty'], errors='coerce').fillna(0)
-        
-        # FILTRO CLAVE: Solo items con stock físico > 0
-        items_data = items_data[items_data['Physical_Qty'] > 0]
-        
-    except KeyError as e:
-        raise HTTPException(status_code=500, detail=f"Columna faltante en maestro de items: {e}")
+    if not items_db:
+         raise HTTPException(status_code=500, detail="El maestro de items está vacío incluso después de intentar sincronizar.")
+
+    # Convertir a DataFrame para procesamiento vectorial (pandas es rápido en memoria con datos limpios)
+    # Solo necesitamos columnas clave
+    data_list = [{
+        'Item_Code': item.item_code, 
+        'ABC_Code_stockroom': item.abc_code, 
+        'Item_Description': item.description
+    } for item in items_db]
+    
+    items_data = pd.DataFrame(data_list)
 
     # 2. Consultar conteos realizados en el año actual
     current_year = datetime.datetime.now().year
@@ -373,12 +377,13 @@ async def update_count_plan(
 @router.get("/execution/daily_items")
 async def get_daily_items_for_execution(
     date: str = Query(..., description="Fecha de ejecución (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner"))
+    username: str = Depends(permission_required("planner")),
+    db: AsyncSession = Depends(get_db)
 ):
     """Obtiene los items planificados para una fecha específica, enriquecidos con datos del maestro."""
     plan_data = load_plan_data()
     if not plan_data or "details" not in plan_data:
-        return []
+        return {"items": [], "has_previous_counts": False, "previous_count": 0}
     
     # Filtrar items para la fecha
     daily_items = [
@@ -386,37 +391,143 @@ async def get_daily_items_for_execution(
         if item.get("Planned Date") == date
     ]
     
-    # Enriquecer con datos del maestro (Bin y Stock Teórico)
+    # Verificar si ya existen conteos previos para esta fecha
+    from app.models.sql_models import CycleCountRecording
+    from sqlalchemy import func
+    
+    count_check = await db.execute(
+        select(func.count(CycleCountRecording.id))
+        .where(CycleCountRecording.planned_date == date)
+    )
+    previous_count = count_check.scalar() or 0
+    has_previous = previous_count > 0
+    
+    # Enriquecer con datos del maestro (Bin y Stock Teórico) desde DB
+    enrich_codes = [item.get("Item Code") for item in daily_items]
+    
+    stmt = select(MasterItem).where(MasterItem.item_code.in_(enrich_codes))
+    result = await db.execute(stmt)
+    db_items_map = {item.item_code: item for item in result.scalars().all()}
+    
     enriched_items = []
     for item in daily_items:
         item_code = item.get("Item Code")
-        
-        # Buscar en cache del CSV
-        details = await csv_handler.get_item_details_from_master_csv(item_code)
+        db_item = db_items_map.get(item_code)
         
         bin_loc = "N/A"
         system_qty = 0
+        additional = ""
         
-        if details:
-             bin_loc = details.get("Bin_1", "N/A")
-             try:
-                 qty_raw = details.get("Physical_Qty", 0)
-                 system_qty = int(float(qty_raw))
-             except (ValueError, TypeError):
-                 system_qty = 0
+        if db_item:
+             bin_loc = db_item.bin_1 or "N/A"
+             system_qty = db_item.physical_qty
+             additional = db_item.additional_bin or ""
                  
         enriched_items.append({
             "item_code": item_code,
             "description": item.get("Description"),
             "abc_code": item.get("ABC Code"),
             "bin_location": bin_loc,
-            "additional_locations": details.get("Aditional_Bin_Location", ""),
-            "system_qty": system_qty, # Se envía para cálculo de diferencias (Frontend debe ocultarlo si es ciego)
+            "additional_locations": additional,
+            "system_qty": system_qty, 
             "planned_date": date
         })
         
     # Ordenar por ubicación para facilitar el recorrido en bodega
-    return sorted(enriched_items, key=lambda x: x["bin_location"] or "")
+    sorted_items = sorted(enriched_items, key=lambda x: x["bin_location"] or "")
+    
+    # Contar items con diferencias en conteos previos
+    items_with_diff_count = 0
+    if has_previous:
+        diff_check = await db.execute(
+            select(func.count(CycleCountRecording.id))
+            .where(
+                CycleCountRecording.planned_date == date,
+                CycleCountRecording.difference != 0
+            )
+        )
+        items_with_diff_count = diff_check.scalar() or 0
+    
+    return {
+        "items": sorted_items,
+        "has_previous_counts": has_previous,
+        "previous_count": previous_count,
+        "items_with_diff_count": items_with_diff_count
+    }
+
+
+@router.get("/execution/items_with_differences")
+async def get_items_with_differences(
+    date: str = Query(..., description="Fecha planificada (YYYY-MM-DD)"),
+    username: str = Depends(permission_required("planner")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene los items que tienen diferencias en conteos previos para la fecha especificada."""
+    from app.models.sql_models import CycleCountRecording
+    
+    # Obtener items con diferencias de conteos previos
+    stmt = select(CycleCountRecording).where(
+        CycleCountRecording.planned_date == date,
+        CycleCountRecording.difference != 0
+    )
+    result = await db.execute(stmt)
+    previous_counts = result.scalars().all()
+    
+    if not previous_counts:
+        return {
+            "items": [],
+            "total_items_with_diff": 0
+        }
+    
+    # Obtener item_codes únicos
+    item_codes = list(set([rec.item_code for rec in previous_counts]))
+    
+    # Enriquecer con datos actuales del maestro
+    master_stmt = select(MasterItem).where(MasterItem.item_code.in_(item_codes))
+    master_result = await db.execute(master_stmt)
+    master_map = {item.item_code: item for item in master_result.scalars().all()}
+    
+    # Crear mapa de conteos previos (último por item)
+    prev_map = {}
+    for rec in previous_counts:
+        if rec.item_code not in prev_map:
+            prev_map[rec.item_code] = rec
+        elif rec.id > prev_map[rec.item_code].id:  # Más reciente
+            prev_map[rec.item_code] = rec
+    
+    enriched_items = []
+    for item_code, prev_rec in prev_map.items():
+        master_item = master_map.get(item_code)
+        
+        bin_loc = prev_rec.bin_location or "N/A"
+        current_system_qty = prev_rec.system_qty
+        additional = ""
+        
+        if master_item:
+            bin_loc = master_item.bin_1 or bin_loc
+            current_system_qty = master_item.physical_qty
+            additional = master_item.additional_bin or ""
+        
+        enriched_items.append({
+            "item_code": item_code,
+            "description": prev_rec.item_description,
+            "bin_location": bin_loc,
+            "additional_locations": additional,
+            "previous_physical_qty": prev_rec.physical_qty,
+            "previous_system_qty": prev_rec.system_qty,
+            "previous_difference": prev_rec.difference,
+            "system_qty": current_system_qty,
+            "abc_code": prev_rec.abc_code or "C",
+            "planned_date": date
+        })
+    
+    # Ordenar por ubicación
+    sorted_items = sorted(enriched_items, key=lambda x: x["bin_location"] or "")
+    
+    return {
+        "items": sorted_items,
+        "total_items_with_diff": len(sorted_items)
+    }
 
 
 @router.post("/execution/save")
@@ -445,10 +556,11 @@ async def save_daily_execution(
             existing_record = result.scalar_one_or_none()
             
             if existing_record:
-                # SUMAR a la cantidad existente
-                existing_record.physical_qty += physical
+                # REEMPLAZAR la cantidad existente (reconteo corrige el valor anterior)
+                existing_record.physical_qty = physical
                 existing_record.difference = existing_record.physical_qty - existing_record.system_qty
                 existing_record.username = username  # Actualizar usuario
+                existing_record.executed_date = today  # Actualizar fecha de ejecución
                 db.add(existing_record)
                 updated_count += 1
             else:

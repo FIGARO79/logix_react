@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const CycleCountHistory = () => {
@@ -8,6 +8,10 @@ const CycleCountHistory = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // LAZY LOADING: Solo renderizar las primeras N filas
+    const [displayCount, setDisplayCount] = useState(50);
+    const observerTarget = useRef(null);
 
     useEffect(() => {
         setTitle("Logix - Registro de Conteos");
@@ -44,13 +48,51 @@ const CycleCountHistory = () => {
         (rec.username && rec.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    // LAZY LOADING: Cargar más filas cuando el usuario hace scroll
+    const loadMore = useCallback(() => {
+        if (displayCount < filteredRecordings.length) {
+            setDisplayCount(prev => Math.min(prev + 50, filteredRecordings.length));
+        }
+    }, [displayCount, filteredRecordings.length]);
+
+    // LAZY LOADING: Intersection Observer para detectar scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [loadMore]);
+
+    // Reset display count cuando cambia el filtro
+    useEffect(() => {
+        setDisplayCount(50);
+    }, [searchTerm]);
+
+    // Solo renderizar las primeras displayCount filas
+    const visibleRecordings = filteredRecordings.slice(0, displayCount);
+
     return (
         <div className="w-full h-[calc(100vh-110px)] flex flex-col font-sans text-[#333] gap-1 mt-5">
             {/* Header bar similiar to screenshot */}
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-20">
                 <div>
                     <h1 className="text-lg font-semibold text-gray-800">Registro Histórico</h1>
-                    <p className="text-xs text-gray-500">Detalle de todas las ejecuciones de conteo cíclico</p>
+                    <p className="text-xs text-gray-500">Detalle de todas las ejecuciones de conteo cíclico ({filteredRecordings.length} registros)</p>
                 </div>
                 <div className="flex gap-3">
                     <input
@@ -104,7 +146,7 @@ const CycleCountHistory = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredRecordings.map((rec, idx) => (
+                            {visibleRecordings.map((rec, idx) => (
                                 <tr key={rec.id} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                                     <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{rec.stockroom}</td>
                                     <td className="px-3 py-2 whitespace-nowrap">
@@ -141,6 +183,14 @@ const CycleCountHistory = () => {
                                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.username}</td>
                                 </tr>
                             ))}
+                            {/* Sentinel element para detectar scroll */}
+                            {displayCount < filteredRecordings.length && (
+                                <tr ref={observerTarget}>
+                                    <td colSpan="19" className="px-4 py-4 text-center text-gray-400 text-xs">
+                                        Cargando más registros... ({displayCount} de {filteredRecordings.length})
+                                    </td>
+                                </tr>
+                            )}
                             {filteredRecordings.length === 0 && (
                                 <tr>
                                     <td colSpan="19" className="px-4 py-12 text-center text-gray-400">

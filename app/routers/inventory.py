@@ -20,7 +20,8 @@ from app.core.templates import templates
 from app.services.csv_handler import master_qty_map
 from app.services import db_counts
 from app.utils.auth import login_required, admin_login_required, permission_required
-from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation
+from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation, MasterItem
+from app.services.csv_to_db import sync_master_csv_to_db
 
 # --- Inicialización ---
 router = APIRouter(tags=["inventory"])
@@ -175,6 +176,11 @@ async def start_inventory_stage_1(request: Request, user: str = Depends(permissi
         # MySQL no requiere resetear autoincrement como SQLite
         # Los IDs continuarán desde donde quedaron
         print("Tablas de inventario limpiadas.")
+
+        # Sincronizar maestro de items desde CSV a DB
+        print("Sincronizando maestro de items...")
+        await sync_master_csv_to_db(db)
+        print("Sincronización completada.")
 
         # Actualizar estado
         stmt_update = update(AppState).where(AppState.key == 'current_inventory_stage').values(value='1')

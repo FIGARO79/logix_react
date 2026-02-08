@@ -9,7 +9,7 @@
 
 set -e # Detener si hay errores
 
-PROJECT_DIR="/home/debian/logix_react"
+PROJECT_DIR="/home/debian/logix_granian"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 PROD_FRONTEND_DIR="/var/www/logix/frontend/dist"
 
@@ -27,7 +27,20 @@ if [ -d "venv" ]; then
     pip install -r requirements.txt --quiet
 else
     echo "⚠️ Advertencia: No se encontró entorno virtual 'venv'."
+    echo "⚠️ Advertencia: No se encontró entorno virtual 'venv'."
 fi
+
+echo "📂 Copiando código del Backend al servidor web..."
+# Sincronizar carpeta app, excluyendo __pycache__
+sudo rsync -av --exclude='__pycache__' "$PROJECT_DIR/app/" "/var/www/logix/app/"
+sudo rsync -av "$PROJECT_DIR/requirements.txt" "/var/www/logix/"
+sudo rsync -av "$PROJECT_DIR/alembic.ini" "/var/www/logix/"
+sudo rsync -av "$PROJECT_DIR/alembic/" "/var/www/logix/alembic/"
+# Asegurar permisos
+sudo mkdir -p /var/www/logix/databases
+sudo chown -R www-data:www-data /var/www/logix/app /var/www/logix/databases
+sudo chmod 775 /var/www/logix/databases
+
 
 # 2. FRONTEND: Build y Deploy
 echo ""
@@ -43,10 +56,10 @@ sudo cp -r dist/* "$PROD_FRONTEND_DIR/"
 
 # 3. REINICIO DE SERVICIOS
 # Reiniciar el backend recargará el código Python en TODOS los workers.
-#sudo systemctl restart logix-backend
+#sudo systemctl restart logix
 echo ""
 echo "Bg  [3/4] Reiniciando servicios de Backend (Workers)..."
-sudo systemctl restart logix-backend
+sudo systemctl restart logix
 
 echo "🌐 [4/4] Reiniciando Nginx para limpiar cachés..."
 sudo systemctl restart nginx

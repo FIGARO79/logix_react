@@ -81,6 +81,7 @@ const Layout = () => {
                     <MenuItem to="/dashboard" icon={<HomeIcon />} label="Inicio" onClick={toggleMenu} />
                     <MenuItem to="/stock" icon={<SearchIcon />} label="Consultar Stock" onClick={toggleMenu} />
                     <MenuItem to="/inbound" icon={<DownloadIcon />} label="Inbound" onClick={toggleMenu} />
+                    <MenuItem to="/waybill-grn" icon={<DocumentIcon />} label="Waybill-GRN" onClick={toggleMenu} />
                     <MenuItem to="/label" icon={<TagIcon />} label="Etiquetado" onClick={toggleMenu} />
                     <MenuItem to="/view_logs" icon={<DocumentIcon />} label="Visualizar Logs" onClick={toggleMenu} />
                     <MenuItem to="/reconciliation" icon={<EyeIcon />} label="Ver conciliación" onClick={toggleMenu} />

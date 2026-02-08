@@ -18,6 +18,10 @@ const PlannerExecution = () => {
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [hasPreviousCounts, setHasPreviousCounts] = useState(false);
+    const [previousCountTotal, setPreviousCountTotal] = useState(0);
+    const [itemsWithDiffCount, setItemsWithDiffCount] = useState(0);
+    const [isRecountMode, setIsRecountMode] = useState(false);
 
     // Scanner State
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -58,13 +62,35 @@ const PlannerExecution = () => {
         setLoading(true);
         setError(null);
         setItems([]);
+        setHasPreviousCounts(false);
+        setPreviousCountTotal(0);
+        setItemsWithDiffCount(0);
+        setIsRecountMode(false);
+
         try {
             const response = await fetch(`/api/planner/execution/daily_items?date=${date}`);
             if (!response.ok) throw new Error('Error al cargar ítems planificados');
 
             const data = await response.json();
+
+            // Verificar si hay conteos previos
+            if (data.has_previous_counts) {
+                setHasPreviousCounts(true);
+                setPreviousCountTotal(data.previous_count);
+                setItemsWithDiffCount(data.items_with_diff_count || 0);
+
+                const diffMsg = data.items_with_diff_count > 0
+                    ? `, ${data.items_with_diff_count} con diferencias`
+                    : '';
+
+                toast.warning(`⚠️ Esta fecha ya tiene ${data.previous_count} conteo(s) previo(s)${diffMsg}`, {
+                    autoClose: 5000,
+                    position: "top-center"
+                });
+            }
+
             // Initialize input state for each item (physical_qty)
-            const initializedItems = data.map(item => ({
+            const initializedItems = (data.items || []).map(item => ({
                 ...item,
                 physical_qty: '', // Input field value
                 difference: null,   // Calc result
@@ -73,6 +99,40 @@ const PlannerExecution = () => {
             setItems(initializedItems);
         } catch (err) {
             setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadItemsWithDifferences = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/planner/execution/items_with_differences?date=${selectedDate}`);
+            if (!response.ok) throw new Error('Error al cargar items con diferencias');
+
+            const data = await response.json();
+
+            if (data.total_items_with_diff === 0) {
+                toast.info('No hay items con diferencias para esta fecha');
+                return;
+            }
+
+            // Initialize input state for each item
+            const initializedItems = data.items.map(item => ({
+                ...item,
+                physical_qty: '',
+                difference: null,
+                status: 'pending'
+            }));
+
+            setItems(initializedItems);
+            setIsRecountMode(true);
+            toast.success(`✅ Cargados ${data.total_items_with_diff} items con diferencias para reconteo`);
+        } catch (err) {
+            setError(err.message);
+            toast.error('Error al cargar items con diferencias');
         } finally {
             setLoading(false);
         }
@@ -198,6 +258,51 @@ const PlannerExecution = () => {
                     </div>
                 </div>
                 {message && <span className="block mt-2 text-green-600 text-sm font-medium">{message}</span>}
+
+                {/* Banner de advertencia para conteos previos */}
+                {hasPreviousCounts && (
+                    <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start flex-1">
+                                <svg className="h-5 w-5 text-yellow-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-yellow-800">
+                                        ⚠️ Advertencia: Esta fecha ya tiene {previousCountTotal} conteo(s) previo(s)
+                                        {itemsWithDiffCount > 0 && `, ${itemsWithDiffCount} con diferencias`}
+                                    </p>
+                                    <p className="text-xs text-yellow-700 mt-1">
+                                        Los nuevos conteos se agregarán a los existentes. Verifica que no estés duplicando información.
+                                    </p>
+                                </div>
+                            </div>
+                            {itemsWithDiffCount > 0 && (
+                                <button
+                                    onClick={loadItemsWithDifferences}
+                                    className="flex-shrink-0 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
+                                    title="Cargar solo los items que tuvieron diferencias"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Cargar Items con Diferencias</span>
+                                    <span className="sm:hidden">Reconteo</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Badge de modo reconteo */}
+                {isRecountMode && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Modo Reconteo - {items.length} items con diferencias
+                    </div>
+                )}
             </div>
 
             {loading ? (

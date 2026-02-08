@@ -19,17 +19,11 @@ router = APIRouter(prefix="/api", tags=["picking"])
 async def get_picking_order(order_number: str, despatch_number: str, username: str = Depends(permission_required("picking"))):
     """Obtiene los detalles de un pedido de picking desde el CSV."""
     try:
-        from app.core.config import DATABASE_FOLDER
-    except ImportError:
-        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        DATABASE_FOLDER = os.path.join(current_dir, 'databases')
+        from app.core.config import PICKING_CSV_PATH
+        if not os.path.exists(PICKING_CSV_PATH):
+            raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
 
-    try:
-        picking_file_path = os.path.join(DATABASE_FOLDER, "AURRSGLBD0240 - Unconfirmed Picking Notes.csv")
-        if not os.path.exists(picking_file_path):
-            raise HTTPException(status_code=404, detail="El archivo de picking (AURRSGLBD0240.csv) no se encuentra.")
-
-        df = pd.read_csv(picking_file_path, dtype=str)
+        df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
         
         required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
         if not all(col in df.columns for col in required_columns):
@@ -70,21 +64,15 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
 
 @router.get("/picking/tracking")
-async def get_picking_tracking(username: str = Depends(permission_required("picking"))):
+async def get_picking_tracking(username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Obtiene un resumen de todos los pedidos de picking desde el CSV para seguimiento."""
     try:
-        from app.core.config import DATABASE_FOLDER
-    except ImportError:
-        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        DATABASE_FOLDER = os.path.join(current_dir, 'databases')
-
-    try:
-        picking_file_path = os.path.join(DATABASE_FOLDER, "AURRSGLBD0240 - Unconfirmed Picking Notes.csv")
-        if not os.path.exists(picking_file_path):
-            raise HTTPException(status_code=404, detail="El archivo de picking (AURRSGLBD0240.csv) no se encuentra.")
+        from app.core.config import PICKING_CSV_PATH
+        if not os.path.exists(PICKING_CSV_PATH):
+            raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
 
         # Leer CSV
-        df = pd.read_csv(picking_file_path, dtype=str)
+        df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
         
         required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
@@ -150,15 +138,23 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
 
             return parsed_time.strftime("%Y-%m-%d %H:%M")
         
+        # Consultar pedidos auditados en la DB
+        result = await db.execute(select(PickingAuditModel.order_number, PickingAuditModel.despatch_number))
+        audited_pairs = {(row.order_number, row.despatch_number) for row in result.all()}
+
         # Construir respuesta
         tracking_data = []
         for _, row in grouped.iterrows():
+            order_num = str(row["ORDER_"]).strip()
+            despatch_num = str(row["DESPATCH_"]).strip()
+            
             tracking_data.append({
-                "order_number": row["ORDER_"],
-                "despatch_number": row["DESPATCH_"],
+                "order_number": order_num,
+                "despatch_number": despatch_num,
                 "customer_name": row["CUSTOMER_NAME"],
                 "total_lines": int(row["total_lines"]),
-                "print_date": format_local_print_time(row["print_time"], row["time_zone"])
+                "print_date": format_local_print_time(row["print_time"], row["time_zone"]),
+                "is_audited": (order_num, despatch_num) in audited_pairs
             })
         
         return JSONResponse(content=tracking_data)

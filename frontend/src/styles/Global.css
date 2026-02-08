@@ -2,20 +2,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-/* ===== SAP '72' Font Definitions ===== */
-@font-face {
-    font-family: '72';
-    src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-}
 
-@font-face {
-    font-family: '72';
-    src: url('https://ui5.sap.com/sdk/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-}
+/* ===== System Font Stack (Replacing SAP '72') ===== */
+/* Using native system fonts for better performance and no external dependencies */
 
 /* ===== SAP Fiori Inspired Theme (Quartz Light / Belize) ===== */
 :root {
@@ -52,8 +41,8 @@
     --sap-table-border: #e5e5e5;
     --sap-list-hover: #f5f5f5;
 
-    /* Fonts */
-    --sap-font-family: '72', 'Roboto', 'Segoe UI', Arial, Helvetica, sans-serif;
+    /* Fonts - Modern System Font Stack */
+    --sap-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     --sap-font-size: 0.875rem;
     /* 14px */
 }
