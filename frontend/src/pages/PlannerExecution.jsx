@@ -40,7 +40,9 @@ const PlannerExecution = () => {
 
         if (index !== -1) {
             // Found
-            toast.success(`Item encontrado: ${cleanCode}`);
+            toast.success(`Item encontrado: ${cleanCode}`, {
+                containerId: "planner-execution"
+            });
 
             // Focus input logic - assuming we render inputs with id={`qty-${index}`}
             setTimeout(() => {
@@ -53,7 +55,9 @@ const PlannerExecution = () => {
             }, 100);
 
         } else {
-            toast.warning("Item no está en la lista de hoy");
+            toast.warning("Item no está en la lista de hoy", {
+                containerId: "planner-execution"
+            });
         }
     };
 
@@ -85,7 +89,8 @@ const PlannerExecution = () => {
 
                 toast.warning(`⚠️ Esta fecha ya tiene ${data.previous_count} conteo(s) previo(s)${diffMsg}`, {
                     autoClose: 5000,
-                    position: "top-center"
+                    position: "top-center",
+                    containerId: "planner-execution"
                 });
             }
 
@@ -115,7 +120,9 @@ const PlannerExecution = () => {
             const data = await response.json();
 
             if (data.total_items_with_diff === 0) {
-                toast.info('No hay items con diferencias para esta fecha');
+                toast.info('No hay items con diferencias para esta fecha', {
+                    containerId: "planner-execution"
+                });
                 return;
             }
 
@@ -129,10 +136,14 @@ const PlannerExecution = () => {
 
             setItems(initializedItems);
             setIsRecountMode(true);
-            toast.success(`✅ Cargados ${data.total_items_with_diff} items con diferencias para reconteo`);
+            toast.success(`✅ Cargados ${data.total_items_with_diff} items con diferencias para reconteo`, {
+                containerId: "planner-execution"
+            });
         } catch (err) {
             setError(err.message);
-            toast.error('Error al cargar items con diferencias');
+            toast.error('Error al cargar items con diferencias', {
+                containerId: "planner-execution"
+            });
         } finally {
             setLoading(false);
         }
@@ -164,7 +175,9 @@ const PlannerExecution = () => {
         const countedItems = items.filter(item => item.status === 'counted' && !item.saved);
 
         if (countedItems.length === 0) {
-            toast.warning("No hay items nuevos para guardar.");
+            toast.warning("No hay items nuevos para guardar.", {
+                containerId: "planner-execution"
+            });
             return;
         }
 
@@ -200,7 +213,9 @@ const PlannerExecution = () => {
             if (!response.ok) throw new Error('Error al guardar los conteos');
 
             const result = await response.json();
-            toast.success(result.message || "Conteos guardados exitosamente");
+            toast.success(result.message || "Conteos guardados exitosamente", {
+                containerId: "planner-execution"
+            });
             setMessage("Guardado exitoso. Puede continuar o cambiar de fecha.");
 
             // Mark saved items visually
@@ -213,7 +228,9 @@ const PlannerExecution = () => {
         } catch (err) {
             console.error(err);
             setError(err.message);
-            toast.error("Error al guardar conteos");
+            toast.error("Error al guardar conteos", {
+                containerId: "planner-execution"
+            });
         } finally {
             setSubmitting(false);
         }
@@ -221,6 +238,7 @@ const PlannerExecution = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+            <ToastContainer position="top-center" autoClose={3000} containerId="planner-execution" />
 
             {/* Date Selection - Mobile Optimized */}
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
