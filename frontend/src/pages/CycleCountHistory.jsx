@@ -124,14 +124,14 @@ const CycleCountHistory = () => {
                     <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11px] leading-tight">
                         <thead className="bg-[#34495e] text-white sticky top-0 z-20 shadow">
                             <tr>
-                                <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">STOCKROOM</th>
+                                <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">SR</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">ITEM CODE</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap max-w-xs">DESCRIPTION</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">ITEM TYPE</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">CLASS</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">GROUP</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">SIC (CO)</th>
-                                <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">SIC (STK)</th>
+                                <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">SIC (SR)</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap text-right">WEIGHT</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap text-center">ABC</th>
                                 <th className="px-3 py-3 font-bold uppercase tracking-wider whitespace-nowrap">BIN</th>

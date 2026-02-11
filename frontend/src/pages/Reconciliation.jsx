@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 const Reconciliation = () => {
+    const { setTitle } = useOutletContext();
+    useEffect(() => { setTitle("Logix - Conciliación de Inbound"); }, [setTitle]);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterText, setFilterText] = useState('');
