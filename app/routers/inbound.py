@@ -53,13 +53,13 @@ async def add_log(
             default_qty_grn = 0
 
     new_log = Log(
-        importReference=data.importReference,
-        waybill=data.waybill,
-        itemCode=data.itemCode,
+        importReference=data.importReference.strip(),
+        waybill=data.waybill.strip(),
+        itemCode=data.itemCode.strip(),
         itemDescription=stock.get('Item_Description'),
         binLocation=stock.get('Bin_1'),
         qtyReceived=data.quantity,
-        relocatedBin=data.relocatedBin,
+        relocatedBin=data.relocatedBin.strip() if data.relocatedBin else '',
         timestamp=datetime.datetime.now().isoformat(), # Use ISO format for SQLite string storage
         qtyGrn=default_qty_grn,
         difference=data.quantity - default_qty_grn
@@ -81,9 +81,9 @@ async def update_log(
     if not log:
         raise HTTPException(404, "Log no encontrado")
     
-    log.waybill = data.waybill
+    log.waybill = data.waybill.strip() if data.waybill else log.waybill
     log.qtyReceived = data.qtyReceived
-    log.relocatedBin = data.relocatedBin
+    log.relocatedBin = data.relocatedBin.strip() if data.relocatedBin else log.relocatedBin
     
     # Recalcular diferencia
     if log.qtyGrn is not None:

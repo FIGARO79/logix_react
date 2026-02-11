@@ -103,11 +103,11 @@ const Inbound = () => {
         if (!itemData) return alert("Busque un item primero");
 
         const payload = {
-            importReference: importRef.toUpperCase(),
-            waybill: waybill.toUpperCase(),
+            importReference: importRef.trim().toUpperCase(),
+            waybill: waybill.trim().toUpperCase(),
             itemCode: itemData.itemCode,
             quantity: parseInt(quantity),
-            relocatedBin: relocatedBin.toUpperCase()
+            relocatedBin: relocatedBin.trim().toUpperCase()
         };
 
         try {
@@ -175,11 +175,11 @@ const Inbound = () => {
 
     const startEdit = (log) => {
         setEditId(log.id);
-        setImportRef(log.importReference);
-        setWaybill(log.waybill);
+        setImportRef(log.importReference ? log.importReference.trim() : '');
+        setWaybill(log.waybill ? log.waybill.trim() : '');
         setItemCode(log.itemCode);
         setQuantity(log.qtyReceived);
-        setRelocatedBin(log.relocatedBin || '');
+        setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
         // Buscar datos del item para llenar la UI
         fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
             .then(r => r.json())

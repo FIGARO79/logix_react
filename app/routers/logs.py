@@ -93,9 +93,9 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     entry_data = {
         'timestamp': current_time.isoformat(timespec='seconds'),
-        'importReference': import_reference,
-        'waybill': data.waybill,
-        'itemCode': item_code_form,
+        'importReference': import_reference.strip() if import_reference else '',
+        'waybill': data.waybill.strip() if data.waybill else '',
+        'itemCode': item_code_form.strip() if item_code_form else '',
         'itemDescription': item_details.get('Item_Description', 'N/A'),
         'binLocation': bin_to_log_as_original,  # Ubicación efectiva
         'relocatedBin': data.relocatedBin or '',
@@ -135,8 +135,8 @@ async def update_log(log_id: int, data: dict, username: str = Depends(permission
     difference = total_received_now - total_expected
     
     entry_data_for_db = {
-        'waybill': waybill,
-        'relocatedBin': relocated_bin,
+        'waybill': waybill.strip() if waybill else '',
+        'relocatedBin': relocated_bin.strip() if relocated_bin else '',
         'qtyReceived': qty_received,
         'difference': difference,
         'timestamp': datetime.datetime.now().isoformat(timespec='seconds')

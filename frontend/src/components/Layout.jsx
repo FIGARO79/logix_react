@@ -89,6 +89,8 @@ const Layout = () => {
                     <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Recepción</div>
                     <MenuItem to="/inbound" icon={<DownloadIcon />} label="Inbound" onClick={toggleMenu} />
                     <MenuItem to="/waybill-grn" icon={<DocumentIcon />} label="Waybill-GRN" onClick={toggleMenu} />
+                    <MenuItem to="/reconciliation" icon={<EyeIcon />} label="Ver conciliación" onClick={toggleMenu} />
+                    <MenuItem to="/view_logs" icon={<DocumentIcon />} label="Visualizar Logs" onClick={toggleMenu} />
 
                     {/* Separator */}
                     <div className="h-px bg-white/10 my-2 mx-4"></div>
@@ -115,8 +117,6 @@ const Layout = () => {
 
                     {/* ADMINISTRACIÓN */}
                     <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Administración</div>
-                    <MenuItem to="/reconciliation" icon={<EyeIcon />} label="Ver conciliación" onClick={toggleMenu} />
-                    <MenuItem to="/view_logs" icon={<DocumentIcon />} label="Visualizar Logs" onClick={toggleMenu} />
                     <MenuItem to="/update" icon={<ArrowRepeatIcon />} label="Actualizar Ficheros" onClick={toggleMenu} />
 
                     {/* Separator */}
