@@ -229,8 +229,10 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         worksheet = writer.sheets['InboundLogCompleto']
         for i, col_name in enumerate(df_export.columns):
             column_letter = get_column_letter(i + 1)
-            max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
-            worksheet.column_dimensions[column_letter].width = max_len
+            # Calcular ancho máximo de forma segura convirtiendo a string y manejando nulos
+            data_max_len = df_export[col_name].apply(lambda x: len(str(x)) if x is not None and not pd.isna(x) else 0).max()
+            max_len = max(data_max_len, len(col_name)) + 2
+            worksheet.column_dimensions[column_letter].width = float(max_len)
 
     output.seek(0)
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -373,8 +375,9 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
             worksheet = writer.sheets['Items Sin GRN']
             for i, col_name in enumerate(df_for_export.columns):
                 column_letter = get_column_letter(i + 1)
-                max_len = max(df_for_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
-                worksheet.column_dimensions[column_letter].width = max_len
+                data_max_len = df_for_export[col_name].apply(lambda x: len(str(x)) if x is not None and not pd.isna(x) else 0).max()
+                max_len = max(data_max_len, len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = float(max_len)
 
         output.seek(0)
         # Calcular fecha/hora del cliente usando el offset (minutos)
@@ -486,8 +489,9 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
             worksheet = writer.sheets['ReporteDeConciliacion']
             for i, col_name in enumerate(df_for_export.columns):
                 column_letter = get_column_letter(i + 1)
-                max_len = max(df_for_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
-                worksheet.column_dimensions[column_letter].width = max_len
+                data_max_len = df_for_export[col_name].apply(lambda x: len(str(x)) if x is not None and not pd.isna(x) else 0).max()
+                max_len = max(data_max_len, len(col_name)) + 2
+                worksheet.column_dimensions[column_letter].width = float(max_len)
 
         output.seek(0)
         # Calcular fecha/hora del cliente usando el offset (minutos)
