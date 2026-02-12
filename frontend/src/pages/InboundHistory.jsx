@@ -72,7 +72,7 @@ const InboundHistory = () => {
                                 <th className="px-2 py-1.5 text-left font-medium">ITEM CODE</th>
                                 <th className="px-2 py-1.5 text-left font-medium">DESCRIPCIÓN</th>
                                 <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN</th>
-                                <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN NUEVA</th>
+                                <th className="px-2 py-1.5 text-left font-medium">REUBICACIÓN</th>
                                 <th className="px-2 py-1.5 text-center font-medium">CANT. RECIBIDA</th>
                                 <th className="px-2 py-1.5 text-center font-medium">CANT. GRN</th>
                                 <th className="px-2 py-1.5 text-center font-medium">DIFERENCIA</th>
