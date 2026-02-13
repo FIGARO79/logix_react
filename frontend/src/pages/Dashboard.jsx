@@ -106,10 +106,10 @@ const Dashboard = () => {
                             <Link
                                 key={item.id}
                                 to={item.href}
-                                className="group bg-white rounded-xl shadow-sm border border-slate-200/60 hover:shadow-lg hover:border-slate-300 transition-all duration-300 overflow-hidden"
+                                className="group bg-white rounded-xl shadow-sm border border-slate-400 hover:shadow-lg hover:border-slate-900 transition-all duration-300 overflow-hidden"
                             >
                                 {/* Icon Header */}
-                                <div className="bg-[#0070d2] p-3 sm:p-4 flex items-center justify-center">
+                                <div className="bg-[#285f94] p-3 sm:p-4 flex items-center justify-center">
                                     <div className="text-white group-hover:scale-110 transition-transform duration-300">
                                         {item.icon}
                                     </div>
