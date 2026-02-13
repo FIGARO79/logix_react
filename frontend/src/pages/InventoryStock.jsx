@@ -130,7 +130,7 @@ const InventoryStock = () => {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
                                 placeholder="Buscar por Item Code..."
-                                className="w-full border border-[#89919a] p-2 rounded-[3px] text-[13px] bg-white focus:outline-none focus:border-[#0a6ed1] focus:ring-2 focus:ring-[#0a6ed1]/10 transition-all"
+                                className="w-full border border-[#89919a] p-2 rounded-[3px] text-[13px] bg-white focus:outline-none focus:border-[#285f94] focus:ring-2 focus:ring-[#285f94]/10 transition-all"
                                 autoFocus
                             />
                         </div>

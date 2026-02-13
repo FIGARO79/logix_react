@@ -200,19 +200,19 @@ const ManageCountDifferences = () => {
                                 {filteredData.map((item) => (
                                     <tr key={item.count_id} className={`hover:bg-gray-50 ${item.difference !== 0 ? 'bg-orange-50/30' : ''}`}>
                                         <td className="p-3 flex gap-2">
-                                            <button onClick={() => handleEditClick(item)} className="text-blue-600 hover:text-blue-800" title="Editar">
+                                            <button onClick={() => handleEditClick(item)} className="text-[#285f94] hover:text-[#1e4a74]" title="Editar">
                                                 ✎
                                             </button>
                                             <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-800" title="Eliminar">
                                                 🗑
                                             </button>
                                         </td>
-                                        <td className="p-3 font-semibold text-blue-800">{item.item_code}</td>
+                                        <td className="p-3 font-semibold text-[#1e4a74]">{item.item_code}</td>
                                         <td className="p-3 truncate max-w-xs" title={item.description}>{item.description}</td>
                                         <td className="p-3">{item.location}</td>
                                         <td className="p-3 text-right">{item.system_qty}</td>
                                         <td className="p-3 text-right font-bold">{item.counted_qty}</td>
-                                        <td className={`p-3 text-right font-bold ${item.difference > 0 ? 'text-blue-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                        <td className={`p-3 text-right font-bold ${item.difference > 0 ? 'text-[#285f94]' : item.difference < 0 ? 'text-red-600' : 'text-gray-400'}`}>
                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                         </td>
                                         <td className="p-3 text-right">{item.percentage_variance}%</td>
@@ -241,7 +241,7 @@ const ManageCountDifferences = () => {
                                 <label className="block font-bold mb-1">Nueva Cantidad Contada</label>
                                 <input
                                     type="number"
-                                    className="w-full border-2 border-blue-500 rounded p-2 text-xl font-bold"
+                                    className="w-full border-2 border-[#285f94] rounded p-2 text-xl font-bold"
                                     value={editModal.counted}
                                     onChange={(e) => setEditModal({ ...editModal, counted: e.target.value })}
                                     autoFocus
@@ -251,7 +251,7 @@ const ManageCountDifferences = () => {
                         </div>
                         <div className="flex justify-end gap-2">
                             <button onClick={() => setEditModal({ ...editModal, open: false })} className="px-4 py-2 border rounded hover:bg-gray-100">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">Guardar Cambios</button>
+                            <button onClick={handleSaveEdit} className="px-4 py-2 bg-[#285f94] text-white rounded hover:bg-[#1e4a74] font-bold">Guardar Cambios</button>
                         </div>
                     </div>
                 </div>

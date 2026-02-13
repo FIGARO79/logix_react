@@ -243,7 +243,7 @@ const Update = () => {
 
                         {/* Drag and Drop Zone */}
                         <div
-                            className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors cursor-pointer mb-6 ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+                            className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors cursor-pointer mb-6 ${dragActive ? 'border-[#285f94] bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
                             onDragEnter={handleDrag}
                             onDragLeave={handleDrag}
                             onDragOver={handleDrag}
@@ -277,7 +277,7 @@ const Update = () => {
                                 {files.map((file, index) => (
                                     <div key={index} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded border border-gray-200">
                                         <span className="flex items-center gap-2 text-gray-700">
-                                            <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" /></svg>
+                                            <svg className="w-4 h-4 text-[#285f94]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" /></svg>
                                             {file.name}
                                         </span>
                                         <button type="button" onClick={() => removeFile(index)} className="text-red-500 hover:text-red-700">
@@ -294,11 +294,11 @@ const Update = () => {
                                 <p className="font-medium text-gray-700 mb-3">Opción de actualización para el archivo 280:</p>
                                 <div className="flex items-center gap-6 mb-4">
                                     <label className="inline-flex items-center cursor-pointer">
-                                        <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
+                                        <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-[#285f94] h-4 w-4" />
                                         <span className="ml-2 text-sm text-gray-700">Combinar (Agregar nuevas)</span>
                                     </label>
                                     <label className="inline-flex items-center cursor-pointer">
-                                        <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-blue-600 h-4 w-4" />
+                                        <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={(e) => setUpdateOption(e.target.value)} className="form-radio text-[#285f94] h-4 w-4" />
                                         <span className="ml-2 text-sm text-gray-700">Reemplazar Todo</span>
                                     </label>
                                 </div>
@@ -307,9 +307,9 @@ const Update = () => {
                                     <div className="flex justify-between items-center mb-2">
                                         <p className="font-medium text-gray-700 text-sm">Seleccionar GRNs a importar:</p>
                                         <div className="text-xs">
-                                            <button type="button" onClick={() => setSelectedGrns([...availableGrns])} className="text-blue-600 hover:underline mr-2">Seleccionar Todas</button>
+                                            <button type="button" onClick={() => setSelectedGrns([...availableGrns])} className="text-[#285f94] hover:underline mr-2">Seleccionar Todas</button>
                                             <span className="text-gray-300">|</span>
-                                            <button type="button" onClick={() => setSelectedGrns([])} className="text-blue-600 hover:underline ml-2">Deseleccionar Todas</button>
+                                            <button type="button" onClick={() => setSelectedGrns([])} className="text-[#285f94] hover:underline ml-2">Deseleccionar Todas</button>
                                         </div>
                                     </div>
 
@@ -324,7 +324,7 @@ const Update = () => {
                                                         if (e.target.checked) setSelectedGrns(prev => [...prev, grn]);
                                                         else setSelectedGrns(prev => prev.filter(g => g !== grn));
                                                     }}
-                                                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                    className="h-4 w-4 text-[#285f94] rounded border-gray-300 focus:ring-[#285f94]"
                                                 />
                                                 <label htmlFor={`grn-${grn}`} className="ml-2 text-xs text-gray-700 truncate cursor-pointer" title={grn}>
                                                     {grn}
@@ -337,7 +337,7 @@ const Update = () => {
                             </div>
                         )}
 
-                        <button disabled={isLoading || files.length === 0} type="submit" className="w-full bg-[#1e73be] hover:bg-blue-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 shadow-sm">
+                        <button disabled={isLoading || files.length === 0} type="submit" className="w-full bg-[#1e73be] hover:bg-[#1e4a74] text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 shadow-sm">
                             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                             {isLoading ? 'Procesando...' : 'Subir y Actualizar Archivos'}
                         </button>

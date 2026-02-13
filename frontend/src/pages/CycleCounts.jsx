@@ -272,7 +272,7 @@ const CycleCounts = () => {
                                     type="text"
                                     value={countedLocation}
                                     onChange={e => setCountedLocation(e.target.value.toUpperCase())}
-                                    className="uppercase font-bold text-blue-800"
+                                    className="uppercase font-bold text-[#1e4a74]"
                                     placeholder="SCAN UBICACIÓN"
                                     required
                                 />

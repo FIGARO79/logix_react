@@ -144,14 +144,14 @@ const WaybillGRN = () => {
                         <input
                             type="text"
                             placeholder="Buscar I.R, Waybill o GRN..."
-                            className="block w-full px-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
+                            className="block w-full px-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#285f94] focus:border-[#285f94] text-xs transition-all"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                     <button
                         onClick={() => fetchData(true)}
-                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-gray-200"
+                        className="p-1.5 text-gray-500 hover:text-[#285f94] hover:bg-blue-50 rounded-md transition-colors border border-gray-200"
                         title="Refrescar"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -180,7 +180,7 @@ const WaybillGRN = () => {
                             ) : filteredData.map((item, idx) => (
                                 <tr key={item.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/80 transition-all duration-150`}>
                                     <td className="px-2 py-1 font-bold text-gray-700 truncate" title={item.import_reference}>{item.import_reference}</td>
-                                    <td className="px-2 py-1 font-medium text-blue-600 underline underline-offset-2 decoration-blue-200 truncate" title={item.waybill}>{item.waybill}</td>
+                                    <td className="px-2 py-1 font-medium text-[#285f94] underline underline-offset-2 decoration-blue-200 truncate" title={item.waybill}>{item.waybill}</td>
                                     <td className="px-2 py-1 text-gray-600 font-mono truncate" title={item.grn_number}>{item.grn_number || '-'}</td>
                                     <td className="px-2 py-1 text-center text-gray-600 font-mono font-medium">{item.packs}</td>
                                     <td className="px-2 py-1 text-center text-gray-600 truncate" title={item.lines}>{item.lines || '-'}</td>
@@ -190,7 +190,7 @@ const WaybillGRN = () => {
                                     <td className="px-2 py-1 text-center">
                                         <button
                                             onClick={() => handleEdit(item)}
-                                            className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-100 rounded transition-all"
+                                            className="text-[#285f94] hover:text-[#1e4a74] p-1 hover:bg-blue-100 rounded transition-all"
                                         >
                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                         </button>
@@ -198,7 +198,7 @@ const WaybillGRN = () => {
                                 </tr>
                             ))}
                             {loading && (
-                                <tr><td colSpan="7" className="py-4 text-center text-blue-500 text-xs">
+                                <tr><td colSpan="7" className="py-4 text-center text-[#285f94] text-xs">
                                     <div className="flex items-center justify-center gap-2">
                                         <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -235,7 +235,7 @@ const WaybillGRN = () => {
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Import Ref</label>
                                     <input
                                         type="text"
-                                        className={`w-full px-3 py-2 border rounded-lg outline-none transition-all ${editingItem.id ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
+                                        className={`w-full px-3 py-2 border rounded-lg outline-none transition-all ${editingItem.id ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-blue-100 focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94]'}`}
                                         value={editingItem.import_reference}
                                         onChange={(e) => setEditingItem({ ...editingItem, import_reference: e.target.value })}
                                         disabled={!!editingItem.id}
@@ -246,7 +246,7 @@ const WaybillGRN = () => {
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Waybill</label>
                                     <input
                                         type="text"
-                                        className={`w-full px-3 py-2 border rounded-lg outline-none transition-all uppercase ${editingItem.id ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
+                                        className={`w-full px-3 py-2 border rounded-lg outline-none transition-all uppercase ${editingItem.id ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-blue-100 focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94]'}`}
                                         value={editingItem.waybill}
                                         onChange={(e) => setEditingItem({ ...editingItem, waybill: e.target.value.toUpperCase() })}
                                         disabled={!!editingItem.id}
@@ -260,7 +260,7 @@ const WaybillGRN = () => {
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">GRN Number</label>
                                     <input
                                         type="text"
-                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] outline-none transition-all"
                                         value={editingItem.grn_number || ''}
                                         onChange={(e) => setEditingItem({ ...editingItem, grn_number: e.target.value })}
                                         placeholder="Ej: 16777"
@@ -270,7 +270,7 @@ const WaybillGRN = () => {
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha AAF</label>
                                     <input
                                         type="date"
-                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] outline-none transition-all"
                                         value={editingItem.aaf_date || ''}
                                         onChange={(e) => setEditingItem({ ...editingItem, aaf_date: e.target.value })}
                                     />
@@ -283,7 +283,7 @@ const WaybillGRN = () => {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] outline-none transition-all"
                                         value={editingItem.packs || ''}
                                         onChange={(e) => setEditingItem({ ...editingItem, packs: e.target.value })}
                                     />
@@ -292,7 +292,7 @@ const WaybillGRN = () => {
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Lines</label>
                                     <input
                                         type="text"
-                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] outline-none transition-all"
                                         value={editingItem.lines || ''}
                                         onChange={(e) => setEditingItem({ ...editingItem, lines: e.target.value })}
                                     />
@@ -309,7 +309,7 @@ const WaybillGRN = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2 px-4 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-200 transition-all active:scale-95"
+                                    className="flex-1 py-2 px-4 bg-[#285f94] rounded-lg text-white font-bold hover:bg-[#1e4a74] shadow-md shadow-blue-200 transition-all active:scale-95"
                                 >
                                     {editingItem.id ? 'Guardar Cambios' : 'Crear Registro'}
                                 </button>

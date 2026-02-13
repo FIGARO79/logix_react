@@ -83,9 +83,9 @@ const AdminInventory = () => {
                 {/* Left: Cycle Control (2 cols) */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Current Stage Banner */}
-                    <div className="bg-white p-6 rounded shadow-sm border-t-4 border-[#0a6ed1] text-center">
+                    <div className="bg-white p-6 rounded shadow-sm border-t-4 border-[#285f94] text-center">
                         <h3 className="text-gray-500 uppercase text-xs font-bold tracking-wider mb-2">Etapa Actual</h3>
-                        <div className="text-4xl font-light text-[#0a6ed1]">
+                        <div className="text-4xl font-light text-[#285f94]">
                             {stage === 0 ? 'Sin Ciclo Activo' : `Etapa ${stage}`}
                         </div>
                     </div>
@@ -102,7 +102,7 @@ const AdminInventory = () => {
                             <button
                                 onClick={() => handleAction('/api/admin/inventory/start_stage_1', '¿Iniciar Etapa 1? Se borrarán todos los datos anteriores.')}
                                 disabled={loading || (stage !== 0 && stage !== 4)}
-                                className="w-full bg-[#0a6ed1] text-white py-2 rounded text-sm hover:bg-[#0854a0] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                className="w-full bg-[#285f94] text-white py-2 rounded text-sm hover:bg-[#1e4a74] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                             >
                                 Iniciar Inventario
                             </button>
@@ -185,7 +185,7 @@ const AdminInventory = () => {
 
                         <div className="flex flex-col sm:flex-row gap-3">
                             {stage === 4 && (
-                                <button onClick={handleReport} className="flex-1 bg-white border border-blue-600 text-blue-700 py-2 rounded text-sm hover:bg-blue-50 transition-colors font-medium">
+                                <button onClick={handleReport} className="flex-1 bg-white border border-[#285f94] text-[#1e4a74] py-2 rounded text-sm hover:bg-blue-50 transition-colors font-medium">
                                     Generar Informe Final (Excel)
                                 </button>
                             )}
@@ -223,7 +223,7 @@ const AdminInventory = () => {
                                 {stats.stages && Object.entries(stats.stages).map(([sNum, sStats]) => (
                                     <div key={sNum} className="group">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                            <span className="w-2 h-2 rounded-full bg-[#285f94]"></span>
                                             <h4 className="font-medium text-sm text-gray-800">Etapa {sNum}</h4>
                                         </div>
 

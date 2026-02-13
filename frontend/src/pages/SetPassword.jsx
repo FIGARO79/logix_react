@@ -56,7 +56,7 @@ const SetPassword = () => {
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="px-8 py-6 mt-4 text-left bg-white shadow-lg rounded-lg w-full max-w-md">
                 <div className="flex justify-center mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-[#285f94]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                 </div>
@@ -74,7 +74,7 @@ const SetPassword = () => {
                                 type="password"
                                 name="newPassword"
                                 required
-                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
                                 value={formData.newPassword}
                                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                             />
@@ -85,13 +85,13 @@ const SetPassword = () => {
                                 type="password"
                                 name="confirmPassword"
                                 required
-                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
                                 value={formData.confirmPassword}
                                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                             />
                         </div>
                         <div className="flex items-center justify-between mt-6">
-                            <button type="submit" className="w-full px-6 py-2 leading-5 text-white transition-colors duration-200 transform bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:bg-blue-700">
+                            <button type="submit" className="w-full px-6 py-2 leading-5 text-white transition-colors duration-200 transform bg-[#285f94] rounded-md hover:bg-[#1e4a74] focus:outline-none focus:bg-[#1e4a74]">
                                 Guardar Contraseña
                             </button>
                         </div>
@@ -99,7 +99,7 @@ const SetPassword = () => {
                 )}
 
                 <div className="mt-6 text-center">
-                    <a href="/login" className="text-sm text-blue-600 hover:underline">Volver a Inicio de Sesión</a>
+                    <a href="/login" className="text-sm text-[#285f94] hover:underline">Volver a Inicio de Sesión</a>
                 </div>
             </div>
         </div>

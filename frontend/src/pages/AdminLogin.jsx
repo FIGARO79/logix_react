@@ -38,13 +38,13 @@ const AdminLogin = () => {
                         <label className="block text-gray-700 text-sm font-bold mb-2">Contraseña Admin</label>
                         <input
                             type="password"
-                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#285f94]"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoFocus
                         />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">
+                    <button type="submit" className="w-full bg-[#285f94] text-white font-bold py-2 rounded hover:bg-[#1e4a74]">
                         Entrar
                     </button>
                 </form>

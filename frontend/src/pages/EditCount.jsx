@@ -90,7 +90,7 @@ const EditCount = () => {
                             </button>
                             <button
                                 type="submit"
-                                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold"
+                                className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] font-bold"
                             >
                                 Guardar Cambios
                             </button>

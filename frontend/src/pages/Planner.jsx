@@ -201,13 +201,13 @@ const Planner = () => {
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Parámetros Generales</h2>
+                <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Parámetros Generales</h2>
                 <div className="flex flex-wrap items-end gap-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
                             value={config.start_date}
                             onChange={e => setConfig({ ...config, start_date: e.target.value })}
                         />
@@ -216,7 +216,7 @@ const Planner = () => {
                         <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
                             value={config.end_date}
                             onChange={e => setConfig({ ...config, end_date: e.target.value })}
                         />
@@ -228,11 +228,11 @@ const Planner = () => {
                     </div>
                     <div className="ml-auto flex gap-2">
                         <button onClick={handleSaveConfig} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar Fechas</button>
-                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-blue-800 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-900 border border-blue-900">
+                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74] border border-[#1e4a74]">
                             {loading ? 'Calculando...' : 'Actualizar Planificación'}
                         </button>
                         <button onClick={() => window.location.href = `/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
-                            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700">
+                            className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74]">
                             Generar Excel
                         </button>
                     </div>
@@ -254,7 +254,7 @@ const Planner = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Tabla Resumen ABC */}
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Resumen Categorías (ABC)</h3>
+                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Resumen Categorías (ABC)</h3>
                     <table className="w-full border-collapse text-xs">
                         <thead>
                             <tr className="bg-gray-200">
@@ -288,7 +288,7 @@ const Planner = () => {
                 </div>
 
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#0070d2] pl-2">Leyenda / Clasificación</h3>
+                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Leyenda / Clasificación</h3>
                     <div className="flex gap-4">
                         <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
@@ -327,8 +327,8 @@ const Planner = () => {
             <div className="space-y-6">
                 {/* PLANEADO */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="border-l-4 border-blue-600 bg-gray-50 px-4 py-2">
-                        <h3 className="text-sm font-bold text-blue-800">Planeado (Conteos Programados)</h3>
+                    <div className="border-l-4 border-[#285f94] bg-gray-50 px-4 py-2">
+                        <h3 className="text-sm font-bold text-[#1e4a74]">Planeado (Conteos Programados)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">

@@ -66,7 +66,7 @@ const Login = () => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                            className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-[#0070d2] focus:ring focus:ring-[#0070d2] focus:ring-opacity-50 p-2 border"
+                            className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-[#285f94] focus:ring focus:ring-[#285f94] focus:ring-opacity-50 p-2 border"
                         />
                     </div>
                     <div>
@@ -76,19 +76,19 @@ const Login = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-[#0070d2] focus:ring focus:ring-[#0070d2] focus:ring-opacity-50 p-2 border"
+                            className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-[#285f94] focus:ring focus:ring-[#285f94] focus:ring-opacity-50 p-2 border"
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full bg-[#0070d2] text-white py-2 rounded hover:bg-[#005fb2] transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full bg-[#285f94] text-white py-2 rounded hover:bg-[#1e4a74] transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {loading ? 'Cargando...' : 'Entrar'}
                     </button>
 
                     <div className="mt-4 text-center text-sm">
-                        <Link to="/register" className="text-blue-600 hover:underline">Registrarse</Link>
+                        <Link to="/register" className="text-[#285f94] hover:underline">Registrarse</Link>
                     </div>
                 </form>
             </div>

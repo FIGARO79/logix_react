@@ -442,11 +442,11 @@ const Inbound = () => {
 
                             {/* Resumen Cantidades (Proceso Ciego) */}
                             <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
-                                <h3 className="text-xs font-bold uppercase text-gray-700 border-b-2 border-blue-600 pb-1 mb-3">Resumen de Cantidades</h3>
+                                <h3 className="text-xs font-bold uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen de Cantidades</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="form-label">Qty Received (Total)</label>
-                                        <div className="data-field font-bold text-blue-700">{displayQty}</div>
+                                        <div className="data-field font-bold text-[#1e4a74]">{displayQty}</div>
                                     </div>
                                     <div>
                                         <label className="form-label">Contado</label>
@@ -549,7 +549,7 @@ const Inbound = () => {
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar
                             </button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-44 px-3 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 cursor-pointer">
+                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-44 px-3 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] transition-all duration-150 cursor-pointer">
                                 <option value="">-- Versión Actual --</option>
                                 {versions.map(v => (
                                     <option key={v} value={v}>Archivado: {new Date(v).toLocaleString()}</option>

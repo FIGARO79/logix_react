@@ -167,7 +167,7 @@ const StockSearch = () => {
                         <div>
                             <label className="form-label text-gray-500">Ubicación Principal</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.binLocation || 'N/A'}
                                 </span>
                             </div>
@@ -176,7 +176,7 @@ const StockSearch = () => {
                         <div>
                             <label className="form-label text-gray-500">Stock Físico</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {parseInt(itemData.physicalQty || 0)}
                                 </span>
                             </div>
@@ -188,7 +188,7 @@ const StockSearch = () => {
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )

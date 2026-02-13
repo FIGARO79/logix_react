@@ -46,7 +46,7 @@ const PickingAuditHistory = () => {
 
             {loading && (
                 <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0070d2]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#285f94]"></div>
                 </div>
             )}
 
@@ -90,7 +90,7 @@ const PickingAuditHistory = () => {
                                                 </svg>
                                             </td>
                                             <td className="px-5 py-4 text-sm font-medium text-gray-900">{audit.id}</td>
-                                            <td className="px-5 py-4 text-sm text-[#0070d2] font-semibold">{audit.order_number}</td>
+                                            <td className="px-5 py-4 text-sm text-[#285f94] font-semibold">{audit.order_number}</td>
                                             <td className="px-5 py-4 text-sm text-gray-600">{audit.despatch_number}</td>
                                             <td className="px-5 py-4 text-sm text-gray-600">{audit.customer_name || 'N/A'}</td>
                                             <td className="px-5 py-4 text-sm text-gray-600">{audit.username}</td>
@@ -106,7 +106,7 @@ const PickingAuditHistory = () => {
                                             <td className="px-5 py-4 text-center">
                                                 <Link
                                                     to={`/packing_list/print/${audit.id}`}
-                                                    className="text-gray-500 hover:text-[#0070d2]"
+                                                    className="text-gray-500 hover:text-[#285f94]"
                                                     onClick={(e) => e.stopPropagation()}
                                                     title="Imprimir Packing List"
                                                 >
@@ -164,7 +164,7 @@ const PickingAuditHistory = () => {
                                 <div className="p-4" onClick={() => toggleExpand(audit.id)}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg font-bold text-[#0070d2]">{audit.order_number}</span>
+                                            <span className="text-lg font-bold text-[#285f94]">{audit.order_number}</span>
                                             <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">{audit.despatch_number}</span>
                                         </div>
                                         <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${audit.status === 'Completado' || audit.status === 'Aprobado' ? 'bg-green-100 text-green-800' :
@@ -185,7 +185,7 @@ const PickingAuditHistory = () => {
                                         <div className="flex gap-3">
                                             <Link
                                                 to={`/packing_list/print/${audit.id}`}
-                                                className="text-gray-400 hover:text-blue-600 p-1"
+                                                className="text-gray-400 hover:text-[#285f94] p-1"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

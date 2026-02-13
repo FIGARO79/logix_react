@@ -76,7 +76,7 @@ const ViewCounts = () => {
     // Helper for Diff Color
     const getDiffColor = (diff) => {
         if (diff === null || diff === undefined) return 'text-gray-700';
-        if (diff > 0) return 'text-blue-600';
+        if (diff > 0) return 'text-[#285f94]';
         if (diff < 0) return 'text-red-600';
         return 'text-gray-700';
     };
@@ -96,10 +96,10 @@ const ViewCounts = () => {
                     { title: 'Items con Stock', val: stats.total_items_with_stock, color: 'text-[#6a6d70]' }, // Neutral
                     { title: 'Items Contados', val: stats.total_items_counted, color: 'text-[#107e3e]' },   // Positive
                     { title: 'Items con Diferencia', val: stats.items_with_differences, color: 'text-[#e9730c]' }, // Critical
-                    { title: 'Dif. Positiva', val: stats.items_with_positive_differences, color: 'text-[#0a6ed1]' }, // Informative
+                    { title: 'Dif. Positiva', val: stats.items_with_positive_differences, color: 'text-[#285f94]' }, // Informative
                     { title: 'Dif. Negativa', val: stats.items_with_negative_differences, color: 'text-[#b00]' },    // Negative
                     { title: 'Ubic. en uso', val: stats.total_locations_with_stock, color: 'text-[#6a6d70]' },   // Neutral
-                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-[#0a6ed1]' }       // Informative
+                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-[#285f94]' }       // Informative
                 ].map((s, idx) => (
                     <div key={idx} className="bg-white border border-[#d9d9d9] rounded p-4 text-center shadow-[0_0_0_1px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 hover:shadow-[0_2px_8px_0_rgba(0,0,0,0.15)] transition-all">
                         <h3 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${s.color}`}>{s.title}</h3>
@@ -115,7 +115,7 @@ const ViewCounts = () => {
                     <select
                         value={selectedUser}
                         onChange={(e) => setSelectedUser(e.target.value)}
-                        className="h-9 border border-[#89919a] rounded px-2 bg-white text-[#32363a] focus:border-[#0a6ed1] focus:ring-1 focus:ring-[#0a6ed1] outline-none"
+                        className="h-9 border border-[#89919a] rounded px-2 bg-white text-[#32363a] focus:border-[#285f94] focus:ring-1 focus:ring-[#285f94] outline-none"
                     >
                         <option value="">Todos</option>
                         {usernames.map(u => <option key={u} value={u}>{u}</option>)}
@@ -125,7 +125,7 @@ const ViewCounts = () => {
                     {/* No 'Reopen' here, but maybe a link to manage counts if needed? Legacy just has Export on view_counts */}
                     <a
                         href="/api/export_counts?tz=America/Bogota"
-                        className="inline-flex items-center px-4 py-2 border border-[#0854a0] text-[#0a6ed1] bg-white text-sm font-medium rounded hover:bg-[#ebf5fe] transition-colors"
+                        className="inline-flex items-center px-4 py-2 border border-[#0854a0] text-[#285f94] bg-white text-sm font-medium rounded hover:bg-[#ebf5fe] transition-colors"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />

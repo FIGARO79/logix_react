@@ -118,7 +118,7 @@ const ManageCycleCountDifferences = () => {
                     <label htmlFor="onlyDiff" className="cursor-pointer select-none">Solo Diferencias</label>
                 </div>
                 <div className="flex-grow"></div>
-                <button onClick={fetchData} className="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 transition">
+                <button onClick={fetchData} className="bg-[#285f94] text-white px-4 py-1.5 rounded hover:bg-[#1e4a74] transition">
                     Actualizar
                 </button>
             </div>
@@ -149,7 +149,7 @@ const ManageCycleCountDifferences = () => {
                             data.map((row) => (
                                 <tr key={row.id} className="hover:bg-blue-50 transition-colors">
                                     <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.executed_date)}</td>
-                                    <td className="px-3 py-2 font-mono font-medium text-blue-700">{row.item_code}</td>
+                                    <td className="px-3 py-2 font-mono font-medium text-[#1e4a74]">{row.item_code}</td>
                                     <td className="px-3 py-2 truncate max-w-[200px]" title={row.item_description}>{row.item_description}</td>
                                     <td className="px-3 py-2">{row.bin_location}</td>
                                     <td className="px-3 py-2 text-center">{row.abc_code}</td>
@@ -185,7 +185,7 @@ const ManageCycleCountDifferences = () => {
                         <label className="block mb-1 text-sm font-medium">Nueva Cantidad Física:</label>
                         <input
                             type="number"
-                            className="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#285f94]"
                             value={newPhysicalQty}
                             onChange={(e) => setNewPhysicalQty(e.target.value)}
                             autoFocus
@@ -200,7 +200,7 @@ const ManageCycleCountDifferences = () => {
                             </button>
                             <button
                                 onClick={handleSaveEdit}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                className="px-4 py-2 bg-[#285f94] text-white rounded hover:bg-[#1e4a74]"
                             >
                                 Guardar
                             </button>

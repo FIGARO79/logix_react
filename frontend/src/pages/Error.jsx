@@ -21,7 +21,7 @@ const ErrorPage = () => {
                 <div className="mt-8">
                     <Link
                         to="/dashboard"
-                        className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg transition duration-150 ease-in-out"
+                        className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#285f94] hover:bg-[#1e4a74] md:py-4 md:text-lg transition duration-150 ease-in-out"
                     >
                         Volver al Inicio
                     </Link>

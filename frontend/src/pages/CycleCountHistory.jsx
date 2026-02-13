@@ -98,13 +98,13 @@ const CycleCountHistory = () => {
                     <input
                         type="text"
                         placeholder="Buscar..."
-                        className="border border-gray-300 px-3 py-1.5 rounded text-sm w-64 focus:outline-none focus:border-blue-500"
+                        className="border border-gray-300 px-3 py-1.5 rounded text-sm w-64 focus:outline-none focus:border-[#285f94]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <button
                         onClick={handleExport}
-                        className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+                        className="bg-white border border-[#285f94] text-[#285f94] hover:bg-blue-50 px-4 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar
@@ -150,7 +150,7 @@ const CycleCountHistory = () => {
                                 <tr key={rec.id} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                                     <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{rec.stockroom}</td>
                                     <td className="px-3 py-2 whitespace-nowrap">
-                                        <span className="text-blue-600 font-medium hover:underline cursor-pointer">{rec.item_code}</span>
+                                        <span className="text-[#285f94] font-medium hover:underline cursor-pointer">{rec.item_code}</span>
                                     </td>
                                     <td className="px-3 py-2 truncate max-w-xs" title={rec.description}>{rec.description}</td>
                                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.item_type}</td>

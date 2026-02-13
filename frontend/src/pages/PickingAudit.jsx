@@ -373,7 +373,7 @@ const PickingAudit = () => {
                                         </div>
                                         <div className="flex flex-col items-end">
                                             <span className="text-gray-500 text-[10px] uppercase tracking-wider">Escaneado</span>
-                                            <span className={`font-bold text-xl ${diff !== 0 ? 'text-blue-600' : 'text-green-600'}`}>{item.qty_scan}</span>
+                                            <span className={`font-bold text-xl ${diff !== 0 ? 'text-[#285f94]' : 'text-green-600'}`}>{item.qty_scan}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -429,7 +429,7 @@ const PickingAudit = () => {
                             />
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setShowPackagesModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => prepareAssignment()} className="btn-sap btn-primary bg-blue-600 border-blue-700 text-white">Continuar</button>
+                                <button onClick={() => prepareAssignment()} className="btn-sap btn-primary bg-[#285f94] border-[#1e4a74] text-white">Continuar</button>
                             </div>
                         </div>
                     </div>
@@ -529,7 +529,7 @@ const PickingAudit = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            className="w-full text-center border rounded p-2 text-lg font-bold bg-white focus:ring-2 focus:ring-blue-500"
+                                                            className="w-full text-center border rounded p-2 text-lg font-bold bg-white focus:ring-2 focus:ring-[#285f94]"
                                                             value={assignments[i + 1] || 0}
                                                             onChange={(e) => handleAssignmentChange(item.code, i + 1, e.target.value)}
                                                             onFocus={(e) => e.target.select()}
@@ -599,7 +599,7 @@ const PickingAudit = () => {
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
-                            className={`text-sm ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:underline'}`}
+                            className={`text-sm ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
                         >
                             {loadingTracking ? 'Actualizando...' : 'Actualizar'}
                         </button>
@@ -651,7 +651,7 @@ const PickingAudit = () => {
                                                 </td>
                                                 <td>{t.despatch_number}</td>
                                                 <td className="truncate max-w-[150px]">{t.customer_name}</td>
-                                                <td className="text-center font-bold text-blue-600">{t.total_lines}</td>
+                                                <td className="text-center font-bold text-[#285f94]">{t.total_lines}</td>
                                                 <td className="text-gray-500 text-xs">{t.print_date}</td>
                                             </tr>
                                         ))
@@ -675,11 +675,11 @@ const PickingAudit = () => {
                                 >
                                     <div className="flex justify-between items-center mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`font-bold ${t.is_audited ? 'text-slate-600' : 'text-blue-800'} text-lg`}>{t.order_number}</span>
+                                            <span className={`font-bold ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
                                             <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
                                             {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
                                         </div>
-                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-blue-600'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                     </div>
                                     <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
                                     <div className="text-right text-xs text-gray-400">

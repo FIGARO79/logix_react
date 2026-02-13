@@ -177,7 +177,7 @@ const AdminUsers = () => {
                                                     type="checkbox"
                                                     checked={hasPerm}
                                                     onChange={() => handlePermissionChange(u.id, m)}
-                                                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                                 />
                                             </td>
                                         );
@@ -185,7 +185,7 @@ const AdminUsers = () => {
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             <button
-                                                className="px-3 py-1 border border-blue-500 text-blue-600 rounded text-xs hover:bg-blue-50 transition-colors"
+                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
                                                 onClick={() => { alert('Verificar contraseña (no implementado en React aún)'); }}
                                             >
                                                 Verificar
@@ -194,7 +194,7 @@ const AdminUsers = () => {
                                             {!u.is_approved && (
                                                 <button
                                                     onClick={() => handleApprove(u.id)}
-                                                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors border border-blue-600"
+                                                    className="px-3 py-1 bg-[#285f94] text-white rounded text-xs hover:bg-[#1e4a74] transition-colors border border-[#285f94]"
                                                 >
                                                     Aprobar
                                                 </button>
@@ -202,7 +202,7 @@ const AdminUsers = () => {
 
                                             <button
                                                 onClick={() => handleResetPassword(u.id)}
-                                                className="px-3 py-1 border border-blue-500 text-blue-600 rounded text-xs hover:bg-blue-50 transition-colors"
+                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
                                             >
                                                 Reset Pass
                                             </button>

@@ -93,7 +93,7 @@ const Reconciliation = () => {
                     <input
                         type="text"
                         placeholder="Buscar en tabla..."
-                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none w-full sm:w-52 transition-all duration-150"
+                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full sm:w-52 transition-all duration-150"
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                     />
@@ -148,7 +148,7 @@ const Reconciliation = () => {
                                                 <td className="px-2 py-1.5 whitespace-nowrap font-mono">{row.Codigo_Item}</td>
                                                 <td className="px-2 py-1.5 truncate max-w-[180px]" title={row.Descripcion}>{row.Descripcion}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{row.Ubicacion}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-blue-600 font-medium">{row.Reubicado}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-medium">{row.Reubicado}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Esperada}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Recibida}</td>
                                                 <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${textClass}`}>
