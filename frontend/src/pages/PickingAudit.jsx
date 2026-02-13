@@ -50,6 +50,12 @@ const PickingAudit = () => {
     const [itemCodeInput, setItemCodeInput] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
 
+    // Quantity Modal
+    const [showQtyModal, setShowQtyModal] = useState(false);
+    const [scannedItem, setScannedItem] = useState(null);
+    const [tempQty, setTempQty] = useState(1);
+    const qtyInputRef = useRef(null);
+
     // Modals & Finalize
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showPackagesModal, setShowPackagesModal] = useState(false);
@@ -185,27 +191,44 @@ const PickingAudit = () => {
         }
 
         if (itemIndex > -1) {
-            const newItems = [...orderItems];
-            const item = newItems[itemIndex];
-
-            // Increment scan
-            item.qty_scan += 1;
-            item.difference = item.qty_scan - item.qty_req;
-
-            setOrderItems(newItems);
+            const item = orderItems[itemIndex];
+            setScannedItem({ ...item, index: itemIndex });
+            setTempQty(1); // Default to 1
+            setShowQtyModal(true);
             setItemCodeInput('');
-
-            // Feedback
-            if (item.qty_scan <= item.qty_req) {
-                playSuccess();
-                toast.success(`Leído: ${item.code}`);
-            } else {
-                playError(); // Over-scan warning
-                toast.warning(`Exceso: ${item.code}`);
-            }
+            playSuccess();
         } else {
             playError();
             toast.error(`Item NO pertenece al pedido: ${cleanCode}`);
+            setItemCodeInput('');
+        }
+    };
+
+    const confirmQuantity = () => {
+        if (!scannedItem) return;
+
+        const qtyToAdd = parseInt(tempQty) || 0;
+        if (qtyToAdd <= 0) {
+            setShowQtyModal(false);
+            return;
+        }
+
+        const newItems = [...orderItems];
+        const item = newItems[scannedItem.index];
+
+        item.qty_scan += qtyToAdd;
+        item.difference = item.qty_scan - item.qty_req;
+
+        setOrderItems(newItems);
+        setShowQtyModal(false);
+        setScannedItem(null);
+
+        // Feedback
+        if (item.qty_scan <= item.qty_req) {
+            toast.success(`Leído: ${item.code} (+${qtyToAdd})`);
+        } else {
+            playError(); // Over-scan warning
+            toast.warning(`Exceso: ${item.code} (+${qtyToAdd})`);
         }
     };
 
@@ -397,6 +420,56 @@ const PickingAudit = () => {
                         }}
                         onClose={() => setScannerOpen(false)}
                     />
+                )}
+
+                {/* Quantity Modal */}
+                {showQtyModal && scannedItem && (
+                    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border-t-4 border-[#285f94]">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1">{scannedItem.code}</h3>
+                            <p className="text-sm text-gray-500 mb-4 truncate">{scannedItem.description}</p>
+
+                            <div className="bg-blue-50 p-3 rounded mb-4 flex justify-between text-sm">
+                                <div>
+                                    <span className="block text-gray-500 text-[10px] uppercase">Requerido</span>
+                                    <span className="font-bold text-lg">{scannedItem.qty_req}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
+                                    <span className="font-bold text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
+                                </div>
+                            </div>
+
+                            <label className="form-label text-center block mb-2 font-bold">CANTIDAD A SUMAR</label>
+                            <input
+                                type="number"
+                                value={tempQty}
+                                onChange={e => setTempQty(e.target.value)}
+                                className="text-center text-3xl font-bold w-full p-4 border-2 border-[#285f94] rounded mb-6"
+                                autoFocus
+                                onFocus={(e) => e.target.select()}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') confirmQuantity();
+                                    if (e.key === 'Escape') setShowQtyModal(false);
+                                }}
+                            />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setShowQtyModal(false)}
+                                    className="px-4 py-3 border border-gray-300 rounded text-gray-600 font-bold hover:bg-gray-100"
+                                >
+                                    CANCELAR
+                                </button>
+                                <button
+                                    onClick={confirmQuantity}
+                                    className="px-4 py-3 bg-[#285f94] text-white rounded font-bold hover:bg-[#1e4a74] shadow-md"
+                                >
+                                    CONFIRMAR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Confirmation Modal */}

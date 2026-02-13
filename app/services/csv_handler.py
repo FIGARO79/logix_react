@@ -89,7 +89,9 @@ async def load_csv_data():
             try:
                 master_qty_map.clear()
                 items = df_master['Item_Code'].values
-                quantities = pd.to_numeric(df_master['Physical_Qty'], errors='coerce').fillna(0).astype(int).values
+                # Limpiar comas de Physical_Qty para que to_numeric funcione con separador de miles
+                clean_qty = df_master['Physical_Qty'].astype(str).str.replace(',', '', regex=False)
+                quantities = pd.to_numeric(clean_qty, errors='coerce').fillna(0).astype(int).values
                 master_qty_map.update(dict(zip(items, quantities)))
                 print(f"master_qty_map construido con {len(master_qty_map)} items, {sum(1 for q in master_qty_map.values() if q > 0)} con stock > 0")
 
@@ -169,7 +171,9 @@ async def load_grn_data_optimized():
             df_grn_cache = pd.DataFrame(grn_data)
             # Asegurar tipos
             if not df_grn_cache.empty:
-                df_grn_cache['Quantity'] = pd.to_numeric(df_grn_cache['Quantity'], errors='coerce').fillna(0)
+                # Limpiar comas antes de convertir a numérico
+                clean_qty = df_grn_cache['Quantity'].astype(str).str.replace(',', '', regex=False)
+                df_grn_cache['Quantity'] = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
             grn_file_mtime = current_mtime
         except Exception as e:
             print(f"Error leyendo cache JSON GRN, reintentando CSV: {e}")
@@ -249,7 +253,12 @@ async def get_item_details_from_master_csv(item_code: str):
                 chunk = chunk.replace({np.nan: None})
                 matches = chunk[chunk['Item_Code'].astype(str).str.strip() == item_code]
                 if not matches.empty:
-                    return matches.iloc[0].fillna('').to_dict()
+                    item_dict = matches.iloc[0].fillna('').to_dict()
+                    # Limpiar comas de campos numéricos para evitar errores de interpretación en el frontend
+                    for field in ['Physical_Qty', 'Cost_per_Unit', 'Frozen_Qty', 'Weight_per_Unit']:
+                        if field in item_dict and item_dict[field] is not None:
+                            item_dict[field] = str(item_dict[field]).replace(',', '')
+                    return item_dict
         except Exception as e:
             raise e
         return None
@@ -269,8 +278,9 @@ async def get_total_expected_quantity_for_item(item_code_form: str):
     result_df = df_grn_cache[df_grn_cache['Item_Code'] == item_code_form]
     
     if not result_df.empty:
-        # Convierte la columna 'Quantity' a numérico, tratando errores como 0
-        numeric_quantities = pd.to_numeric(result_df['Quantity'], errors='coerce').fillna(0)
+        # Convierte la columna 'Quantity' a numérico, tratando errores como 0 y eliminando comas de miles
+        clean_qty = result_df['Quantity'].astype(str).str.replace(',', '', regex=False)
+        numeric_quantities = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
         total_expected_quantity = int(numeric_quantities.sum())
         
     return total_expected_quantity
@@ -293,7 +303,9 @@ async def load_master_subset(columns: list, positive_stock_only: bool = False):
         ):
             chunk = chunk.replace({np.nan: None})
             if positive_stock_only and 'Physical_Qty' in chunk.columns:
-                qty = pd.to_numeric(chunk['Physical_Qty'], errors='coerce').fillna(0)
+                # Limpiar comas antes de convertir
+                clean_qty = chunk['Physical_Qty'].astype(str).str.replace(',', '', regex=False)
+                qty = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
                 chunk = chunk[qty > 0]
             frames.append(chunk)
         if not frames:
@@ -321,7 +333,9 @@ async def get_locations_with_stock_count():
             keep_default_na=True,
             chunksize=5000
         ):
-            qty = pd.to_numeric(chunk['Physical_Qty'], errors='coerce').fillna(0)
+            # Limpiar comas antes de convertir
+            clean_qty = chunk['Physical_Qty'].astype(str).str.replace(',', '', regex=False)
+            qty = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
             mask = qty > 0
             if mask.any():
                 bins.update(chunk.loc[mask, 'Bin_1'].dropna().astype(str).str.strip())

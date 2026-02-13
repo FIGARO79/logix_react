@@ -86,10 +86,9 @@ async def sync_master_csv_to_db(db: AsyncSession):
                 try:
                     cost_val = row.get('Cost_per_Unit')
                     if cost_val: # Empty string is False
-                        cost_str = str(cost_val).strip()
+                        cost_str = str(cost_val).strip().replace(',', '')
                         if cost_str:
-                            # Remove commas for values like "1,234.56"
-                            cost = float(cost_str.replace(',', ''))
+                            cost = float(cost_str)
                             if cost > 99999999.99:
                                 print(f"⚠️ Cost too high for item {row.get('Item_Code')}: {cost} -> Capping at 99999999.99", flush=True)
                                 cost = 99999999.99

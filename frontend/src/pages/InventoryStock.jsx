@@ -137,7 +137,7 @@ const InventoryStock = () => {
                         <button
                             type="button"
                             onClick={() => setScannerOpen(true)}
-                            className="h-[38px] px-3 bg-[#6a6d70] hover:bg-[#5a6d70] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
+                            className="h-[38px] px-3 bg-[#285f94] hover:bg-[#1e4a74] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
                             title="Escanear código"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -150,7 +150,7 @@ const InventoryStock = () => {
                         </button>
                         <button
                             type="submit"
-                            className="h-[38px] px-3 bg-[#6a6d70] hover:bg-[#5a6d70] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
+                            className="h-[38px] px-3 bg-[#285f94] hover:bg-[#1e4a74] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
                             disabled={loading}
                         >
                             {loading ? (

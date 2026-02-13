@@ -118,8 +118,12 @@ async def get_reconciliation_data(
             }
             
         # --- Data Processing Logic (Identical to Original) ---
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
-        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
+        # Limpiar comas antes de convertir a numérico
+        clean_qty_rec = logs_df['qtyReceived'].astype(str).str.replace(',', '', regex=False)
+        logs_df['qtyReceived'] = pd.to_numeric(clean_qty_rec, errors='coerce').fillna(0)
+        
+        clean_qty_grn = grn_df['Quantity'].astype(str).str.replace(',', '', regex=False)
+        grn_df['Quantity'] = pd.to_numeric(clean_qty_grn, errors='coerce').fillna(0)
 
         items_in_file = grn_df['Item_Code'].unique()
         logs_df_filtered = logs_df[logs_df['itemCode'].isin(items_in_file)]

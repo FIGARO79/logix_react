@@ -150,11 +150,11 @@ const StockSearch = () => {
                 <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-fade-in">
                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                         <h3 className="font-bold text-gray-800 text-lg">{itemData.itemCode}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${parseInt(itemData.physicalQty || 0) > 0
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${parseFloat(String(itemData.physicalQty || '0').replace(',', '')) > 0
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                             }`}>
-                            {parseInt(itemData.physicalQty || 0) > 0 ? 'EN STOCK' : 'SIN STOCK'}
+                            {parseFloat(String(itemData.physicalQty || '0').replace(',', '')) > 0 ? 'EN STOCK' : 'SIN STOCK'}
                         </span>
                     </div>
 
@@ -177,7 +177,7 @@ const StockSearch = () => {
                             <label className="form-label text-gray-500">Stock Físico</label>
                             <div className="mt-1">
                                 <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
-                                    {parseInt(itemData.physicalQty || 0)}
+                                    {itemData.physicalQty}
                                 </span>
                             </div>
                         </div>

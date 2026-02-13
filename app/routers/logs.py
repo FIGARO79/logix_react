@@ -52,7 +52,7 @@ async def find_item(
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
-        "physicalQty": item_details.get('Physical_Qty', '0'),
+        "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
         "defaultQtyGrn": expected_quantity,
         "itemType": item_details.get('ABC_Code_stockroom', 'N/A'),
@@ -257,7 +257,7 @@ async def get_items_without_grn(username: str = Depends(permission_required("inb
             return JSONResponse(content={"data": [], "message": "No hay registros en el log"})
 
         # Convertir qtyReceived a numérico
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+        clean_qty = logs_df['qtyReceived'].astype(str).str.replace(',', '', regex=False); logs_df['qtyReceived'] = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
 
         if grn_df is None or grn_df.empty:
             # Si no hay datos de GRN, todos los items del log están "sin GRN"
@@ -329,7 +329,7 @@ async def export_items_without_grn(timezone_offset: int = 0, username: str = Dep
             raise HTTPException(status_code=404, detail="No hay registros en el log")
 
         # Convertir qtyReceived a numérico
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
+        clean_qty = logs_df['qtyReceived'].astype(str).str.replace(',', '', regex=False); logs_df['qtyReceived'] = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
 
         if grn_df is None or grn_df.empty:
             items_without_grn = logs_df.groupby('itemCode').agg({
@@ -410,8 +410,12 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         if logs_df.empty or grn_df is None:
             raise HTTPException(status_code=404, detail="No hay datos suficientes para generar la conciliación")
 
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'], errors='coerce').fillna(0)
-        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'], errors='coerce').fillna(0)
+        # Limpiar comas de miles antes de convertir
+        clean_qty_rec = logs_df['qtyReceived'].astype(str).str.replace(',', '', regex=False)
+        logs_df['qtyReceived'] = pd.to_numeric(clean_qty_rec, errors='coerce').fillna(0)
+        
+        clean_qty_grn = grn_df['Quantity'].astype(str).str.replace(',', '', regex=False)
+        grn_df['Quantity'] = pd.to_numeric(clean_qty_grn, errors='coerce').fillna(0)
 
         # Calcular totales recibidos por ítem desde el log
         item_totals = logs_df.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
