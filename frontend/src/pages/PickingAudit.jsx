@@ -58,9 +58,9 @@ const PickingAudit = () => {
 
     // Modals & Finalize
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [showPackagesModal, setShowPackagesModal] = useState(false);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-    const [packagesCount, setPackagesCount] = useState('');
+    const [packagesCount, setPackagesCount] = useState('1');
+    const [activePackage, setActivePackage] = useState(1);
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
 
     useEffect(() => {
@@ -68,32 +68,6 @@ const PickingAudit = () => {
         loadTrackingData();
     }, [setTitle]);
 
-    // Initialize assignments when entering assignment modal
-    const prepareAssignment = () => {
-        const count = parseInt(packagesCount);
-        if (!count || count <= 0) {
-            submitAudit(); // No packages, just submit
-            return;
-        }
-
-        // Init structure: { "ITEM01": { 1: 0, 2: 0 }, ... }
-        const initialAssignments = {};
-        orderItems.forEach(item => {
-            const row = {};
-            for (let i = 1; i <= count; i++) {
-                row[i] = 0;
-            }
-            // Auto-assign to box 1 if only 1 box? Optional, let's keep it 0 for explicit user input
-            // OR if only 1 box, pre-fill it?
-            if (count === 1) {
-                row[1] = item.qty_scan;
-            }
-            initialAssignments[item.code] = row;
-        });
-        setPackageAssignments(initialAssignments);
-        setShowPackagesModal(false);
-        setShowAssignmentModal(true);
-    };
 
     // -- API Calls --
 
@@ -137,6 +111,16 @@ const PickingAudit = () => {
                         difference: 0
                     }));
                     setOrderItems(items);
+
+                    // Initialize assignments for dynamic allocation
+                    const initialAssignments = {};
+                    items.forEach(item => {
+                        initialAssignments[item.code] = { 1: 0 };
+                    });
+                    setPackageAssignments(initialAssignments);
+                    setPackagesCount('1');
+                    setActivePackage(1);
+
                     setAuditActive(true);
                     toast.success("Pedido cargado");
                 } else {
@@ -160,7 +144,8 @@ const PickingAudit = () => {
         setCustomerName('');
         setShowAssignmentModal(false);
         setPackageAssignments({});
-        setPackagesCount('');
+        setPackagesCount('1');
+        setActivePackage(1);
         loadTrackingData();
     };
 
@@ -220,6 +205,20 @@ const PickingAudit = () => {
         item.difference = item.qty_scan - item.qty_req;
 
         setOrderItems(newItems);
+
+        // Update package assignments
+        setPackageAssignments(prev => {
+            const currentItemAssignments = prev[item.code] || {};
+            const currentPkgQty = currentItemAssignments[activePackage] || 0;
+            return {
+                ...prev,
+                [item.code]: {
+                    ...currentItemAssignments,
+                    [activePackage]: currentPkgQty + qtyToAdd
+                }
+            };
+        });
+
         setShowQtyModal(false);
         setScannedItem(null);
 
@@ -233,21 +232,21 @@ const PickingAudit = () => {
     };
 
     const handleFinalize = () => {
-        // Check differences
         const hasDifferences = orderItems.some(i => i.qty_scan !== i.qty_req);
         if (hasDifferences) {
             setShowConfirmModal(true);
         } else {
-            setShowPackagesModal(true);
+            setShowAssignmentModal(true);
         }
     };
 
     const submitAudit = async (statusOverride) => {
+        const hasDifferences = orderItems.some(i => i.qty_scan !== i.qty_req);
         const payload = {
             order_number: orderNumber,
             despatch_number: despatchNumber,
             customer_name: customerName,
-            status: statusOverride || (orderItems.some(i => i.qty_scan !== i.qty_req) ? 'Con Diferencia' : 'Completo'),
+            status: statusOverride || (hasDifferences ? 'Con Diferencia' : 'Completo'),
             items: orderItems.map(i => ({
                 code: i.code,
                 description: i.description,
@@ -271,9 +270,8 @@ const PickingAudit = () => {
                 toast.success("Auditoría Finalizada Correctamente");
                 handleReset();
                 setShowConfirmModal(false);
-                setShowPackagesModal(false);
                 setShowAssignmentModal(false);
-                setPackagesCount('');
+                setPackagesCount('1');
             } else {
                 const err = await res.json();
                 toast.error(err.detail || "Error al guardar");
@@ -303,6 +301,45 @@ const PickingAudit = () => {
                             <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerName}</span></p>
                         </div>
                         <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
+                    </div>
+
+                    {/* Active Package Selector Compact */}
+                    <div className="mb-4 p-2 px-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Bulto Activo:</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                            {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setActivePackage(i + 1)}
+                                    className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
+                                        ? 'bg-[#285f94] text-white shadow-sm'
+                                        : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => {
+                                    const newCount = (parseInt(packagesCount) || 1) + 1;
+                                    setPackagesCount(newCount.toString());
+                                    setActivePackage(newCount);
+                                    setPackageAssignments(prev => {
+                                        const updated = { ...prev };
+                                        Object.keys(updated).forEach(code => {
+                                            updated[code] = { ...updated[code], [newCount]: 0 };
+                                        });
+                                        return updated;
+                                    });
+                                }}
+                                className="w-8 h-8 rounded-full border border-dashed border-slate-400 text-slate-500 font-bold text-xs hover:border-[#285f94] hover:text-[#285f94] flex items-center justify-center"
+                                title="Añadir Bulto"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="hidden sm:block flex-grow text-[11px] text-slate-500 italic">
+                            Asignando al <strong>Bulto {activePackage}</strong>.
+                        </div>
                     </div>
 
                     {/* Scan Input */}
@@ -356,7 +393,17 @@ const PickingAudit = () => {
 
                                     return (
                                         <tr key={idx} className={isComplete ? 'bg-green-50' : isOver ? 'bg-red-50' : ''}>
-                                            <td className="font-medium">{item.code}</td>
+                                            <td className="font-medium">
+                                                {item.code}
+                                                <div className="text-[10px] text-slate-500 flex gap-1 flex-wrap mt-1">
+                                                    {Object.entries(packageAssignments[item.code] || {})
+                                                        .filter(([_, qty]) => qty > 0)
+                                                        .map(([pkg, qty]) => (
+                                                            <span key={pkg} className="bg-slate-100 px-1 rounded border">B{pkg}: {qty}</span>
+                                                        ))
+                                                    }
+                                                </div>
+                                            </td>
                                             <td className="text-sm truncate max-w-[200px]">{item.description}</td>
                                             <td className="text-center">{item.qty_req}</td>
                                             <td className="text-center font-bold">{item.qty_scan}</td>
@@ -386,7 +433,19 @@ const PickingAudit = () => {
                                             {diff > 0 ? `+${diff}` : diff !== 0 ? diff : 'OK'}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-gray-500 mb-3 truncate">{item.description}</p>
+                                    <p className="text-xs text-gray-500 mb-2 truncate">{item.description}</p>
+
+                                    {/* Package Breakdown Mobile */}
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                        {Object.entries(packageAssignments[item.code] || {})
+                                            .filter(([_, qty]) => qty > 0)
+                                            .map(([pkg, qty]) => (
+                                                <span key={pkg} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 shadow-sm">
+                                                    B{pkg}: <span className="font-bold text-slate-800">{qty}</span>
+                                                </span>
+                                            ))
+                                        }
+                                    </div>
 
                                     {/* Grid */}
                                     <div className="grid grid-cols-2 gap-4 text-sm bg-white/50 p-2 rounded">
@@ -480,29 +539,7 @@ const PickingAudit = () => {
                             <p className="mb-4 text-gray-700">Hay ítems con diferencias. ¿Desea finalizar con errores?</p>
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => { setShowConfirmModal(false); setShowPackagesModal(true); }} className="btn-sap btn-primary bg-yellow-500 border-yellow-600">Sí, Continuar</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Packages Modal */}
-                {showPackagesModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-lg font-bold mb-2">Cantidad de Bultos</h3>
-                            <p className="mb-2 text-gray-600">Ingrese total de paquetes:</p>
-                            <input
-                                type="number"
-                                value={packagesCount}
-                                onChange={e => setPackagesCount(e.target.value)}
-                                className="mb-4 text-center text-xl"
-                                autoFocus
-                                min="0"
-                            />
-                            <div className="flex justify-end gap-2">
-                                <button onClick={() => setShowPackagesModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => prepareAssignment()} className="btn-sap btn-primary bg-[#285f94] border-[#1e4a74] text-white">Continuar</button>
+                                <button onClick={() => { setShowConfirmModal(false); setShowAssignmentModal(true); }} className="btn-sap btn-primary bg-yellow-500 border-yellow-600">Sí, Continuar</button>
                             </div>
                         </div>
                     </div>
