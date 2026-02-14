@@ -67,22 +67,20 @@ const PackingListPrint = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 mb-6 text-sm print:gap-4 print:mb-4">
-                <div className="border-l-4 border-[#285f94] pl-3 print:border-black">
-                    <p className="font-bold text-gray-400 uppercase text-[10px] print:text-black">Cliente</p>
-                    <p className="text-xl font-black text-black leading-tight">{data.customer_name || 'N/A'}</p>
+            <div className="grid grid-cols-2 gap-4 mb-4 text-sm print:gap-2 print:mb-2">
+                <div className="pb-1 border-b border-gray-100">
+                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
+                    <span className="text-lg font-black text-black leading-tight">{data.customer_name || 'N/A'}</span>
                 </div>
-                <div className="text-right border-b border-gray-100 pb-2 print:border-none">
-                    <p className="font-bold text-gray-400 uppercase text-[10px] print:text-black">Total Bultos</p>
-                    <p className="text-2xl font-black text-[#285f94] print:text-black">{data.total_packages}</p>
+                <div className="text-right pb-1 border-b border-gray-100">
+                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
+                    <span className="text-xl font-black text-[#285f94] print:text-black">{data.total_packages}</span>
                 </div>
-                <div>
-                    <p className="font-bold text-gray-400 uppercase text-[10px] print:text-black">Número de Pedido</p>
-                    <p className="text-lg font-bold text-black">{data.order_number}</p>
-                </div>
-                <div className="text-right">
-                    <p className="font-bold text-gray-400 uppercase text-[10px] print:text-black">Número de Despacho</p>
-                    <p className="text-lg font-bold text-black">{data.despatch_number}</p>
+                <div className="col-span-2">
+                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
+                    <span className="text-base font-bold text-black">
+                        {data.order_number} <span className="mx-1 text-gray-300">/</span> {data.despatch_number}
+                    </span>
                 </div>
             </div>
         </>
@@ -179,7 +177,7 @@ const PackingListPrint = () => {
                             </div>
 
                             <div className="mt-8 pt-4 border-t border-gray-100 flex justify-center items-center text-[9px] text-gray-400 print:mt-12 print:border-gray-300 print:text-black">
-                                <p className="font-medium tracking-widest uppercase">LOGIX - Warehouse Management System</p>
+                                <p className="font-medium tracking-widest uppercase">LOGIX - WMS</p>
                             </div>
                         </div>
                     ))
