@@ -59,7 +59,7 @@ iniciar_app.sh
 databases/*.csv
 
 # Ignorar archivos de caché generados automáticamente
-databases/stock_qty_cache.json
+databases/*.json
 
 # Certificados SSL locales
 certs/
