@@ -5,6 +5,7 @@ import os
 import shutil
 import json
 import datetime
+import numpy as np
 from urllib.parse import urlencode
 from io import BytesIO
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +50,7 @@ async def update_files_post(
     item_master: UploadFile = File(None),
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
+    grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
     update_option_280: str = Form(None),
     selected_grns_280: str = Form(None),
     username: str = Depends(login_required)
@@ -119,6 +121,34 @@ async def update_files_post(
             shutil.copyfileobj(picking_file.file, buffer)
         message += f'Archivo "{picking_file.filename}" actualizado (Picking). '
         files_uploaded = True
+
+    # Manejo del archivo Excel de GRN (Inbound) -> Convertir a JSON
+    if grn_excel and grn_excel.filename:
+        try:
+            from app.core.config import GRN_JSON_DATA_PATH
+            # Leer el Excel directamente desde el stream
+            excel_df = pd.read_excel(grn_excel.file)
+            # Reemplazar NaN por None para JSON valid
+            excel_df = excel_df.replace({np.nan: None})
+            
+            # Convertir a lista de diccionarios
+            data_list = excel_df.to_dict(orient='records')
+            
+            # Guardar como JSON persistente
+            with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
+                json.dump(data_list, f, indent=4, default=str)
+            
+            # [NUEVO] Eliminar el Excel original si existe para mantener el flujo limpio
+            from app.core.config import GRN_EXCEL_PATH
+            if os.path.exists(GRN_EXCEL_PATH):
+                os.remove(GRN_EXCEL_PATH)
+                print(f"🗑️ Archivo Excel original eliminado: {GRN_EXCEL_PATH}")
+
+            message += f'Archivo Excel "{grn_excel.filename}" procesado, convertido a JSON y original eliminado. '
+            files_uploaded = True
+        except Exception as e:
+            print(f"ERROR procesando Excel GRN: {str(e)}")
+            error += f'Error procesando Excel GRN: {str(e)}. '
 
     if files_uploaded:
         # Procesar en segundo plano para no bloquear al usuario

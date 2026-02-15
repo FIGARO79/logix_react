@@ -120,7 +120,12 @@ const Update = () => {
             if (name.includes('master') || name.includes('item') || name.includes('maestro') || name.includes('inventario') || name.includes('250')) {
                 formData.append('item_master', file);
             } else if (name.includes('280') || name.includes('pedido') || name.includes('reporte') || name.includes('grn') || name.includes('entrada')) {
-                formData.append('grn_file', file);
+                // Detectar si es el Excel de GRN o el CSV de reconciliación
+                if (name.endsWith('.xlsx')) {
+                    formData.append('grn_excel', file);
+                } else {
+                    formData.append('grn_file', file);
+                }
             } else if (name.includes('240') || name.includes('picking') || name.includes('salida')) {
                 formData.append('picking_file', file);
             } else {
@@ -266,7 +271,7 @@ const Update = () => {
                                 <p className="text-gray-600 font-medium mb-1">
                                     <span className="font-bold text-gray-700">Click to upload</span> or drag and drop
                                 </p>
-                                <p className="text-gray-400 text-sm">CSV files (250, 280, 240)</p>
+                                <p className="text-gray-400 text-sm">CSV files (250, 280, 240) & Excel (.xlsx)</p>
                             </div>
                         </div>
 
