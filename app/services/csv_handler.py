@@ -226,7 +226,9 @@ async def reload_cache_if_needed():
             # Primera carga, solo actualizar el timestamp sin recargar
             grn_file_mtime = current_grn_mtime
     
-    if need_reload:
+    if need_reload or df_master_cache is None or df_grn_cache is None:
+        if df_master_cache is None or df_grn_cache is None:
+            print(f"🔄 Cache vacío detectado o se requiere recarga. Forzando carga inicial...")
         await load_csv_data()
 
 

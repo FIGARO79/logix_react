@@ -11,6 +11,7 @@ DATABASE_FOLDER = os.path.join(PROJECT_ROOT, 'databases')
 ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0250.csv')
 GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0280.csv')
 PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240.csv')
+GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'GRN.xlsx')
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')

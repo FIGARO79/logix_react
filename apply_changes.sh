@@ -37,10 +37,14 @@ sudo rsync -av "$PROJECT_DIR/static/" "/var/www/logix/static/"
 sudo rsync -av "$PROJECT_DIR/requirements.txt" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/alembic.ini" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/alembic/" "/var/www/logix/alembic/"
-# Asegurar permisos
-sudo mkdir -p /var/www/logix/databases
-sudo chown -R www-data:www-data /var/www/logix/app /var/www/logix/static /var/www/logix/databases
-sudo chmod 775 /var/www/logix/databases
+
+# Asegurar que el el enlace simbólico o directorio de databases existe
+if [ ! -L "/var/www/logix/databases" ] && [ ! -d "/var/www/logix/databases" ]; then
+    sudo ln -s "$PROJECT_DIR/databases" "/var/www/logix/databases"
+fi
+
+sudo chown -R www-data:www-data /var/www/logix/app /var/www/logix/static 
+sudo chown -h www-data:www-data /var/www/logix/databases
 
 
 # 2. FRONTEND: Build y Deploy

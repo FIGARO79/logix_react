@@ -5,9 +5,8 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.sql_models import GRNMaster
-from app.core.config import PROJECT_ROOT
-
-GRN_EXCEL_PATH = os.path.join(PROJECT_ROOT, "GRN.xlsx")
+from app.models.sql_models import GRNMaster
+from app.core.config import GRN_EXCEL_PATH
 
 async def seed_grn_from_excel(db: AsyncSession):
     """
