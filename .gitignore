@@ -71,3 +71,6 @@ certs/
 frontend/dist/
 frontend/node_modules/
 
+# Guía de despliegue con claves
+vm_setup/GUIA_DESPLIEGUE_OVH.md
+
