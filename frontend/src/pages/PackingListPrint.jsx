@@ -58,10 +58,10 @@ const PackingListPrint = () => {
     const HeaderAndInfo = ({ currentPage, totalPages }) => (
         <>
             <div className="text-center mb-6 border-b border-black pb-4 print:mb-4">
-                <h1 className="text-4xl font-black uppercase tracking-tight mb-1 print:text-3xl text-black">Packing List</h1>
-                <div className="text-xs font-bold text-gray-500 print:text-black">
+                <h1 className="text-4xl uppercase tracking-tight mb-1 print:text-3xl text-black">Packing List</h1>
+                <div className="text-xs text-gray-500 print:text-black">
                     {data.timestamp || ''}
-                    <span className="ml-4 font-black text-black border-l border-black pl-4 print:inline text-sm">
+                    <span className="ml-4 text-black border-l border-black pl-4 print:inline text-sm">
                         PÁGINA {currentPage} DE {totalPages}
                     </span>
                 </div>
@@ -69,16 +69,16 @@ const PackingListPrint = () => {
 
             <div className="grid grid-cols-2 gap-4 mb-4 text-sm print:gap-2 print:mb-2">
                 <div className="pb-1 border-b border-gray-100">
-                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
-                    <span className="text-lg font-black text-black leading-tight">{data.customer_name || 'N/A'}</span>
+                    <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
+                    <span className="text-lg text-black leading-tight">{data.customer_name || 'N/A'}</span>
                 </div>
                 <div className="text-right pb-1 border-b border-gray-100">
-                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
-                    <span className="text-xl font-black text-[#285f94] print:text-black">{data.total_packages}</span>
+                    <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
+                    <span className="text-xl text-[#285f94] print:text-black">{data.total_packages}</span>
                 </div>
                 <div className="col-span-2">
-                    <span className="font-bold text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
-                    <span className="text-base font-bold text-black">
+                    <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
+                    <span className="text-base text-black">
                         {data.order_number} <span className="mx-1 text-gray-300">/</span> {data.despatch_number}
                     </span>
                 </div>
@@ -90,29 +90,29 @@ const PackingListPrint = () => {
     const PackageTable = ({ keyName, packageData }) => (
         <div className="border border-black rounded-lg overflow-hidden print:border-black print:rounded-none">
             <div className="bg-white text-black px-4 py-3 border-b border-black flex justify-between items-center print:py-2">
-                <h3 className="font-black text-xl uppercase">Bulto #{keyName}</h3>
-                <span className="text-sm font-mono font-bold border border-black px-2 py-1 rounded">BOX-{keyName.padStart(3, '0')}</span>
+                <h3 className="text-xl uppercase">Bulto #{keyName}</h3>
+                <span className="text-sm font-mono border border-black px-2 py-1 rounded">BOX-{keyName.padStart(3, '0')}</span>
             </div>
             <table className="min-w-full text-base">
                 <thead className="bg-white text-black border-b border-black">
                     <tr>
-                        <th className="px-4 py-1 text-left w-1/4 font-black uppercase text-[10px] print:py-1">Código</th>
-                        <th className="px-4 py-1 text-left w-1/2 font-black uppercase text-[10px] print:py-1">Descripción</th>
-                        <th className="px-4 py-1 text-right w-1/4 font-black uppercase text-[10px] print:py-1">Cantidad</th>
+                        <th className="px-4 py-1 text-left w-1/4 uppercase text-[10px] print:py-1">Código</th>
+                        <th className="px-4 py-1 text-left w-1/2 uppercase text-[10px] print:py-1">Descripción</th>
+                        <th className="px-4 py-1 text-right w-1/4 uppercase text-[10px] print:py-1">Cantidad</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 print:divide-black">
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-4 py-1 font-mono font-bold text-black text-[11px] print:py-1">{item.item_code}</td>
-                                <td className="px-4 py-1 text-black font-medium text-[11px] print:py-1">{item.description}</td>
-                                <td className="px-4 py-1 text-right font-black text-sm print:py-1">{item.quantity}</td>
+                                <td className="px-4 py-1 font-mono text-black text-[11px] print:py-1">{item.item_code}</td>
+                                <td className="px-4 py-1 text-black text-[11px] print:py-1">{item.description}</td>
+                                <td className="px-4 py-1 text-right text-sm print:py-1">{item.quantity}</td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="3" className="px-4 py-8 text-center text-gray-500 font-bold italic">Bulto sin ítems registrados</td>
+                            <td colSpan="3" className="px-4 py-8 text-center text-gray-500 italic">Bulto sin ítems registrados</td>
                         </tr>
                     )}
                 </tbody>
@@ -138,17 +138,17 @@ const PackingListPrint = () => {
             {/* Control Bar - Hidden when printing */}
             <div className="no-print mb-6 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
                 <div className="max-w-3xl mx-auto flex justify-between items-center p-4">
-                    <h1 className="text-lg font-bold text-[#285f94]">Vista Previa Packing List</h1>
+                    <h1 className="text-lg text-[#285f94]">Vista Previa Packing List</h1>
                     <div className="flex gap-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors font-medium"
+                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
                         >
                             Cerrar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] font-bold shadow-md transition-all active:scale-95"
+                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
                         >
                             Imprimir
                         </button>
@@ -160,7 +160,7 @@ const PackingListPrint = () => {
             <div className="max-w-3xl mx-auto print:max-w-none print:w-full">
                 {sortedPackageKeys.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <h3 className="text-xl font-bold text-gray-400 mb-2">Sin Bultos Asignados</h3>
+                        <h3 className="text-xl text-gray-400 mb-2">Sin Bultos Asignados</h3>
                         <p className="text-gray-500">No hay contenido disponible para imprimir en este pedido.</p>
                     </div>
                 ) : (
@@ -177,7 +177,7 @@ const PackingListPrint = () => {
                             </div>
 
                             <div className="mt-8 pt-4 border-t border-gray-100 flex justify-center items-center text-[9px] text-gray-400 print:mt-12 print:border-gray-300 print:text-black">
-                                <p className="font-medium tracking-widest uppercase">LOGIX - WMS</p>
+                                <p className="tracking-widest uppercase">LOGIX - WMS</p>
                             </div>
                         </div>
                     ))
