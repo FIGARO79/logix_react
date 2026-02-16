@@ -5,7 +5,7 @@ from app.core.db import get_db
 from app.models.sql_models import GRNMaster
 from app.models.schemas import GRNMasterCreate, GRNMasterUpdate, GRNMasterResponse
 from app.utils.auth import permission_required
-from app.services.grn_service import seed_grn_from_excel
+from app.services.grn_service import seed_grn_from_excel, export_grn_to_json
 from typing import List, Optional
 
 router = APIRouter(prefix="/api/grn", tags=["grn"])
@@ -75,6 +75,10 @@ async def create_grn_master(
     db.add(new_grn)
     await db.commit()
     await db.refresh(new_grn)
+    
+    # [NUEVO] Persistir cambio al JSON
+    await export_grn_to_json(db)
+    
     return new_grn
 
 @router.put("/{grn_id}", response_model=GRNMasterResponse)
@@ -94,6 +98,10 @@ async def update_grn_master(
     
     await db.commit()
     await db.refresh(grn)
+    
+    # [NUEVO] Persistir cambio al JSON
+    await export_grn_to_json(db)
+    
     return grn
 
 @router.delete("/{grn_id}")
@@ -109,12 +117,16 @@ async def delete_grn_master(
     
     await db.delete(grn)
     await db.commit()
+    
+    # [NUEVO] Persistir cambio al JSON
+    await export_grn_to_json(db)
+    
     return {"message": "Registro eliminado"}
 
 @router.post("/sync")
 async def sync_grn_master(
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(permission_required("admin"))
+    username: str = Depends(permission_required("inbound"))
 ):
     """Fuerza la sincronización inicial desde el archivo Excel."""
     return await seed_grn_from_excel(db)

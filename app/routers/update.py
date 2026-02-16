@@ -53,6 +53,7 @@ async def update_files_post(
     grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
     update_option_280: str = Form(None),
     selected_grns_280: str = Form(None),
+    db: AsyncSession = Depends(get_db),
     username: str = Depends(login_required)
 ):
     if not isinstance(username, str):
@@ -146,6 +147,16 @@ async def update_files_post(
 
             message += f'Archivo Excel "{grn_excel.filename}" procesado, convertido a JSON y original eliminado. '
             files_uploaded = True
+
+            # Trigger sync to DB as well
+            from app.services.grn_service import seed_grn_from_excel
+            from app.core.db import AsyncSessionLocal
+
+            async def run_sync():
+                async with AsyncSessionLocal() as session:
+                    await seed_grn_from_excel(session)
+
+            background_tasks.add_task(run_sync)
         except Exception as e:
             print(f"ERROR procesando Excel GRN: {str(e)}")
             error += f'Error procesando Excel GRN: {str(e)}. '

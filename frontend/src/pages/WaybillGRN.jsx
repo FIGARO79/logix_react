@@ -121,6 +121,26 @@ const WaybillGRN = () => {
         (item.grn_number && item.grn_number.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    const handleRefresh = async () => {
+        setLoading(true);
+        try {
+            const syncRes = await fetch('/api/grn/sync', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (syncRes.ok) {
+                const syncResult = await syncRes.json();
+                if (syncResult.added > 0 || syncResult.updated > 0) {
+                    toast.info(`Sincronización: +${syncResult.added} nuevos, ${syncResult.updated} actualizados`);
+                }
+            }
+        } catch (err) {
+            console.error("Error sincronizando:", err);
+        } finally {
+            fetchData(true);
+        }
+    };
+
     return (
         <div className="w-full px-2 py-4">
             {/* Header / Search */}
@@ -150,11 +170,12 @@ const WaybillGRN = () => {
                         />
                     </div>
                     <button
-                        onClick={() => fetchData(true)}
+                        onClick={handleRefresh}
                         className="p-1.5 text-gray-500 hover:text-[#285f94] hover:bg-blue-50 rounded-md transition-colors border border-gray-200"
-                        title="Refrescar"
+                        title="Sincronizar y Refrescar"
+                        disabled={loading}
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                     </button>
                 </div>
             </div>
