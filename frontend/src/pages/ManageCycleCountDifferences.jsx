@@ -13,9 +13,21 @@ const ManageCycleCountDifferences = () => {
     const [onlyDifferences, setOnlyDifferences] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Modal Edit
     const [editingItem, setEditingItem] = useState(null);
     const [newPhysicalQty, setNewPhysicalQty] = useState('');
+
+    // Métricas para Dashboard Industrial
+    const stats = useMemo(() => {
+        if (!data || data.length === 0) return { accuracy: 0, critical: 0, balance: 0, total: 0 };
+
+        const total = data.length;
+        const exact = data.filter(d => d.difference === 0).length;
+        const critical = data.filter(d => Math.abs(d.difference) > (d.system_qty * 0.1) || Math.abs(d.difference) > 50).length;
+        const balance = data.reduce((acc, curr) => acc + curr.difference, 0);
+        const accuracy = ((exact / total) * 100).toFixed(1);
+
+        return { accuracy, critical, balance, total };
+    }, [data]);
 
     useEffect(() => {
         setTitle("Gestión de Diferencias - Conteos Cíclicos");
@@ -82,7 +94,42 @@ const ManageCycleCountDifferences = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6 font-sans text-xs">
+        <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
+            {/* Industrial Stats Bar */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-blue-500 shadow-md">
+                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Exactitud (ERI)</label>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-mono font-bold">{stats.accuracy}%</span>
+                        <span className="text-xs text-blue-400">Objetivo: 98%</span>
+                    </div>
+                </div>
+                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-red-500 shadow-md">
+                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Diferencias Críticas</label>
+                    <div className="flex items-baseline gap-2">
+                        <span className={`text-3xl font-mono font-bold ${stats.critical > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {stats.critical}
+                        </span>
+                        <span className="text-xs text-slate-500">registros</span>
+                    </div>
+                </div>
+                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-green-500 shadow-md">
+                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Balance de Inventario</label>
+                    <div className="flex items-baseline gap-2">
+                        <span className={`text-3xl font-mono font-bold ${stats.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {stats.balance > 0 ? `+${stats.balance}` : stats.balance}
+                        </span>
+                        <span className="text-xs text-slate-500">unidades</span>
+                    </div>
+                </div>
+                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-yellow-500 shadow-md">
+                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Total Procesado</label>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-mono font-bold">{stats.total}</span>
+                        <span className="text-xs text-slate-500">muestras</span>
+                    </div>
+                </div>
+            </div>
             {/* Filtros */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-4 items-end">
                 <div>
@@ -123,9 +170,8 @@ const ManageCycleCountDifferences = () => {
                 </button>
             </div>
 
-            {/* Tabla */}
             <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse text-[11px] leading-tight">
                     <thead className="bg-slate-700 text-white">
                         <tr>
                             <th className="px-3 py-2">Fecha Ejec.</th>
@@ -148,23 +194,34 @@ const ManageCycleCountDifferences = () => {
                         ) : (
                             data.map((row) => (
                                 <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.executed_date)}</td>
-                                    <td className="px-3 py-2 font-mono font-medium text-[#1e4a74]">{row.item_code}</td>
-                                    <td className="px-3 py-2 truncate max-w-[200px]" title={row.item_description}>{row.item_description}</td>
-                                    <td className="px-3 py-2">{row.bin_location}</td>
-                                    <td className="px-3 py-2 text-center">{row.abc_code}</td>
-                                    <td className="px-3 py-2 text-right font-mono">{row.system_qty}</td>
-                                    <td className="px-3 py-2 text-right font-mono">{row.physical_qty}</td>
-                                    <td className={`px-3 py-2 text-right font-bold ${row.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    <td className="px-3 py-1 whitespace-nowrap">{formatDate(row.executed_date)}</td>
+                                    <td className="px-3 py-1 font-mono font-medium text-[#1e4a74]">{row.item_code}</td>
+                                    <td className="px-3 py-1 truncate max-w-[200px]" title={row.item_description}>{row.item_description}</td>
+                                    <td className="px-3 py-1">{row.bin_location}</td>
+                                    <td className="px-3 py-1 text-center">
+                                        {row.abc_code && (
+                                            <span className={`inline-block w-5 h-5 leading-5 rounded-full text-[9px] font-bold 
+                                                ${row.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                                    row.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                                {row.abc_code}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-1 text-right font-mono">{row.system_qty}</td>
+                                    <td className="px-3 py-1 text-right font-mono">{row.physical_qty}</td>
+                                    <td className={`px-3 py-1 text-right font-bold ${row.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
                                         {row.difference > 0 ? `+${row.difference}` : row.difference}
                                     </td>
-                                    <td className="px-3 py-2 text-gray-600">{row.username}</td>
-                                    <td className="px-3 py-2 text-center">
+                                    <td className="px-3 py-1 text-gray-600">{row.username}</td>
+                                    <td className="px-3 py-1 text-center">
                                         <button
                                             onClick={() => handleEdit(row)}
-                                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 text-[10px]"
+                                            className="bg-blue-50 hover:bg-blue-100 text-[#285f94] p-1 rounded border border-blue-200 transition-colors"
+                                            title="Recount"
                                         >
-                                            RECOUNT
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
                                         </button>
                                     </td>
                                 </tr>
