@@ -5,12 +5,12 @@ import datetime
 import pandas as pd
 from io import BytesIO
 from urllib.parse import urlencode
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import numpy as np
 from openpyxl.utils import get_column_letter
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
 
@@ -30,7 +30,7 @@ async_engine = create_async_engine(ASYNC_DB_URL)
 
 async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, Any]]:
     """Calcula y devuelve un resumen de estadísticas para el panel de admin de inventario."""
-    summary = {
+    summary: Dict[str, Any] = {
         'general': {
             'total_items_master': 0,
         },
@@ -40,7 +40,7 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
     try:
         # --- Estadísticas Generales (del maestro de items) ---
         if master_qty_map:
-            total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
+            total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and int(qty) > 0)  # type: ignore[arg-type]
             summary['general']['total_items_master'] = total_items_with_stock
 
         # --- Estadísticas por Etapa ---
@@ -72,10 +72,10 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
             counted_items_result = (await db.execute(stmt_diff)).all()
             counted_items_map = {row.item_code: row.total_counted for row in counted_items_result}
 
-            items_with_discrepancy = 0
+            items_with_discrepancy: int = 0
             for item_code, total_counted in counted_items_map.items():
                 system_qty_raw = master_qty_map.get(item_code)
-                system_qty = 0
+                system_qty: int = 0
                 if system_qty_raw is not None:
                     try:
                         system_qty = int(float(system_qty_raw))
@@ -83,39 +83,41 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
                         system_qty = 0
                 
                 if total_counted != system_qty:
-                    items_with_discrepancy += 1
+                    items_with_discrepancy += 1  # type: ignore[operator]
             
             # Precisión del conteo
-            accuracy = 0
+            accuracy: float = 0.0
             if items_counted > 0:
-                accuracy = ((items_counted - items_with_discrepancy) / items_counted) * 100
+                accuracy = ((items_counted - items_with_discrepancy) / items_counted) * 100  # type: ignore[operator]
             
             # Efectividad de Cobertura
-            coverage_effectiveness = 0
-            total_items_master_with_stock = summary['general'].get('total_items_master', 0)
+            coverage_effectiveness: float = 0.0
+            total_items_master_with_stock: int = summary['general'].get('total_items_master', 0)  # type: ignore[union-attr]
             if total_items_master_with_stock > 0:
-                items_correctly_counted = items_counted - items_with_discrepancy
+                items_correctly_counted: int = items_counted - items_with_discrepancy  # type: ignore[operator]
                 coverage_effectiveness = (items_correctly_counted / total_items_master_with_stock) * 100
 
             # Guardar estadísticas de la etapa
-            summary['stages'][stage_num] = {
+            stage_stats: Dict[str, Any] = {
                 'items_counted': items_counted,
                 'total_units_counted': total_units_counted,
                 'items_with_discrepancy': items_with_discrepancy,
                 'accuracy': f"{accuracy:.2f}%",
                 'coverage_effectiveness': f"{coverage_effectiveness:.2f}%"
             }
+            summary['stages'][stage_num] = stage_stats  # type: ignore[index]
 
         # --- Items en lista de reconteo (para etapas futuras) ---
+        stages_dict: Dict[int, Dict[str, Any]] = summary['stages']
         for stage_to_check in range(2, 5):
             stmt_recount = select(func.count(RecountList.item_code)).where(RecountList.stage_to_count == stage_to_check)
             items_in_recount_list = (await db.execute(stmt_recount)).scalar() or 0
             
-            if stage_to_check in summary['stages']:
-                summary['stages'][stage_to_check]['items_in_recount_list'] = items_in_recount_list
+            if stage_to_check in stages_dict:
+                stages_dict[stage_to_check]['items_in_recount_list'] = items_in_recount_list
             elif items_in_recount_list > 0:
                  # Si la etapa aún no tiene conteos pero ya hay lista de reconteo
-                summary['stages'][stage_to_check] = { 'items_in_recount_list': items_in_recount_list }
+                stages_dict[stage_to_check] = { 'items_in_recount_list': items_in_recount_list }
 
     except Exception as e:
         print(f"Error al calcular estadísticas de inventario: {e}")

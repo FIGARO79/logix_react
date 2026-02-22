@@ -61,6 +61,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
             usecols=lambda c: c in cols_to_read, # Leer solo columnas conocidas
             dtype=str,
             keep_default_na=False,
+            encoding='utf-8-sig',  # Maneja BOM (Byte Order Mark) del CSV
             chunksize=chunk_size
         )):
             # Limpieza de datos (ya no necesaria con keep_default_na=False para strings)

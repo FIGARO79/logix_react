@@ -33,7 +33,7 @@ async def read_csv_safe(file_path: str, columns: list = None):
         return None
     try:
         # Usa run_in_threadpool para operaciones de I/O bloqueantes
-        df = await run_in_threadpool(pd.read_csv, file_path, usecols=columns, dtype=str, keep_default_na=True)
+        df = await run_in_threadpool(pd.read_csv, file_path, usecols=columns, dtype=str, keep_default_na=True, encoding='utf-8-sig')
         # Reemplaza NaN/NaT de pandas con None nativo de Python para compatibilidad con JSON/DB
         df = df.replace({np.nan: None})
         return df
@@ -250,6 +250,7 @@ async def get_item_details_from_master_csv(item_code: str):
                 usecols=COLUMNS_TO_READ_MASTER,
                 dtype=str,
                 keep_default_na=True,
+                encoding='utf-8-sig',
                 chunksize=5000
             ):
                 chunk = chunk.replace({np.nan: None})
@@ -301,6 +302,7 @@ async def load_master_subset(columns: list, positive_stock_only: bool = False):
             usecols=selected_cols,
             dtype=str,
             keep_default_na=True,
+            encoding='utf-8-sig',
             chunksize=5000
         ):
             chunk = chunk.replace({np.nan: None})
@@ -333,6 +335,7 @@ async def get_locations_with_stock_count():
             usecols=['Physical_Qty', 'Bin_1'],
             dtype=str,
             keep_default_na=True,
+            encoding='utf-8-sig',
             chunksize=5000
         ):
             # Limpiar comas antes de convertir

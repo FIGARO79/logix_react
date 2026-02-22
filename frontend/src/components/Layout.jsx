@@ -106,17 +106,19 @@ const Layout = () => {
 
                     {/* INVENTARIO (CONTEOS) */}
                     <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Inventario</div>
-                    <MenuItem to="/planner" icon={<ChartIcon />} label="Planificador" onClick={toggleMenu} />
-                    <MenuItem to="/counts" icon={<ChecklistIcon />} label="Conteo de Items" onClick={toggleMenu} />
-                    <MenuItem to="/view_counts" icon={<CalculatorIcon />} label="Validar conteos" onClick={toggleMenu} />
+                    <MenuItem to="/planner" icon={<ChartIcon />} label="Plan Cíclico" onClick={toggleMenu} />
+                    <MenuItem to="/view_counts/recordings" icon={<CheckSquareIcon />} label="Reporte Cíclicos" onClick={toggleMenu} />
                     <MenuItem to="/planner/manage_differences" icon={<ChecklistIcon />} label="Diferencias Cíclicos" onClick={toggleMenu} />
-                    <MenuItem to="/view_counts/recordings" icon={<CheckSquareIcon />} label="Reporte Conteos" onClick={toggleMenu} />
+                    <MenuItem to="/counts" icon={<ChecklistIcon />} label="Conteo W2W" onClick={toggleMenu} />
+                    <MenuItem to="/view_counts" icon={<CalculatorIcon />} label="Conteo General" onClick={toggleMenu} />
 
                     {/* Separator */}
                     <div className="h-px bg-white/10 my-2 mx-4"></div>
 
                     {/* ADMINISTRACIÓN */}
                     <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Administración</div>
+                    <MenuItem to="/admin/inventory" icon={<CheckSquareIcon />} label="Admin Inventario" onClick={toggleMenu} />
+                    <MenuItem to="/counts/manage" icon={<ChecklistIcon />} label="Gestionar Conteos" onClick={toggleMenu} />
                     <MenuItem to="/update" icon={<ArrowRepeatIcon />} label="Actualizar Ficheros" onClick={toggleMenu} />
 
                     {/* Separator */}

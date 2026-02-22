@@ -203,7 +203,8 @@ const ManageCounts = () => {
                                     </th>
                                 ))}
                             </tr>
-                        </thead>                        <tbody className="divide-y divide-[#e5e5e5]">
+                        </thead>
+                        <tbody className="divide-y divide-[#e5e5e5]">
                             {loading ? (
                                 <tr><td colSpan="9" className="p-8 text-center text-gray-500">Cargando...</td></tr>
                             ) : counts.length === 0 ? (

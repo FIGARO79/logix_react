@@ -60,6 +60,7 @@ databases/*.csv
 
 # Ignorar archivos de caché generados automáticamente
 databases/*.json
+static/json_cache/*.json
 
 # Certificados SSL locales
 certs/
