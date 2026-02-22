@@ -178,7 +178,7 @@ const CycleCountHistory = () => {
                                     <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatMoney(rec.cost)}</td>
                                     <td className="px-3 py-2 text-right text-gray-800 font-medium whitespace-nowrap">{formatMoney(rec.count_value)}</td>
                                     <td className="px-3 py-2 text-right whitespace-nowrap text-gray-500">
-                                        {rec.executed_date ? new Date(rec.executed_date).toISOString().slice(0, 10) : '-'}
+                                        {rec.executed_date ? new Date(rec.executed_date).toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-'}
                                     </td>
                                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.username}</td>
                                 </tr>

@@ -10,7 +10,7 @@ const MenuItem = ({ to, icon, label, onClick }) => {
     return (
         <Link
             to={to}
-            className={`flex items-center px-4 py-3 text-white transition-colors border-l-[4px] 
+            className={`flex items-center px-4 py-1.5 text-white transition-colors border-l-[4px] 
             ${isActive ? 'bg-white/10 border-[var(--sap-primary)]' : 'hover:bg-white/10 border-transparent hover:border-[var(--sap-primary)]'}`}
             onClick={onClick}
         >
@@ -83,29 +83,29 @@ const Layout = () => {
                     <MenuItem to="/stock" icon={<SearchIcon />} label="Consultar Stock" onClick={toggleMenu} />
 
                     {/* Separator */}
-                    <div className="h-px bg-white/10 my-2 mx-4"></div>
+                    <div className="h-px bg-white/10 my-1 mx-4"></div>
 
                     {/* INBOUND (RECEPCIÓN) */}
-                    <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Recepción</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-white/50 uppercase tracking-wider">Recepción</div>
                     <MenuItem to="/inbound" icon={<DownloadIcon />} label="Inbound" onClick={toggleMenu} />
                     <MenuItem to="/waybill-grn" icon={<DocumentIcon />} label="Waybill-GRN" onClick={toggleMenu} />
                     <MenuItem to="/reconciliation" icon={<EyeIcon />} label="Ver conciliación" onClick={toggleMenu} />
                     <MenuItem to="/view_logs" icon={<DocumentIcon />} label="Visualizar Logs" onClick={toggleMenu} />
 
                     {/* Separator */}
-                    <div className="h-px bg-white/10 my-2 mx-4"></div>
+                    <div className="h-px bg-white/10 my-1 mx-4"></div>
 
                     {/* OUTBOUND (DESPACHO) */}
-                    <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Despacho</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-white/50 uppercase tracking-wider">Despacho</div>
                     <MenuItem to="/picking" icon={<CartIcon />} label="Chequeo de Picking" onClick={toggleMenu} />
                     <MenuItem to="/view_picking_audits" icon={<CheckCircleIcon />} label="Picking por confirmar" onClick={toggleMenu} />
                     <MenuItem to="/label" icon={<TagIcon />} label="Etiquetado" onClick={toggleMenu} />
 
                     {/* Separator */}
-                    <div className="h-px bg-white/10 my-2 mx-4"></div>
+                    <div className="h-px bg-white/10 my-1 mx-4"></div>
 
                     {/* INVENTARIO (CONTEOS) */}
-                    <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Inventario</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-white/50 uppercase tracking-wider">Inventario</div>
                     <MenuItem to="/planner" icon={<ChartIcon />} label="Plan Cíclico" onClick={toggleMenu} />
                     <MenuItem to="/view_counts/recordings" icon={<CheckSquareIcon />} label="Reporte Cíclicos" onClick={toggleMenu} />
                     <MenuItem to="/planner/manage_differences" icon={<ChecklistIcon />} label="Diferencias Cíclicos" onClick={toggleMenu} />
@@ -113,20 +113,20 @@ const Layout = () => {
                     <MenuItem to="/view_counts" icon={<CalculatorIcon />} label="Conteo General" onClick={toggleMenu} />
 
                     {/* Separator */}
-                    <div className="h-px bg-white/10 my-2 mx-4"></div>
+                    <div className="h-px bg-white/10 my-1 mx-4"></div>
 
                     {/* ADMINISTRACIÓN */}
-                    <div className="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Administración</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-white/50 uppercase tracking-wider">Administración</div>
                     <MenuItem to="/admin/inventory" icon={<CheckSquareIcon />} label="Admin Inventario" onClick={toggleMenu} />
                     <MenuItem to="/counts/manage" icon={<ChecklistIcon />} label="Gestionar Conteos" onClick={toggleMenu} />
                     <MenuItem to="/update" icon={<ArrowRepeatIcon />} label="Actualizar Ficheros" onClick={toggleMenu} />
 
                     {/* Separator */}
-                    <div className="h-px bg-white/10 my-2 mx-4"></div>
+                    <div className="h-px bg-white/10 my-1 mx-4"></div>
 
                     <Link
                         to="#"
-                        className="flex items-center px-4 py-3 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
+                        className="flex items-center px-4 py-1.5 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
                         onClick={async (e) => {
                             e.preventDefault();
                             try {
