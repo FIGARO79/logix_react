@@ -219,7 +219,7 @@ const ManageCounts = () => {
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm font-semibold">{c.id}</td>
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm">{c.session_id}</td>
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm font-medium">{c.username || '-'}</td>
-                                        <td className="px-4 py-2 border-b border-[#e5e5e5] text-xs text-gray-600 whitespace-nowrap">{c.timestamp}</td>
+                                        <td className="px-4 py-2 border-b border-[#e5e5e5] text-xs text-gray-600 whitespace-nowrap">{c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm font-bold">{c.item_code}</td>
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm text-gray-600 truncate max-w-[200px]" title={c.item_description}>{c.item_description}</td>
                                         <td className="px-4 py-2 border-b border-[#e5e5e5] text-sm">{c.counted_location}</td>

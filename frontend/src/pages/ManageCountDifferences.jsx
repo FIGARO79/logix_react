@@ -216,7 +216,9 @@ const ManageCountDifferences = () => {
                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                         </td>
                                         <td className="p-3 text-right">{item.percentage_variance}%</td>
-                                        <td className="p-3 text-xs text-gray-500 whitespace-nowrap">{item.date}</td>
+                                        <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
+                                            {item.date ? new Date(item.date).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                                        </td>
                                         <td className="p-3 text-xs text-gray-500">{item.username}</td>
                                     </tr>
                                 ))}

@@ -90,7 +90,11 @@ const ManageCycleCountDifferences = () => {
     // Helper para formatear fecha
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
-        return dateStr;
+        try {
+            return new Date(dateStr).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        } catch (e) {
+            return dateStr;
+        }
     };
 
     return (
