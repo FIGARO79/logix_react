@@ -106,7 +106,7 @@ const PackingListPrint = () => {
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-4 py-1 font-mono text-black text-[10px] text-gray-400 print:py-1">{item.order_line}</td>
+                                <td className="px-4 py-1 font-mono text-black text-[10px] print:py-1 font-bold">{item.order_line}</td>
                                 <td className="px-4 py-1 font-mono text-black text-[11px] print:py-1">{item.item_code}</td>
                                 <td className="px-4 py-1 text-black text-[11px] print:py-1">{item.description}</td>
                                 <td className="px-4 py-1 text-right text-sm print:py-1">{item.quantity}</td>

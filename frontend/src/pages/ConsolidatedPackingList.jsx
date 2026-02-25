@@ -113,7 +113,7 @@ const ConsolidatedPackingList = () => {
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-3 py-0.5 font-mono text-black text-[10px] text-gray-400">{item.order_line}</td>
+                                <td className="px-3 py-0.5 font-mono text-black text-[10px] font-bold">{item.order_line}</td>
                                 <td className="px-3 py-0.5 font-mono text-black text-[10px]">{item.item_code}</td>
                                 <td className="px-3 py-0.5 text-black text-[10px] truncate max-w-[200px]">{item.description}</td>
                                 <td className="px-3 py-0.5 text-right text-[10px] font-bold">{item.quantity}</td>
