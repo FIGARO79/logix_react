@@ -115,7 +115,7 @@ const PickingAudit = () => {
                     // Initialize assignments for dynamic allocation using unique key (code:order_line)
                     const initialAssignments = {};
                     items.forEach(item => {
-                        const itemKey = `${item.order_line || ''}${item.code}`;
+                        const itemKey = `${item.code}:${item.order_line || ''}`;
                         initialAssignments[itemKey] = { 1: 0 };
                     });
                     setPackageAssignments(initialAssignments);

@@ -116,7 +116,7 @@ const PickingAuditHistory = () => {
                     qty_scan: item.qty_scan
                 })),
                 packages: editingAudit.packages || 0,
-                packages_assignment: {}
+                packages_assignment: editingAudit.packages_assignment || {}
             };
 
             const response = await fetch(`/api/update_picking_audit/${editingAudit.id}`, {
