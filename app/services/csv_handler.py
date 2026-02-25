@@ -135,49 +135,43 @@ async def load_grn_data_optimized():
     json_cache_path = os.path.join(os.path.dirname(GRN_CSV_FILE_PATH), 'grn_cache.json')
     current_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
     
-    # Verificar si necesitamos regenerar cache
+    # Verificar si necesitamos regenerar cache comparando con el archivo JSON
     need_regenerate = True
-    if os.path.exists(json_cache_path) and grn_file_mtime == current_mtime:
-        need_regenerate = False
-        print("Usando cache JSON para GRN...")
+    if os.path.exists(json_cache_path):
+        json_mtime = os.path.getmtime(json_cache_path)
+        if json_mtime >= current_mtime:
+            need_regenerate = False
+            # print("Usando cache JSON para GRN (está actualizado)...")
     
     if need_regenerate:
         print("Regenerando cache JSON para GRN desde CSV...")
         df_grn_raw = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
         if df_grn_raw is not None:
-            # Guardamos datos crudos o agregados?
-            # Para reconciliación necesitamos detalle de líneas (GRN_Number, Item_Code, Qty).
-            # No podemos agregar solo por Item_Code si el reporte pide detalle por GRN.
-            # Guardaremos la lista de registros completa en JSON.
             grn_data = df_grn_raw.to_dict(orient='records')
-            
             try:
                 with open(json_cache_path, 'w') as f:
                     json.dump(grn_data, f)
                 grn_file_mtime = current_mtime
-                # Cargar en memoria
                 df_grn_cache = df_grn_raw
                 print(f"GRN Cache regenerado: {len(grn_data)} registros.")
             except Exception as e:
                 print(f"Error guardando cache GRN: {e}")
-                df_grn_cache = df_grn_raw # Fallback
+                df_grn_cache = df_grn_raw
         else:
             df_grn_cache = None
     else:
         # Cargar desde JSON
         try:
+            # print("Cargando GRN desde JSON cache...")
             with open(json_cache_path, 'r') as f:
                 grn_data = json.load(f)
             df_grn_cache = pd.DataFrame(grn_data)
-            # Asegurar tipos
             if not df_grn_cache.empty:
-                # Limpiar comas antes de convertir a numérico
                 clean_qty = df_grn_cache['Quantity'].astype(str).str.replace(',', '', regex=False)
                 df_grn_cache['Quantity'] = pd.to_numeric(clean_qty, errors='coerce').fillna(0)
             grn_file_mtime = current_mtime
         except Exception as e:
             print(f"Error leyendo cache JSON GRN, reintentando CSV: {e}")
-            # Fallback a CSV directo
             df_grn_cache = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
             grn_file_mtime = current_mtime
 

@@ -49,7 +49,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     # En producción, reemplazar "*" con el dominio real del frontend (ej. "http://localhost:5173")
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "*"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://localhost:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,6 +101,15 @@ async def health_check():
         "version": "2.1.0"
     }
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Logix API Headless is running",
+        "health_check": "/health",
+        "documentation": "/docs",
+        "frontend_suggested_url": "https://localhost:5173"
+    }
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    import granian
+    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True).run()

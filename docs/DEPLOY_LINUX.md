@@ -24,8 +24,8 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=/var/www/logix
-# Ejecutar uvicorn apuntando al nuevo main
-ExecStart=/var/www/logix/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+# Ejecutar granian apuntando al nuevo main
+ExecStart=/var/www/logix/venv/bin/granian --interface asgi main:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=always
 
 [Install]

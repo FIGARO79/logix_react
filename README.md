@@ -56,7 +56,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 6.  **Run Server:**
     ```bash
     # Development
-    uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    granian --interface asgi main:app --reload --host 0.0.0.0 --port 8000
     
     # Production (with Granian)
     granian --interface asgi main:app --host 0.0.0.0 --port 8000 --workers 2
