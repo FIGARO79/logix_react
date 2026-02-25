@@ -33,6 +33,7 @@ fi
 echo "📂 Copiando código del Backend al servidor web..."
 # Sincronizar carpeta app, excluyendo __pycache__
 sudo rsync -av --exclude='__pycache__' "$PROJECT_DIR/app/" "/var/www/logix/app/"
+sudo rsync -av "$PROJECT_DIR/main.py" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/static/" "/var/www/logix/static/"
 sudo rsync -av "$PROJECT_DIR/requirements.txt" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/alembic.ini" "/var/www/logix/"

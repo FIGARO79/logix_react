@@ -95,12 +95,23 @@ const PlannerExecution = () => {
             }
 
             // Initialize input state for each item (physical_qty)
-            const initializedItems = (data.items || []).map(item => ({
-                ...item,
-                physical_qty: '', // Input field value
-                difference: null,   // Calc result
-                status: 'pending' // pending, counted
-            }));
+            // Restaurar cantidades guardadas en localStorage
+            const storageKey = `pe_counts_${date}`;
+            let savedCounts = {};
+            try { savedCounts = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { /* ignore */ }
+
+            const initializedItems = (data.items || []).map(item => {
+                const savedQty = savedCounts[item.item_code] || '';
+                const hasSaved = savedQty !== '';
+                const sysQty = item.system_qty || 0;
+                const qty = parseInt(savedQty);
+                return {
+                    ...item,
+                    physical_qty: savedQty,
+                    difference: hasSaved && !isNaN(qty) ? qty - sysQty : null,
+                    status: hasSaved && !isNaN(qty) ? 'counted' : 'pending'
+                };
+            });
             setItems(initializedItems);
         } catch (err) {
             setError(err.message);
@@ -127,12 +138,23 @@ const PlannerExecution = () => {
             }
 
             // Initialize input state for each item
-            const initializedItems = data.items.map(item => ({
-                ...item,
-                physical_qty: '',
-                difference: null,
-                status: 'pending'
-            }));
+            // Restaurar cantidades guardadas en localStorage
+            const storageKey = `pe_counts_${selectedDate}`;
+            let savedCounts = {};
+            try { savedCounts = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { /* ignore */ }
+
+            const initializedItems = data.items.map(item => {
+                const savedQty = savedCounts[item.item_code] ?? '';
+                const hasSaved = savedQty !== '';
+                const sysQty = item.system_qty || 0;
+                const qty = parseInt(savedQty);
+                return {
+                    ...item,
+                    physical_qty: savedQty,
+                    difference: hasSaved && !isNaN(qty) ? qty - sysQty : null,
+                    status: hasSaved && !isNaN(qty) ? 'counted' : 'pending'
+                };
+            });
 
             setItems(initializedItems);
             setIsRecountMode(true);
@@ -153,6 +175,14 @@ const PlannerExecution = () => {
         const newItems = [...items];
         newItems[index].physical_qty = value;
         setItems(newItems);
+
+        // Persistir cantidades en localStorage por fecha
+        try {
+            const storageKey = `pe_counts_${selectedDate}`;
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            saved[newItems[index].item_code] = value;
+            localStorage.setItem(storageKey, JSON.stringify(saved));
+        } catch (e) { /* ignore storage errors */ }
     };
 
     const calculateDifference = (index) => {
@@ -218,12 +248,18 @@ const PlannerExecution = () => {
             });
             setMessage("Guardado exitoso. Puede continuar o cambiar de fecha.");
 
+            // Limpiar cantidades guardadas en localStorage para esta fecha
+            try { localStorage.removeItem(`pe_counts_${selectedDate}`); } catch (e) { /* ignore */ }
+
             // Mark saved items visually
             const newItems = items.map(item => {
                 const isSaved = countedItems.some(c => c.item_code === item.item_code);
                 return isSaved ? { ...item, saved: true } : item;
             });
             setItems(newItems);
+
+            // Limpiar cantidades guardadas en localStorage para esta fecha
+            try { localStorage.removeItem(`pe_counts_${selectedDate}`); } catch (e) { /* ignore */ }
 
         } catch (err) {
             console.error(err);
