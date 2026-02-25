@@ -38,9 +38,33 @@ const PickingAuditHistory = () => {
         setExpandedAuditId(expandedAuditId === id ? null : id);
     };
 
+    const normalizeDate = (dateString) => {
+        if (!dateString) return null;
+        // 1. Asegurar formato ISO (reemplazar espacio por T si es necesario)
+        let normalized = dateString.trim().replace(' ', 'T');
+
+        // 1. Si es solo fecha (YYYY-MM-DD), asumimos medianoche LOCAL para evitar saltos de día
+        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return `${normalized}T00:00:00`;
+        }
+
+        // 2. Detectar si ya tiene zona horaria (Z, +HH:MM, o -HH:MM al final)
+        const hasTimeZone = normalized.includes('Z') ||
+            normalized.match(/[+-]\d{2}:\d{2}$/) ||
+            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+
+        // 3. Si no tiene, añadir Z (UTC)
+        if (!hasTimeZone) {
+            normalized = `${normalized}Z`;
+        }
+        return normalized;
+    };
+
     const isToday = (dateString) => {
-        if (!dateString) return false;
-        const date = new Date(dateString);
+        const normalized = normalizeDate(dateString);
+        if (!normalized) return false;
+
+        const date = new Date(normalized);
         const today = new Date();
         return date.getDate() === today.getDate() &&
             date.getMonth() === today.getMonth() &&
@@ -48,9 +72,20 @@ const PickingAuditHistory = () => {
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleString();
+        const normalized = normalizeDate(dateString);
+        if (!normalized) return '';
+
+        const date = new Date(normalized);
+        if (isNaN(date.getTime())) return 'Fecha Inválida';
+
+        return date.toLocaleString(undefined, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false // Formato militar (24h)
+        });
     };
 
     const handleEditClick = (audit) => {
@@ -141,15 +176,15 @@ const PickingAuditHistory = () => {
                         <table className="min-w-full leading-normal">
                             <thead>
                                 <tr className="border-b border-gray-200 text-left text-xs font-bold uppercase tracking-wider">
-                                    <th className="px-5 py-3 text-center w-10"></th>
-                                    <th className="px-5 py-3">ID</th>
-                                    <th className="px-5 py-3">Pedido</th>
-                                    <th className="px-5 py-3">Despacho</th>
-                                    <th className="px-5 py-3">Cliente</th>
-                                    <th className="px-5 py-3">Usuario</th>
-                                    <th className="px-5 py-3">Fecha</th>
-                                    <th className="px-5 py-3 text-center">Estado</th>
-                                    <th className="px-5 py-3 text-center">Acciones</th>
+                                    <th className="px-3 py-2 text-center w-8"></th>
+                                    <th className="px-3 py-2 whitespace-nowrap">ID</th>
+                                    <th className="px-3 py-2 whitespace-nowrap">Pedido</th>
+                                    <th className="px-3 py-2 whitespace-nowrap">Despacho</th>
+                                    <th className="px-3 py-2">Cliente</th>
+                                    <th className="px-3 py-2 whitespace-nowrap">Usuario</th>
+                                    <th className="px-3 py-2 whitespace-nowrap">Fecha</th>
+                                    <th className="px-3 py-2 text-center">Estado</th>
+                                    <th className="px-3 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -159,31 +194,31 @@ const PickingAuditHistory = () => {
                                             className={`border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer ${expandedAuditId === audit.id ? 'bg-blue-50' : ''}`}
                                             onClick={() => toggleExpand(audit.id)}
                                         >
-                                            <td className="px-5 py-4 text-center">
+                                            <td className="px-3 py-2 text-center">
                                                 <svg
-                                                    className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
+                                                    className={`w-4 h-4 text-gray-500 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 >
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-5 py-4 text-sm font-medium text-gray-900">{audit.id}</td>
-                                            <td className="px-5 py-4 text-sm text-[#285f94] font-semibold">{audit.order_number}</td>
-                                            <td className="px-5 py-4 text-sm text-gray-600">{audit.despatch_number}</td>
-                                            <td className="px-5 py-4 text-sm text-gray-600">{audit.customer_name || 'N/A'}</td>
-                                            <td className="px-5 py-4 text-sm text-gray-600">{audit.username}</td>
-                                            <td className="px-5 py-4 text-sm text-gray-600">{formatDate(audit.timestamp)}</td>
-                                            <td className="px-5 py-4 text-center">
+                                            <td className="px-3 py-2 text-xs font-medium text-gray-900 whitespace-nowrap">{audit.id}</td>
+                                            <td className="px-3 py-2 text-xs text-[#285f94] font-semibold whitespace-nowrap">{audit.order_number}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">{audit.despatch_number}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[150px]" title={audit.customer_name}>{audit.customer_name || 'N/A'}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">{audit.username}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">{formatDate(audit.timestamp)}</td>
+                                            <td className="px-3 py-2 text-center">
                                                 <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${audit.status === 'Completado' || audit.status === 'Aprobado' || audit.status === 'Completo'
-                                                        ? 'bg-green-100 text-green-800 border-green-200' :
-                                                        audit.status === 'Rechazado' || audit.status === 'Error'
-                                                            ? 'bg-red-100 text-red-800 border-red-200' :
-                                                            'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                                    ? 'bg-green-100 text-green-800 border-green-200' :
+                                                    audit.status === 'Rechazado' || audit.status === 'Error'
+                                                        ? 'bg-red-100 text-red-800 border-red-200' :
+                                                        'bg-yellow-100 text-yellow-800 border-yellow-200'
                                                     }`}>
                                                     {audit.status}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-4 text-center">
+                                            <td className="px-3 py-2 text-center">
                                                 <div className="flex justify-center gap-2">
                                                     {isToday(audit.timestamp) && (
                                                         <button
@@ -219,21 +254,21 @@ const PickingAuditHistory = () => {
                                                         <table className="w-full text-sm">
                                                             <thead>
                                                                 <tr className="border-b border-gray-200 text-gray-500">
-                                                                    <th className="py-2 text-left">Código Item</th>
-                                                                    <th className="py-2 text-left">Descripción</th>
-                                                                    <th className="py-2 text-right">Cant. Req.</th>
-                                                                    <th className="py-2 text-right">Cant. Escaneada</th>
-                                                                    <th className="py-2 text-right">Diferencia</th>
+                                                                    <th className="py-1 text-left whitespace-nowrap">Código Item</th>
+                                                                    <th className="py-1 text-left">Descripción</th>
+                                                                    <th className="py-1 text-right whitespace-nowrap">Cant. Req.</th>
+                                                                    <th className="py-1 text-right whitespace-nowrap">Cant. Esc.</th>
+                                                                    <th className="py-1 text-right whitespace-nowrap">Dif.</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {audit.items.map((item, idx) => (
                                                                     <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                                                                        <td className="py-2 font-medium">{item.item_code}</td>
-                                                                        <td className="py-2 text-gray-600">{item.description}</td>
-                                                                        <td className="py-2 text-right">{item.qty_req}</td>
-                                                                        <td className="py-2 text-right">{item.qty_scan}</td>
-                                                                        <td className={`py-2 text-right font-bold ${item.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                                        <td className="py-1.5 font-medium whitespace-nowrap">{item.item_code}</td>
+                                                                        <td className="py-1.5 text-gray-600 truncate max-w-[200px]" title={item.description}>{item.description}</td>
+                                                                        <td className="py-1.5 text-right whitespace-nowrap">{item.qty_req}</td>
+                                                                        <td className="py-1.5 text-right whitespace-nowrap">{item.qty_scan}</td>
+                                                                        <td className={`py-1.5 text-right font-bold whitespace-nowrap ${item.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
                                                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                                                         </td>
                                                                     </tr>
@@ -261,10 +296,10 @@ const PickingAuditHistory = () => {
                                             <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">{audit.despatch_number}</span>
                                         </div>
                                         <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${audit.status === 'Completado' || audit.status === 'Aprobado' || audit.status === 'Completo'
-                                                ? 'bg-green-100 text-green-800 border-green-200' :
-                                                audit.status === 'Rechazado' || audit.status === 'Error'
-                                                    ? 'bg-red-100 text-red-800 border-red-200' :
-                                                    'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                            ? 'bg-green-100 text-green-800 border-green-200' :
+                                            audit.status === 'Rechazado' || audit.status === 'Error'
+                                                ? 'bg-red-100 text-red-800 border-red-200' :
+                                                'bg-yellow-100 text-yellow-800 border-yellow-200'
                                             }`}>
                                             {audit.status}
                                         </span>

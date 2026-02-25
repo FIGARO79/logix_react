@@ -349,7 +349,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
         new_status = 'Con Diferencia' if differences_exist else 'Completo'
         
         # Actualizar auditoría principal
-        existing_audit.timestamp = datetime.datetime.now().isoformat(timespec='seconds')
+        existing_audit.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
         existing_audit.status = new_status
         existing_audit.packages = audit_data.packages if audit_data.packages else 0
         
@@ -396,7 +396,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
             despatch_number=audit_data.despatch_number,
             customer_name=audit_data.customer_name,
             username=username,
-            timestamp=datetime.datetime.now().isoformat(timespec='seconds'),
+            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
             status=audit_data.status,
             packages=audit_data.packages if audit_data.packages else 0
         )

@@ -88,11 +88,8 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     difference = total_received_now - total_expected
     
     # Usar hora de Colombia (UTC-5) para consistencia en servidores nube (PythonAnywhere usa UTC)
-    colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-    current_time = datetime.datetime.now(colombia_tz)
-
     entry_data = {
-        'timestamp': current_time.isoformat(timespec='seconds'),
+        'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
         'importReference': import_reference.strip() if import_reference else '',
         'waybill': data.waybill.strip() if data.waybill else '',
         'itemCode': item_code_form.strip() if item_code_form else '',
@@ -139,7 +136,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(permission
         'relocatedBin': relocated_bin.strip() if relocated_bin else '',
         'qtyReceived': qty_received,
         'difference': difference,
-        'timestamp': datetime.datetime.now().isoformat(timespec='seconds')
+        'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
         # Nota: observaciones se omite porque no existe en tabla MySQL
     }
     

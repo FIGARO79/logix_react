@@ -214,4 +214,4 @@ class GRNMaster(Base):
     grn3_date: Mapped[Optional[str]] = mapped_column(String(50))
     grn1_grn3: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
     ct: Mapped[Optional[str]] = mapped_column(String(50))
-    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now().isoformat())
+    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())

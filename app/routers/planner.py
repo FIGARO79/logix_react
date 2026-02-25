@@ -362,7 +362,7 @@ async def update_count_plan(
         "summary_by_date": summary_by_date.to_dict(orient='records'),
         "summary_by_abc": summary_by_abc.to_dict(orient='records'),
         "details": df_output.to_dict(orient='records'),
-        "generated_at": datetime.datetime.now().isoformat()
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
     
     # 3. Guardar
@@ -541,7 +541,7 @@ async def save_daily_execution(
     try:
         saved_count = 0
         updated_count = 0
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        today = datetime.datetime.now(datetime.timezone.utc).isoformat()
         
         for item in execution_data.items:
             physical = item.physical_qty

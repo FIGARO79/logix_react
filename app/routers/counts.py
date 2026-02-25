@@ -291,7 +291,7 @@ async def export_counts(username: str = Depends(api_login_required), db: AsyncSe
             worksheet.column_dimensions[column_letter].width = max_len
 
     output.seek(0)
-    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"conteos_export_{timestamp_str}.xlsx"
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
@@ -543,7 +543,7 @@ async def export_cycle_count_recordings(username: str = Depends(api_login_requir
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"cycle_count_history_{timestamp_str}.xlsx"
         
         return Response(

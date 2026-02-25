@@ -8,6 +8,36 @@ const InboundHistory = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const normalizeDate = (dateString) => {
+        if (!dateString) return null;
+        let normalized = dateString.trim().replace(' ', 'T');
+
+        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return `${normalized}T00:00:00`;
+        }
+
+        const hasTimeZone = normalized.includes('Z') ||
+            normalized.match(/[+-]\d{2}:\d{2}$/) ||
+            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+        if (!hasTimeZone) normalized = `${normalized}Z`;
+        return normalized;
+    };
+
+    const formatDate = (dateString) => {
+        const normalized = normalizeDate(dateString);
+        if (!normalized) return '-';
+        const date = new Date(normalized);
+        if (isNaN(date.getTime())) return 'Fecha Inválida';
+        return date.toLocaleString(undefined, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    };
+
     useEffect(() => {
         setTitle("Historial de Inbound");
     }, []);
@@ -84,7 +114,7 @@ const InboundHistory = () => {
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.timestamp ? new Date(log.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>

@@ -25,7 +25,43 @@ const Inbound = () => {
     const [loading, setLoading] = useState(false);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
-    const [editId, setEditId] = useState(null); // ID si estamos editando
+    const [editId, setEditId] = useState(null);
+
+    const normalizeDate = (dateString) => {
+        if (!dateString) return null;
+        let normalized = dateString.trim().replace(' ', 'T');
+
+        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return `${normalized}T00:00:00`;
+        }
+
+        const hasTimeZone = normalized.includes('Z') ||
+            normalized.match(/[+-]\d{2}:\d{2}$/) ||
+            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+        if (!hasTimeZone) normalized = `${normalized}Z`;
+        return normalized;
+    };
+
+    const formatDate = (dateString, showTime = true) => {
+        const normalized = normalizeDate(dateString);
+        if (!normalized) return '-';
+        const date = new Date(normalized);
+        if (isNaN(date.getTime())) return 'Fecha Inválida';
+
+        const options = {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        };
+
+        if (showTime) {
+            options.hour = '2-digit';
+            options.minute = '2-digit';
+            options.hour12 = false;
+        }
+
+        return date.toLocaleString('es-CO', options);
+    };
 
     // --- Refs ---
     const quantityRef = useRef(null);
@@ -552,7 +588,7 @@ const Inbound = () => {
                             <select onChange={(e) => loadLogs(e.target.value)} className="h-8 w-44 px-3 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] transition-all duration-150 cursor-pointer">
                                 <option value="">-- Versión Actual --</option>
                                 {versions.map(v => (
-                                    <option key={v} value={v}>Archivado: {new Date(v).toLocaleString()}</option>
+                                    <option key={v} value={v}>Archivado: {formatDate(v)}</option>
                                 ))}
                             </select>
                             <button onClick={handleArchive} className="h-8 px-4 text-xs font-medium bg-red-600 text-white border border-red-700 rounded-md shadow-sm hover:bg-red-700 transition-all duration-150 flex items-center justify-center">
@@ -587,7 +623,7 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5">{log.binLocation}</td>
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{formatDate(log.timestamp)}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
