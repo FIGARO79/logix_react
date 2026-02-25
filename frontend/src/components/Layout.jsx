@@ -10,7 +10,7 @@ const MenuItem = ({ to, icon, label, onClick }) => {
     return (
         <Link
             to={to}
-            className={`flex items-center px-4 py-1.5 text-white transition-colors border-l-[4px] 
+            className={`flex items-center px-4 py-1 text-white transition-colors border-l-[4px] 
             ${isActive ? 'bg-white/10 border-[var(--sap-primary)]' : 'hover:bg-white/10 border-transparent hover:border-[var(--sap-primary)]'}`}
             onClick={onClick}
         >
@@ -127,7 +127,7 @@ const Layout = () => {
 
                     <Link
                         to="#"
-                        className="flex items-center px-4 py-1.5 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
+                        className="flex items-center px-4 py-1 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
                         onClick={async (e) => {
                             e.preventDefault();
                             try {
