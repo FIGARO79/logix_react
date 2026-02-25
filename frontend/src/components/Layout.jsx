@@ -10,7 +10,7 @@ const MenuItem = ({ to, icon, label, onClick }) => {
     return (
         <Link
             to={to}
-            className={`flex items-center px-4 py-0.5 text-white transition-colors border-l-[4px] 
+            className={`flex items-center px-[10px] py-[10px] text-white transition-colors border-l-[4px] 
             ${isActive ? 'bg-white/10 border-[var(--sap-primary)]' : 'hover:bg-white/10 border-transparent hover:border-[var(--sap-primary)]'}`}
             onClick={onClick}
         >
@@ -77,7 +77,7 @@ const Layout = () => {
                 className={`dropdown-menu ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-xl z-[999] overflow-y-auto transform transition-transform duration-200 ease-in-out`}
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
-                <nav className="py-2">
+                <nav className="py-1">
                     {/* GENERAL */}
                     <MenuItem to="/dashboard" icon={<HomeIcon />} label="Inicio" onClick={toggleMenu} />
                     <MenuItem to="/stock" icon={<SearchIcon />} label="Consultar Stock" onClick={toggleMenu} />
@@ -127,7 +127,7 @@ const Layout = () => {
 
                     <Link
                         to="#"
-                        className="flex items-center px-4 py-0.5 text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
+                        className="flex items-center px-[10px] py-[10px] text-white hover:bg-white/10 border-l-[4px] border-transparent hover:border-[var(--sap-error)] transition-colors"
                         onClick={async (e) => {
                             e.preventDefault();
                             try {
