@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 from app.models.sql_models import (
     Shipment, ShipmentAudit,
     PickingAudit as PickingAuditModel,
-    PickingPackageItem
+    PickingPackageItem, PickingAuditItem
 )
 from app.models.schemas import ShipmentCreate
 from app.utils.auth import permission_required
@@ -181,6 +181,12 @@ async def get_consolidated_packing_list(
     for link in shipment.audit_links:
         audit = link.audit
 
+        # Obtener items de auditoría para fallback de order_line
+        audit_items_result = await db.execute(
+            select(PickingAuditItem).where(PickingAuditItem.audit_id == audit.id)
+        )
+        audit_items_map = {item.item_code: item.order_line for item in audit_items_result.scalars().all()}
+
         # Obtener items por bulto para esta auditoría
         pkg_result = await db.execute(
             select(PickingPackageItem)
@@ -195,8 +201,14 @@ async def get_consolidated_packing_list(
             pkg_num = str(item.package_number)
             if pkg_num not in packages:
                 packages[pkg_num] = []
+                
+            # Fallback para data antigua donde order_line podía estar vacío
+            order_line = item.order_line
+            if not order_line:
+                order_line = audit_items_map.get(item.item_code, "")
+                
             packages[pkg_num].append({
-                "order_line": item.order_line or "",
+                "order_line": order_line or "",
                 "item_code": item.item_code,
                 "description": item.description or "",
                 "quantity": item.qty_scan

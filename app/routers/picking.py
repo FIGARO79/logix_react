@@ -186,6 +186,12 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
         )
         package_items = result.scalars().all()
         
+        # Obtener los items de la auditoría para fallback de order_line
+        result_audit_items = await db.execute(
+            select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
+        )
+        audit_items = {item.item_code: item.order_line for item in result_audit_items.scalars().all()}
+        
         # Organizar por bulto
         packages = {}
         for item in package_items:
@@ -193,8 +199,13 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
             if package_num not in packages:
                 packages[package_num] = []
             
+            # Fallback para data antigua donde order_line podía estar vacío en la tabla de bultos
+            order_line = item.order_line
+            if not order_line:
+                order_line = audit_items.get(item.item_code, "")
+                
             packages[package_num].append({
-                'order_line': item.order_line or '',
+                'order_line': order_line or '',
                 'item_code': item.item_code,
                 'description': item.description,
                 'quantity': item.qty_scan
@@ -299,7 +310,12 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
         
         packages_assignment = {}
         for pi in package_items:
-            key = f"{pi.item_code}:{pi.order_line or ''}"
+            order_line = pi.order_line
+            if not order_line:
+                match = next((i for i in items if i.item_code == pi.item_code), None)
+                if match:
+                    order_line = match.order_line
+            key = f"{pi.item_code}:{order_line or ''}"
             if key not in packages_assignment:
                 packages_assignment[key] = {}
             packages_assignment[key][str(pi.package_number)] = pi.qty_scan

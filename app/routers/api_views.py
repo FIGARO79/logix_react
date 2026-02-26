@@ -214,7 +214,12 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
         package_items = result_pkgs.scalars().all()
         packages_assignment = {}
         for pi in package_items:
-            key = f"{pi.item_code}:{pi.order_line or ''}"
+            order_line = pi.order_line
+            if not order_line:
+                match = next((i for i in items_data if i["item_code"] == pi.item_code), None)
+                if match:
+                    order_line = match["order_line"]
+            key = f"{pi.item_code}:{order_line or ''}"
             if key not in packages_assignment:
                 packages_assignment[key] = {}
             packages_assignment[key][str(pi.package_number)] = pi.qty_scan

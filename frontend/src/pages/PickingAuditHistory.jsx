@@ -21,7 +21,7 @@ const PickingAuditHistory = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        setTitle("Historial de Auditorías de Picking");
+        setTitle("Pickings Empacados");
     }, []);
 
     useEffect(() => {
