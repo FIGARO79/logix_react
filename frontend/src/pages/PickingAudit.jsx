@@ -112,10 +112,11 @@ const PickingAudit = () => {
                     }));
                     setOrderItems(items);
 
-                    // Initialize assignments for dynamic allocation
+                    // Initialize assignments for dynamic allocation using unique key (code:order_line)
                     const initialAssignments = {};
                     items.forEach(item => {
-                        initialAssignments[item.code] = { 1: 0 };
+                        const itemKey = `${item.code}:${item.order_line || ''}`;
+                        initialAssignments[itemKey] = { 1: 0 };
                     });
                     setPackageAssignments(initialAssignments);
                     setPackagesCount('1');
@@ -206,13 +207,14 @@ const PickingAudit = () => {
 
         setOrderItems(newItems);
 
-        // Update package assignments
+        // Update package assignments using unique key
         setPackageAssignments(prev => {
-            const currentItemAssignments = prev[item.code] || {};
+            const itemKey = `${item.code}:${item.order_line || ''}`;
+            const currentItemAssignments = prev[itemKey] || {};
             const currentPkgQty = currentItemAssignments[activePackage] || 0;
             return {
                 ...prev,
-                [item.code]: {
+                [itemKey]: {
                     ...currentItemAssignments,
                     [activePackage]: currentPkgQty + qtyToAdd
                 }
@@ -325,8 +327,8 @@ const PickingAudit = () => {
                                     setActivePackage(newCount);
                                     setPackageAssignments(prev => {
                                         const updated = { ...prev };
-                                        Object.keys(updated).forEach(code => {
-                                            updated[code] = { ...updated[code], [newCount]: 0 };
+                                        Object.keys(updated).forEach(key => {
+                                            updated[key] = { ...updated[key], [newCount]: 0 };
                                         });
                                         return updated;
                                     });
@@ -378,6 +380,7 @@ const PickingAudit = () => {
                         <table className="w-full text-left sap-table">
                             <thead>
                                 <tr>
+                                    <th className="text-center w-12">Línea</th>
                                     <th>Item</th>
                                     <th>Descripción</th>
                                     <th className="text-center w-16">Req</th>
@@ -393,10 +396,11 @@ const PickingAudit = () => {
 
                                     return (
                                         <tr key={idx} className={isComplete ? 'bg-green-50' : isOver ? 'bg-red-50' : ''}>
+                                            <td className="text-center font-mono text-xs">{item.order_line}</td>
                                             <td className="font-medium">
                                                 {item.code}
                                                 <div className="text-[10px] text-slate-500 flex gap-1 flex-wrap mt-1">
-                                                    {Object.entries(packageAssignments[item.code] || {})
+                                                    {Object.entries(packageAssignments[`${item.code}:${item.order_line || ''}`] || {})
                                                         .filter(([_, qty]) => qty > 0)
                                                         .map(([pkg, qty]) => (
                                                             <span key={pkg} className="bg-slate-100 px-1 rounded border">B{pkg}: {qty}</span>
@@ -428,7 +432,10 @@ const PickingAudit = () => {
                                 <div key={idx} className={`p-4 rounded-lg shadow-sm border ${isComplete ? 'bg-green-50 border-green-200' : isOver ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
                                     {/* Header */}
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-lg text-gray-800">{item.code}</span>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-lg text-gray-800">{item.code}</span>
+                                            <span className="text-[10px] font-mono text-gray-500">LÍNEA {item.order_line}</span>
+                                        </div>
                                         <span className={`px-2 py-0.5 text-xs font-bold rounded ${diff === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                             {diff > 0 ? `+${diff}` : diff !== 0 ? diff : 'OK'}
                                         </span>
@@ -437,7 +444,7 @@ const PickingAudit = () => {
 
                                     {/* Package Breakdown Mobile */}
                                     <div className="flex flex-wrap gap-1 mb-3">
-                                        {Object.entries(packageAssignments[item.code] || {})
+                                        {Object.entries(packageAssignments[`${item.code}:${item.order_line || ''}`] || {})
                                             .filter(([_, qty]) => qty > 0)
                                             .map(([pkg, qty]) => (
                                                 <span key={pkg} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 shadow-sm">
@@ -489,6 +496,10 @@ const PickingAudit = () => {
                             <p className="text-sm text-gray-500 mb-4 truncate">{scannedItem.description}</p>
 
                             <div className="bg-blue-50 p-3 rounded mb-4 flex justify-between text-sm">
+                                <div>
+                                    <span className="block text-gray-500 text-[10px] uppercase">Línea</span>
+                                    <span className="font-bold text-lg">{scannedItem.order_line}</span>
+                                </div>
                                 <div>
                                     <span className="block text-gray-500 text-[10px] uppercase">Requerido</span>
                                     <span className="font-bold text-lg">{scannedItem.qty_req}</span>
@@ -556,6 +567,7 @@ const PickingAudit = () => {
                                 <table className="w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-gray-100">
+                                            <th className="p-2 text-left border w-16">Línea</th>
                                             <th className="p-2 text-left border">Item</th>
                                             <th className="p-2 text-center border w-24">Total Scan</th>
                                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
@@ -565,8 +577,9 @@ const PickingAudit = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {orderItems.map(item => {
-                                            const assignments = packageAssignments[item.code] || {};
+                                        {orderItems.map((item, idx) => {
+                                            const itemKey = `${item.code}:${item.order_line || ''}`;
+                                            const assignments = packageAssignments[itemKey] || {};
                                             const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
                                             const isMatch = totalAssigned === item.qty_scan;
 
@@ -574,7 +587,8 @@ const PickingAudit = () => {
                                             if (item.qty_scan === 0) return null;
 
                                             return (
-                                                <tr key={item.code} className="border-b hover:bg-gray-50">
+                                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                                    <td className="p-2 border text-center font-mono text-xs">{item.order_line}</td>
                                                     <td className="p-2 border font-medium">
                                                         {item.code}
                                                         <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
@@ -587,7 +601,7 @@ const PickingAudit = () => {
                                                                 min="0"
                                                                 className="w-16 text-center border rounded p-1"
                                                                 value={assignments[i + 1] || 0}
-                                                                onChange={(e) => handleAssignmentChange(item.code, i + 1, e.target.value)}
+                                                                onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                                 onFocus={(e) => e.target.select()}
                                                             />
                                                         </td>
@@ -604,19 +618,25 @@ const PickingAudit = () => {
 
                             {/* Mobile View */}
                             <div className="block sm:hidden space-y-4">
-                                {orderItems.map(item => {
+                                {orderItems.map((item, idx) => {
                                     if (item.qty_scan === 0) return null;
 
-                                    const assignments = packageAssignments[item.code] || {};
+                                    const itemKey = `${item.code}:${item.order_line || ''}`;
+                                    const assignments = packageAssignments[itemKey] || {};
                                     const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
                                     const isMatch = totalAssigned === item.qty_scan;
                                     const pkgCount = parseInt(packagesCount) || 1;
 
                                     return (
-                                        <div key={item.code} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                                            <div className="mb-2">
-                                                <div className="font-bold text-gray-800">{item.code}</div>
-                                                <div className="text-xs text-gray-500 truncate">{item.description}</div>
+                                        <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <div className="font-bold text-gray-800">{item.code}</div>
+                                                    <div className="text-xs text-gray-500 truncate">{item.description}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-[10px] font-mono text-gray-400">LÍNEA {item.order_line}</span>
+                                                </div>
                                             </div>
 
                                             <div className="flex justify-between items-center mb-3 text-sm">
@@ -641,7 +661,7 @@ const PickingAudit = () => {
                                                             min="0"
                                                             className="w-full text-center border rounded p-2 text-lg font-bold bg-white focus:ring-2 focus:ring-[#285f94]"
                                                             value={assignments[i + 1] || 0}
-                                                            onChange={(e) => handleAssignmentChange(item.code, i + 1, e.target.value)}
+                                                            onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                             onFocus={(e) => e.target.select()}
                                                         />
                                                     </div>

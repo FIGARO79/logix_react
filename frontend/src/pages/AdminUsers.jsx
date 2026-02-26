@@ -58,7 +58,10 @@ const AdminUsers = () => {
                 method: 'POST',
                 body: formData
             });
-            if (!res.ok) throw new Error("Failed to reset password");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || "Error al restablecer contraseña");
+            }
             setMessage(`Contraseña restablecida para usuario ${id}`);
         } catch (e) { setError(e.message); }
     };

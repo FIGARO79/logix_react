@@ -9,6 +9,36 @@ const CycleCountHistory = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const normalizeDate = (dateString) => {
+        if (!dateString) return null;
+        let normalized = dateString.trim().replace(' ', 'T');
+
+        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return `${normalized}T00:00:00`;
+        }
+
+        const hasTimeZone = normalized.includes('Z') ||
+            normalized.match(/[+-]\d{2}:\d{2}$/) ||
+            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+        if (!hasTimeZone) normalized = `${normalized}Z`;
+        return normalized;
+    };
+
+    const formatDate = (dateString) => {
+        const normalized = normalizeDate(dateString);
+        if (!normalized) return '-';
+        const date = new Date(normalized);
+        if (isNaN(date.getTime())) return 'Fecha Inválida';
+        return date.toLocaleString(undefined, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    };
+
     // LAZY LOADING: Solo renderizar las primeras N filas
     const [displayCount, setDisplayCount] = useState(50);
     const observerTarget = useRef(null);
@@ -178,7 +208,7 @@ const CycleCountHistory = () => {
                                     <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatMoney(rec.cost)}</td>
                                     <td className="px-3 py-2 text-right text-gray-800 font-medium whitespace-nowrap">{formatMoney(rec.count_value)}</td>
                                     <td className="px-3 py-2 text-right whitespace-nowrap text-gray-500">
-                                        {rec.executed_date ? new Date(rec.executed_date).toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-'}
+                                        {formatDate(rec.executed_date)}
                                     </td>
                                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.username}</td>
                                 </tr>

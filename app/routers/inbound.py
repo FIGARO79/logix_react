@@ -60,7 +60,7 @@ async def add_log(
         binLocation=stock.get('Bin_1'),
         qtyReceived=data.quantity,
         relocatedBin=data.relocatedBin.strip() if data.relocatedBin else '',
-        timestamp=datetime.datetime.now().isoformat(), # Use ISO format for SQLite string storage
+        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'), # Use ISO format for SQLite string storage
         qtyGrn=default_qty_grn,
         difference=data.quantity - default_qty_grn
     )

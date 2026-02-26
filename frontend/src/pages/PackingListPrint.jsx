@@ -96,6 +96,7 @@ const PackingListPrint = () => {
             <table className="min-w-full text-base">
                 <thead className="bg-white text-black border-b border-black">
                     <tr>
+                        <th className="px-4 py-1 text-left w-12 uppercase text-[10px] print:py-1">Línea</th>
                         <th className="px-4 py-1 text-left w-1/4 uppercase text-[10px] print:py-1">Código</th>
                         <th className="px-4 py-1 text-left w-1/2 uppercase text-[10px] print:py-1">Descripción</th>
                         <th className="px-4 py-1 text-right w-1/4 uppercase text-[10px] print:py-1">Cantidad</th>
@@ -105,6 +106,7 @@ const PackingListPrint = () => {
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
+                                <td className="px-4 py-1 font-mono text-black text-[10px] print:py-1 font-bold">{item.order_line}</td>
                                 <td className="px-4 py-1 font-mono text-black text-[11px] print:py-1">{item.item_code}</td>
                                 <td className="px-4 py-1 text-black text-[11px] print:py-1">{item.description}</td>
                                 <td className="px-4 py-1 text-right text-sm print:py-1">{item.quantity}</td>

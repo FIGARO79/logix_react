@@ -91,6 +91,10 @@ async def reset_password(request: Request, user_id: int, new_password: str = For
     if not request.session.get("admin_logged_in"):
         raise HTTPException(status_code=403, detail="No autorizado.")
     
+    from app.utils.auth import is_strong_password
+    if not is_strong_password(new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres e incluir letras y números.")
+    
     success = await reset_user_password(db, user_id, new_password)
     if success:
         return JSONResponse({'message': f'Contraseña del usuario {user_id} restablecida.'})
@@ -135,6 +139,10 @@ async def reset_password_api(request: Request, user_id: int, new_password: str =
     """API: Restablece contraseña."""
     if not request.session.get("admin_logged_in"):
         raise HTTPException(status_code=403, detail="No autorizado.")
+    
+    from app.utils.auth import is_strong_password
+    if not is_strong_password(new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres e incluir letras y números.")
     
     success = await reset_user_password(db, user_id, new_password)
     if success:

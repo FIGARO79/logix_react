@@ -194,6 +194,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
                 packages[package_num] = []
             
             packages[package_num].append({
+                'order_line': item.order_line or '',
                 'item_code': item.item_code,
                 'description': item.description,
                 'quantity': item.qty_scan
@@ -212,7 +213,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
         return JSONResponse(content=response)
         
     except Exception as e:
-         raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
 
 @router.get('/picking_audit/{audit_id}/print')
 async def get_picking_audit_for_print(audit_id: int, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
@@ -289,6 +290,20 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
         )
         items = result.scalars().all()
         
+        # Obtener asignación de bultos
+        from app.models.sql_models import PickingPackageItem
+        result = await db.execute(
+            select(PickingPackageItem).where(PickingPackageItem.audit_id == audit_id)
+        )
+        package_items = result.scalars().all()
+        
+        packages_assignment = {}
+        for pi in package_items:
+            key = f"{pi.item_code}:{pi.order_line or ''}"
+            if key not in packages_assignment:
+                packages_assignment[key] = {}
+            packages_assignment[key][str(pi.package_number)] = pi.qty_scan
+
         # Construir respuesta
         response = {
             "id": audit.id,
@@ -296,6 +311,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             "despatch_number": audit.despatch_number,
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
+            "packages_assignment": packages_assignment,
             "items": [
                 {
                     "code": item.item_code,
@@ -342,26 +358,31 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
         result = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
         )
-        old_items = {item.item_code: item for item in result.scalars().all()}
+        old_items = {f"{item.item_code}:{item.order_line}": item for item in result.scalars().all()}
         
         # Recalcular status según nuevas diferencias
         differences_exist = any(item.qty_scan != item.qty_req for item in audit_data.items)
         new_status = 'Con Diferencia' if differences_exist else 'Completo'
         
         # Actualizar auditoría principal
-        existing_audit.timestamp = datetime.datetime.now().isoformat(timespec='seconds')
+        existing_audit.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
         existing_audit.status = new_status
         existing_audit.packages = audit_data.packages if audit_data.packages else 0
         
         # Actualizar items
         for item in audit_data.items:
             difference = item.qty_scan - item.qty_req
-            old_item = old_items.get(item.code)
+            key = f"{item.code}:{item.order_line or ''}"
+            old_item = old_items.get(key)
             
-            # Buscar el item en la base de datos
+            # Buscar el item en la base de datos de manera única usando audit_id, item_code y order_line
             result = await db.execute(
                 select(PickingAuditItem).where(
-                    and_(PickingAuditItem.audit_id == audit_id, PickingAuditItem.item_code == item.code)
+                    and_(
+                        PickingAuditItem.audit_id == audit_id, 
+                        PickingAuditItem.item_code == item.code,
+                        PickingAuditItem.order_line == (item.order_line or '')
+                    )
                 )
             )
             db_item = result.scalar_one_or_none()
@@ -371,6 +392,45 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                 db_item.qty_scan = item.qty_scan
                 db_item.difference = difference
                 db_item.edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
+        
+        # 3. [NUEVO] Actualizar asignación de bultos
+        if audit_data.packages_assignment:
+            # Primero eliminar asignaciones previas
+            from app.models.sql_models import PickingPackageItem
+            from sqlalchemy import delete
+            await db.execute(
+                delete(PickingPackageItem).where(PickingPackageItem.audit_id == audit_id)
+            )
+            
+            for key, assignments in audit_data.packages_assignment.items():
+                if ":" in key:
+                    parts = key.split(":", 1)
+                    item_code = parts[0]
+                    order_line = parts[1]
+                else:
+                    item_code = key
+                    order_line = ""
+                
+                # Buscar descripción
+                item_desc = ""
+                for i in audit_data.items:
+                    match_code = i.code == item_code
+                    match_line = True if not order_line else (i.order_line == order_line)
+                    if match_code and match_line:
+                        item_desc = i.description
+                        break
+                
+                for pkg_num, qty in assignments.items():
+                    if qty > 0:
+                        new_pkg_item = PickingPackageItem(
+                            audit_id=audit_id,
+                            package_number=int(pkg_num),
+                            item_code=item_code,
+                            description=item_desc,
+                            order_line=order_line,
+                            qty_scan=qty
+                        )
+                        db.add(new_pkg_item)
         
         await db.commit()
         
@@ -396,7 +456,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
             despatch_number=audit_data.despatch_number,
             customer_name=audit_data.customer_name,
             username=username,
-            timestamp=datetime.datetime.now().isoformat(timespec='seconds'),
+            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
             status=audit_data.status,
             packages=audit_data.packages if audit_data.packages else 0
         )
@@ -420,10 +480,21 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
         
         # 3. [NUEVO] Insertar asignación de bultos
         if audit_data.packages_assignment:
-            for item_code, assignments in audit_data.packages_assignment.items():
-                # assignments es un dict: {"1": 5, "2": 3} (bulto -> cantidad)
-                # Buscar descripción del item en los items principales
-                item_desc = next((i.description for i in audit_data.items if i.code == item_code), "")
+            # Ahora la llave puede ser "item_code" o "item_code:order_line"
+            for key, assignments in audit_data.packages_assignment.items():
+                if ":" in key:
+                    item_code, order_line = key.split(":", 1)
+                else:
+                    item_code, order_line = key, ""
+                
+                # Buscar descripción del item en los items principales (ahora considerando line_number si existe)
+                item_desc = ""
+                for i in audit_data.items:
+                    match_code = i.code == item_code
+                    match_line = True if not order_line else (i.order_line == order_line)
+                    if match_code and match_line:
+                        item_desc = i.description
+                        break
                 
                 for pkg_num, qty in assignments.items():
                     if qty > 0:
@@ -432,6 +503,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
                             package_number=int(pkg_num),
                             item_code=item_code,
                             description=item_desc,
+                            order_line=order_line,
                             qty_scan=qty
                         )
                         db.add(new_pkg_item)

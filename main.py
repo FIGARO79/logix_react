@@ -19,7 +19,7 @@ from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
 # Importar routers existentes (que ya eran JSON o mixtos)
-from app.routers import sessions, logs, stock, counts, auth, admin, update, picking, inventory, planner, inbound, grn
+from app.routers import sessions, logs, stock, counts, auth, admin, update, picking, inventory, planner, inbound, grn, shipment
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
@@ -91,6 +91,7 @@ app.include_router(update.router)
 app.include_router(inventory.router)
 app.include_router(inbound.router)
 app.include_router(grn.router)
+app.include_router(shipment.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
