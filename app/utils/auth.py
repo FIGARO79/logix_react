@@ -55,11 +55,15 @@ async def verify_user(db: AsyncSession, username: str, password: str) -> tuple[b
 
 def is_strong_password(password: str) -> bool:
     """Verifica que la contraseña cumple con los criterios de seguridad."""
-    if len(password) < 8:
+    if len(password) < 10: # Aumentado a 10
         return False
-    if not re.search(r"[a-zA-Z]", password):
+    if not re.search(r"[a-z]", password): # Letras minúsculas
         return False
-    if not re.search(r"[0-9]", password):
+    if not re.search(r"[A-Z]", password): # Letras mayúsculas
+        return False
+    if not re.search(r"[0-9]", password): # Números
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password): # Caracteres especiales
         return False
     return True
 

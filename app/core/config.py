@@ -58,14 +58,13 @@ COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_De
 # Cargar desde variables de entorno (OBLIGATORIAS)
 SECRET_KEY = os.getenv('SECRET_KEY')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-INTEGRATION_API_KEY = os.getenv('INTEGRATION_API_KEY', 'sandvik-power-automate-2024')
+INTEGRATION_API_KEY = os.getenv('INTEGRATION_API_KEY')
 
 # Validar que las variables críticas estén configuradas
-if not SECRET_KEY:
+if not INTEGRATION_API_KEY:
     raise ValueError(
-        "❌ ERROR: La variable de entorno 'SECRET_KEY' es obligatoria.\n"
-        "   Genera una clave segura con: python -c \"import secrets; print(secrets.token_urlsafe(32))\"\n"
-        "   y agrégala a tu archivo .env"
+        "❌ ERROR: La variable de entorno 'INTEGRATION_API_KEY' es obligatoria.\n"
+        "   Defínela en tu archivo .env"
     )
 
 if not ADMIN_PASSWORD:

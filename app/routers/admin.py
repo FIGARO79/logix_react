@@ -13,6 +13,7 @@ from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD
 from app.core.templates import templates
 from app.services.csv_handler import load_csv_data # Importar función de recarga
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/admin", tags=["admin_html"])
 api_router = APIRouter(prefix="/api/admin", tags=["admin_api"])
@@ -25,6 +26,7 @@ async def admin_login_get(request: Request):
 
 
 @router.post('/login', response_class=HTMLResponse, name='admin_login_post')
+@limiter.limit("5/minute")
 async def admin_login_post(request: Request, password: str = Form(...)):
     """Procesa el login de administrador."""
     if password == ADMIN_PASSWORD:
@@ -52,21 +54,15 @@ async def admin_users_get(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.post('/system/reload-data', name='admin_reload_data')
-async def admin_reload_data(request: Request):
+async def admin_reload_data(admin: bool = Depends(admin_login_required)):
     """Endpoint para recargar los datos CSV en memoria (Hot Reload)."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     await load_csv_data()
     return JSONResponse({'message': 'Datos CSV recargados correctamente en memoria.'})
 
 
 @router.post('/approve/{user_id}')
-async def approve_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def approve_user(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """Aprueba un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     success = await approve_user_by_id(db, user_id)
     if success:
         return JSONResponse({'message': f'Usuario {user_id} aprobado.'})
@@ -74,11 +70,8 @@ async def approve_user(user_id: int, request: Request, db: AsyncSession = Depend
 
 
 @router.post('/delete/{user_id}')
-async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """Elimina un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     success = await delete_user_by_id(db, user_id)
     if success:
         return JSONResponse({'message': f'Usuario {user_id} eliminado.'})
@@ -86,14 +79,11 @@ async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends
 
 
 @router.post('/reset_password/{user_id}')
-async def reset_password(request: Request, user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db)):
+async def reset_password(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """Restablece la contraseña de un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     from app.utils.auth import is_strong_password
     if not is_strong_password(new_password):
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres e incluir letras y números.")
+        raise HTTPException(status_code=400, detail="La contraseña no cumple con los requisitos de seguridad.")
     
     success = await reset_user_password(db, user_id, new_password)
     if success:
@@ -105,44 +95,33 @@ async def reset_password(request: Request, user_id: int, new_password: str = For
 # ===== APIs FOR REACT ADMIN =====
 
 @api_router.post('/system/reload-data')
-async def admin_reload_data_api(request: Request):
+async def admin_reload_data_api(admin: bool = Depends(admin_login_required)):
     """API: Recarga datos CSV (Hot Reload)."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
     await load_csv_data()
     return JSONResponse({'message': 'Datos CSV recargados correctamente en memoria.'})
 
 @api_router.post('/approve/{user_id}')
-async def approve_user_api(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """API: Aprueba un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     success = await approve_user_by_id(db, user_id)
     if success:
         return JSONResponse({'message': f'Usuario {user_id} aprobado.'})
     raise HTTPException(status_code=500, detail="Error al aprobar usuario.")
 
 @api_router.post('/delete/{user_id}')
-async def delete_user_api(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """API: Elimina un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     success = await delete_user_by_id(db, user_id)
     if success:
         return JSONResponse({'message': f'Usuario {user_id} eliminado.'})
     raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
 @api_router.post('/reset_password/{user_id}')
-async def reset_password_api(request: Request, user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db)):
+async def reset_password_api(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """API: Restablece contraseña."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     from app.utils.auth import is_strong_password
     if not is_strong_password(new_password):
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres e incluir letras y números.")
+        raise HTTPException(status_code=400, detail="La contraseña no cumple con los requisitos de seguridad.")
     
     success = await reset_user_password(db, user_id, new_password)
     if success:
@@ -153,11 +132,8 @@ class PermissionUpdate(BaseModel):
     permissions: List[str]
 
 @api_router.post('/permissions/{user_id}')
-async def update_user_permissions(user_id: int, request: Request, data: PermissionUpdate, db: AsyncSession = Depends(get_db)):
+async def update_user_permissions(user_id: int, data: PermissionUpdate, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """API: Actualiza los permisos de un usuario."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=403, detail="No autorizado.")
-    
     permissions_list = data.permissions
     permissions_str = ",".join(permissions_list)
     
@@ -173,23 +149,17 @@ async def update_user_permissions(user_id: int, request: Request, data: Permissi
 # ===== APIs FOR REACT ADMIN =====
 
 @api_router.get('/users')
-async def get_admin_users_api(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_admin_users_api(db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     """API: Obtiene lista de usuarios."""
-    if not request.session.get("admin_logged_in"):
-        raise HTTPException(status_code=401, detail="No autorizado")
-    
     try:
         users = await get_all_users(db)
-        # get_all_users returns a list of dictionaries (from .to_dict())
-        # Debug logging
-        print(f"DEBUG: get_admin_users_api returning {len(users)} users")
         return JSONResponse(content=users)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(content={"error": str(e), "detail": traceback.format_exc()}, status_code=500)
+    except Exception:
+        return JSONResponse(content={"error": "Error interno del servidor"}, status_code=500)
+
 
 @api_router.post('/login')
+@limiter.limit("5/minute")
 async def admin_login_api(request: Request, data: dict):
     """API: Login de administrador."""
     password = data.get('password')

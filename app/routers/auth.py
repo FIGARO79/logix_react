@@ -20,15 +20,17 @@ from app.models.sql_models import User
 from sqlalchemy import select
 import datetime
 from typing import Optional
+from app.core.limiter import limiter
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post('/api/register')
+@limiter.limit("5/minute")
 async def register_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Procesa el registro de un nuevo usuario."""
     if not is_strong_password(password):
-        return JSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos."})
+        return JSONResponse(status_code=400, content={"error": "La contraseña no cumple con los requisitos de seguridad."})
 
     success = await create_user(db, username, password, is_approved=0)
     if success:
@@ -38,11 +40,14 @@ async def register_api(request: Request, username: str = Form(...), password: st
 
 
 @router.post('/api/login')
+@limiter.limit("5/minute")
 async def login_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Procesa el login de un usuario y retorna JSON."""
     valid, status_msg = await verify_user(db, username, password)
     
     if status_msg == "approved":
+        # Prevenir Session Fixation: Limpiar sesión previa
+        request.session.clear()
         request.session['user'] = username
         # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
         result = await db.execute(select(User).where(User.username == username))
