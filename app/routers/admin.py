@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
-from app.utils.auth import get_all_users, approve_user_by_id, delete_user_by_id, reset_user_password, get_user_by_id
+from app.utils.auth import get_all_users, approve_user_by_id, delete_user_by_id, reset_user_password, get_user_by_id, admin_login_required
 from app.models.sql_models import User
 from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD

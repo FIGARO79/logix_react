@@ -45,6 +45,7 @@ class PickingAuditSummary(BaseModel):
     timestamp: str
     status: str
     packages: Optional[int]
+    packages_assignment: Optional[Dict[str, Any]] = {}
     items: List[Dict[str, Any]]
 
 class PickingPackageItemModel(BaseModel):

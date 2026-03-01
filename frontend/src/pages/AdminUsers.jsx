@@ -66,7 +66,7 @@ const AdminUsers = () => {
         } catch (e) { setError(e.message); }
     };
 
-    const MODULES = ['stock', 'inbound', 'picking', 'inventory', 'planner'];
+    const MODULES = ['stock', 'inbound', 'picking', 'inventory', 'planner', 'counts'];
 
     const handlePermissionChange = async (userId, module) => {
         const user = users.find(u => u.id === userId);
