@@ -21,13 +21,11 @@ echo "========================================================"
 echo ""
 echo "🐍 [1/4] Verificando dependencias del Backend..."
 cd "$PROJECT_DIR"
-if [ -d "venv" ]; then
-    source venv/bin/activate
-    # Instalar nuevos requerimientos si hubo cambios
-    pip install -r requirements.txt --quiet
+if [ -d "/var/www/logix/venv" ]; then
+    # Instalar nuevos requerimientos en el entorno de producción
+    sudo /var/www/logix/venv/bin/pip install -r requirements.txt --quiet
 else
-    echo "⚠️ Advertencia: No se encontró entorno virtual 'venv'."
-    echo "⚠️ Advertencia: No se encontró entorno virtual 'venv'."
+    echo "⚠️ Advertencia: No se encontró entorno virtual en /var/www/logix/venv."
 fi
 
 echo "📂 Copiando código del Backend al servidor web..."
@@ -38,6 +36,7 @@ sudo rsync -av "$PROJECT_DIR/static/" "/var/www/logix/static/"
 sudo rsync -av "$PROJECT_DIR/requirements.txt" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/alembic.ini" "/var/www/logix/"
 sudo rsync -av "$PROJECT_DIR/alembic/" "/var/www/logix/alembic/"
+sudo rsync -av "$PROJECT_DIR/.env" "/var/www/logix/.env"
 
 # Asegurar que el el enlace simbólico o directorio de databases existe
 if [ ! -L "/var/www/logix/databases" ] && [ ! -d "/var/www/logix/databases" ]; then
