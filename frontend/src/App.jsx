@@ -17,6 +17,7 @@ const PickingAudit = lazy(() => import('./pages/PickingAudit'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const SlottingConfig = lazy(() => import('./pages/SlottingConfig'));
 const ManageCounts = lazy(() => import('./pages/ManageCounts'));
 const ViewCounts = lazy(() => import('./pages/ViewCounts'));
 const EditCount = lazy(() => import('./pages/EditCount'));
@@ -194,6 +195,7 @@ function App() {
                         <Route path="/admin/login" element={<AdminLogin />} />
                         <Route path="/admin/users" element={<AdminUsers />} />
                         <Route path="/admin/inventory" element={<AdminInventory />} />
+                        <Route path="/admin/slotting" element={<SlottingConfig />} />
                         <Route path="/shipments" element={
                             <ProtectedRoute requiredPermission="picking">
                                 <Shipments />

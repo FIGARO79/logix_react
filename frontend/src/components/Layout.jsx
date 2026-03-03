@@ -119,6 +119,7 @@ const Layout = () => {
                     {/* ADMINISTRACIÓN */}
                     <div className="px-4 py-1 text-xs font-semibold text-white/50 uppercase tracking-wider">Administración</div>
                     <MenuItem to="/admin/inventory" icon={<CheckSquareIcon />} label="Admin Inventario" onClick={toggleMenu} />
+                    <MenuItem to="/admin/slotting" icon={<ChartIcon />} label="Config. Slotting" onClick={toggleMenu} />
                     <MenuItem to="/counts/manage" icon={<ChecklistIcon />} label="Gestionar Conteos" onClick={toggleMenu} />
                     <MenuItem to="/update" icon={<ArrowRepeatIcon />} label="Actualizar Ficheros" onClick={toggleMenu} />
 

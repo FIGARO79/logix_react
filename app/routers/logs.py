@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import LogEntry
 from app.services import db_logs, csv_handler
+from app.services.slotting_service import slotting_service
 from app.utils.auth import login_required, permission_required
 from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -47,10 +48,14 @@ async def find_item(
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
+    # Calcular Sugerencia de Slotting Dinámico
+    suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
+
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
+        "suggestedBin": suggested_bin,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),

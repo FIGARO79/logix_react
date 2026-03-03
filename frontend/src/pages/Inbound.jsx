@@ -460,7 +460,28 @@ const Inbound = () => {
                                 </div>
                                 <div>
                                     <label className="form-label">Relocate (New)</label>
-                                    <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
+                                    <div className="flex flex-col gap-2">
+                                        <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
+                                        {itemData?.suggestedBin && (
+                                            <div 
+                                                className="bg-emerald-50 border border-emerald-200 rounded p-2 cursor-pointer hover:bg-emerald-100 transition-colors"
+                                                onClick={() => setRelocatedBin(itemData.suggestedBin)}
+                                                title="Haz clic para usar esta ubicación"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Sugerencia Slotting</span>
+                                                    <span className="text-[8px] italic text-emerald-600">Tap para usar</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="form-label">Aditional Bins</label>

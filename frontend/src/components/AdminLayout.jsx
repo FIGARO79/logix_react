@@ -36,6 +36,10 @@ const AdminLayout = ({ children, title }) => {
                             Gestionar Inventario
                         </Link>
 
+                        <Link to="/admin/slotting" className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
+                            Configuración Slotting
+                        </Link>
+
                         <button onClick={handleLogout} className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
                             Cerrar Sesión
                         </button>
