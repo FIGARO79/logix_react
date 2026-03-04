@@ -12,6 +12,8 @@ const PickingAuditHistory = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingAudit, setEditingAudit] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // --- Package assignment edit state ---
+    const [packageModalAnchor, setPackageModalAnchor] = useState(null);
     // --- Shipment selection ---
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [showShipmentModal, setShowShipmentModal] = useState(false);
@@ -139,6 +141,80 @@ const PickingAuditHistory = () => {
             toast.error(err.message);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleAddNewPackage = () => {
+        setEditingAudit(prev => ({
+            ...prev,
+            packages: (prev.packages || 0) + 1
+        }));
+    };
+
+    const handlePkgQtyChange = (itemIdx, pkgNum, value) => {
+        const val = parseInt(value) || 0;
+        const newAudit = { ...editingAudit };
+        const item = newAudit.items[itemIdx];
+        const key = `${item.item_code}:${item.order_line || ''}`;
+        
+        if (!newAudit.packages_assignment) newAudit.packages_assignment = {};
+        if (!newAudit.packages_assignment[key]) newAudit.packages_assignment[key] = {};
+        
+        newAudit.packages_assignment[key][pkgNum] = val;
+        
+        let total = 0;
+        for (let p in newAudit.packages_assignment[key]) {
+            total += parseInt(newAudit.packages_assignment[key][p]) || 0;
+        }
+        
+        item.qty_scan = total;
+        item.difference = total - item.qty_req;
+        
+        setEditingAudit(newAudit);
+    };
+
+    const handleAssignToPackage = (itemIdx, pkgNum) => {
+        if (!pkgNum) return;
+        if (pkgNum === "NEW") {
+            const newPkg = (editingAudit.packages || 0) + 1;
+            setEditingAudit(prev => {
+                const next = { ...prev, packages: newPkg };
+                const item = next.items[itemIdx];
+                const key = `${item.item_code}:${item.order_line || ''}`;
+                if (!next.packages_assignment) next.packages_assignment = {};
+                if (!next.packages_assignment[key]) next.packages_assignment[key] = {};
+                next.packages_assignment[key][newPkg] = 0;
+                return next;
+            });
+        } else {
+            const newAudit = { ...editingAudit };
+            const item = newAudit.items[itemIdx];
+            const key = `${item.item_code}:${item.order_line || ''}`;
+            if (!newAudit.packages_assignment) newAudit.packages_assignment = {};
+            if (!newAudit.packages_assignment[key]) newAudit.packages_assignment[key] = {};
+            if (!newAudit.packages_assignment[key][pkgNum]) {
+                newAudit.packages_assignment[key][pkgNum] = 0;
+                setEditingAudit(newAudit);
+            }
+        }
+    };
+
+    const removePackageAssignment = (itemIdx, pkgNum) => {
+        const newAudit = { ...editingAudit };
+        const item = newAudit.items[itemIdx];
+        const key = `${item.item_code}:${item.order_line || ''}`;
+        
+        if (newAudit.packages_assignment && newAudit.packages_assignment[key]) {
+            delete newAudit.packages_assignment[key][pkgNum];
+            
+            let total = 0;
+            for (let p in newAudit.packages_assignment[key]) {
+                total += parseInt(newAudit.packages_assignment[key][p]) || 0;
+            }
+            item.qty_scan = total;
+            item.difference = total - item.qty_req;
+            
+            setEditingAudit(newAudit);
         }
     };
 
@@ -405,7 +481,13 @@ const PickingAuditHistory = () => {
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 flex flex-col max-h-[90vh]">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 className="text-xl font-bold">Editar Auditoría #{editingAudit.id}</h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="text-2xl">✕</button>
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm font-medium text-gray-600">Total Bultos: {editingAudit.packages || 0}</span>
+                                <button onClick={handleAddNewPackage} className="px-3 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded border border-green-200 text-sm font-bold shadow-sm transition-colors">
+                                    + Bulto Nuevo
+                                </button>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-2xl text-gray-500 hover:text-gray-800">✕</button>
+                            </div>
                         </div>
                         <div className="overflow-y-auto mb-4">
                             <table className="min-w-full text-sm">
@@ -414,22 +496,71 @@ const PickingAuditHistory = () => {
                                         <th className="p-2 text-center w-12">Línea</th>
                                         <th className="p-2 text-left">Código</th>
                                         <th className="p-2 text-left">Descripción</th>
-                                        <th className="p-2 text-center">Req.</th>
-                                        <th className="p-2 text-center w-32">Escaneado</th>
+                                        <th className="p-2 text-center w-16">Req.</th>
+                                        <th className="p-2 text-center w-24">Escaneado<br/><span className="text-[10px] text-gray-500 font-normal">(Total)</span></th>
+                                        <th className="p-2 text-left">Asignación en Bultos</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {editingAudit.items.map((item, idx) => (
-                                        <tr key={idx} className="border-b">
-                                            <td className="p-2 text-center text-gray-400 font-mono text-[10px]">{item.order_line}</td>
-                                            <td className="p-2 font-bold">{item.item_code}</td>
-                                            <td className="p-2 truncate max-w-xs">{item.description}</td>
-                                            <td className="p-2 text-center">{item.qty_req}</td>
-                                            <td className="p-2 text-center">
-                                                <input type="number" value={item.qty_scan} onChange={(e) => handleQtyChange(idx, e.target.value)} className="w-20 text-center border rounded font-bold" min="0" />
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {editingAudit.items.map((item, idx) => {
+                                        const key = `${item.item_code}:${item.order_line || ''}`;
+                                        const assignments = editingAudit.packages_assignment?.[key] || {};
+                                        const packageKeys = Object.keys(assignments);
+                                        const isUsingPackages = editingAudit.packages > 0;
+                                        
+                                        return (
+                                            <tr key={idx} className="border-b hover:bg-gray-50">
+                                                <td className="p-2 text-center text-gray-400 font-mono text-[10px]">{item.order_line}</td>
+                                                <td className="p-2 font-bold text-gray-800">{item.item_code}</td>
+                                                <td className="p-2 text-gray-600 truncate max-w-xs" title={item.description}>{item.description}</td>
+                                                <td className="p-2 text-center font-semibold text-gray-700">{item.qty_req}</td>
+                                                <td className="p-2 text-center">
+                                                    {isUsingPackages ? (
+                                                        <span className="font-bold text-lg">{item.qty_scan}</span>
+                                                    ) : (
+                                                        <input type="number" value={item.qty_scan} onChange={(e) => handleQtyChange(idx, e.target.value)} className="w-16 text-center border rounded font-bold focus:ring-2 focus:ring-blue-200 outline-none p-1" min="0" />
+                                                    )}
+                                                </td>
+                                                <td className="p-2">
+                                                    {isUsingPackages ? (
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            {packageKeys.map(pkgNum => (
+                                                                <div key={pkgNum} className="flex items-center bg-blue-50 border border-blue-200 rounded px-2 py-1 shadow-sm">
+                                                                    <span className="text-[10px] font-bold text-blue-800 mr-2 uppercase">Bulto {pkgNum}:</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        value={assignments[pkgNum]} 
+                                                                        onChange={(e) => handlePkgQtyChange(idx, pkgNum, e.target.value)}
+                                                                        className="w-12 text-center border-b border-blue-300 bg-transparent text-sm font-bold focus:outline-none focus:border-blue-600"
+                                                                        min="0"
+                                                                    />
+                                                                    <button onClick={() => removePackageAssignment(idx, pkgNum)} className="ml-2 text-red-400 hover:text-red-600" title="Remover de bulto">✕</button>
+                                                                </div>
+                                                            ))}
+                                                            <div className="flex items-center">
+                                                                <select 
+                                                                    onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
+                                                                    className="text-xs bg-gray-50 border border-gray-300 rounded p-1 text-gray-600 cursor-pointer outline-none hover:bg-gray-100"
+                                                                    defaultValue=""
+                                                                >
+                                                                    <option value="" disabled>+ Añadir a bulto...</option>
+                                                                    {Array.from({length: editingAudit.packages || 0}, (_, i) => i + 1)
+                                                                        .filter(p => !packageKeys.includes(str => str === p.toString()))
+                                                                        .map(p => (
+                                                                            <option key={p} value={p}>Bulto {p}</option>
+                                                                        ))
+                                                                    }
+                                                                    <option value="NEW" className="text-green-600 font-bold">+ Nuevo Bulto</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">Auditoría sin bultos</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

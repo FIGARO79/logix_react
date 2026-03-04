@@ -193,43 +193,63 @@ const PickingAudit = () => {
     const confirmQuantity = () => {
         if (!scannedItem) return;
 
-        const qtyToAdd = parseInt(tempQty) || 0;
+        let qtyToAdd = parseInt(tempQty) || 0;
+        const totalAdding = qtyToAdd;
         if (qtyToAdd <= 0) {
             setShowQtyModal(false);
             return;
         }
 
         const newItems = [...orderItems];
-        const item = newItems[scannedItem.index];
+        const packageUpdates = {};
 
-        item.qty_scan += qtyToAdd;
-        item.difference = item.qty_scan - item.qty_req;
+        for (let i = 0; i < newItems.length && qtyToAdd > 0; i++) {
+            if (newItems[i].code === scannedItem.code && newItems[i].qty_scan < newItems[i].qty_req) {
+                const needed = newItems[i].qty_req - newItems[i].qty_scan;
+                const toAdd = Math.min(needed, qtyToAdd);
+
+                newItems[i].qty_scan += toAdd;
+                newItems[i].difference = newItems[i].qty_scan - newItems[i].qty_req;
+                qtyToAdd -= toAdd;
+
+                const itemKey = `${newItems[i].code}:${newItems[i].order_line || ''}`;
+                packageUpdates[itemKey] = (packageUpdates[itemKey] || 0) + toAdd;
+            }
+        }
+
+        if (qtyToAdd > 0) {
+            const targetIndex = scannedItem.index;
+            newItems[targetIndex].qty_scan += qtyToAdd;
+            newItems[targetIndex].difference = newItems[targetIndex].qty_scan - newItems[targetIndex].qty_req;
+
+            const itemKey = `${newItems[targetIndex].code}:${newItems[targetIndex].order_line || ''}`;
+            packageUpdates[itemKey] = (packageUpdates[itemKey] || 0) + qtyToAdd;
+        }
 
         setOrderItems(newItems);
 
-        // Update package assignments using unique key
         setPackageAssignments(prev => {
-            const itemKey = `${item.code}:${item.order_line || ''}`;
-            const currentItemAssignments = prev[itemKey] || {};
-            const currentPkgQty = currentItemAssignments[activePackage] || 0;
-            return {
-                ...prev,
-                [itemKey]: {
+            const next = { ...prev };
+            Object.entries(packageUpdates).forEach(([itemKey, qtyAdded]) => {
+                const currentItemAssignments = next[itemKey] || {};
+                const currentPkgQty = currentItemAssignments[activePackage] || 0;
+                next[itemKey] = {
                     ...currentItemAssignments,
-                    [activePackage]: currentPkgQty + qtyToAdd
-                }
-            };
+                    [activePackage]: currentPkgQty + qtyAdded
+                };
+            });
+            return next;
         });
 
         setShowQtyModal(false);
         setScannedItem(null);
 
-        // Feedback
-        if (item.qty_scan <= item.qty_req) {
-            toast.success(`Leído: ${item.code} (+${qtyToAdd})`);
+        const anyOver = newItems.filter(i => i.code === scannedItem.code).some(i => i.qty_scan > i.qty_req);
+        if (!anyOver) {
+            toast.success(`Leído: ${scannedItem.code} (+${totalAdding})`);
         } else {
-            playError(); // Over-scan warning
-            toast.warning(`Exceso: ${item.code} (+${qtyToAdd})`);
+            playError();
+            toast.warning(`Exceso: ${scannedItem.code} (+${totalAdding})`);
         }
     };
 

@@ -410,7 +410,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                 db_item.edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
         
         # 3. [NUEVO] Actualizar asignación de bultos
-        if audit_data.packages_assignment:
+        if audit_data.packages_assignment is not None:
             # Primero eliminar asignaciones previas
             from app.models.sql_models import PickingPackageItem
             from sqlalchemy import delete
