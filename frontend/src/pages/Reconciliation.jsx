@@ -138,9 +138,10 @@ const Reconciliation = () => {
                                 {filteredData.length > 0 ? (
                                     filteredData.map((row, idx) => {
                                         const hasDiff = row.Diferencia !== 0;
+                                        const isPositive = row.Diferencia > 0;
                                         const baseClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                                        const rowClass = hasDiff ? "bg-red-50 hover:bg-red-100" : `${baseClass} hover:bg-blue-50`;
-                                        const textClass = hasDiff ? "text-red-600 font-semibold" : "text-gray-600";
+                                        const rowClass = isPositive ? "bg-blue-50 hover:bg-blue-100" : (hasDiff ? "bg-red-50 hover:bg-red-100" : `${baseClass} hover:bg-blue-50`);
+                                        const textClass = isPositive ? "text-blue-600 font-semibold" : (hasDiff ? "text-red-600 font-semibold" : "text-gray-600");
 
                                         return (
                                             <tr key={idx} className={`${rowClass} transition-colors`}>
