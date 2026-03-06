@@ -128,6 +128,8 @@ const Update = () => {
                 }
             } else if (name.includes('240') || name.includes('picking') || name.includes('salida')) {
                 formData.append('picking_file', file);
+            } else if (name.includes('extractor') || name.includes('purchase')) {
+                formData.append('po_extractor', file);
             } else {
                 // Determine type by content size or default? 
                 // For now, if single file and unknown, assume master if it looks like one, or just log warning
@@ -275,7 +277,7 @@ const Update = () => {
                                 <p className="text-gray-600 font-medium mb-1">
                                     <span className="font-bold text-gray-700">Click to upload</span> or drag and drop
                                 </p>
-                                <p className="text-gray-400 text-sm">CSV files (250, 280, 240) & Excel (.xlsx)</p>
+                                <p className="text-gray-400 text-sm">CSV files (250, 280, 240), Excel (.xlsx) & PO Extractor</p>
                             </div>
                         </div>
 

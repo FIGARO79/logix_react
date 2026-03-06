@@ -51,6 +51,7 @@ async def update_files_post(
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
     grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
+    po_extractor: UploadFile = File(None), # Nuevo campo para Purchase Order Extractor
     update_option_280: str = Form(None),
     selected_grns_280: str = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -160,6 +161,18 @@ async def update_files_post(
         except Exception as e:
             print(f"ERROR procesando Excel GRN: {str(e)}")
             error += f'Error procesando Excel GRN: {str(e)}. '
+
+    # Manejo del Purchase Order Extractor
+    if po_extractor and po_extractor.filename:
+        try:
+            po_path = os.path.join("databases", "Purchase Order Extractor.xlsx")
+            with open(po_path, "wb") as buffer:
+                shutil.copyfileobj(po_extractor.file, buffer)
+            message += f'Archivo "{po_extractor.filename}" guardado como Purchase Order Extractor. '
+            files_uploaded = True
+        except Exception as e:
+            print(f"ERROR guardando Purchase Order Extractor: {str(e)}")
+            error += f'Error guardando Purchase Order Extractor: {str(e)}. '
 
     if files_uploaded:
         # Procesar en segundo plano para no bloquear al usuario
