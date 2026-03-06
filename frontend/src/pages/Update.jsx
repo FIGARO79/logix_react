@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
-    const [messages, setMessages] = useState({ success: '', error: '' });
+    const [messages, setMessages] = useState({ success: '', error: '', info: '' });
     const [isLoading, setIsLoading] = useState(false);
 
     // Drag and Drop State
@@ -217,13 +217,16 @@ const Update = () => {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                setMessages({ success: "Backup generado correctamente", error: '' });
+                setMessages({ success: "Backup generado correctamente", error: '', info: '' });
+            } else if (res.status === 404) {
+                const data = await res.json();
+                setMessages({ success: '', error: '', info: data.error || "No hay datos para exportar." });
             } else {
                 const data = await res.json();
-                setMessages({ success: '', error: data.error || "Error generating backup" });
+                setMessages({ success: '', error: data.error || "Error generating backup", info: '' });
             }
         } catch (err) {
-            setMessages({ success: '', error: err.message });
+            setMessages({ success: '', error: err.message, info: '' });
         } finally {
             setIsLoading(false);
         }
@@ -233,6 +236,7 @@ const Update = () => {
         <div className="container-wrapper max-w-4xl mx-auto px-4 py-8">
 
             {messages.error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{messages.error}</div>}
+            {messages.info && <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">{messages.info}</div>}
             {messages.success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{messages.success}</div>}
 
             {/* File Upload Section */}

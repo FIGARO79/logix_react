@@ -280,7 +280,8 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
             worksheet = writer.sheets['BackupCompleto']
             for i, col_name in enumerate(df_export.columns):
                 column_letter = get_column_letter(i + 1)
-                max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                max_len = df_export[col_name].astype(str).str.len().max()
+                max_len = max(int(max_len) + 2 if pd.notna(max_len) else len(col_name) + 2, len(col_name) + 2)
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
@@ -294,7 +295,7 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
         )
     except Exception as e:
         import traceback
-        return JSONResponse(status_code=500, content={"error": f"Error generando backup: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": f"Error generando backup: {traceback.format_exc()}"})
 
 # Old endpoint kept for legacy safety
 @router.post('/export_all_log')
@@ -355,7 +356,8 @@ async def export_all_log(request: Request, password: str = Form(...), db: AsyncS
             worksheet = writer.sheets['BackupCompleto']
             for i, col_name in enumerate(df_export.columns):
                 column_letter = get_column_letter(i + 1)
-                max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+                max_len = df_export[col_name].astype(str).str.len().max()
+                max_len = int(max_len) + 2 if pd.notna(max_len) else len(col_name) + 2
                 worksheet.column_dimensions[column_letter].width = max_len
 
         output.seek(0)
