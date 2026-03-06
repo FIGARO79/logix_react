@@ -129,33 +129,32 @@ const Shipments = () => {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2 text-center">
-                                                <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${
-                                                    s.status === 'active'
-                                                        ? 'bg-green-100 text-green-800 border-green-200'
-                                                        : 'bg-red-100 text-red-800 border-red-200'
-                                                }`}>
+                                                <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${s.status === 'active'
+                                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                                    : 'bg-red-100 text-red-800 border-red-200'
+                                                    }`}>
                                                     {s.status === 'active' ? 'Activo' : 'Cancelado'}
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2 text-center">
-                                                <div className="flex justify-center gap-2" onClick={e => e.stopPropagation()}>
+                                                <div className="flex justify-center gap-1.5" onClick={e => e.stopPropagation()}>
                                                     {s.status === 'active' && (
                                                         <>
                                                             <Link
                                                                 to={`/shipments/print/${s.id}`}
-                                                                className="p-1.5 bg-gray-50 text-gray-600 hover:bg-[#285f94] hover:text-white rounded transition-colors border border-gray-200 shadow-sm"
+                                                                className="w-6 h-6 p-0 min-w-0 flex items-center justify-center bg-gray-50 text-gray-600 hover:bg-[#285f94] hover:text-white rounded transition-colors border border-gray-200 shadow-sm"
                                                                 title="Imprimir Packing List Consolidado"
                                                             >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                                                 </svg>
                                                             </Link>
                                                             <button
                                                                 onClick={() => handleCancel(s.id)}
-                                                                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors border border-red-100 shadow-sm"
+                                                                className="w-6 h-6 p-0 min-w-0 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors border border-red-100 shadow-sm"
                                                                 title="Cancelar Envío"
                                                             >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                                 </svg>
                                                             </button>
@@ -206,11 +205,10 @@ const Shipments = () => {
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
                                             <span className="text-lg font-bold text-[#285f94]">Envío #{s.id}</span>
-                                            <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${
-                                                s.status === 'active'
-                                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                                    : 'bg-red-100 text-red-800 border-red-200'
-                                            }`}>
+                                            <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${s.status === 'active'
+                                                ? 'bg-green-100 text-green-800 border-green-200'
+                                                : 'bg-red-100 text-red-800 border-red-200'
+                                                }`}>
                                                 {s.status === 'active' ? 'Activo' : 'Cancelado'}
                                             </span>
                                         </div>
