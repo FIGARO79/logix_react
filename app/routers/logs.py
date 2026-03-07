@@ -176,7 +176,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
 async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta los registros de log a Excel."""
     if version_date:
-        logs = await db_logs.load_logs_by_archive_date_db_async(db, version_date)
+        logs = await db_logs.load_archived_log_data_db_async(db, version_date)
     else:
         logs = await db_logs.load_log_data_db_async(db)
     
@@ -209,7 +209,9 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         worksheet = writer.sheets['InboundLogs']
         for i, col_name in enumerate(df_export.columns):
             column_letter = get_column_letter(i + 1)
-            max_len = max(df_export[col_name].astype(str).map(len).max(), len(col_name)) + 2
+            # Cálculo de ancho más robusto
+            max_val_len = df_export[col_name].apply(lambda x: len(str(x)) if x is not None else 0).max()
+            max_len = max(max_val_len, len(col_name)) + 2
             worksheet.column_dimensions[column_letter].width = max_len
 
     output.seek(0)
@@ -224,13 +226,14 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
     try:
         await csv_handler.reload_cache_if_needed()
         
-        # 1. Obtener Logs (Base del reporte)
-        async with async_engine.connect() as conn:
-            if archive_date:
-                query = text('SELECT * FROM logs WHERE archived_at = :date')
-                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(query, sync_conn, params={"date": archive_date}))
-            else:
-                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text('SELECT * FROM logs WHERE archived_at IS NULL'), sync_conn))
+        # 1. Obtener Logs (Base del reporte) usando la sesión db
+        if archive_date:
+            result = await db.execute(text('SELECT * FROM logs WHERE archived_at = :date'), {"date": archive_date})
+        else:
+            result = await db.execute(text('SELECT * FROM logs WHERE archived_at IS NULL'))
+        
+        rows = result.fetchall()
+        logs_df = pd.DataFrame([dict(r._mapping) for r in rows]) if rows else pd.DataFrame()
 
         grn_df = csv_handler.df_grn_cache 
 
@@ -279,7 +282,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
 
         # 3. Procesamiento simplificado y veloz con Pandas
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-        logs_grouped = logs_df.groupby(['importReference', 'itemCode'])['qtyReceived'].sum().reset_index()
+        logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
 
         mapping_rows = []
         for ir, info in ir_to_grns_map.items():

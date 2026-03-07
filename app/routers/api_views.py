@@ -332,7 +332,7 @@ async def get_counts_data(
     for count in all_counts:
         item_code = count.get('item_code')
         # Ensure system_qty is an integer or None (handle 'nan' from pandas/csv if any)
-        system_qty_raw = master_qty_map.get(item_code)
+        system_qty_raw = csv_handler.master_qty_map.get(item_code)
         try:
             system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
         except (ValueError, TypeError):

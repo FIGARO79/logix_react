@@ -161,7 +161,7 @@ const Reconciliation = () => {
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 italic">{row.GRN}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap font-mono font-bold text-[#285f94]">{row.Codigo_Item}</td>
                                                 <td className="px-2 py-1.5 truncate max-w-[200px]" title={row.Descripcion}>{row.Descripcion}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono bg-gray-50/50">{row.Cant_Esperada}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Esperada}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono font-bold">{row.Cant_Recibida}</td>
                                                 <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono ${textClass}`}>
                                                     {diff > 0 ? `+${diff}` : diff}

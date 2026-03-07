@@ -17,8 +17,7 @@ from sqlalchemy import select, func, delete, insert, update, text
 from app.core.config import ASYNC_DB_URL
 from app.core.db import get_db
 from app.core.templates import templates
-from app.services.csv_handler import master_qty_map
-from app.services import db_counts
+from app.services import db_counts, csv_handler
 from app.utils.auth import login_required, admin_login_required, permission_required
 from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation, MasterItem
 from app.services.csv_to_db import sync_master_csv_to_db
@@ -74,7 +73,7 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
 
             items_with_discrepancy: int = 0
             for item_code, total_counted in counted_items_map.items():
-                system_qty_raw = master_qty_map.get(item_code)
+                system_qty_raw = csv_handler.master_qty_map.get(item_code)
                 system_qty: int = 0
                 if system_qty_raw is not None:
                     try:
@@ -221,7 +220,7 @@ async def advance_inventory_stage(request: Request, next_stage: int, user: str =
             item_code = item.item_code
             total_counted = item.total_counted
             
-            system_qty = master_qty_map.get(item_code)
+            system_qty = csv_handler.master_qty_map.get(item_code)
             system_qty = int(system_qty) if system_qty is not None else 0
 
             if total_counted != system_qty:
@@ -295,7 +294,7 @@ async def generate_inventory_report(request: Request, user: str = Depends(permis
 
         pivot_df.columns = [f'Conteo Etapa {int(col)}' for col in pivot_df.columns]
         
-        system_qtys = pd.Series(master_qty_map, name='Cantidad Sistema').astype('float64').fillna(0)
+        system_qtys = pd.Series(csv_handler.master_qty_map, name='Cantidad Sistema').astype('float64').fillna(0)
         
         report_df = pivot_df.join(system_qtys, on='item_code').fillna(0)
         report_df.rename_axis(index={'item_code': 'Item Code', 'item_description': 'Description'}, inplace=True)
@@ -461,7 +460,7 @@ async def advance_inventory_stage_api(next_stage: int, user: str = Depends(permi
     for item in counted_items:
         item_code = item.item_code
         total_counted = item.total_counted
-        system_qty = master_qty_map.get(item_code)
+        system_qty = csv_handler.master_qty_map.get(item_code)
         system_qty = int(system_qty) if system_qty is not None else 0
 
         if total_counted != system_qty:

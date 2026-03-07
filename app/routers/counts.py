@@ -16,7 +16,7 @@ import numpy as np
 from app.models.schemas import StockCount, Count
 from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel, CycleCountRecording
 from app.services import db_counts, csv_handler
-from app.services.csv_handler import master_qty_map, get_locations_with_stock_count # Importar el mapa de memoria y helper
+from app.services.csv_handler import get_locations_with_stock_count # Importar el helper
 from app.utils.auth import login_required, api_login_required, permission_required
 from app.core.config import ASYNC_DB_URL
 
@@ -87,7 +87,7 @@ async def get_all_counts(username: str = Depends(permission_required("counts")),
         enriched_counts = []
         for count in all_counts:
             item_code = count.get('item_code')
-            system_qty_raw = master_qty_map.get(item_code)
+            system_qty_raw = csv_handler.master_qty_map.get(item_code)
             system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
             counted_qty = int(count.get('counted_qty', 0))
             difference = (counted_qty - system_qty) if system_qty is not None else None
@@ -163,7 +163,7 @@ async def get_count_differences(username: str = Depends(permission_required("cou
         
         for count in all_counts:
             item_code = count.get('item_code')
-            system_qty_raw = master_qty_map.get(item_code)
+            system_qty_raw = csv_handler.master_qty_map.get(item_code)
             system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else 0
             counted_qty = int(count.get('counted_qty', 0))
             difference = counted_qty - system_qty
@@ -256,7 +256,7 @@ async def export_counts(username: str = Depends(permission_required("counts")), 
     enriched_rows = []
     for count in all_counts:
         item_code = count.get('item_code')
-        system_qty_raw = master_qty_map.get(item_code)
+        system_qty_raw = csv_handler.master_qty_map.get(item_code)
         system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
         counted_qty = int(count.get('counted_qty', 0))
         difference = (counted_qty - system_qty) if system_qty is not None else None
@@ -309,7 +309,7 @@ async def get_count_stats(username: str = Depends(permission_required("counts"))
         total_items_counted = result_items.scalar() or 0
         
         # 3. Total de items con stock (del maestro de items)
-        total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
+        total_items_with_stock = sum(1 for qty in csv_handler.master_qty_map.values() if qty is not None and qty > 0)
         
         # 4. Items con diferencias
         # Consulta agregada ORM
@@ -327,7 +327,7 @@ async def get_count_stats(username: str = Depends(permission_required("counts"))
         items_with_negative_differences = 0
 
         for item_code, total_counted in counted_qty_map.items():
-            system_qty_raw = master_qty_map.get(item_code)
+            system_qty_raw = csv_handler.master_qty_map.get(item_code)
             system_qty = 0
             if system_qty_raw is not None:
                 try:
@@ -361,16 +361,16 @@ async def get_count_stats(username: str = Depends(permission_required("counts"))
 
 @router.get('/counts/debug/master_qty_map')
 async def debug_master_qty_map(username: str = Depends(permission_required("counts"))):
-    """Endpoint de debug para verificar el estado del master_qty_map."""
-    total_items = len(master_qty_map)
-    items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and qty > 0)
-    sample_items = dict(list(master_qty_map.items())[:10])  # Primeros 10 items
+    """Endpoint de debug para verificar el estado del csv_handler.master_qty_map."""
+    total_items = len(csv_handler.master_qty_map)
+    items_with_stock = sum(1 for qty in csv_handler.master_qty_map.values() if qty is not None and qty > 0)
+    sample_items = dict(list(csv_handler.master_qty_map.items())[:10])  # Primeros 10 items
     
     return JSONResponse(content={
         "total_items_in_map": total_items,
         "items_with_stock": items_with_stock,
         "sample_items": sample_items,
-        "map_is_empty": len(master_qty_map) == 0
+        "map_is_empty": len(csv_handler.master_qty_map) == 0
     })
 
 
