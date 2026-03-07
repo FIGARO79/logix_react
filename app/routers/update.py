@@ -172,27 +172,72 @@ async def update_files_post(
             
             # --- NUEVO: Generar Caché JSON para búsqueda rápida ---
             try:
-                # Leer solo columnas necesarias
-                df_po = pd.read_excel(po_path, usecols=["Waybill", "Import Ref Code"], dtype=str)
-                df_po = df_po.dropna().drop_duplicates()
+                # Leer columnas necesarias del Excel
+                cols_to_use = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
+                df_po = pd.read_excel(po_path, usecols=cols_to_use, dtype=str)
                 
-                # Crear diccionarios de búsqueda cruzada
-                # waybill -> import_ref
-                wb_to_ir = df_po.set_index(df_po["Waybill"].str.strip().str.upper())["Import Ref Code"].str.strip().str.upper().to_dict()
-                # import_ref -> waybill
-                ir_to_wb = df_po.set_index(df_po["Import Ref Code"].str.strip().str.upper())["Waybill"].str.strip().str.upper().to_dict()
+                # LIMPIEZA CRÍTICA: Reemplazar NaN por cadenas vacías para evitar JSON inválido
+                df_po = df_po.fillna("")
+                df_po = df_po.dropna(subset=["Waybill", "Import Ref Code"])
+                
+                # Normalizar datos (quitar espacios y pasar a mayúsculas)
+                df_po["Waybill"] = df_po["Waybill"].astype(str).str.strip().str.upper()
+                df_po["Import Ref Code"] = df_po["Import Ref Code"].astype(str).str.strip().str.upper()
+                df_po["Item Code"] = df_po["Item Code"].astype(str).str.strip().str.upper()
+                
+                # Normalizar GRN Number: reemplazar "/" por ","
+                df_po["GRN Number"] = df_po["GRN Number"].astype(str).str.replace("/", ",", regex=False).str.strip()
+
+                # Crear diccionarios de búsqueda rápida
+                wb_lookup = {}
+                ir_lookup = {}
+
+                # Filtrar filas donde Waybill o Import Ref estén vacíos tras la normalización
+                df_po = df_po[(df_po["Waybill"] != "") & (df_po["Import Ref Code"] != "")]
+
+                # Agrupar por Waybill para consolidar items
+                for wb, group in df_po.groupby("Waybill"):
+                    first_row = group.iloc[0]
+                    items_list = []
+                    for _, row in group.iterrows():
+                        items_list.append({
+                            "item_code": row["Item Code"],
+                            "qty": row["Despatched Qty"],
+                            "grn": row["GRN Number"]
+                        })
+                    
+                    wb_lookup[wb] = {
+                        "import_ref": first_row["Import Ref Code"],
+                        "items": items_list
+                    }
+
+                # Agrupar por Import Ref para consolidar items
+                for ir, group in df_po.groupby("Import Ref Code"):
+                    first_row = group.iloc[0]
+                    items_list = []
+                    for _, row in group.iterrows():
+                        items_list.append({
+                            "item_code": row["Item Code"],
+                            "qty": row["Despatched Qty"],
+                            "grn": row["GRN Number"]
+                        })
+                    
+                    ir_lookup[ir] = {
+                        "waybill": first_row["Waybill"],
+                        "items": items_list
+                    }
                 
                 lookup_data = {
-                    "wb_to_ir": wb_to_ir,
-                    "ir_to_wb": ir_to_wb,
+                    "wb_to_data": wb_lookup,
+                    "ir_to_data": ir_lookup,
                     "updated_at": datetime.datetime.now().isoformat()
                 }
                 
                 with open(PO_LOOKUP_JSON_PATH, "w", encoding="utf-8") as f:
                     json.dump(lookup_data, f, indent=2)
                 
-                message += 'Caché de búsqueda generado. '
-                del df_po, wb_to_ir, ir_to_wb, lookup_data
+                message += 'Caché de búsqueda (Items + GRN) generado correctamente. '
+                del df_po, wb_lookup, ir_lookup, lookup_data
             except Exception as e_cache:
                 print(f"Error generando caché PO: {e_cache}")
             # --- Fin Generación Caché ---

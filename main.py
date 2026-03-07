@@ -61,12 +61,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Middleware de recarga automática de CSV ---
-# IMPORTANTE: Este middleware debe ir ANTES de los middlewares de seguridad
-# para garantizar que los caches se actualicen antes de procesar el request
-# OPTIMIZADO: Ahora con throttle de 5 segundos para evitar I/O excesivo
-app.add_middleware(CSVCacheReloadMiddleware)
-
 # --- Middlewares de seguridad ---
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 app.add_middleware(SchemeMiddleware)

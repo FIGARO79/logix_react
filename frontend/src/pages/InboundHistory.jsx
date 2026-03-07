@@ -72,8 +72,8 @@ const InboundHistory = () => {
                 <div className="flex gap-2 items-center">
                     <input
                         type="text"
-                        placeholder="Buscar por Item, Waybill o I.R..."
-                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-64 transition-all duration-150"
+                        placeholder="Buscar..."
+                        className="h-5 px-1 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -91,9 +91,9 @@ const InboundHistory = () => {
 
             {/* Table */}
             <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[70vh]">
                     <table className="w-full text-xs border-collapse">
-                        <thead className="bg-slate-700 text-white">
+                        <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>
                                 <th className="px-2 py-1.5 text-left font-medium">ID</th>
                                 <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>

@@ -92,8 +92,8 @@ const Reconciliation = () => {
                     {/* Search Box */}
                     <input
                         type="text"
-                        placeholder="Buscar en tabla..."
-                        className="h-8 px-3 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full sm:w-52 transition-all duration-150"
+                        placeholder="Buscar..."
+                        className="h-5 px-1 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                     />
@@ -116,18 +116,18 @@ const Reconciliation = () => {
                         Cargando datos de reconciliación...
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[75vh]">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white">
+                            <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    {['GRN', 'Codigo_Item', 'Descripcion', 'Ubicacion', 'Reubicado', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
+                                    {['Import_Reference', 'Waybill', 'GRN', 'Codigo_Item', 'Descripcion', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
                                         <th
                                             key={head}
                                             onClick={() => requestSort(head)}
                                             className="px-2 py-1.5 text-left font-medium cursor-pointer transition select-none whitespace-nowrap hover:bg-slate-600"
                                         >
                                             <div className="flex items-center">
-                                                {head.replace('_', ' ')}
+                                                {head === 'Import_Reference' ? 'I.R.' : head.replace(/_/g, ' ')}
                                                 {getSortIcon(head)}
                                             </div>
                                         </th>
@@ -137,23 +137,34 @@ const Reconciliation = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredData.length > 0 ? (
                                     filteredData.map((row, idx) => {
-                                        const hasDiff = row.Diferencia !== 0;
-                                        const isPositive = row.Diferencia > 0;
+                                        const diff = row.Diferencia;
                                         const baseClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                                        const rowClass = isPositive ? "bg-blue-50 hover:bg-blue-100" : (hasDiff ? "bg-red-50 hover:bg-red-100" : `${baseClass} hover:bg-blue-50`);
-                                        const textClass = isPositive ? "text-blue-600 font-semibold" : (hasDiff ? "text-red-600 font-semibold" : "text-gray-600");
+                                        
+                                        // Lógica de colores simplificada (Solo Azul y Rojo)
+                                        let rowClass = `${baseClass} hover:bg-gray-100`;
+                                        let textClass = "text-gray-600";
+
+                                        if (diff > 0) {
+                                            // Sobrante: Azul
+                                            rowClass = "bg-blue-50 hover:bg-blue-100";
+                                            textClass = "text-blue-600 font-bold";
+                                        } else if (diff < 0) {
+                                            // Faltante: Rojo
+                                            rowClass = "bg-red-50 hover:bg-red-100";
+                                            textClass = "text-red-600 font-bold";
+                                        }
 
                                         return (
-                                            <tr key={idx} className={`${rowClass} transition-colors`}>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-medium text-gray-900">{row.GRN}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono">{row.Codigo_Item}</td>
-                                                <td className="px-2 py-1.5 truncate max-w-[180px]" title={row.Descripcion}>{row.Descripcion}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{row.Ubicacion}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-medium">{row.Reubicado}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Esperada}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Recibida}</td>
-                                                <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${textClass}`}>
-                                                    {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
+                                            <tr key={idx} className={`${rowClass} transition-colors border-b border-gray-100`}>
+                                                <td className="px-2 py-1.5 whitespace-nowrap font-medium text-gray-900">{row.Import_Reference}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{row.Waybill}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 italic">{row.GRN}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono font-bold text-[#285f94]">{row.Codigo_Item}</td>
+                                                <td className="px-2 py-1.5 truncate max-w-[200px]" title={row.Descripcion}>{row.Descripcion}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono bg-gray-50/50">{row.Cant_Esperada}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono font-bold">{row.Cant_Recibida}</td>
+                                                <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono ${textClass}`}>
+                                                    {diff > 0 ? `+${diff}` : diff}
                                                 </td>
                                             </tr>
                                         );

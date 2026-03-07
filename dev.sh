@@ -9,5 +9,9 @@ elif [ -d ".venv_linux" ]; then
     source .venv_linux/bin/activate
 fi
 
+echo "🧹 Limpiando procesos Granian anteriores..."
+pkill -f granian || true
+sleep 1
+
 echo "🚀 Iniciando Logix Backend con Granian (Hot Reload)..."
 granian --interface asgi main:app --host 127.0.0.1 --port 8000 --reload

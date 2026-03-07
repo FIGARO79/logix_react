@@ -530,9 +530,16 @@ async def get_cycle_count_recordings(skip: int = 0, limit: int = 100, username: 
         for rec in recordings:
             item_code = str(rec.item_code).strip().upper()
             details = master_details_cache.get(item_code, {})
-            cost = float(details.get('Cost_per_Unit', 0.0))
-            
+
+            # Limpiar comas antes de convertir a float
+            cost_raw = details.get('Cost_per_Unit', '0.0')
+            try:
+                cost = float(str(cost_raw).replace(',', ''))
+            except (ValueError, TypeError):
+                cost = 0.0
+
             enriched_data.append({
+
                 'id': rec.id,
                 'executed_date': rec.executed_date,
                 'username': rec.username,

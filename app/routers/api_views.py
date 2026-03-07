@@ -98,90 +98,152 @@ async def get_reconciliation_data(
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
-    await csv_handler.reload_cache_if_needed()
-    
     try:
         archive_versions = await db_logs.get_archived_versions_db_async(db)
         
-        async with async_engine.connect() as conn:
-            if archive_date:
-                query = text('SELECT * FROM logs WHERE archived_at = :date')
-                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(query, sync_conn, params={"date": archive_date}))
-            else:
-                logs_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query('SELECT * FROM logs WHERE archived_at IS NULL', sync_conn))
-        
+        # 1. Obtener Logs (Base del reporte) - Usar db_logs service en lugar de SQL directo con Pandas
+        if archive_date:
+            logs_list = await db_logs.load_archived_log_data_db_async(db, archive_date)
+        else:
+            logs_list = await db_logs.load_log_data_db_async(db)
+            
+        if not logs_list:
+            return {"data": [], "archive_versions": archive_versions, "current_archive_date": archive_date}
+            
+        logs_df = pd.DataFrame(logs_list)
         grn_df = csv_handler.df_grn_cache
         
         if logs_df.empty or grn_df is None:
-            return {
-                "data": [],
-                "archive_versions": archive_versions,
-                "current_archive_date": archive_date
-            }
-            
-        # --- Data Processing Logic (Identical to Original) ---
-        # Limpiar comas antes de convertir a numérico
-        clean_qty_rec = logs_df['qtyReceived'].astype(str).str.replace(',', '', regex=False)
-        logs_df['qtyReceived'] = pd.to_numeric(clean_qty_rec, errors='coerce').fillna(0)
+            return {"data": [], "archive_versions": archive_versions, "current_archive_date": archive_date}
+
+        # 2. Cargar Fuentes de Asociación FILTRADAS por las IRs presentes en los logs
+        from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
+        from app.models.sql_models import GRNMaster
+        import os, json
         
-        clean_qty_grn = grn_df['Quantity'].astype(str).str.replace(',', '', regex=False)
-        grn_df['Quantity'] = pd.to_numeric(clean_qty_grn, errors='coerce').fillna(0)
+        # Obtener lista única de I.R. presentes en los logs para filtrar
+        active_irs = set(logs_df['importReference'].str.strip().str.upper().unique())
+        ir_to_grns_map = {}
 
-        items_in_file = grn_df['Item_Code'].unique()
-        logs_df_filtered = logs_df[logs_df['itemCode'].isin(items_in_file)]
+        # A. Fuente 1: po_lookup.json (Solo si la IR está en los logs)
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
+                    po_cache = json.load(f)
+                    po_ir_data = po_cache.get("ir_to_data", {})
+                    for ir_in_logs in active_irs:
+                        data = po_ir_data.get(ir_in_logs)
+                        if data:
+                            grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
+                            if grns:
+                                if ir_in_logs not in ir_to_grns_map: ir_to_grns_map[ir_in_logs] = {"grns": set(), "wb": data.get("waybill")}
+                                ir_to_grns_map[ir_in_logs]["grns"].update(grns)
+            except: pass
 
-        item_totals = logs_df_filtered.groupby(['itemCode'])['qtyReceived'].sum().reset_index()
-        item_totals = item_totals.rename(columns={'itemCode': 'Item_Code', 'qtyReceived': 'Total_Recibido'})
+        # B. Fuente 2: grn_master_data.json (Solo si la IR está en los logs)
+        if os.path.exists(GRN_JSON_DATA_PATH):
+            try:
+                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
+                    inbound_data = json.load(f)
+                    for row in inbound_data:
+                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                        if ir in active_irs:
+                            grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                            if ir and grn:
+                                if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
+                                ir_to_grns_map[ir]["grns"].add(grn)
+            except: pass
 
-        item_expected_totals = grn_df.groupby(['Item_Code'])['Quantity'].sum().reset_index()
-        item_expected_totals = item_expected_totals.rename(columns={'Quantity': 'Total_Esperado_Item'})
+        # C. Fuente 3: DB Maestro (Filtrado por IRs activas)
+        try:
+            stmt = select(GRNMaster).where(func.upper(GRNMaster.import_reference).in_(list(active_irs)))
+            db_res = await db.execute(stmt)
+            for g_master in db_res.scalars().all():
+                ir_key = str(g_master.import_reference).strip().upper()
+                if g_master.grn_number:
+                    grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
+                    if ir_key not in ir_to_grns_map: ir_to_grns_map[ir_key] = {"grns": grns_set, "wb": g_master.waybill}
+                    else: ir_to_grns_map[ir_key]["grns"].update(grns_set)
+        except: pass
 
-        grn_lines = grn_df[['GRN_Number', 'Item_Code', 'Item_Description', 'Quantity']].copy()
-        grn_lines = grn_lines.rename(columns={'Quantity': 'Cant_Esperada_Linea'})
-
-        merged_df = pd.merge(grn_lines, item_totals, on='Item_Code', how='left')
-        merged_df = pd.merge(merged_df, item_expected_totals, on='Item_Code', how='left')
-
-        if not logs_df_filtered.empty:
-            logs_df_filtered['id'] = pd.to_numeric(logs_df_filtered['id'])
-            latest_logs = logs_df_filtered.sort_values('id', ascending=False).drop_duplicates('itemCode')
-            
-            locations_df = latest_logs[['itemCode', 'binLocation', 'relocatedBin']].rename(
-                columns={'itemCode': 'Item_Code', 'binLocation': 'Bin_Original', 'relocatedBin': 'Bin_Reubicado'}
-            )
-            merged_df = pd.merge(merged_df, locations_df, on='Item_Code', how='left')
-
-        merged_df['Total_Recibido'] = merged_df['Total_Recibido'].fillna(0)
-        merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].fillna(0)
-        merged_df['Total_Esperado_Item'] = merged_df['Total_Esperado_Item'].fillna(0)
-        merged_df['Diferencia'] = merged_df['Total_Recibido'] - merged_df['Total_Esperado_Item']
+        # 3. Procesamiento simplificado y veloz
+        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
         
-        merged_df.fillna({'Bin_Original': 'N/A', 'Bin_Reubicado': ''}, inplace=True)
+        # Agrupar logs por IR, WB e Item
+        logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
+
+        # Convertir mapa consolidado a DataFrame para el merge
+        mapping_rows = []
+        for ir, info in ir_to_grns_map.items():
+            for grn in info["grns"]:
+                mapping_rows.append({"ir_map": ir, "wb_map": info["wb"], "grn_map": grn})
         
-        merged_df['Total_Recibido'] = merged_df['Total_Recibido'].astype(int)
-        merged_df['Cant_Esperada_Linea'] = merged_df['Cant_Esperada_Linea'].astype(int)
-        merged_df['Total_Esperado_Item'] = merged_df['Total_Esperado_Item'].astype(int)
-        merged_df['Diferencia'] = merged_df['Diferencia'].astype(int)
+        df_mapping = pd.DataFrame(mapping_rows) if mapping_rows else pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
 
-        merged_df = merged_df.sort_values('GRN_Number', ascending=True)
+        # Si no hay mapeo, usamos una lista vacía para evitar errores
+        if df_mapping.empty:
+            df_mapping = pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
 
-        # Standardize keys for JSON
-        result_data = merged_df.rename(columns={
-            'GRN_Number': 'GRN',
-            'Item_Code': 'Codigo_Item',
-            'Item_Description': 'Descripcion',
-            'Bin_Original': 'Ubicacion',
-            'Bin_Reubicado': 'Reubicado',
-            'Cant_Esperada_Linea': 'Cant_Esperada',
-            'Total_Recibido': 'Cant_Recibida',
-            'Diferencia': 'Diferencia'
-        }).to_dict(orient='records')
+        # Unir Mapeo con GRN Maestro (280) - MANTENIENDO LÍNEAS INDIVIDUALES
+        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+        
+        # Estas son las líneas individuales del sistema 280 que pertenecen a nuestras IRs
+        df_expected_lines = pd.merge(df_mapping, grn_df, left_on='grn_map', right_on='GRN_Number', how='inner')
+        
+        # Calcular el total esperado por (IR + Item) para poder sacar la diferencia real
+        total_exp_per_ir_item = df_expected_lines.groupby(['ir_map', 'Item_Code'])['Quantity'].sum().reset_index()
+        total_exp_per_ir_item = total_exp_per_ir_item.rename(columns={'Quantity': 'Total_Esperado_IR'})
+
+        # UNIÓN: Líneas de GRN + Totales Esperados + Logs Recibidos
+        # 1. Unimos las líneas con su total esperado
+        merged = pd.merge(df_expected_lines, total_exp_per_ir_item, on=['ir_map', 'Item_Code'], how='left')
+        
+        # 2. Unimos con lo que el operario recibió físicamente
+        final_merge = pd.merge(
+            merged, 
+            logs_grouped, 
+            left_on=['ir_map', 'Item_Code'], 
+            right_on=['importReference', 'itemCode'], 
+            how='outer'
+        )
+
+        # Limpieza de nulos vectorizada
+        final_merge['qtyReceived'] = final_merge['qtyReceived'].fillna(0).astype(int)
+        final_merge['Quantity'] = final_merge['Quantity'].fillna(0).astype(int)
+        final_merge['Total_Esperado_IR'] = final_merge['Total_Esperado_IR'].fillna(0).astype(int)
+        
+        final_merge['importReference'] = final_merge['importReference'].fillna(final_merge['ir_map'])
+        final_merge['waybill'] = final_merge['waybill'].fillna(final_merge['wb_map'])
+        final_merge['itemCode'] = final_merge['itemCode'].fillna(final_merge['Item_Code'])
+        final_merge['Item_Description'] = final_merge['Item_Description'].fillna("No en sistema 280")
+        final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
+        
+        # La diferencia es: Lo que entró físicamente vs lo que el sistema esperaba en toda la IR
+        final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
+
+        # Formatear para el Frontend
+        result_data = final_merge.rename(columns={
+            "importReference": "Import_Reference",
+            "waybill": "Waybill",
+            "GRN_Number": "GRN",
+            "itemCode": "Codigo_Item",
+            "Item_Description": "Descripcion",
+            "Quantity": "Cant_Esperada",
+            "qtyReceived": "Cant_Recibida"
+        })[[
+            "Import_Reference", "Waybill", "GRN", "Codigo_Item", 
+            "Descripcion", "Cant_Esperada", "Cant_Recibida", "Diferencia"
+        ]].to_dict(orient='records')
         
         return {
             "data": result_data,
             "archive_versions": archive_versions,
             "current_archive_date": archive_date
         }
+
+    except Exception as e:
+        print(f"Error en conciliación simplificada: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -361,7 +423,9 @@ async def get_cycle_count_recordings(
         if master_item:
             # Ahora tenemos todos los campos necesarios en la tabla
             try:
-                cost = float(master_item.cost_per_unit) if master_item.cost_per_unit else 0.0
+                # Limpiar comas antes de convertir a float
+                cost_str = str(master_item.cost_per_unit).replace(',', '')
+                cost = float(cost_str) if master_item.cost_per_unit else 0.0
             except (ValueError, TypeError):
                 cost = 0.0
             
