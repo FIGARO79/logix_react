@@ -13,8 +13,15 @@ from app.core.config import (
     COLUMNS_TO_READ_MASTER,
     COLUMNS_TO_READ_GRN,
     MASTER_DETAILS_CACHE_PATH,
-    GRN_CACHE_JSON_PATH
+    GRN_CACHE_JSON_PATH,
+    STOCK_QTY_CACHE_PATH
 )
+
+def np_encoder(object):
+    """Función para parsear tipos numpy a nativos para JSON"""
+    if isinstance(object, np.generic):
+        return object.item()
+    return str(object)
 
 # --- CACHÉ DE ALTO RENDIMIENTO (ESTADO CALIENTE) ---
 df_master_cache = None 
@@ -60,8 +67,10 @@ async def load_csv_data():
             
             # Guardar persistencia JSON silenciosamente
             try:
-                with open(MASTER_DETAILS_CACHE_PATH, 'w') as f: json.dump(master_details_cache, f)
-            except: pass
+                with open(MASTER_DETAILS_CACHE_PATH, 'w') as f: json.dump(master_details_cache, f, default=np_encoder)
+                with open(STOCK_QTY_CACHE_PATH, 'w') as f: json.dump(master_qty_map, f, default=np_encoder)
+            except Exception as e:
+                print(f"Error guardando caché maestro JSON: {e}")
 
     # 2. Procesar GRN 280
     if os.path.exists(GRN_CSV_FILE_PATH):
@@ -70,6 +79,13 @@ async def load_csv_data():
         if df_g is not None:
             df_g['Quantity'] = pd.to_numeric(df_g['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
             df_grn_cache = df_g
+            
+            try:
+                # Guardar persistencia en JSON si es requerido
+                grn_dict = df_g.replace({np.nan: None}).to_dict(orient='records')
+                with open(GRN_CACHE_JSON_PATH, 'w') as f: json.dump(grn_dict, f, default=np_encoder)
+            except Exception as e:
+                print(f"Error guardando caché GRN JSON: {e}")
 
     print(f"✅ [SISTEMA] Datos cargados en RAM en {time.time() - start_time:.2f} segundos.")
 

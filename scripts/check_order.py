@@ -3,7 +3,7 @@ import os
 import sys
 
 # Añadir el directorio raíz al path para poder importar app
-sys.path.append('/home/debian/logix_granian')
+sys.path.append('/home/debian/logix')
 
 from sqlalchemy import select
 from app.core.db import AsyncSessionLocal

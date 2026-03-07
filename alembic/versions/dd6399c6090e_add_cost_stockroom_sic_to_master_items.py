@@ -20,11 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Add new columns to master_items table
-    op.add_column('master_items', sa.Column('stockroom', sa.String(50), nullable=True))
-    op.add_column('master_items', sa.Column('cost_per_unit', sa.Numeric(10, 2), nullable=True))
-    op.add_column('master_items', sa.Column('sic_code_company', sa.String(50), nullable=True))
-    op.add_column('master_items', sa.Column('sic_code_stockroom', sa.String(50), nullable=True))
+    # Columnas ya existen o se manejan manualmente para evitar errores de duplicado
+    pass
+
 
 
 def downgrade() -> None:

@@ -116,7 +116,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
     final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
     final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
 
-    return final_merge.rename(columns={
+    df_final = final_merge.rename(columns={
         "importReference": "Import_Reference",
         "waybill": "Waybill",
         "GRN_Number": "GRN",
@@ -124,10 +124,17 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         "Item_Description": "Descripcion",
         "Quantity": "Cant_Esperada",
         "qtyReceived": "Cant_Recibida"
-    })[[
+    })
+    
+    # Añadir placeholders para campos de UI si no existen
+    df_final = df_final.copy()
+    df_final['Ubicacion'] = ""
+    df_final['Reubicado'] = ""
+
+    return df_final[[
         "Import_Reference", "Waybill", "GRN", "Codigo_Item", 
-        "Descripcion", "Cant_Esperada", "Cant_Recibida", "Diferencia"
-    ]].to_dict(orient='records')
+        "Descripcion", "Ubicacion", "Reubicado", "Cant_Esperada", "Cant_Recibida", "Diferencia"
+    ]].fillna("").to_dict(orient='records')
 
 async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False):
     """Guarda un snapshot de conciliación en la DB."""

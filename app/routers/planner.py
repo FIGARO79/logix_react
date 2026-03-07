@@ -31,26 +31,6 @@ PLAN_DATA_FILE = PLANNER_DATA_PATH
 
 def load_config():
     """Carga la configuración desde el archivo JSON, o usa defaults."""
-    default_config = {
-        "start_date": f"{datetime.datetime.now().year}-01-01",
-        "end_date": f"{datetime.datetime.now().year}-12-31"
-    }
-    if not os.path.exists(CONFIG_FILE):
-        return default_config
-    
-    try:
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
-    except Exception:
-        return default_config
-
-def save_config(config_data):
-    """Guarda la configuración en el archivo JSON."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config_data, f, indent=4)
-
-def load_config():
-    """Carga la configuración desde el archivo JSON, o usa defaults."""
     default_holidays = [
         "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03",
         "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29",

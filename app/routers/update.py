@@ -15,16 +15,22 @@ from app.models.sql_models import Log
 
 # Importaciones relativas desde la estructura del proyecto
 from app.core.config import (
+    GRN_JSON_DATA_PATH, 
+    PO_LOOKUP_JSON_PATH, 
+    STOCK_QTY_CACHE_PATH,
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
-    GRN_COLUMN_NAME_IN_CSV,
-    ADMIN_PASSWORD,
-    PO_LOOKUP_JSON_PATH
+    GRN_COLUMN_NAME_IN_CSV
 )
 from app.services.csv_handler import load_csv_data
 from app.utils.auth import login_required
 from app.core.templates import templates
+
+def np_encoder(obj):
+    if isinstance(obj, np.generic):
+        return obj.item()
+    return str(obj)
 
 router = APIRouter(
     prefix="",
@@ -145,7 +151,7 @@ async def update_files_post(
             
             # Guardar como JSON persistente
             with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
-                json.dump(data_list, f, indent=4, default=str)
+                json.dump(data_list, f, indent=4, default=np_encoder)
             
             # [NUEVO] Eliminar el Excel original si existe para mantener el flujo limpio
             from app.core.config import GRN_EXCEL_PATH
@@ -240,7 +246,7 @@ async def update_files_post(
                 }
                 
                 with open(PO_LOOKUP_JSON_PATH, "w", encoding="utf-8") as f:
-                    json.dump(lookup_data, f, indent=2)
+                    json.dump(lookup_data, f, indent=2, default=np_encoder)
                 
                 message += 'Caché de búsqueda (Items + GRN) generado correctamente. '
                 del df_po, wb_lookup, ir_lookup, lookup_data
@@ -267,6 +273,15 @@ async def update_files_post(
     
     return JSONResponse(content={"message": message})
 
+
+@router.post('/api/reload_cache', response_class=JSONResponse)
+async def reload_cache_api(username: str = Depends(login_required)):
+    """Fuerza la recarga de los datos CSV en la memoria RAM."""
+    try:
+        await load_csv_data()
+        return {"message": "Caché de memoria RAM recargado correctamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al recargar caché: {e}")
 
 # --- Endpoint para previsualizar las GRNs de un archivo ---
 @router.post("/api/preview_grn_file")

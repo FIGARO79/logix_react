@@ -104,6 +104,8 @@ async def get_reconciliation_data(
                 "GRN": r.grn,
                 "Codigo_Item": r.item_code,
                 "Descripcion": r.description,
+                "Ubicacion": "",
+                "Reubicado": "",
                 "Cant_Esperada": r.qty_expected,
                 "Cant_Recibida": r.qty_received,
                 "Diferencia": r.difference

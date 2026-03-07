@@ -8,7 +8,7 @@ import json
 import os
 import pandas as pd
 import gc
-from app.core.config import PO_LOOKUP_JSON_PATH
+from app.core.config import PO_LOOKUP_JSON_PATH, PO_EXTRACTOR_EXCEL_PATH
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -22,7 +22,7 @@ async def lookup_reference(
         return {"waybill": "", "import_ref": ""}
     
     cache_path = PO_LOOKUP_JSON_PATH
-    file_path = "databases/Purchase Order Extractor.xlsx"
+    file_path = PO_EXTRACTOR_EXCEL_PATH
     
     result = {"waybill": waybill or "", "import_ref": import_ref or ""}
 
