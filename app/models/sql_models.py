@@ -246,3 +246,18 @@ class GRNMaster(Base):
     ct: Mapped[Optional[str]] = mapped_column(String(50))
     created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
+class ReconciliationHistory(Base):
+    __tablename__ = 'reconciliation_history'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
+    import_reference: Mapped[str] = mapped_column(String(100))
+    waybill: Mapped[str] = mapped_column(String(100))
+    grn: Mapped[str] = mapped_column(String(100))
+    item_code: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(Text)
+    qty_expected: Mapped[int] = mapped_column(Integer)
+    qty_received: Mapped[int] = mapped_column(Integer)
+    difference: Mapped[int] = mapped_column(Integer)
+    username: Mapped[str] = mapped_column(String(100))
+    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+

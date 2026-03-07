@@ -8,14 +8,24 @@ const Reconciliation = () => {
     const [loading, setLoading] = useState(true);
     const [filterText, setFilterText] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'GRN', direction: 'ascending' });
+    const [archiveVersions, setArchiveVersions] = useState([]);
+    const [snapshotVersions, setSnapshotVersions] = useState([]);
+    const [currentVersion, setCurrentVersion] = useState('');
+    const [currentSnapshot, setCurrentSnapshot] = useState('');
 
     // Fetch data
-    const fetchData = () => {
+    const fetchData = (params = {}) => {
         setLoading(true);
-        fetch('/api/views/reconciliation')
+        const queryParams = new URLSearchParams();
+        if (params.archive_date) queryParams.append('archive_date', params.archive_date);
+        if (params.snapshot_date) queryParams.append('snapshot_date', params.snapshot_date);
+
+        fetch(`/api/views/reconciliation?${queryParams.toString()}`)
             .then(res => res.json())
             .then(response => {
                 if (response.data) setData(response.data);
+                if (response.archive_versions) setArchiveVersions(response.archive_versions);
+                if (response.snapshot_versions) setSnapshotVersions(response.snapshot_versions);
                 setLoading(false);
             })
             .catch(err => {
@@ -27,6 +37,50 @@ const Reconciliation = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleArchiveSnapshot = async () => {
+        if (!data || data.length === 0) return alert("No hay datos para archivar");
+        if (!confirm("¿Deseas guardar una instantánea (SNAPSHOT) de esta conciliación? Esto congelará las diferencias calculadas actualmente.")) return;
+
+        try {
+            const res = await fetch('/api/views/reconciliation/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const result = await res.json();
+                alert(`Instantánea guardada correctamente: ${result.archive_date}`);
+                fetchData(); // Recargar versiones
+            } else {
+                alert("Error al guardar la instantánea");
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    };
+
+    const handleVersionChange = (e) => {
+        const val = e.target.value;
+        setCurrentVersion(val);
+        setCurrentSnapshot(''); // Limpiar snapshot si cambia versión de logs
+        fetchData({ archive_date: val });
+    };
+
+    const handleSnapshotChange = (e) => {
+        const val = e.target.value;
+        setCurrentSnapshot(val);
+        setCurrentVersion(''); // Limpiar versión de logs si cambia snapshot
+        fetchData({ snapshot_date: val });
+    };
+
+    const formatDateShort = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return dateStr; }
+    };
 
     // Sorting logic
     const sortedData = useMemo(() => {
@@ -89,23 +143,59 @@ const Reconciliation = () => {
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-center">
+                    {/* Select Logs Archived */}
+                    <select 
+                        value={currentVersion}
+                        onChange={handleVersionChange}
+                        className="h-8 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
+                    >
+                        <option value="">-- Logs Actuales --</option>
+                        {archiveVersions.map(v => (
+                            <option key={v} value={v}>Logs: {formatDateShort(v)}</option>
+                        ))}
+                    </select>
+
+                    {/* Select Snapshots (Frozen) */}
+                    <select 
+                        value={currentSnapshot}
+                        onChange={handleSnapshotChange}
+                        className="h-8 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md shadow-sm hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
+                    >
+                        <option value="">-- Historial Snapshots --</option>
+                        {snapshotVersions.map(v => (
+                            <option key={v} value={v}>Snapshot: {formatDateShort(v)}</option>
+                        ))}
+                    </select>
+
                     {/* Search Box */}
                     <input
                         type="text"
                         placeholder="Buscar..."
-                        className="h-5 px-1 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
+                        className="h-8 px-2 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                     />
 
                     {/* Export Button */}
                     <button
-                        onClick={() => window.location.href = '/api/export_reconciliation'}
+                        onClick={() => window.location.href = `/api/export_reconciliation?${currentVersion ? `archive_date=${currentVersion}` : ''}${currentSnapshot ? `snapshot_date=${currentSnapshot}` : ''}`}
                         className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar
                     </button>
+
+                    {/* Archive Snapshot Button */}
+                    {!currentSnapshot && (
+                        <button
+                            onClick={handleArchiveSnapshot}
+                            className="h-8 px-4 text-xs font-medium bg-blue-600 text-white border border-blue-700 rounded-md shadow-sm hover:bg-blue-700 transition-all duration-150 flex items-center justify-center gap-1.5"
+                            title="Congelar esta vista en el historial"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                            Snapshot
+                        </button>
+                    )}
                 </div>
             </div>
 

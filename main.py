@@ -48,6 +48,7 @@ app = FastAPI(
     version="2.1.0",
     lifespan=lifespan
 )
+# Forzar recarga completa de rutas para instantáneas de conciliación
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

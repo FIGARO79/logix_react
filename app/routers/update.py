@@ -76,6 +76,12 @@ async def update_files_post(
     # Manejo del archivo GRN (280)
     if grn_file and grn_file.filename:
         try:
+            # [NUEVO] Generar Snapshot Automático ANTES de tocar los archivos
+            from app.services import reconciliation_service
+            auto_snap = await reconciliation_service.auto_snapshot_before_update(db, username)
+            if auto_snap:
+                message += f"Snapshot de seguridad generado: {auto_snap}. "
+
             new_data_df = pd.read_csv(grn_file.file, dtype=str)
             
             if selected_grns_280:

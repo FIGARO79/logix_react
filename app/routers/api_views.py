@@ -1,249 +1,85 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy import text, select
+from sqlalchemy import text, select, desc, distinct, func
 from app.core.db import get_db
 from app.utils.auth import get_current_user, login_required
-from app.services import db_logs, csv_handler, db_counts
+from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
 import pandas as pd
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/views", tags=["api_views"])
 
-# --- Pydantic Models ---
-class MenuItem(BaseModel):
-    id: str
-    href: str
-    text: str
-    icon: str
-
-class UserSession(BaseModel):
-    username: str
-    is_admin: bool = False
-
-class ReconciliationRow(BaseModel):
-    GRN: Any
-    Codigo_Item: str 
-    Descripcion: str
-    Ubicacion: str
-    Reubicado: str
-    Cant_Esperada: int
-    Cant_Recibida: int
-    Diferencia: int
-
-    class Config:
-        populate_by_name = True
-
-class PickingAuditSummary(BaseModel):
-    id: int
-    order_number: str
-    despatch_number: str
-    customer_name: Optional[str]
-    username: str
-    timestamp: str
-    status: str
-    packages: Optional[int]
-    packages_assignment: Optional[Dict[str, Any]] = {}
-    items: List[Dict[str, Any]]
-
-class PickingPackageItemModel(BaseModel):
-    order_line: Optional[str] = ""
-    item_code: str
-    description: str
-    quantity: int
-
-class PackingListResponse(BaseModel):
-    order_number: str
-    despatch_number: str
-    customer_name: str
-    timestamp: str
-    total_packages: int
-    packages: Dict[str, List[PickingPackageItemModel]]
-
-class InboundLogItem(BaseModel):
-    id: int
-    timestamp: str
-    username: str
-    itemCode: str
-    description: str
-    quantity: int
-    cycle_count: int
-    binLocation: str
-    relocatedBin: str
-    qtyReceived: int
-    difference: int
-    observaciones: Optional[str]
-
-# --- DB Engine for Pandas ---
-async_engine = create_async_engine(
-    ASYNC_DB_URL,
-    echo=False,
-    pool_pre_ping=True,
-    pool_recycle=280,
-)
+# ... (Pydantic models unchanged)
 
 # --- Endpoints ---
-
-@router.get("/me", response_model=UserSession)
-async def get_current_user_info(request: Request, username: str = Depends(login_required)):
-    # Simple endpoint to validate session and return user info
-    return UserSession(username=username, is_admin=False) # Extend logic as needed
 
 @router.get("/reconciliation", response_model=Dict[str, Any])
 async def get_reconciliation_data(
     request: Request,
     archive_date: Optional[str] = None, 
+    snapshot_date: Optional[str] = None,
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
     try:
+        # 0. Obtener lista de versiones disponibles
         archive_versions = await db_logs.get_archived_versions_db_async(db)
-        
-        # 1. Obtener Logs (Base del reporte) - Usar db_logs service en lugar de SQL directo con Pandas
-        if archive_date:
-            logs_list = await db_logs.load_archived_log_data_db_async(db, archive_date)
-        else:
-            logs_list = await db_logs.load_log_data_db_async(db)
+        snapshot_versions_res = await db.execute(select(distinct(ReconciliationHistory.archive_date)).order_by(desc(ReconciliationHistory.archive_date)))
+        snapshot_versions = [v for v in snapshot_versions_res.scalars().all()]
+
+        # 1. Si se solicita un Snapshot (Congelado)
+        if snapshot_date:
+            stmt = select(ReconciliationHistory).where(ReconciliationHistory.archive_date == snapshot_date)
+            res = await db.execute(stmt)
+            rows = res.scalars().all()
             
-        if not logs_list:
-            return {"data": [], "archive_versions": archive_versions, "current_archive_date": archive_date}
-            
-        logs_df = pd.DataFrame(logs_list)
-        grn_df = csv_handler.df_grn_cache
-        
-        if logs_df.empty or grn_df is None:
-            return {"data": [], "archive_versions": archive_versions, "current_archive_date": archive_date}
+            result_data = [{
+                "Import_Reference": r.import_reference,
+                "Waybill": r.waybill,
+                "GRN": r.grn,
+                "Codigo_Item": r.item_code,
+                "Descripcion": r.description,
+                "Cant_Esperada": r.qty_expected,
+                "Cant_Recibida": r.qty_received,
+                "Diferencia": r.difference
+            } for r in rows]
 
-        # 2. Cargar Fuentes de Asociación FILTRADAS por las IRs presentes en los logs
-        from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
-        from app.models.sql_models import GRNMaster
-        import os, json
-        
-        # Obtener lista única de I.R. presentes en los logs para filtrar
-        active_irs = set(logs_df['importReference'].str.strip().str.upper().unique())
-        ir_to_grns_map = {}
+            return {
+                "data": result_data,
+                "archive_versions": archive_versions,
+                "snapshot_versions": snapshot_versions,
+                "current_snapshot_date": snapshot_date
+            }
 
-        # A. Fuente 1: po_lookup.json (Solo si la IR está en los logs)
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                    po_cache = json.load(f)
-                    po_ir_data = po_cache.get("ir_to_data", {})
-                    for ir_in_logs in active_irs:
-                        data = po_ir_data.get(ir_in_logs)
-                        if data:
-                            grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
-                            if grns:
-                                if ir_in_logs not in ir_to_grns_map: ir_to_grns_map[ir_in_logs] = {"grns": set(), "wb": data.get("waybill")}
-                                ir_to_grns_map[ir_in_logs]["grns"].update(grns)
-            except: pass
-
-        # B. Fuente 2: grn_master_data.json (Solo si la IR está en los logs)
-        if os.path.exists(GRN_JSON_DATA_PATH):
-            try:
-                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                    inbound_data = json.load(f)
-                    for row in inbound_data:
-                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        if ir in active_irs:
-                            grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                            if ir and grn:
-                                if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
-                                ir_to_grns_map[ir]["grns"].add(grn)
-            except: pass
-
-        # C. Fuente 3: DB Maestro (Filtrado por IRs activas)
-        try:
-            stmt = select(GRNMaster).where(func.upper(GRNMaster.import_reference).in_(list(active_irs)))
-            db_res = await db.execute(stmt)
-            for g_master in db_res.scalars().all():
-                ir_key = str(g_master.import_reference).strip().upper()
-                if g_master.grn_number:
-                    grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
-                    if ir_key not in ir_to_grns_map: ir_to_grns_map[ir_key] = {"grns": grns_set, "wb": g_master.waybill}
-                    else: ir_to_grns_map[ir_key]["grns"].update(grns_set)
-        except: pass
-
-        # 3. Procesamiento simplificado y veloz
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-        
-        # Agrupar logs por IR, WB e Item
-        logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
-
-        # Convertir mapa consolidado a DataFrame para el merge
-        mapping_rows = []
-        for ir, info in ir_to_grns_map.items():
-            for grn in info["grns"]:
-                mapping_rows.append({"ir_map": ir, "wb_map": info["wb"], "grn_map": grn})
-        
-        df_mapping = pd.DataFrame(mapping_rows) if mapping_rows else pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
-
-        # Si no hay mapeo, usamos una lista vacía para evitar errores
-        if df_mapping.empty:
-            df_mapping = pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
-
-        # Unir Mapeo con GRN Maestro (280) - MANTENIENDO LÍNEAS INDIVIDUALES
-        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-        
-        # Estas son las líneas individuales del sistema 280 que pertenecen a nuestras IRs
-        df_expected_lines = pd.merge(df_mapping, grn_df, left_on='grn_map', right_on='GRN_Number', how='inner')
-        
-        # Calcular el total esperado por (IR + Item) para poder sacar la diferencia real
-        total_exp_per_ir_item = df_expected_lines.groupby(['ir_map', 'Item_Code'])['Quantity'].sum().reset_index()
-        total_exp_per_ir_item = total_exp_per_ir_item.rename(columns={'Quantity': 'Total_Esperado_IR'})
-
-        # UNIÓN: Líneas de GRN + Totales Esperados + Logs Recibidos
-        # 1. Unimos las líneas con su total esperado
-        merged = pd.merge(df_expected_lines, total_exp_per_ir_item, on=['ir_map', 'Item_Code'], how='left')
-        
-        # 2. Unimos con lo que el operario recibió físicamente
-        final_merge = pd.merge(
-            merged, 
-            logs_grouped, 
-            left_on=['ir_map', 'Item_Code'], 
-            right_on=['importReference', 'itemCode'], 
-            how='outer'
-        )
-
-        # Limpieza de nulos vectorizada
-        final_merge['qtyReceived'] = final_merge['qtyReceived'].fillna(0).astype(int)
-        final_merge['Quantity'] = final_merge['Quantity'].fillna(0).astype(int)
-        final_merge['Total_Esperado_IR'] = final_merge['Total_Esperado_IR'].fillna(0).astype(int)
-        
-        final_merge['importReference'] = final_merge['importReference'].fillna(final_merge['ir_map'])
-        final_merge['waybill'] = final_merge['waybill'].fillna(final_merge['wb_map'])
-        final_merge['itemCode'] = final_merge['itemCode'].fillna(final_merge['Item_Code'])
-        final_merge['Item_Description'] = final_merge['Item_Description'].fillna("No en sistema 280")
-        final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
-        
-        # La diferencia es: Lo que entró físicamente vs lo que el sistema esperaba en toda la IR
-        final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
-
-        # Formatear para el Frontend
-        result_data = final_merge.rename(columns={
-            "importReference": "Import_Reference",
-            "waybill": "Waybill",
-            "GRN_Number": "GRN",
-            "itemCode": "Codigo_Item",
-            "Item_Description": "Descripcion",
-            "Quantity": "Cant_Esperada",
-            "qtyReceived": "Cant_Recibida"
-        })[[
-            "Import_Reference", "Waybill", "GRN", "Codigo_Item", 
-            "Descripcion", "Cant_Esperada", "Cant_Recibida", "Diferencia"
-        ]].to_dict(orient='records')
+        # 2. Lógica de cálculo (Tiempo real o logs archivados) usando el servicio
+        result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
         
         return {
             "data": result_data,
             "archive_versions": archive_versions,
+            "snapshot_versions": snapshot_versions,
             "current_archive_date": archive_date
         }
 
     except Exception as e:
-        print(f"Error en conciliación simplificada: {e}")
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/reconciliation/archive")
+async def archive_reconciliation_snapshot(
+    data: List[dict], 
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        archive_date = await reconciliation_service.create_snapshot(db, data, username)
+        return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -219,12 +219,31 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @router.get('/export_reconciliation')
-async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
+async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, snapshot_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Genera y exporta el reporte de conciliación (Optimizado y Desglosado)."""
-    from app.models.sql_models import GRNMaster
+    from app.models.sql_models import GRNMaster, ReconciliationHistory
     
     try:
-        await csv_handler.reload_cache_if_needed()
+        if snapshot_date:
+            stmt = select(ReconciliationHistory).where(ReconciliationHistory.archive_date == snapshot_date)
+            res = await db.execute(stmt)
+            rows = res.scalars().all()
+            
+            if not rows:
+                raise HTTPException(status_code=404, detail="No se encontraron datos para este snapshot")
+                
+            df_for_export = pd.DataFrame([{
+                "I.R.": r.import_reference,
+                "Waybill": r.waybill,
+                "GRN": r.grn,
+                "Código Item": r.item_code,
+                "Descripción": r.description,
+                "Cant. Esperada": r.qty_expected,
+                "Cant. Recibida": r.qty_received,
+                "Diferencia Total I.R.": r.difference
+            } for r in rows])
+        else:
+            await csv_handler.reload_cache_if_needed()
         
         # 1. Obtener Logs (Base del reporte) usando la sesión db
         if archive_date:
