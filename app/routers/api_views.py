@@ -12,9 +12,71 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/views", tags=["api_views"])
 
-# ... (Pydantic models unchanged)
+# --- Pydantic Models ---
+class MenuItem(BaseModel):
+    id: str
+    href: str
+    text: str
+    icon: str
 
-# --- Endpoints ---
+class UserSession(BaseModel):
+    username: str
+    is_admin: bool = False
+
+class ReconciliationRow(BaseModel):
+    GRN: Any
+    Codigo_Item: str 
+    Descripcion: str
+    Ubicacion: str
+    Reubicado: str
+    Cant_Esperada: int
+    Cant_Recibida: int
+    Diferencia: int
+
+    class Config:
+        from_attributes = True
+
+class PickingAuditSummary(BaseModel):
+    id: int
+    order_number: str
+    despatch_number: str
+    customer_name: Optional[str]
+    username: str
+    timestamp: str
+    status: str
+    packages: Optional[int]
+    packages_assignment: Optional[Dict[str, Any]] = {}
+    items: List[Dict[str, Any]]
+
+class PickingPackageItemModel(BaseModel):
+    order_line: Optional[str] = ""
+    item_code: str
+    description: str
+    quantity: int
+
+class PackingListResponse(BaseModel):
+    order_number: str
+    despatch_number: str
+    customer_name: str
+    timestamp: str
+    total_packages: int
+    packages: Dict[str, List[PickingPackageItemModel]]
+
+class InboundLogItem(BaseModel):
+    id: int
+    timestamp: str
+    username: str
+    itemCode: str
+    description: str
+    quantity: int
+    cycle_count: int
+    binLocation: str
+    relocatedBin: str
+    qtyReceived: int
+    difference: int
+    observaciones: Optional[str]
+
+# --- DB Engine for Pandas ---
 
 @router.get("/reconciliation", response_model=Dict[str, Any])
 async def get_reconciliation_data(

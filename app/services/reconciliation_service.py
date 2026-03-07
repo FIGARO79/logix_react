@@ -166,16 +166,14 @@ async def auto_snapshot_before_update(db: AsyncSession, username: str):
             
         print(f"DEBUG: Datos encontrados en conciliación: {len(current_data)} filas.")
         
-        # Solo archivar si hay alguna diferencia o alguna cantidad recibida
-        has_activity = any(row.get('Cant_Recibida', 0) > 0 for row in current_data)
-        
-        if has_activity:
+        # Solo archivar si hay datos en la conciliación
+        if len(current_data) > 0:
             user_str = username if isinstance(username, str) else getattr(username, 'username', str(username))
             archive_date = await create_snapshot(db, current_data, f"AUTO({user_str})", is_auto=True)
             print(f"✅ Snapshot automático generado exitosamente: {archive_date}")
             return archive_date
         else:
-            print("DEBUG: Snapshot automático omitido: No hay Cant_Recibida > 0 en los datos actuales.")
+            print("DEBUG: Snapshot automático omitido: No hay datos calculados.")
         
         return None
     except Exception as e:
