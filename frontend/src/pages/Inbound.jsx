@@ -488,8 +488,10 @@ const Inbound = () => {
                                                 title="Haz clic para usar esta ubicación"
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Sugerencia Slotting</span>
-                                                    <span className="text-[8px] italic text-emerald-600">Tap para usar</span>
+                                                    <span className={`text-[10px] font-bold uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
+                                                        {itemData?.is_ai_prediction ? 'Predicción IA' : 'Sugerencia Slotting'}
+                                                    </span>
+                                                    <span className="text-[8px] italic text-gray-500">Tap para usar</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

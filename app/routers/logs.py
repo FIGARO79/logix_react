@@ -31,6 +31,8 @@ async_engine = create_async_engine(
 router = APIRouter(prefix="/api", tags=["logs"])
 
 
+from app.services.ai_slotting import ai_slotting
+
 @router.get('/find_item/{item_code}/{import_reference}')
 async def find_item(
     item_code: str, 
@@ -38,7 +40,7 @@ async def find_item(
     username: str = Depends(permission_required(["stock", "inbound"])), 
     db: AsyncSession = Depends(get_db)
 ):
-    """Busca un item en el maestro y calcula cantidades."""
+    """Busca un item en el maestro y calcula cantidades con sugerencia IA."""
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
@@ -48,14 +50,36 @@ async def find_item(
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
-    # Calcular Sugerencia de Slotting Dinámico
-    suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
+    # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
+    # Este algoritmo ya filtra por capacidad y zona.
+    traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
+
+    # 2. Sugerencia de IA (Aprendizaje Histórico)
+    ai_predicted_bin = ai_slotting.predict_best_bin(
+        item_code=item_code,
+        sic_code=item_details.get('SIC_Code_stockroom'),
+        fallback_bin=traditional_suggested_bin
+    )
+
+    # 3. VALIDACIÓN DE CAPACIDAD PARA LA IA
+    # Si la IA sugiere algo distinto al tradicional, verificamos que no estemos sobrepoblando el bin
+    final_suggested_bin = ai_predicted_bin
+    is_ai_prediction = ai_predicted_bin != traditional_suggested_bin
+
+    if is_ai_prediction:
+        occupancy = await slotting_service._get_bins_occupancy(db)
+        current_skus = occupancy.get(ai_predicted_bin.upper(), 0)
+        # Si el bin tiene 4 o más SKUs, ignoramos la IA y volvemos al tradicional por espacio
+        if current_skus >= 4:
+            final_suggested_bin = traditional_suggested_bin
+            is_ai_prediction = False
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
-        "suggestedBin": suggested_bin,
+        "suggestedBin": final_suggested_bin,
+        "is_ai_prediction": is_ai_prediction,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
@@ -107,6 +131,14 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
         # Nota: observaciones no se incluye porque la columna no existe en tabla MySQL
     }
     
+    # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
+    if data.relocatedBin:
+        ai_slotting.learn_from_decision(
+            item_code=item_code_form,
+            final_bin=data.relocatedBin,
+            sic_code=item_details.get('SIC_Code_stockroom')
+        )
+
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     if log_id:
         log_entry_data_for_response = {"id": log_id, **entry_data}

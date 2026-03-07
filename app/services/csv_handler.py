@@ -11,7 +11,10 @@ from app.core.config import (
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     COLUMNS_TO_READ_MASTER,
-    COLUMNS_TO_READ_GRN
+    COLUMNS_TO_READ_GRN,
+    STOCK_QTY_CACHE_PATH,
+    MASTER_DETAILS_CACHE_PATH,
+    GRN_CACHE_JSON_PATH
 )
 
 # --- Cache de DataFrames en memoria para este módulo ---
@@ -50,9 +53,9 @@ async def load_csv_data():
     global df_master_cache, df_grn_cache, master_qty_map, master_details_cache, grn_file_mtime, master_file_mtime
     print("Cargando datos CSV en caché ligera...")
 
-    # Rutas de caché
-    json_qty_path = os.path.join(PROJECT_ROOT, 'static', 'json', 'stock_qty_cache.json')
-    json_details_path = os.path.join(PROJECT_ROOT, 'static', 'json', 'master_details_cache.json')
+    # Rutas de caché centralizadas
+    json_qty_path = STOCK_QTY_CACHE_PATH
+    json_details_path = MASTER_DETAILS_CACHE_PATH
     
     csv_exists = os.path.exists(ITEM_MASTER_CSV_PATH)
     should_read_csv = True
@@ -140,7 +143,7 @@ async def load_grn_data_optimized():
         return
 
     # Actualizar para usar la ruta consolidada en static/json/
-    json_cache_path = os.path.join(PROJECT_ROOT, 'static', 'json', 'grn_cache.json')
+    json_cache_path = GRN_CACHE_JSON_PATH
     current_mtime = os.path.getmtime(GRN_CSV_FILE_PATH)
     
     # Verificar si necesitamos regenerar cache comparando con el archivo JSON

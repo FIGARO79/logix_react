@@ -7,12 +7,16 @@ from app.models.sql_models import Log
 from pydantic import BaseModel
 from typing import Optional
 import datetime
+import json
+import os
 from app.services.csv_handler import get_item_details_from_master_csv
 import pandas as pd
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi.responses import Response
+import gc
+from app.core.config import PO_LOOKUP_JSON_PATH
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -29,22 +33,28 @@ class UpdateLogRequest(BaseModel):
     qtyReceived: int
     relocatedBin: Optional[str] = None
 
+from app.services.ai_slotting import ai_slotting
+
 # --- Endpoints ---
 
-# 1. Crear Registro (Portado de logic antigua)
 @router.post("/add_log")
-@router.post("/log") # Alias RESTful
 async def add_log(
     data: AddLogRequest,
     db: AsyncSession = Depends(get_db),
     user: str = Depends(permission_required("inbound"))
 ):
-    # Buscar info del item en el CSV
     stock = await get_item_details_from_master_csv(data.itemCode)
     if not stock:
         raise HTTPException(404, "Item no encontrado en maestro")
 
-    # Mapping keys: CSV uses Title_Case (e.g. 'Item_Description'), Log model uses camelCase or specific names
+    # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
+    if data.relocatedBin:
+        ai_slotting.learn_from_decision(
+            item_code=data.itemCode,
+            final_bin=data.relocatedBin,
+            sic_code=stock.get('SIC_Code_stockroom')
+        )
+
     default_qty_grn = 0
     if 'Default_Qty_Grn' in stock and stock['Default_Qty_Grn']:
         try:
@@ -53,14 +63,14 @@ async def add_log(
             default_qty_grn = 0
 
     new_log = Log(
-        importReference=data.importReference.strip(),
-        waybill=data.waybill.strip(),
-        itemCode=data.itemCode.strip(),
+        importReference=data.importReference.strip().upper(),
+        waybill=data.waybill.strip().upper(),
+        itemCode=data.itemCode.strip().upper(),
         itemDescription=stock.get('Item_Description'),
         binLocation=stock.get('Bin_1'),
         qtyReceived=data.quantity,
-        relocatedBin=data.relocatedBin.strip() if data.relocatedBin else '',
-        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'), # Use ISO format for SQLite string storage
+        relocatedBin=data.relocatedBin.strip().upper() if data.relocatedBin else '',
+        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
         qtyGrn=default_qty_grn,
         difference=data.quantity - default_qty_grn
     )
@@ -69,7 +79,6 @@ async def add_log(
     await db.refresh(new_log)
     return {"message": "Registro añadido", "id": new_log.id}
 
-# 2. Actualizar Registro
 @router.put("/log/{log_id}")
 async def update_log(
     log_id: int, 
@@ -81,30 +90,26 @@ async def update_log(
     if not log:
         raise HTTPException(404, "Log no encontrado")
     
-    log.waybill = data.waybill.strip() if data.waybill else log.waybill
+    log.waybill = data.waybill.strip().upper() if data.waybill else log.waybill
     log.qtyReceived = data.qtyReceived
-    log.relocatedBin = data.relocatedBin.strip() if data.relocatedBin else log.relocatedBin
+    log.relocatedBin = data.relocatedBin.strip().upper() if data.relocatedBin else log.relocatedBin
     
-    # Recalcular diferencia
     if log.qtyGrn is not None:
         log.difference = data.qtyReceived - log.qtyGrn
         
     await db.commit()
     return {"message": "Actualizado"}
 
-# 3. Archivar (Limpieza de Base)
 @router.post("/archive")
 async def archive_logs(
     db: AsyncSession = Depends(get_db),
     user: str = Depends(permission_required("inbound"))
 ):
     now = datetime.datetime.now().isoformat()
-    # Archivar todo lo que no tenga fecha de archivo
     await db.execute(update(Log).where(Log.archived_at == None).values(archived_at=now))
     await db.commit()
     return {"message": "Base archivada", "version": now}
 
-# 4. Listar Versiones
 @router.get("/versions")
 async def get_versions(
     db: AsyncSession = Depends(get_db),
@@ -113,8 +118,6 @@ async def get_versions(
     res = await db.execute(select(Log.archived_at).distinct().where(Log.archived_at != None).order_by(desc(Log.archived_at)))
     return res.scalars().all()
 
-
-# 5. Exportar Logs (Excel)
 @router.get("/export")
 async def export_logs(
     version: Optional[str] = None, 
@@ -122,11 +125,9 @@ async def export_logs(
     user: str = Depends(permission_required("inbound"))
 ):
     query = select(Log)
-    
     if version:
         query = query.where(Log.archived_at == version)
     else:
-        # Default: logs activos (no archivados)
         query = query.where(Log.archived_at == None)
         
     result = await db.execute(query.order_by(Log.timestamp.desc()))
@@ -148,7 +149,6 @@ async def export_logs(
         })
         
     df = pd.DataFrame(data)
-    
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Logs')
@@ -163,6 +163,10 @@ async def export_logs(
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"inbound_logs_{filename_version}_{timestamp_str}.xlsx"
     
+    # Liberar memoria explícitamente
+    del df
+    gc.collect()
+
     return Response(
         content=output.getvalue(), 
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
@@ -178,34 +182,52 @@ async def lookup_reference(
     if not waybill and not import_ref:
         return {"waybill": "", "import_ref": ""}
     
+    cache_path = PO_LOOKUP_JSON_PATH
+    file_path = "databases/Purchase Order Extractor.xlsx"
+    
+    result = {"waybill": waybill or "", "import_ref": import_ref or ""}
+
+    # INTENTO 1: USAR CACHÉ JSON (Ultrarrápido)
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+            
+            if waybill:
+                val = waybill.strip().upper()
+                result["import_ref"] = cache["wb_to_ir"].get(val, result["import_ref"])
+            elif import_ref:
+                val = import_ref.strip().upper()
+                result["waybill"] = cache["ir_to_wb"].get(val, result["waybill"])
+            
+            return result
+        except Exception as e:
+            print(f"Error reading JSON cache: {e}")
+
+    # INTENTO 2: FALLBACK AL EXCEL (Si no hay caché)
+    if not os.path.exists(file_path):
+        return result
+
     try:
-        # Solo cargar las columnas necesarias para mayor velocidad
         cols = ["Waybill", "Import Ref Code"]
-        df = pd.read_excel("databases/Purchase Order Extractor.xlsx", usecols=cols)
-        
-        # Limpieza de datos (quitar espacios, pasar a mayúsculas)
-        df["Waybill"] = df["Waybill"].astype(str).str.strip().str.upper()
-        df["Import Ref Code"] = df["Import Ref Code"].astype(str).str.strip().str.upper()
+        df = pd.read_excel(file_path, usecols=cols, dtype=str)
+        df["Waybill"] = df["Waybill"].str.strip().str.upper()
+        df["Import Ref Code"] = df["Import Ref Code"].str.strip().str.upper()
 
         if waybill:
             val = waybill.strip().upper()
             match = df[df["Waybill"] == val]
             if not match.empty:
-                return {
-                    "waybill": val,
-                    "import_ref": match.iloc[0]["Import Ref Code"]
-                }
-        
-        if import_ref:
+                result["import_ref"] = match.iloc[0]["Import Ref Code"]
+        elif import_ref:
             val = import_ref.strip().upper()
             match = df[df["Import Ref Code"] == val]
             if not match.empty:
-                return {
-                    "waybill": match.iloc[0]["Waybill"],
-                    "import_ref": val
-                }
-                
-        return {"waybill": waybill or "", "import_ref": import_ref or ""}
+                result["waybill"] = match.iloc[0]["Waybill"]
+        
+        del df
+        gc.collect()
+        return result
     except Exception as e:
-        print(f"Error reading Excel: {e}")
-        return {"waybill": waybill or "", "import_ref": import_ref or ""}
+        print(f"Error reading Excel fallback: {e}")
+        return result

@@ -15,7 +15,7 @@ from app.utils.auth import (
 )
 from app.models.sql_models import User
 from sqlalchemy import update
-from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT
+from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT, SLOTTING_PARAMS_PATH
 from app.core.templates import templates
 from app.services.csv_handler import load_csv_data
 from app.core.limiter import limiter
@@ -27,8 +27,6 @@ from io import BytesIO
 
 # Usaremos un solo router para evitar confusiones en main.py
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-SLOTTING_PARAMS_PATH = os.path.join(PROJECT_ROOT, 'static', 'json', 'slotting_parameters.json')
 
 # --- Endpoints de Slotting ---
 

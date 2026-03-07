@@ -5,11 +5,11 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from app.models.sql_models import MasterItem, Log
-from app.core.config import PROJECT_ROOT
+from app.core.config import SLOTTING_PARAMS_PATH
 
 class SlottingService:
     def __init__(self):
-        self.params_path = os.path.join(PROJECT_ROOT, 'static', 'json', 'slotting_parameters.json')
+        self.params_path = SLOTTING_PARAMS_PATH
         self.params = self._load_params()
 
     def _load_params(self) -> Dict[str, Any]:

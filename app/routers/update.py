@@ -19,7 +19,8 @@ from app.core.config import (
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
     GRN_COLUMN_NAME_IN_CSV,
-    ADMIN_PASSWORD
+    ADMIN_PASSWORD,
+    PO_LOOKUP_JSON_PATH
 )
 from app.services.csv_handler import load_csv_data
 from app.utils.auth import login_required
@@ -168,6 +169,34 @@ async def update_files_post(
             po_path = os.path.join("databases", "Purchase Order Extractor.xlsx")
             with open(po_path, "wb") as buffer:
                 shutil.copyfileobj(po_extractor.file, buffer)
+            
+            # --- NUEVO: Generar Caché JSON para búsqueda rápida ---
+            try:
+                # Leer solo columnas necesarias
+                df_po = pd.read_excel(po_path, usecols=["Waybill", "Import Ref Code"], dtype=str)
+                df_po = df_po.dropna().drop_duplicates()
+                
+                # Crear diccionarios de búsqueda cruzada
+                # waybill -> import_ref
+                wb_to_ir = df_po.set_index(df_po["Waybill"].str.strip().str.upper())["Import Ref Code"].str.strip().str.upper().to_dict()
+                # import_ref -> waybill
+                ir_to_wb = df_po.set_index(df_po["Import Ref Code"].str.strip().str.upper())["Waybill"].str.strip().str.upper().to_dict()
+                
+                lookup_data = {
+                    "wb_to_ir": wb_to_ir,
+                    "ir_to_wb": ir_to_wb,
+                    "updated_at": datetime.datetime.now().isoformat()
+                }
+                
+                with open(PO_LOOKUP_JSON_PATH, "w", encoding="utf-8") as f:
+                    json.dump(lookup_data, f, indent=2)
+                
+                message += 'Caché de búsqueda generado. '
+                del df_po, wb_to_ir, ir_to_wb, lookup_data
+            except Exception as e_cache:
+                print(f"Error generando caché PO: {e_cache}")
+            # --- Fin Generación Caché ---
+
             message += f'Archivo "{po_extractor.filename}" guardado como Purchase Order Extractor. '
             files_uploaded = True
         except Exception as e:
