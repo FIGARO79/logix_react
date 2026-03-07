@@ -122,7 +122,7 @@ const Shipments = () => {
                                             <td className="px-3 py-2 text-xs font-bold text-[#285f94]">#{s.id}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{formatDate(s.created_at)}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{s.username}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{s.carrier || '—'}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 uppercase">{s.carrier || '—'}</td>
                                             <td className="px-3 py-2 text-center">
                                                 <span className="bg-[#285f94] text-white text-xs font-bold px-2 py-0.5 rounded-full">
                                                     {s.total_orders}
@@ -219,7 +219,7 @@ const Shipments = () => {
 
                                     <div className="flex justify-between text-xs text-gray-500 mb-2">
                                         <span>{formatDate(s.created_at)}</span>
-                                        <span>{s.carrier || ''}</span>
+                                        <span className="uppercase">{s.carrier || ''}</span>
                                     </div>
 
                                     {s.status === 'active' && (
