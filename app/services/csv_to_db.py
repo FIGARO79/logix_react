@@ -119,30 +119,42 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     insert_data.append(item_data)
             
             if insert_data:
-                # Upsert eficiente (MySQL specific)
-                stmt = insert(MasterItem).values(insert_data)
+                # Detectar tipo de DB desde el bind del session
+                is_sqlite = db.bind.dialect.name == 'sqlite'
                 
-                # Definir qué columnas actualizar en caso de duplicado
-                update_dict = {
-                    'description': stmt.inserted.description,
-                    'abc_code': stmt.inserted.abc_code,
-                    'physical_qty': stmt.inserted.physical_qty,
-                    'bin_1': stmt.inserted.bin_1,
-                    'additional_bin': stmt.inserted.additional_bin,
-                    'weight_per_unit': stmt.inserted.weight_per_unit,
-                    'item_type': stmt.inserted.item_type,
-                    'item_class': stmt.inserted.item_class,
-                    'item_group_major': stmt.inserted.item_group_major,
-                    'stockroom': stmt.inserted.stockroom,
-                    'cost_per_unit': stmt.inserted.cost_per_unit,
-                    'sic_code_company': stmt.inserted.sic_code_company,
-                    'sic_code_stockroom': stmt.inserted.sic_code_stockroom,
-                    'updated_at': stmt.inserted.updated_at
-                }
+                if is_sqlite:
+                    # SQLite: INSERT OR REPLACE
+                    from sqlalchemy import text
+                    # Para SQLite usamos una aproximación más sencilla con merge o delete/insert
+                    # pero dado que item_code es PK, merge es eficiente.
+                    for item in insert_data:
+                        new_item = MasterItem(**item)
+                        await db.merge(new_item)
+                else:
+                    # MySQL: Upsert eficiente
+                    stmt = insert(MasterItem).values(insert_data)
+                    
+                    # Definir qué columnas actualizar en caso de duplicado
+                    update_dict = {
+                        'description': stmt.inserted.description,
+                        'abc_code': stmt.inserted.abc_code,
+                        'physical_qty': stmt.inserted.physical_qty,
+                        'bin_1': stmt.inserted.bin_1,
+                        'additional_bin': stmt.inserted.additional_bin,
+                        'weight_per_unit': stmt.inserted.weight_per_unit,
+                        'item_type': stmt.inserted.item_type,
+                        'item_class': stmt.inserted.item_class,
+                        'item_group_major': stmt.inserted.item_group_major,
+                        'stockroom': stmt.inserted.stockroom,
+                        'cost_per_unit': stmt.inserted.cost_per_unit,
+                        'sic_code_company': stmt.inserted.sic_code_company,
+                        'sic_code_stockroom': stmt.inserted.sic_code_stockroom,
+                        'updated_at': stmt.inserted.updated_at
+                    }
+                    
+                    on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)
+                    await db.execute(on_duplicate_key_stmt)
                 
-                on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)
-                
-                await db.execute(on_duplicate_key_stmt)
                 total_processed += len(insert_data)
                 
         await db.commit()

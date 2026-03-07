@@ -27,6 +27,7 @@ const Register = lazy(() => import('./pages/Register'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 const PackingListPrint = lazy(() => import('./pages/PackingListPrint'));
 const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
+const DashboardInventario = lazy(() => import('./pages/DashboardInventario'));
 const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
 const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
 const WaybillGRN = lazy(() => import('./pages/WaybillGRN'));
@@ -162,6 +163,11 @@ function App() {
                         <Route path="/view_counts/recordings" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <CycleCountHistory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/inventory-dashboard" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <DashboardInventario />
                             </ProtectedRoute>
                         } />
                         <Route path="/planner" element={

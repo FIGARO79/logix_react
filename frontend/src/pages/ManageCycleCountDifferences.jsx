@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const ManageCycleCountDifferences = () => {
@@ -15,19 +15,6 @@ const ManageCycleCountDifferences = () => {
 
     const [editingItem, setEditingItem] = useState(null);
     const [newPhysicalQty, setNewPhysicalQty] = useState('');
-
-    // Métricas para Dashboard Industrial
-    const stats = useMemo(() => {
-        if (!data || data.length === 0) return { accuracy: 0, critical: 0, balance: 0, total: 0 };
-
-        const total = data.length;
-        const exact = data.filter(d => d.difference === 0).length;
-        const critical = data.filter(d => Math.abs(d.difference) > (d.system_qty * 0.1) || Math.abs(d.difference) > 50).length;
-        const balance = data.reduce((acc, curr) => acc + curr.difference, 0);
-        const accuracy = ((exact / total) * 100).toFixed(1);
-
-        return { accuracy, critical, balance, total };
-    }, [data]);
 
     useEffect(() => {
         setTitle("Gestión de Diferencias - Conteos Cíclicos");
@@ -99,41 +86,6 @@ const ManageCycleCountDifferences = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
-            {/* Industrial Stats Bar */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-blue-500 shadow-md">
-                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Exactitud (ERI)</label>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-mono font-bold">{stats.accuracy}%</span>
-                        <span className="text-xs text-blue-400">Objetivo: 98%</span>
-                    </div>
-                </div>
-                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-red-500 shadow-md">
-                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Diferencias Críticas</label>
-                    <div className="flex items-baseline gap-2">
-                        <span className={`text-3xl font-mono font-bold ${stats.critical > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                            {stats.critical}
-                        </span>
-                        <span className="text-xs text-slate-500">registros</span>
-                    </div>
-                </div>
-                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-green-500 shadow-md">
-                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Balance de Inventario</label>
-                    <div className="flex items-baseline gap-2">
-                        <span className={`text-3xl font-mono font-bold ${stats.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {stats.balance > 0 ? `+${stats.balance}` : stats.balance}
-                        </span>
-                        <span className="text-xs text-slate-500">unidades</span>
-                    </div>
-                </div>
-                <div className="bg-slate-800 text-white p-4 rounded-lg border-l-4 border-yellow-500 shadow-md">
-                    <label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest block mb-1">Total Procesado</label>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-mono font-bold">{stats.total}</span>
-                        <span className="text-xs text-slate-500">muestras</span>
-                    </div>
-                </div>
-            </div>
             {/* Filtros */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-4 items-end">
                 <div>

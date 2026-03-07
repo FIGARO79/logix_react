@@ -381,67 +381,156 @@ async def debug_last_counts(limit: int = 20, username: str = Depends(permission_
     return JSONResponse(content=all_counts[:int(limit)])
 
 
-@router.get('/counts/recordings')
-async def get_cycle_count_recordings(username: str = Depends(permission_required("counts")), db: AsyncSession = Depends(get_db)):
+@router.get('/counts/dashboard_stats')
+async def get_dashboard_stats(username: str = Depends(permission_required("counts")), db: AsyncSession = Depends(get_db)):
     """
-    Obtiene el historial detallado de conteos cíclicos (CycleCountRecordings)
-    incluyendo valoración monetaria basada en Cost_per_Unit del maestro.
+    Endpoint avanzado que calcula todos los KPIs industriales para el Dashboard.
     """
-    from app.models.sql_models import MasterItem
+    from app.services.csv_handler import master_details_cache
+    import math
     
     try:
+        # 1. Obtener todos los registros de grabaciones
+        result = await db.execute(select(CycleCountRecording))
+        recordings = result.scalars().all()
+        
+        if not recordings:
+            return JSONResponse(content={"empty": True})
+
+        # 2. Asegurar caché cargada
+        if not master_details_cache:
+            from app.services.csv_handler import load_csv_data
+            await load_csv_data()
+
+        # --- Cálculos de KPIs ---
+        
+        # A. Exactitud (ERI) Global y por ABC
+        eri_data = {"A": {"total": 0, "exact": 0}, "B": {"total": 0, "exact": 0}, "C": {"total": 0, "exact": 0}, "Global": {"total": 0, "exact": 0}}
+        
+        # B. Ajustes Brutos vs Netos
+        adj_units = {"net": 0, "gross": 0}
+        adj_value = {"net": 0.0, "gross": 0.0}
+        
+        # C. Mapas para Pareto y Productividad
+        user_prod = {}
+        item_discrepancies = [] # Para Pareto financiero
+        zone_errors = {} # Densidad por ubicación (pasillo)
+
+        for rec in recordings:
+            # Datos base
+            abc = rec.abc_code or "C"
+            diff = rec.difference or 0
+            abs_diff = abs(diff)
+            
+            # Obtener costo del cache
+            item_info = master_details_cache.get(str(rec.item_code).strip().upper(), {})
+            cost = float(item_info.get('Cost_per_Unit', 0.0))
+            val_diff = diff * cost
+            abs_val_diff = abs_diff * cost
+
+            # Actualizar ERI
+            eri_data["Global"]["total"] += 1
+            if diff == 0: eri_data["Global"]["exact"] += 1
+            
+            if abc in eri_data:
+                eri_data[abc]["total"] += 1
+                if diff == 0: eri_data[abc]["exact"] += 1
+
+            # Actualizar Ajustes
+            adj_units["net"] += diff
+            adj_units["gross"] += abs_diff
+            adj_value["net"] += val_diff
+            adj_value["gross"] += abs_val_diff
+
+            # Productividad Usuario
+            u = rec.username or "Sistema"
+            if u not in user_prod: user_prod[u] = {"items": 0, "errors": 0}
+            user_prod[u]["items"] += 1
+            if diff != 0: user_prod[u]["errors"] += 1
+
+            # Pareto Financiero (Solo si hay diferencia)
+            if abs_val_diff > 0:
+                item_discrepancies.append({
+                    "code": rec.item_code,
+                    "desc": rec.item_description,
+                    "diff": diff,
+                    "val_diff": val_diff,
+                    "abs_val_diff": abs_val_diff
+                })
+
+            # Densidad de Error por Pasillo (Ubicación)
+            # Asumimos que los primeros 2-3 caracteres de bin_location definen la zona/pasillo
+            loc = str(rec.bin_location or "N/A").strip()
+            zone = loc[:2] if len(loc) > 2 else "N/A"
+            if zone not in zone_errors: zone_errors[zone] = {"total": 0, "errors": 0}
+            zone_errors[zone]["total"] += 1
+            if diff != 0: zone_errors[zone]["errors"] += 1
+
+        # --- Formateo Final de Resultados ---
+        
+        # Calcular % ERI
+        eri_final = {}
+        for k, v in eri_data.items():
+            eri_final[k] = round((v["exact"] / v["total"] * 100), 1) if v["total"] > 0 else 0
+
+        # Ordenar Pareto (Top 10 mayores pérdidas financieras)
+        top_losses = sorted(item_discrepancies, key=lambda x: x["abs_val_diff"], reverse=True)[:10]
+
+        # Formatear Productividad
+        productivity = []
+        for u, stats in user_prod.items():
+            err_rate = round((stats["errors"] / stats["items"] * 100), 1) if stats["items"] > 0 else 0
+            productivity.append({"user": u, "items": stats["items"], "error_rate": err_rate})
+
+        # Formatear Zonas de Error
+        zones = []
+        for z, stats in zone_errors.items():
+            rate = round((stats["errors"] / stats["total"] * 100), 1) if stats["total"] > 0 else 0
+            zones.append({"zone": z, "error_rate": rate, "total": stats["total"]})
+        zones = sorted(zones, key=lambda x: x["error_rate"], reverse=True)[:5] # Top 5 zonas críticas
+
+        return JSONResponse(content={
+            "eri": eri_final,
+            "adjustments": {
+                "units": adj_units,
+                "value": adj_value
+            },
+            "top_losses": top_losses,
+            "productivity": productivity,
+            "zones": zones,
+            "total_items": eri_data["Global"]["total"]
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculando estadísticas: {e}")
+
+
+@router.get('/counts/recordings')
+async def get_cycle_count_recordings(skip: int = 0, limit: int = 100, username: str = Depends(permission_required("counts")), db: AsyncSession = Depends(get_db)):
+    """
+    Obtiene el historial de conteos con paginación real (skip/limit) para soporte de scroll infinito.
+    """
+    from app.services.csv_handler import master_details_cache
+    
+    try:
+        # 1. Obtener bloque de registros paginado
         result = await db.execute(
-            select(CycleCountRecording).order_by(CycleCountRecording.executed_date.desc())
+            select(CycleCountRecording)
+            .order_by(CycleCountRecording.executed_date.desc())
+            .offset(skip)
+            .limit(limit)
         )
         recordings = result.scalars().all()
         
         if not recordings:
             return JSONResponse(content=[])
         
-        # OPTIMIZACIÓN: Batch query para todos los item codes de una vez
-        item_codes = list({rec.item_code for rec in recordings})
-        
-        # Consultar todos los items necesarios en una sola query
-        result_items = await db.execute(
-            select(MasterItem).where(MasterItem.item_code.in_(item_codes))
-        )
-        master_items = result_items.scalars().all()
-        
-        # Crear un mapa para lookup rápido
-        master_map = {item.item_code: item for item in master_items}
-        
+        # 2. Enriquecer datos usando el cache de memoria
         enriched_data = []
         for rec in recordings:
-            # Buscar detalles en el mapa (O(1) lookup)
-            master_item = master_map.get(rec.item_code)
-            
-            # Valores por defecto
-            cost = 0.0
-            stockroom = "N/A"
-            item_type = ""
-            item_class = ""
-            item_group = ""
-            sic_company = ""
-            sic_stockroom = ""
-            weight = ""
-            
-            if master_item:
-                # Leer desde la tabla master_items
-                stockroom = master_item.stockroom or "N/A"
-                item_type = master_item.item_type or ""
-                item_class = master_item.item_class or ""
-                item_group = master_item.item_group_major or ""
-                sic_company = master_item.sic_code_company or ""
-                sic_stockroom = master_item.sic_code_stockroom or ""
-                weight = str(master_item.weight_per_unit) if master_item.weight_per_unit else ""
-                
-                try:
-                    cost = float(master_item.cost_per_unit) if master_item.cost_per_unit else 0.0
-                except (ValueError, TypeError):
-                    cost = 0.0
-            
-            value_diff = rec.difference * cost
-            count_value = rec.physical_qty * cost
+            item_code = str(rec.item_code).strip().upper()
+            details = master_details_cache.get(item_code, {})
+            cost = float(details.get('Cost_per_Unit', 0.0))
             
             enriched_data.append({
                 'id': rec.id,
@@ -449,27 +538,24 @@ async def get_cycle_count_recordings(username: str = Depends(permission_required
                 'username': rec.username,
                 'item_code': rec.item_code,
                 'description': rec.item_description,
-                'stockroom': stockroom,
-                'item_type': item_type,
-                'item_class': item_class,
-                'item_group': item_group,
-                'sic_company': sic_company,
-                'sic_stockroom': sic_stockroom,
-                'weight': weight,
+                'stockroom': details.get('Stockroom', 'N/A'),
+                'item_type': details.get('Item_Type', ''),
+                'item_class': details.get('Item_Class', ''),
                 'abc_code': rec.abc_code,
                 'bin_location': rec.bin_location,
                 'physical_qty': rec.physical_qty,
                 'system_qty': rec.system_qty,
                 'difference': rec.difference,
                 'cost': cost,
-                'value_diff': value_diff,
-                'count_value': count_value
+                'value_diff': (rec.difference or 0) * cost,
+                'count_value': (rec.physical_qty or 0) * cost
             })
             
         return JSONResponse(content=enriched_data)
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo historial: {e}")
+        print(f"Error en endpoint recordings: {e}")
+        raise HTTPException(status_code=500, detail="Error al procesar el historial.")
 
 
 @router.get('/counts/export_recordings')

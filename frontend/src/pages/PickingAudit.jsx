@@ -150,15 +150,31 @@ const PickingAudit = () => {
         loadTrackingData();
     };
 
-    const handleAssignmentChange = (itemCode, pkgNum, value) => {
+    const handleAssignmentChange = (itemKey, pkgNum, value) => {
         const val = parseInt(value) || 0;
-        setPackageAssignments(prev => ({
-            ...prev,
-            [itemCode]: {
-                ...prev[itemCode],
-                [pkgNum]: val
+        setPackageAssignments(prev => {
+            const next = {
+                ...prev,
+                [itemKey]: {
+                    ...prev[itemKey],
+                    [pkgNum]: val
+                }
+            };
+            
+            // Sincronizar qty_scan en orderItems
+            const [code, line] = itemKey.split(':');
+            const newItems = [...orderItems];
+            const itemIdx = newItems.findIndex(i => i.code === code && (i.order_line || '') === line);
+            
+            if (itemIdx > -1) {
+                const totalAssigned = Object.values(next[itemKey]).reduce((a, b) => a + (parseInt(b) || 0), 0);
+                newItems[itemIdx].qty_scan = totalAssigned;
+                newItems[itemIdx].difference = totalAssigned - newItems[itemIdx].qty_req;
+                setOrderItems(newItems);
             }
-        }));
+            
+            return next;
+        });
     };
 
     // -- Audit Logic --
@@ -340,24 +356,52 @@ const PickingAudit = () => {
                                     {i + 1}
                                 </button>
                             ))}
-                            <button
-                                onClick={() => {
-                                    const newCount = (parseInt(packagesCount) || 1) + 1;
-                                    setPackagesCount(newCount.toString());
-                                    setActivePackage(newCount);
-                                    setPackageAssignments(prev => {
-                                        const updated = { ...prev };
-                                        Object.keys(updated).forEach(key => {
-                                            updated[key] = { ...updated[key], [newCount]: 0 };
+                            
+                            <div className="flex gap-1">
+                                {(parseInt(packagesCount) || 1) > 1 && (
+                                    <button
+                                        onClick={() => {
+                                            const currentTotal = parseInt(packagesCount);
+                                            // Verificar si el último bulto tiene algo asignado
+                                            let hasAssignments = false;
+                                            Object.values(packageAssignments).forEach(itemPkgs => {
+                                                if (itemPkgs[currentTotal] > 0) hasAssignments = true;
+                                            });
+
+                                            if (hasAssignments) {
+                                                toast.warning("El último bulto no está vacío");
+                                                return;
+                                            }
+
+                                            const newCount = currentTotal - 1;
+                                            setPackagesCount(newCount.toString());
+                                            if (activePackage > newCount) setActivePackage(newCount);
+                                        }}
+                                        className="w-8 h-8 rounded-full border border-red-200 bg-red-50 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                                        title="Eliminar Último Bulto"
+                                    >
+                                        −
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        const newCount = (parseInt(packagesCount) || 1) + 1;
+                                        setPackagesCount(newCount.toString());
+                                        setActivePackage(newCount);
+                                        setPackageAssignments(prev => {
+                                            const updated = { ...prev };
+                                            Object.keys(updated).forEach(key => {
+                                                updated[key] = { ...updated[key], [newCount]: 0 };
+                                            });
+                                            return updated;
                                         });
-                                        return updated;
-                                    });
-                                }}
-                                className="w-8 h-8 rounded-full border border-dashed border-slate-400 text-slate-500 font-bold text-xs hover:border-[#285f94] hover:text-[#285f94] flex items-center justify-center"
-                                title="Añadir Bulto"
-                            >
-                                +
-                            </button>
+                                    }}
+                                    className="w-8 h-8 rounded-full border border-[#285f94] bg-white text-[#285f94] font-bold text-xs hover:bg-[#285f94] hover:text-white flex items-center justify-center transition-all"
+                                    title="Añadir Bulto"
+                                >
+                                    +
+                                </button>
+                            </div>
                         </div>
                         <div className="hidden sm:block flex-grow text-[11px] text-slate-500 italic">
                             Asignando al <strong>Bulto {activePackage}</strong>.
