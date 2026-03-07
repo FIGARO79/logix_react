@@ -168,3 +168,44 @@ async def export_logs(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@router.get("/lookup_reference")
+async def lookup_reference(
+    waybill: Optional[str] = None,
+    import_ref: Optional[str] = None,
+    user: str = Depends(permission_required("inbound"))
+):
+    if not waybill and not import_ref:
+        return {"waybill": "", "import_ref": ""}
+    
+    try:
+        # Solo cargar las columnas necesarias para mayor velocidad
+        cols = ["Waybill", "Import Ref Code"]
+        df = pd.read_excel("databases/Purchase Order Extractor.xlsx", usecols=cols)
+        
+        # Limpieza de datos (quitar espacios, pasar a mayúsculas)
+        df["Waybill"] = df["Waybill"].astype(str).str.strip().str.upper()
+        df["Import Ref Code"] = df["Import Ref Code"].astype(str).str.strip().str.upper()
+
+        if waybill:
+            val = waybill.strip().upper()
+            match = df[df["Waybill"] == val]
+            if not match.empty:
+                return {
+                    "waybill": val,
+                    "import_ref": match.iloc[0]["Import Ref Code"]
+                }
+        
+        if import_ref:
+            val = import_ref.strip().upper()
+            match = df[df["Import Ref Code"] == val]
+            if not match.empty:
+                return {
+                    "waybill": match.iloc[0]["Waybill"],
+                    "import_ref": val
+                }
+                
+        return {"waybill": waybill or "", "import_ref": import_ref or ""}
+    except Exception as e:
+        print(f"Error reading Excel: {e}")
+        return {"waybill": waybill or "", "import_ref": import_ref or ""}
