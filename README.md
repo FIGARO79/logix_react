@@ -6,7 +6,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 
 ## 🚀 Technology Stack
 
-### Backend (`/app`)
+### Backend (`/home/debian/logix`)
 - **Framework**: FastAPI (Python 3.12+)
 - **Server**: Granian (ASGI)
 - **Database**:
@@ -16,7 +16,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - **Migrations**: Alembic
 - **Deployment**: Systemd + Nginx
 
-### Frontend (`/frontend`)
+### Frontend (`/home/debian/logix/frontend`)
 - **Framework**: React 18
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
@@ -29,15 +29,14 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/FIGARO79/logix_react.git
-    cd logix_react
+    git clone https://github.com/FIGARO79/logix_react.git /home/debian/logix
+    cd /home/debian/logix
     ```
 
 2.  **Create virtual environment:**
     ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate  # Linux/Mac
-    # .venv\Scripts\activate   # Windows
+    python3 -m venv venv
+    source venv/bin/activate  # Linux/Mac
     ```
 
 3.  **Install dependencies:**
@@ -55,18 +54,15 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 
 6.  **Run Server:**
     ```bash
-    # Development
-    granian --interface asgi main:app --reload --host 0.0.0.0 --port 8000
-    
     # Production (with Granian)
-    granian --interface asgi main:app --host 0.0.0.0 --port 8000 --workers 2
+    /home/debian/logix/venv/bin/granian --interface asgi main:app --host 0.0.0.0 --port 8000 --workers 2
     ```
 
 ### 2. Frontend Setup
 
 1.  **Navigate to frontend:**
     ```bash
-    cd frontend
+    cd /home/debian/logix/frontend
     ```
 
 2.  **Install dependencies:**
@@ -93,12 +89,11 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
     - `services/`: Business logic layer
     - `utils/`: Authentication & helpers
 - `frontend/`: React Frontend application
-    - `src/pages/`: Page components
-    - `src/components/`: Reusable UI components
 - `vm_setup/`: Deployment configurations (Nginx, Systemd)
 - `databases/`: CSV data imports storage
 - `instance/`: SQLite database storage (Development)
 - `alembic/`: Database migration scripts
+- `clear_ram_cache.sh`: Utility to clear system and application RAM.
 
 ## ✨ Key Features
 
@@ -106,17 +101,11 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - **Cycle Counts**: Planificación y ejecución de conteos cíclicos con clasificación ABC
 - **Stock Search**: Búsqueda en tiempo real de inventario con ubicaciones
 - **Recount System**: Sistema inteligente de reconteo para items con diferencias
-  - Detección automática de conteos previos
-  - Carga selectiva de items con diferencias
-  - Reemplazo (no suma) de cantidades en reconteos
 
 ### 📥 Inbound Operations
 - **Blind Receiving**: Recepción ciega de mercancía sin cantidades esperadas
 - **GRN Master**: Gestión persistente de registros GRN (Goods Received Note)
-  - Lazy loading con scroll infinito
-  - Paginación optimizada (50 registros/carga)
-  - Formateo automático de campos
-  - Búsqueda y filtros en tiempo real
+- **Auto-Snapshot**: Generación automática de instantáneas de conciliación antes de actualizar registros GRN.
 
 ### 📤 Outbound Operations
 - **Picking Audit**: Auditoría de picking con escaneo QR
@@ -125,10 +114,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 
 ### 📊 Planning & Analytics
 - **Planner Execution**: Ejecución diaria de conteos planificados
-  - Advertencias de conteos previos
-  - Modo reconteo para items con diferencias
-  - Escaneo de códigos de barras
-  - Vista responsive (desktop/mobile)
+- **Reconciliation Snapshot**: Sistema de historial de conciliaciones para auditoría.
 
 ### 🔐 Security & Authentication
 - **Role-Based Access Control (RBAC)**
@@ -140,9 +126,8 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 The application uses `.env` for backend configuration. Key variables:
 
 ```env
-DB_TYPE=mysql  # or sqlite
+DB_TYPE=mysql
 DB_HOST=localhost
-DB_PORT=3306
 DB_NAME=logix_db
 DB_USER=logix_user
 DB_PASSWORD=your_password
@@ -156,50 +141,48 @@ SECRET_KEY=your_secret_key
 1. **Backend**: Runs as a systemd service with Granian ASGI server
    ```bash
    sudo systemctl start logix
-   sudo systemctl enable logix
    ```
 
 2. **Frontend**: Static files served by Nginx
-   ```bash
-   npm run build
-   sudo rsync -av --delete frontend/dist/ /var/www/logix/frontend/dist/
-   ```
 
-3. **Nginx Configuration**: See `vm_setup/nginx.conf` for reverse proxy setup
+3. **Nginx Configuration**: See `vm_setup/nginx_logix.conf` for reverse proxy setup
 
-### Quick Deployment Script
+### Utility Scripts
 
-Use the provided deployment script:
-```bash
-cd /var/www/logix
-./apply_changes.sh
-```
+- **Apply Changes**: Automatically updates backend, rebuilds frontend, and restarts services.
+  ```bash
+  cd /home/debian/logix
+  ./apply_changes.sh
+  ```
+- **Clear RAM Cache**: Clears system PageCache and restarts Logix services.
+  ```bash
+  cd /home/debian/logix
+  ./clear_ram_cache.sh
+  ```
 
 ## 🔄 Recent Updates
+
+### v2.3.0 (Hoy)
+- ✅ **Unificación de Rutas**: Proyecto consolidado en `/home/debian/logix`.
+- ✅ **Auto-Snapshot**: Instantáneas automáticas de conciliación ante cambios en GRN.
+- ✅ **Optimización de RAM**: Script dedicado para liberación de memoria y caché.
+- ✅ **Gestión de DB**: Corrección de esquema y migración de tablas de historial y envíos.
 
 ### v2.2.0 (2026-02-08)
 - ✅ **GRN Lazy Loading**: Implementado scroll infinito con paginación optimizada
 - ✅ **Planner Recount System**: Sistema de reconteo inteligente para items con diferencias
-- ✅ **Previous Count Warnings**: Advertencias visuales de conteos previos
-- ✅ **Auto-formatting**: Conversión automática de espacios a comas en GRN Number
-
-### v2.1.0
-- ✅ **GRN Master Persistence**: Migración de Excel a base de datos MariaDB
-- ✅ **Blind Inbound**: Recepción ciega de mercancía
-- ✅ **Picking Audit Indicators**: Indicadores visuales de auditoría
 
 ## 📝 API Documentation
 
 Once the backend is running, visit:
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Swagger UI**: `https://logixapp.dev/docs`
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
 5. Open a Pull Request
 
 ## 📄 License
