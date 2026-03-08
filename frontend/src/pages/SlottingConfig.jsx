@@ -204,12 +204,12 @@ const SlottingConfig = () => {
                     )}
 
                     <div className="bg-white shadow-sm rounded border border-[#d9d9d9] overflow-hidden">
-                        <div className="bg-[#f2f2f2] px-4 py-2 border-b border-[#e5e5e5] flex flex-row justify-between items-center gap-4">
+                        <div className="bg-[#f2f2f2] px-4 py-1.5 border-b border-[#e5e5e5] flex flex-row justify-between items-center gap-4">
                             <div className="flex-1 max-w-[180px]">
                                 <input 
                                     type="text" 
                                     placeholder="Filtrar..." 
-                                    className="h-7 w-full px-2 text-[11px] border border-[#89919a] rounded focus:ring-1 focus:ring-[#285f94] outline-none transition-all" 
+                                    className="h-6 w-full p-0 text-[11px] border border-[#89919a] rounded focus:ring-1 focus:ring-[#285f94] outline-none transition-all" 
                                     value={searchTerm} 
                                     onChange={e => setSearchSpec(e.target.value)} 
                                 />
@@ -223,17 +223,17 @@ const SlottingConfig = () => {
                                 <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
                                     {activeTab === 'storage' ? (
                                         <tr>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase">BIN</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase">ZONA</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase text-center w-20">PASILLO</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase text-center w-20">NIVEL</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase text-center">SPOT</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase">BIN</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase">ZONA</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase text-center w-20">PASILLO</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase text-center w-20">NIVEL</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase text-center">SPOT</th>
                                         </tr>
                                     ) : (
                                         <tr>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase">SIC</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase">RANGO</th>
-                                            <th className="px-3 py-2 text-xs font-semibold uppercase text-center">ESTRATEGIA</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase">SIC</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase">RANGO</th>
+                                            <th className="px-3 py-1.5 text-xs font-semibold uppercase text-center">ESTRATEGIA</th>
                                         </tr>
                                     )}
                                 </thead>
@@ -243,23 +243,23 @@ const SlottingConfig = () => {
                                     ) : activeTab === 'storage' ? (
                                         filteredBins.map(([code, info]) => (
                                             <tr key={code} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                <td className="px-3 py-1 font-mono text-sm font-semibold text-[#285f94]">{code}</td>
-                                                <td className="px-3 py-1">
-                                                    <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[11px] font-medium focus:ring-0 p-0 h-8 w-full cursor-pointer">
+                                                <td className="px-3 py-0.5 font-mono text-[12px] font-semibold text-[#285f94]">{code}</td>
+                                                <td className="px-3 py-0.5">
+                                                    <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[11px] font-medium focus:ring-0 p-0 h-6 w-full cursor-pointer">
                                                         <option value="Rack">Rack</option>
                                                         <option value="Minuteria">Minutería</option>
                                                         <option value="Cantilever">Cantilever</option>
                                                         <option value="Floor">Piso / Isla</option>
                                                     </select>
                                                 </td>
-                                                <td className="px-3 py-1 text-center w-20">
-                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-8" />
+                                                <td className="px-3 py-0.5 text-center w-20">
+                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
-                                                <td className="px-3 py-1 text-center w-20">
-                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-8" />
+                                                <td className="px-3 py-0.5 text-center w-20">
+                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
-                                                <td className="px-3 py-1 text-center leading-none">
-                                                    <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-8 text-center w-full ${getSpotColor(info.spot)}`}>
+                                                <td className="px-3 py-0.5 text-center leading-none">
+                                                    <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-full ${getSpotColor(info.spot)}`}>
                                                         <option value="Hot" className="text-gray-800">Hot</option>
                                                         <option value="Warm" className="text-gray-800">Warm</option>
                                                         <option value="Cold" className="text-gray-800">Cold</option>
@@ -270,10 +270,10 @@ const SlottingConfig = () => {
                                     ) : (
                                         Object.entries(config.turnover).map(([sic, info]) => (
                                             <tr key={sic} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                <td className="px-3 py-3 font-bold text-gray-700 text-sm">{sic}</td>
-                                                <td className="px-3 py-3 text-gray-500 font-medium text-xs">{info.range}</td>
-                                                <td className="px-3 py-3 text-center">
-                                                    <select value={info.spot} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-8 text-center w-24 ${getSpotColor(info.spot)}`}>
+                                                <td className="px-3 py-1 font-bold text-gray-700 text-[12px]">{sic}</td>
+                                                <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info.range}</td>
+                                                <td className="px-3 py-1 text-center">
+                                                    <select value={info.spot} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-24 ${getSpotColor(info.spot)}`}>
                                                         <option value="hot" className="text-gray-800">Hot</option>
                                                         <option value="warm" className="text-gray-800">Warm</option>
                                                         <option value="cold" className="text-gray-800">Cold</option>

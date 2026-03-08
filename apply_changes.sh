@@ -52,8 +52,11 @@ npm run build
 echo ""
 echo "⚙️  [3/3] Reiniciando servicios del sistema..."
 
-echo "   Reiniciando Logix (Granian)..."
-sudo systemctl restart logix
+echo "   Deteniendo Logix (Granian) - Max 5s..."
+sudo systemctl stop logix
+
+echo "   Iniciando Logix (Granian)..."
+sudo systemctl start logix
 
 echo "   Reiniciando Nginx (Web Server)..."
 sudo systemctl restart nginx
