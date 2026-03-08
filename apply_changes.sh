@@ -9,7 +9,7 @@
 
 set -e # Detener si hay errores
 
-PROJECT_DIR="/home/debian/logix"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 
 echo "========================================================"
