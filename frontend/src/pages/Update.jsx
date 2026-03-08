@@ -234,12 +234,93 @@ const Update = () => {
         }
     };
 
+    const [isRobotRunning, setIsRobotRunning] = useState(false);
+
+    const handleRunRobot = async () => {
+        if (!window.confirm("¿Deseas iniciar el robot de descarga automática? Esto tomará unos minutos.")) return;
+        
+        setIsRobotRunning(true);
+        setMessages({ success: '', error: '', info: 'Iniciando robot en el servidor...' });
+
+        try {
+            const res = await fetch('/api/run_po_robot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                setMessages({ success: data.message, error: '', info: '' });
+            } else {
+                setMessages({ success: '', error: data.error || "Error al activar el robot", info: '' });
+            }
+        } catch (err) {
+            setMessages({ success: '', error: "Error de conexión con el servidor", info: '' });
+        } finally {
+            setIsRobotRunning(false);
+        }
+    };
+
     return (
         <div className="container-wrapper max-w-4xl mx-auto px-4 py-8">
 
-            {messages.error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{messages.error}</div>}
-            {messages.info && <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">{messages.info}</div>}
-            {messages.success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{messages.success}</div>}
+            {messages.error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 shadow-sm flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {messages.error}
+            </div>}
+            {messages.info && <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4 shadow-sm flex items-center gap-2 animate-pulse">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {messages.info}
+            </div>}
+            {messages.success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 shadow-sm flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                {messages.success}
+            </div>}
+
+            {/* Purchase Order Robot Section */}
+            <div className="bg-[#f0f7ff] shadow rounded-lg overflow-hidden mb-8 border border-blue-200">
+                <div className="bg-[#e1effe] px-6 py-4 border-b border-blue-200 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <svg className="w-6 h-6 text-[#1e73be]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                        <h2 className="text-lg font-bold text-blue-900">Automatización Sandvik</h2>
+                    </div>
+                    <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-400">NUEVO</span>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1">
+                            <p className="text-blue-800 font-medium text-sm">Actualización Automática de Purchase Order</p>
+                            <p className="text-blue-600 text-xs mt-1">
+                                El robot se conectará al portal de Sandvik, configurará los filtros de Colombia (AAF 2026), descargará el reporte y actualizará el sistema automáticamente.
+                            </p>
+                        </div>
+                        <button 
+                            onClick={handleRunRobot}
+                            disabled={isRobotRunning || isLoading}
+                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded font-bold transition-all shadow-sm whitespace-nowrap ${isRobotRunning ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1e73be] hover:bg-[#1a62a3] text-white'}`}
+                        >
+                            {isRobotRunning ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Robot en Marcha...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Actualizar desde Portal
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* File Upload Section */}
             <div className="bg-white shadow rounded-lg overflow-hidden mb-8 border border-gray-200">

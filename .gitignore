@@ -46,6 +46,10 @@ mysql.txt
 VPS_ubuntu.md
 start_backend.sh
 *.conf
+*.jpg
+*.png
+*.jpeg
+
 
 
 # Mantener archivos importantes aunque sean txt o md
