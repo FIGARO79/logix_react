@@ -5,12 +5,14 @@ from app.core.config import PO_EXTRACTOR_EXCEL_PATH
 
 REPORT_URL = "https://sandvik-controltower.azurewebsites.net/Report/PurchaseOrderExtractor"
 
-def run_po_robot():
+def run_po_robot(start_date: str, end_date: str):
     """
-    Ejecuta el robot de Playwright con selectores mejorados y manejo de errores.
+    Ejecuta el robot de Playwright con selectores robustos y fechas dinámicas.
+    start_date, end_date deben venir en formato MM/DD/YYYY o DD/MM/YYYY según 
+    requiera KendoUI (esperamos que la UI nos lo mande listo, por defecto DD/MM/YYYY o DD-MM-YYYY).
     """
     with sync_playwright() as p:
-        # Usamos un user_agent real para evitar bloqueos básicos
+        print(f"🔧 Iniciando navegador Chromium para periodo {start_date} a {end_date}...", flush=True)
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -18,77 +20,84 @@ def run_po_robot():
         page = context.new_page()
 
         try:
-            print(f"🚀 Accediendo a {REPORT_URL}...")
-            page.goto(REPORT_URL, wait_until="networkidle", timeout=60000)
-            
-            # Esperar a que el cuerpo de la página esté listo
-            page.wait_for_load_state("domcontentloaded")
-            time.sleep(2) # Pausa breve para renderizado de JS
-
-            print("📝 Llenando formulario...")
-
-            # 1. Intentar llenar las fechas AAF (01-01-2026 a 31-12-2026)
-            # Buscamos todos los inputs de fecha y tomamos el tercer bloque (según imagen)
-            date_inputs = page.locator("input[placeholder*='date'], input[type='text']")
-            count = date_inputs.count()
-            print(f"   Inputs detectados: {count}")
-
-            # Basado en la imagen, hay 6 inputs de fecha (3 pares). AAF es el último par.
-            if count >= 6:
-                date_inputs.nth(4).fill("01-01-2026") # AAF Start
-                date_inputs.nth(5).fill("31-12-2026") # AAF End
-            else:
-                # Intento alternativo por posición si hay menos
-                page.locator("input").nth(5).fill("01-01-2026")
-                page.locator("input").nth(6).fill("31-12-2026")
-
-            # 2. Seleccionar Colombia
-            print("🇨🇴 Seleccionando Colombia...")
-            # Buscamos el checkbox o el label que diga Colombia
-            colombia_selector = "text='Colombia'"
-            page.wait_for_selector(colombia_selector, timeout=10000)
-            page.click(colombia_selector)
-
-            # 3. Hacer clic en Export
-            print("💾 Buscando botón Export...")
-            # Intentar localizar el botón por ID común de ASP.NET o texto
-            export_button = page.locator("button:has-text('Export'), input[type='submit'][value='Export'], #btnExport")
-            
-            # Asegurarnos de que el botón sea visible y estable
-            export_button.first.wait_for(state="visible", timeout=30000)
-            
-            print("🖱️ Haciendo clic en Export (Esperando generación del archivo)...")
-            
-            # Aumentamos el timeout a 5 minutos (300,000 ms) porque los reportes de Sandvik pueden ser pesados
+            print(f"🚀 Accediendo a {REPORT_URL}...", flush=True)
+            # Timeout extendido para carga inicial en Azure
             try:
-                with page.expect_download(timeout=300000) as download_info:
-                    # Usamos click forzado para evitar problemas de capas invisibles
-                    export_button.first.click(force=True)
+                page.goto(REPORT_URL, wait_until="load", timeout=120000)
+            except Exception as e:
+                print(f"⚠️ Warning en goto: {e}. Intentando continuar...", flush=True)
+            
+            print("⏳ Esperando renderizado inicial (10s)...", flush=True)
+            time.sleep(10)
+            
+            # Diagnóstico visual inicial
+            page.screenshot(path="debug_initial.png")
+            print("📸 Captura 'debug_initial.png' guardada.", flush=True)
+
+            print("📝 Llenando formulario...", flush=True)
+
+            # 1. Fechas AAF (usando los IDs exactos provistos)
+            print(f"   Llenando 'Data Range AAF' ({start_date} - {end_date})...", flush=True)
+            
+            # KendoUI requiere simular escritura humana para registrar el cambio
+            page.locator("#Form_StartAAFDate").click()
+            page.locator("#Form_StartAAFDate").clear()
+            page.keyboard.type(start_date, delay=50)
+            page.keyboard.press("Enter")
+
+            page.locator("#Form_EndAAFDate").click()
+            page.locator("#Form_EndAAFDate").clear()
+            page.keyboard.type(end_date, delay=50)
+            page.keyboard.press("Enter")
+            
+            # 2. Selección de Colombia (usando el ID exacto)
+            print("🇨🇴 Seleccionando Colombia...", flush=True)
+            colombia_check = page.locator("#Form_SelectedCountries_3__IsSelected")
+            colombia_check.scroll_into_view_if_needed()
+            # El evento check es nativo de playwright para checkboxes
+            colombia_check.check(force=True)
+
+            # 3. Exportar (usando el input con name='Form.Export')
+            print("💾 Buscando botón Export...", flush=True)
+            btn = page.locator("input[name='Form.Export']")
+            btn.scroll_into_view_if_needed()
+            btn.wait_for(state="visible", timeout=10000)
+            print("🚀 Iniciando descarga...", flush=True)
+
+            try:
+                # Vamos a capturar la pantalla justo al darle click para ver si hay un error de validación (e.g. fechas)
+                with page.expect_download(timeout=180000) as download_info:
+                    print("🚀 Dando click y esperando evento de descarga (3 mins max)...", flush=True)
+                    # CRÍTICO: no_wait_after=True para evitar que Playwright haga timeout esperando respuesta del POST
+                    btn.click(force=True, no_wait_after=True)
+                    # NO usar wait_for_timeout ni screenshot aquí porque la página se queda bloqueada cargando el archivo!
                 
                 download = download_info.value
                 download.save_as(PO_EXTRACTOR_EXCEL_PATH)
-                print(f"✅ Descarga completada y guardada en: {PO_EXTRACTOR_EXCEL_PATH}")
+                print(f"✅ Descarga completada: {PO_EXTRACTOR_EXCEL_PATH}", flush=True)
                 browser.close()
                 return True, "Archivo actualizado correctamente."
             except Exception as download_err:
-                print(f"⚠️ Error esperando descarga: {download_err}")
-                # Si falló la detección pero crees que se descargó, verificamos si el archivo apareció
-                time.sleep(10) # Esperar un poco más por si acaso
-                if os.path.exists(PO_EXTRACTOR_EXCEL_PATH):
-                     print("📂 El archivo apareció en la carpeta de destino a pesar del error de timeout.")
+                print(f"⚠️ Error en descarga: {download_err}", flush=True)
+                # Revisar si el archivo es reciente (modificado en los últimos 5 minutos)
+                if os.path.exists(PO_EXTRACTOR_EXCEL_PATH) and (time.time() - os.path.getmtime(PO_EXTRACTOR_EXCEL_PATH) < 300):
+                     print("📂 Archivo detectado manualmente como reciente.", flush=True)
                      browser.close()
-                     return True, "Archivo actualizado (Detección manual tras timeout)."
+                     return True, "Archivo actualizado (Detección manual)."
+                
+                # Tomar captura final para ver si hubo un mensaje de error
+                page.screenshot(path="debug_error_final.png")
+                print("📸 Captura 'debug_error_final.png' guardada.", flush=True)
+                browser.close()
                 raise download_err
 
         except Exception as e:
-            # CAPTURA DE PANTALLA DE ERROR (Muy útil para diagnóstico)
             error_path = "error_robot.png"
             page.screenshot(path=error_path)
             browser.close()
-            print(f"❌ Error: {str(e)}")
-            print(f"📸 Captura de pantalla guardada en: {os.path.abspath(error_path)}")
+            print(f"❌ Error: {str(e)}", flush=True)
             return False, f"Error: {str(e)}"
 
 if __name__ == "__main__":
     success, msg = run_po_robot()
-    print(msg)
+    print(msg, flush=True)

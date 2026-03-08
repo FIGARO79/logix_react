@@ -129,9 +129,15 @@ async def process_po_extractor_logic(file_path: str):
         print(f"Error procesando PO logic: {e}")
         return False, str(e)
 
+from pydantic import BaseModel
+
+class PORobotRequest(BaseModel):
+    start_date: str
+    end_date: str
+
 @router.post('/api/run_po_robot', response_class=JSONResponse)
 async def run_po_robot_api(
-    request: Request,
+    payload: PORobotRequest,
     background_tasks: BackgroundTasks,
     username: str = Depends(login_required)
 ):
@@ -144,9 +150,11 @@ async def run_po_robot_api(
     async def execute_robot_task():
         from app.services.po_robot import run_po_robot
         from app.core.config import PO_EXTRACTOR_EXCEL_PATH
+        from starlette.concurrency import run_in_threadpool
         
-        # 1. Ejecutar descarga
-        success, msg = run_po_robot()
+        # 1. Ejecutar descarga de forma segura en un hilo aparte (Playwright es síncrono)
+        # Pasamos las fechas dinámicas que vinieron desde el frontend
+        success, msg = await run_in_threadpool(run_po_robot, payload.start_date, payload.end_date)
         if not success:
             print(f"❌ Error en Robot: {msg}")
             return
@@ -163,7 +171,7 @@ async def run_po_robot_api(
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
     
-    return JSONResponse(content={"message": "El robot ha sido activado en segundo plano. El sistema se actualizará automáticamente en unos minutos."})
+    return JSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. El sistema se actualizará en unos minutos."})
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
 @router.post('/api/update', response_class=JSONResponse)

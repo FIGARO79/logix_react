@@ -15,6 +15,23 @@ const Update = () => {
     // States for update options
     const [updateOption, setUpdateOption] = useState('combine');
 
+    // Robot Date States
+    const today = new Date();
+    const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+    
+    const formatDateForInput = (date) => {
+        const d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        const year = d.getFullYear();
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+        return [year, month, day].join('-');
+    };
+
+    const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(firstDayOfYear));
+    const [robotEndDate, setRobotEndDate] = useState(formatDateForInput(today));
+
     // Password states
     const [clearPassword, setClearPassword] = useState('');
     const [backupPassword, setBackupPassword] = useState('');
@@ -242,10 +259,21 @@ const Update = () => {
         setIsRobotRunning(true);
         setMessages({ success: '', error: '', info: 'Iniciando robot en el servidor...' });
 
+        // Reformatear a DD/MM/YYYY para Sandvik
+        const formatForSandvik = (isoDate) => {
+            if (!isoDate) return "";
+            const [year, month, day] = isoDate.split('-');
+            return `${day}/${month}/${year}`;
+        };
+
         try {
             const res = await fetch('/api/run_po_robot', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    start_date: formatForSandvik(robotStartDate),
+                    end_date: formatForSandvik(robotEndDate)
+                })
             });
             const data = await res.json();
 
@@ -292,9 +320,31 @@ const Update = () => {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1">
                             <p className="text-blue-800 font-medium text-sm">Actualización Automática de Purchase Order</p>
-                            <p className="text-blue-600 text-xs mt-1">
-                                El robot se conectará al portal de Sandvik, configurará los filtros de Colombia (AAF 2026), descargará el reporte y actualizará el sistema automáticamente.
+                            <p className="text-blue-600 text-xs mt-1 mb-3">
+                                El robot se conectará al portal de Sandvik, configurará los filtros seleccionados, descargará el reporte y actualizará el sistema automáticamente.
                             </p>
+                            
+                            <div className="flex items-center gap-4 bg-white p-3 rounded border border-blue-100 w-fit shadow-sm">
+                                <div>
+                                    <label className="block text-xs font-semibold text-blue-800 mb-1">Fecha Inicio (AAF)</label>
+                                    <input 
+                                        type="date" 
+                                        value={robotStartDate}
+                                        onChange={(e) => setRobotStartDate(e.target.value)}
+                                        className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-700 bg-gray-50"
+                                    />
+                                </div>
+                                <div className="text-gray-400 font-bold mt-4">-</div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-blue-800 mb-1">Fecha Fin (AAF)</label>
+                                    <input 
+                                        type="date" 
+                                        value={robotEndDate}
+                                        onChange={(e) => setRobotEndDate(e.target.value)}
+                                        className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-700 bg-gray-50"
+                                    />
+                                </div>
+                            </div>
                         </div>
                         <button 
                             onClick={handleRunRobot}
