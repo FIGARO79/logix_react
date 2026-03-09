@@ -106,8 +106,10 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     
     entry_data = data.dict()
     entry_data['username'] = username
+    entry_data['timestamp'] = datetime.datetime.now().isoformat()
     entry_data['qtyGrn'] = expected_qty
-    entry_data['difference'] = data.qtyReceived - expected_qty
+    entry_data['qtyReceived'] = data.quantity
+    entry_data['difference'] = data.quantity - expected_qty
     entry_data['itemDescription'] = item_details.get('Item_Description', '')
     entry_data['binLocation'] = item_details.get('Bin_1', '')
 
