@@ -1032,12 +1032,6 @@
             "level": 8,
             "spot": "Cold"
         },
-        "EB8H": {
-            "zone": "Minuteria",
-            "aisle": "EB",
-            "level": 8,
-            "spot": "Cold"
-        },
         "EC1A": {
             "zone": "Minuteria",
             "aisle": "EC",
@@ -1411,12 +1405,6 @@
             "spot": "Cold"
         },
         "EC8G": {
-            "zone": "Minuteria",
-            "aisle": "EC",
-            "level": 8,
-            "spot": "Cold"
-        },
-        "EC8H": {
             "zone": "Minuteria",
             "aisle": "EC",
             "level": 8,
@@ -1800,12 +1788,6 @@
             "level": 8,
             "spot": "Cold"
         },
-        "ED8H": {
-            "zone": "Minuteria",
-            "aisle": "ED",
-            "level": 8,
-            "spot": "Cold"
-        },
         "EE1A": {
             "zone": "Minuteria",
             "aisle": "EE",
@@ -2184,16 +2166,10 @@
             "level": 8,
             "spot": "Cold"
         },
-        "EE8H": {
-            "zone": "Minuteria",
-            "aisle": "EE",
-            "level": 8,
-            "spot": "Cold"
-        },
         "ISLA": {
             "zone": "Floor",
-            "aisle": "Floor",
-            "level": "Floor",
+            "aisle": "Piso",
+            "level": 0,
             "spot": "Cold"
         },
         "RA10A": {

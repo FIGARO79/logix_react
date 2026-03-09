@@ -96,16 +96,33 @@ async def get_slotting_template(admin: bool = Depends(admin_login_required)):
 
 @router.post("/slotting-upload")
 async def upload_slotting_config(file: UploadFile = File(...), admin: bool = Depends(admin_login_required)):
-    df = pd.read_excel(BytesIO(await file.read()))
-    new_storage = {}
-    for _, r in df.iterrows():
-        b = str(r["BIN"]).strip().upper()
-        if b and b.lower() != "nan":
-            new_storage[b] = {"zone": str(r["ZONA"]), "aisle": str(r["PASILLO"]), "level": int(r["NIVEL"]) if pd.notna(r["NIVEL"]) else 0, "spot": str(r["SPOT"])}
-    with open(SLOTTING_PARAMS_PATH, 'r') as f: config = json.load(f)
-    config["storage"] = new_storage
-    with open(SLOTTING_PARAMS_PATH, 'w') as f: json.dump(config, f, indent=4)
-    return {"message": "Cargado correctamente"}
+    try:
+        df = pd.read_excel(BytesIO(await file.read()))
+        new_storage = {}
+        for _, r in df.iterrows():
+            b = str(r.get("BIN", "")).strip().upper()
+            if b and b.lower() != "nan":
+                new_storage[b] = {
+                    "zone": str(r.get("ZONA", "")), 
+                    "aisle": str(r.get("PASILLO", "")), 
+                    "level": int(r.get("NIVEL", 0)) if pd.notna(r.get("NIVEL", pd.NA)) else 0, 
+                    "spot": str(r.get("SPOT", ""))
+                }
+        
+        if os.path.exists(SLOTTING_PARAMS_PATH):
+            with open(SLOTTING_PARAMS_PATH, 'r') as f: 
+                config = json.load(f)
+        else:
+            config = {}
+            
+        config["storage"] = new_storage
+        with open(SLOTTING_PARAMS_PATH, 'w') as f: 
+            json.dump(config, f, indent=4)
+            
+        return {"message": "Cargado correctamente"}
+    except Exception as e:
+        print(f"Error uploading slotting config: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 # --- Endpoints de Gestión de Usuarios ---
 

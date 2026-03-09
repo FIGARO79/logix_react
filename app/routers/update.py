@@ -216,7 +216,109 @@ async def update_files_post(
     message = ""
     error = ""
 
-    # ... (resto de manejadores se mantienen igual hasta po_extractor)
+    # Manejo del maestro de items
+    if item_master and item_master.filename:
+        # Permitir cualquier nombre, confiamos en la clasificación del frontend
+        with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
+            shutil.copyfileobj(item_master.file, buffer)
+        message += f'Archivo "{item_master.filename}" actualizado (Maestro). '
+        files_uploaded = True
+
+    # Manejo del archivo GRN (280)
+    if grn_file and grn_file.filename:
+        try:
+            # [NUEVO] Generar Snapshot Automático ANTES de tocar los archivos
+            from app.services import reconciliation_service
+            auto_snap = await reconciliation_service.auto_snapshot_before_update(db, username)
+            if auto_snap:
+                message += f"Snapshot de seguridad generado: {auto_snap}. "
+
+            new_data_df = pd.read_csv(grn_file.file, dtype=str)
+            
+            if selected_grns_280:
+                try:
+                    selected_list = json.loads(selected_grns_280)
+                    if selected_list:
+                        original_count = len(new_data_df)
+                        new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
+                        message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
+                except json.JSONDecodeError:
+                    pass
+
+            if update_option_280 == 'combine':
+                if os.path.exists(GRN_CSV_FILE_PATH):
+                    existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
+                    
+                    # Obtener las GRNs que vienen en el archivo nuevo
+                    new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
+                    
+                    # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
+                    # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
+                    existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
+                    
+                    # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
+                    combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
+                else:
+                    combined_df = new_data_df
+
+                combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                message += f'Archivo "{grn_file.filename}" combinado. '
+            
+            else:  # 'replace'
+                new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                message += f'Archivo "{grn_file.filename}" reemplazado. '
+            
+            files_uploaded = True
+        except Exception as e:
+            import traceback
+            print(f"ERROR procesando archivo GRN: {str(e)}")
+            print(traceback.format_exc())
+            error += f'Error procesando archivo GRN: {str(e)}. '
+
+    # Manejo del archivo de picking (240)
+    if picking_file and picking_file.filename:
+        with open(PICKING_CSV_PATH, "wb") as buffer:
+            shutil.copyfileobj(picking_file.file, buffer)
+        message += f'Archivo "{picking_file.filename}" actualizado (Picking). '
+        files_uploaded = True
+
+    # Manejo del archivo Excel de GRN (Inbound) -> Convertir a JSON
+    if grn_excel and grn_excel.filename:
+        try:
+            from app.core.config import GRN_JSON_DATA_PATH
+            # Leer el Excel directamente desde el stream
+            excel_df = pd.read_excel(grn_excel.file)
+            # Reemplazar NaN por None para JSON valid
+            excel_df = excel_df.replace({np.nan: None})
+            
+            # Convertir a lista de diccionarios
+            data_list = excel_df.to_dict(orient='records')
+            
+            # Guardar como JSON persistente
+            with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
+                json.dump(data_list, f, indent=4, default=np_encoder)
+            
+            # [NUEVO] Eliminar el Excel original si existe para mantener el flujo limpio
+            from app.core.config import GRN_EXCEL_PATH
+            if os.path.exists(GRN_EXCEL_PATH):
+                os.remove(GRN_EXCEL_PATH)
+                print(f"🗑️ Archivo Excel original eliminado: {GRN_EXCEL_PATH}")
+
+            message += f'Archivo Excel "{grn_excel.filename}" procesado, convertido a JSON y original eliminado. '
+            files_uploaded = True
+
+            # Trigger sync to DB as well
+            from app.services.grn_service import seed_grn_from_excel
+            from app.core.db import AsyncSessionLocal
+
+            async def run_sync():
+                async with AsyncSessionLocal() as session:
+                    await seed_grn_from_excel(session)
+
+            background_tasks.add_task(run_sync)
+        except Exception as e:
+            print(f"ERROR procesando Excel GRN: {str(e)}")
+            error += f'Error procesando Excel GRN: {str(e)}. '
 
     # Manejo del Purchase Order Extractor
     if po_extractor and po_extractor.filename:

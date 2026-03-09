@@ -181,34 +181,34 @@ const WaybillGRN = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white shadow-md rounded-xl border border-gray-100 overflow-hidden">
+            <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
                 <div className="overflow-x-auto max-h-[75vh] table-scroll-container">
                     <table className="w-full text-xs border-collapse table-fixed">
-                        <thead className="sticky top-0 bg-slate-800 text-white z-10">
+                        <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>
-                                <th className="px-2 py-2 text-left font-semibold uppercase tracking-wider text-[9px] w-[9%]">Import Ref</th>
-                                <th className="px-2 py-2 text-left font-semibold uppercase tracking-wider text-[9px] w-[18%]">Waybill</th>
-                                <th className="px-2 py-2 text-left font-semibold uppercase tracking-wider text-[9px] w-[33%]">GRN Number</th>
-                                <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider text-[9px] w-[6%]">Packs</th>
-                                <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider text-[9px] w-[7%]">Lines</th>
-                                <th className="px-2 py-2 text-left font-semibold uppercase tracking-wider text-[9px] w-[13%]">AAF Date</th>
-                                <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider text-[9px] w-[14%]">Acciones</th>
+                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[9%]">Import Ref</th>
+                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[18%]">Waybill</th>
+                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[33%]">GRN Number</th>
+                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[6%]">Packs</th>
+                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[7%]">Lines</th>
+                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[13%]">AAF Date</th>
+                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[14%]">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 italic-text-fix">
+                        <tbody className="divide-y divide-gray-200">
                             {data.length === 0 && !loading ? (
                                 <tr><td colSpan="7" className="py-6 text-center text-gray-400">No se encontraron resultados</td></tr>
                             ) : filteredData.map((item, idx) => (
-                                <tr key={item.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/80 transition-all duration-150`}>
-                                    <td className="px-2 py-1 font-bold text-gray-700 truncate" title={item.import_reference}>{item.import_reference}</td>
-                                    <td className="px-2 py-1 font-medium text-[#285f94] underline underline-offset-2 decoration-blue-200 truncate" title={item.waybill}>{item.waybill}</td>
-                                    <td className="px-2 py-1 text-gray-600 font-mono truncate" title={item.grn_number}>{item.grn_number || '-'}</td>
-                                    <td className="px-2 py-1 text-center text-gray-600 font-mono font-medium">{item.packs}</td>
-                                    <td className="px-2 py-1 text-center text-gray-600 truncate" title={item.lines}>{item.lines || '-'}</td>
-                                    <td className="px-2 py-1 text-gray-500 text-[9px] truncate">
+                                <tr key={item.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                                    <td className="px-2 py-1.5 whitespace-nowrap font-bold text-gray-700 truncate" title={item.import_reference}>{item.import_reference}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap font-medium text-[#285f94] underline underline-offset-2 decoration-blue-200 truncate" title={item.waybill}>{item.waybill}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600 font-mono truncate" title={item.grn_number}>{item.grn_number || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 font-mono font-medium">{item.packs}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 truncate" title={item.lines}>{item.lines || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 text-[9px] truncate">
                                         {item.aaf_date ? item.aaf_date.split(' ')[0] : '-'}
                                     </td>
-                                    <td className="px-2 py-1 text-center">
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center">
                                         <button
                                             onClick={() => handleEdit(item)}
                                             className="text-[#285f94] hover:text-[#1e4a74] p-1 hover:bg-blue-100 rounded transition-all"

@@ -127,6 +127,19 @@ const SlottingConfig = () => {
         }
     };
 
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            setSelectedFile(e.dataTransfer.files[0]);
+        }
+    };
+
     return (
         <AdminLayout title="Configuración de Almacenamiento">
             {/* Header Area */}
@@ -192,7 +205,12 @@ const SlottingConfig = () => {
                                     Descargar Layout Actual
                                 </button>
                             </div>
-                            <div className="border-2 border-dashed border-[#285f94]/30 rounded-lg p-8 text-center cursor-pointer hover:bg-white/50" onClick={() => fileInputRef.current.click()}>
+                            <div 
+                                className="border-2 border-dashed border-[#285f94]/30 rounded-lg p-8 text-center cursor-pointer hover:bg-white/50 transition-colors" 
+                                onClick={() => fileInputRef.current.click()}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                            >
                                 <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={e => setSelectedFile(e.target.files[0])} />
                                 <p className="text-sm text-gray-600 font-medium">{selectedFile ? `Seleccionado: ${selectedFile.name}` : 'Arrastre su archivo Excel o haga clic aquí'}</p>
                             </div>
