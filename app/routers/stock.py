@@ -42,7 +42,7 @@ async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
     response_data = {
-        'item_code': item_details.get('Item_Code'),
+        'item_code': item_code.upper(),
         'description': item_details.get('Item_Description'),
         'bin_location': effective_bin_location,  # Ubicación efectiva
         'additional_bins': item_details.get('Aditional_Bin_Location'),
