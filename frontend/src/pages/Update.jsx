@@ -351,7 +351,7 @@ const Update = () => {
 
                             <div className="flex items-center gap-4 bg-white px-3 py-2 rounded border border-blue-100 w-fit shadow-sm">
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs font-semibold text-blue-800 whitespace-nowrap">Fecha Inicio (AAF):</label>
+                                    <label className="text-xs font-semibold text-blue-800 whitespace-nowrap">Fecha Inicio (ATD):</label>
                                     <input
                                         type="date"
                                         value={robotStartDate}
@@ -361,7 +361,7 @@ const Update = () => {
                                 </div>
                                 <div className="text-gray-400 font-bold">-</div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs font-semibold text-blue-800 whitespace-nowrap">Fecha Fin (AAF):</label>
+                                    <label className="text-xs font-semibold text-blue-800 whitespace-nowrap">Fecha Fin (ATD):</label>
                                     <input
                                         type="date"
                                         value={robotEndDate}

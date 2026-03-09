@@ -36,17 +36,17 @@ def run_po_robot(start_date: str, end_date: str):
 
             print("📝 Llenando formulario...", flush=True)
 
-            # 1. Fechas AAF (usando los IDs exactos provistos)
-            print(f"   Llenando 'Data Range AAF' ({start_date} - {end_date})...", flush=True)
+            # 1. Fechas ATD (usando los IDs exactos provistos)
+            print(f"   Llenando 'Data Range ATD' ({start_date} - {end_date})...", flush=True)
             
             # KendoUI requiere simular escritura humana para registrar el cambio
-            page.locator("#Form_StartAAFDate").click()
-            page.locator("#Form_StartAAFDate").clear()
+            page.locator("#Form_StartDate").click()
+            page.locator("#Form_StartDate").clear()
             page.keyboard.type(start_date, delay=50)
             page.keyboard.press("Enter")
 
-            page.locator("#Form_EndAAFDate").click()
-            page.locator("#Form_EndAAFDate").clear()
+            page.locator("#Form_EndDate").click()
+            page.locator("#Form_EndDate").clear()
             page.keyboard.type(end_date, delay=50)
             page.keyboard.press("Enter")
             
