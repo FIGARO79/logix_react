@@ -37,18 +37,31 @@ async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) 
 async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_for_db: Dict[str, Any]) -> bool:
     """Actualiza una entrada de log existente."""
     try:
-        stmt = update(Log).where(Log.id == log_id).values(
-            waybill=entry_data_for_db.get('waybill'),
-            relocatedBin=entry_data_for_db.get('relocatedBin'),
-            qtyReceived=entry_data_for_db.get('qtyReceived'),
-            qtyGrn=entry_data_for_db.get('qtyGrn'),
-            difference=entry_data_for_db.get('difference'),
-            timestamp=entry_data_for_db.get('timestamp')
-            # Nota: observaciones se omite porque no existe en tabla MySQL
-        )
-        result = await db.execute(stmt)
+        # Recuperar el log existente
+        result = await db.execute(select(Log).where(Log.id == log_id))
+        log = result.scalar_one_or_none()
+        
+        if not log:
+            return False
+            
+        # Actualizar solo los campos proporcionados
+        if 'waybill' in entry_data_for_db:
+            log.waybill = entry_data_for_db['waybill']
+        if 'relocatedBin' in entry_data_for_db:
+            log.relocatedBin = entry_data_for_db['relocatedBin']
+        if 'qtyReceived' in entry_data_for_db:
+            log.qtyReceived = entry_data_for_db['qtyReceived']
+            # Recalcular la diferencia si qtyGrn existe
+            if log.qtyGrn is not None:
+                try:
+                    log.difference = float(log.qtyReceived) - float(log.qtyGrn)
+                except ValueError:
+                    pass
+        if 'timestamp' in entry_data_for_db:
+            log.timestamp = entry_data_for_db['timestamp']
+            
         await db.commit()
-        return result.rowcount > 0
+        return True
     except Exception as e:
         print(f"DB Error (update_log_entry_db_async) para ID {log_id}: {e}")
         await db.rollback()

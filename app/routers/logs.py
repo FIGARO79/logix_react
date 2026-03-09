@@ -75,6 +75,10 @@ async def find_item(
             final_suggested_bin = traditional_suggested_bin
             is_ai_prediction = False
 
+    if latest_relocated_bin or final_suggested_bin == effective_bin_location:
+        final_suggested_bin = None
+        is_ai_prediction = False
+
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
         "description": item_details.get('Item_Description', 'N/A'),
@@ -104,6 +108,10 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     expected_qty = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
     
+    latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code_form)
+    original_bin = item_details.get('Bin_1', '')
+    effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
+    
     entry_data = data.dict()
     entry_data['username'] = username
     entry_data['timestamp'] = datetime.datetime.now().isoformat()
@@ -111,7 +119,7 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     entry_data['qtyReceived'] = data.quantity
     entry_data['difference'] = data.quantity - expected_qty
     entry_data['itemDescription'] = item_details.get('Item_Description', '')
-    entry_data['binLocation'] = item_details.get('Bin_1', '')
+    entry_data['binLocation'] = effective_bin_location
 
     # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
     if data.relocatedBin:
@@ -142,7 +150,7 @@ async def get_logs(version_date: Optional[str] = None, username: str = Depends(l
         return JSONResponse(status_code=500, content={"error": "Error interno al cargar logs"})
 
 @router.delete('/delete_log/{log_id}')
-async def delete_log(log_id: int, username: str = Depends(permission_required("admin")), db: AsyncSession = Depends(get_db)):
+async def delete_log(log_id: int, username: str = Depends(permission_required(["admin", "inbound"])), db: AsyncSession = Depends(get_db)):
     """Elimina un registro de log."""
     success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
