@@ -253,11 +253,38 @@ const Update = () => {
 
     const [isRobotRunning, setIsRobotRunning] = useState(false);
 
+    // Polling effect para revisar el estado del robot cada 10 segundos
+    useEffect(() => {
+        let interval;
+        if (isRobotRunning) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/po_robot_status');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            setMessages({ success: data.message, error: '', info: '' });
+                            setIsRobotRunning(false);
+                        } else if (data.status === 'error') {
+                            setMessages({ success: '', error: data.message, info: '' });
+                            setIsRobotRunning(false);
+                        } else if (data.status === 'running') {
+                            setMessages({ success: '', error: '', info: data.message || 'Ejecutando robot en segundo plano, por favor espere...' });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error consultando estado del robot:", err);
+                }
+            }, 10000); // 10 segundos
+        }
+        return () => clearInterval(interval);
+    }, [isRobotRunning]);
+
     const handleRunRobot = async () => {
         if (!window.confirm("¿Deseas iniciar el robot de descarga automática? Esto tomará unos minutos.")) return;
 
         setIsRobotRunning(true);
-        setMessages({ success: '', error: '', info: 'Iniciando robot en el servidor...' });
+        setMessages({ success: '', error: '', info: 'Enviando petición al servidor...' });
 
         // Reformatear a DD/MM/YYYY para Sandvik
         const formatForSandvik = (isoDate) => {
@@ -277,14 +304,13 @@ const Update = () => {
             });
             const data = await res.json();
 
-            if (res.ok) {
-                setMessages({ success: data.message, error: '', info: '' });
-            } else {
+            if (!res.ok) {
                 setMessages({ success: '', error: data.error || "Error al activar el robot", info: '' });
+                setIsRobotRunning(false);
             }
+            // Si res.ok es true, no seteamos success de inmediato porque el polling tomará el control
         } catch (err) {
-            setMessages({ success: '', error: "Error de conexión con el servidor", info: '' });
-        } finally {
+            setMessages({ success: '', error: "Error de conexión con el servidor al activar el robot", info: '' });
             setIsRobotRunning(false);
         }
     };
@@ -312,15 +338,15 @@ const Update = () => {
                         <svg className="w-6 h-6 text-[#1e73be]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                         </svg>
-                        <h2 className="text-lg font-bold text-blue-900">Automatización Sandvik</h2>
+                        <h2 className="text-lg font-bold text-blue-900">Automatización</h2>
                     </div>
                 </div>
                 <div className="p-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1">
-                            <p className="text-blue-800 font-medium text-sm leading-tight">Actualización Automática de Purchase Order</p>
+                            <p className="text-blue-800 font-medium text-sm leading-tight">Actualización automática de Import reference y waybill.</p>
                             <p className="text-blue-600 text-xs mt-0.5 mb-2 leading-tight">
-                                El robot actualizará automáticamente los datos de Purchase Order con el rango de fechas seleccionada.
+                                El robot actualizará automáticamente los datos de Import reference y waybill con el rango de fechas seleccionada.
                             </p>
 
                             <div className="flex items-center gap-4 bg-white px-3 py-2 rounded border border-blue-100 w-fit shadow-sm">

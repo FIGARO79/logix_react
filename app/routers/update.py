@@ -135,6 +135,12 @@ class PORobotRequest(BaseModel):
     start_date: str
     end_date: str
 
+# Variable global para el estado del robot en memoria
+po_robot_status = {
+    "status": "idle",
+    "message": ""
+}
+
 @router.post('/api/run_po_robot', response_class=JSONResponse)
 async def run_po_robot_api(
     payload: PORobotRequest,
@@ -148,30 +154,45 @@ async def run_po_robot_api(
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
     async def execute_robot_task():
+        global po_robot_status
+        po_robot_status["status"] = "running"
+        po_robot_status["message"] = f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
+        
         from app.services.po_robot import run_po_robot
         from app.core.config import PO_EXTRACTOR_EXCEL_PATH
         from starlette.concurrency import run_in_threadpool
         
-        # 1. Ejecutar descarga de forma segura en un hilo aparte (Playwright es síncrono)
-        # Pasamos las fechas dinámicas que vinieron desde el frontend
+        # 1. Ejecutar descarga de forma segura en un hilo aparte
         success, msg = await run_in_threadpool(run_po_robot, payload.start_date, payload.end_date)
         if not success:
-            print(f"❌ Error en Robot: {msg}")
+            po_robot_status["status"] = "error"
+            po_robot_status["message"] = f"Error en Robot: {msg}"
+            print(f"❌ {po_robot_status['message']}")
             return
 
-        # 2. Procesar el archivo (Lógica refactorizada)
+        # 2. Procesar el archivo
         success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
         if success_proc:
-            print(f"✅ Robot: Descarga y proceso completados con éxito. {msg_proc}")
+            po_robot_status["status"] = "success"
+            po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
+            print(f"✅ Robot: {po_robot_status['message']}")
             # Recargar el caché de memoria general
             await load_csv_data()
         else:
-            print(f"❌ Robot: Descarga OK pero error en proceso: {msg_proc}")
+            po_robot_status["status"] = "error"
+            po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
+            print(f"❌ Robot: {po_robot_status['message']}")
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
     
-    return JSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. El sistema se actualizará en unos minutos."})
+    return JSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
+
+@router.get('/api/po_robot_status')
+async def get_po_robot_status(username: str = Depends(login_required)):
+    if not isinstance(username, str):
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+    return JSONResponse(content=po_robot_status)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
 @router.post('/api/update', response_class=JSONResponse)
