@@ -90,9 +90,30 @@ async def load_csv_data():
     print(f"✅ [SISTEMA] Datos cargados en RAM en {time.time() - start_time:.2f} segundos.")
 
 async def reload_cache_if_needed():
-    """Solo recarga si el caché está vacío. El middleware fue eliminado para evitar latencia."""
-    global df_master_cache
+    """Verifica si los archivos CSV han cambiado en disco y recarga el caché si es necesario."""
+    global df_master_cache, _mtime_master, _mtime_grn
+    
+    needs_reload = False
+    
+    # Si el caché está vacío, recarga obligatoria
     if df_master_cache is None:
+        needs_reload = True
+    else:
+        # Verificar Maestro de Items
+        if os.path.exists(ITEM_MASTER_CSV_PATH):
+            current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
+            if current_mtime_master > _mtime_master:
+                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}). Recargando...")
+                needs_reload = True
+        
+        # Verificar GRN 280
+        if not needs_reload and os.path.exists(GRN_CSV_FILE_PATH):
+            current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
+            if current_mtime_grn > _mtime_grn:
+                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}). Recargando...")
+                needs_reload = True
+
+    if needs_reload:
         await load_csv_data()
 
 async def get_item_details_from_master_csv(item_code: str):

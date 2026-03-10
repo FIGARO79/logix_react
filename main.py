@@ -72,6 +72,7 @@ app.add_middleware(
     max_age=None,
     https_only=False
 )
+app.add_middleware(CSVCacheReloadMiddleware)
 
 # --- Montar estáticos (Legacy Support) ---
 app.mount("/static", StaticFiles(directory="static"), name="static")

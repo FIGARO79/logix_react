@@ -252,6 +252,27 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Cant. Recibida": r.qty_received,
                 "Diferencia Total I.R.": r.difference
             } for r in rows])
+            
+            # [CORRECCIÓN] Si es snapshot, generar el Excel y retornar aquí mismo
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_for_export.to_excel(writer, index=False, sheet_name='SnapshotConciliacion')
+                worksheet = writer.sheets['SnapshotConciliacion']
+                for i, col_name in enumerate(df_for_export.columns):
+                    column_letter = get_column_letter(i + 1)
+                    try:
+                        series = df_for_export[col_name].astype(str)
+                        data_max_len = series.map(len).max()
+                        if pd.isna(data_max_len): data_max_len = 0
+                    except:
+                        data_max_len = 0
+                    max_len = max(int(data_max_len), len(col_name)) + 2
+                    worksheet.column_dimensions[column_letter].width = float(max_len)
+            
+            output.seek(0)
+            filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
+            return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+
         else:
             await csv_handler.reload_cache_if_needed()
         
