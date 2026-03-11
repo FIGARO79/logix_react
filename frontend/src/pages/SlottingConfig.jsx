@@ -17,6 +17,19 @@ const SlottingConfig = () => {
     const [showUpload, setShowUpload] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
+    const statsRef = useRef(null);
+    const [statsHeight, setStatsHeight] = useState(null);
+
+    useEffect(() => {
+        if (!statsRef.current) return;
+        const observer = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                setStatsHeight(entry.contentRect.height);
+            }
+        });
+        observer.observe(statsRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const fetchSummary = useCallback(async () => {
         try {
@@ -236,7 +249,7 @@ const SlottingConfig = () => {
                                 <span className="text-[10px] text-[#6a6d70] font-bold uppercase tracking-tight">{filteredBins.length} registros</span>
                             </div>
                         </div>
-                        <div className="overflow-x-auto max-h-[65vh]">
+                        <div className="overflow-x-auto" style={{ overflowY: 'auto', maxHeight: statsHeight ? `${statsHeight}px` : 'calc(100vh - 175px)' }}>
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
                                     {activeTab === 'storage' ? (
@@ -310,8 +323,8 @@ const SlottingConfig = () => {
                 </div>
 
                 {/* Right Panel: Summary Dashboard */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded shadow-sm border border-[#d9d9d9] h-fit sticky top-20">
+                <div className="lg:col-span-1">
+                    <div ref={statsRef} className="bg-white p-6 rounded shadow-sm border border-[#d9d9d9] sticky top-20">
                         <h2 className="text-lg font-normal text-gray-800 mb-4 border-b pb-2">
                             Estado del Almacén
                         </h2>
