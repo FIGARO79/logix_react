@@ -44,7 +44,7 @@ mysql.txt
 *.bak
 *.backup
 VPS_ubuntu.md
-start_backend.sh
+dev.sh
 *.conf
 *.jpg
 *.png

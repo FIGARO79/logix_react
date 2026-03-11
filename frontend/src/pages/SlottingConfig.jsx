@@ -359,6 +359,95 @@ const SlottingConfig = () => {
                                         ))}
                                     </div>
                                 </div>
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 border-t pt-4">Saturación de Ubicaciones</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-1">
+                                            <span className="text-gray-600">Total ítems activos</span>
+                                            <span className="font-mono font-medium text-gray-800">{summary.total_items_in_bins ?? '—'}</span>
+                                        </div>
+                                        <div className="pt-1">
+                                            <div className="flex justify-between text-[10px] font-bold text-gray-500 mb-1 uppercase">
+                                                <span>Promedio ítems / bin</span>
+                                                <span className={
+                                                    (summary.avg_items_per_bin ?? 0) > 5 ? 'text-red-600 font-black' :
+                                                    (summary.avg_items_per_bin ?? 0) > 2 ? 'text-amber-500 font-black' :
+                                                    'text-emerald-600'
+                                                }>
+                                                    {summary.avg_items_per_bin ?? '—'}
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                                <div
+                                                    className={`h-full transition-all duration-1000 ${
+                                                        (summary.avg_items_per_bin ?? 0) > 5 ? 'bg-red-500' :
+                                                        (summary.avg_items_per_bin ?? 0) > 2 ? 'bg-amber-400' :
+                                                        'bg-emerald-500'
+                                                    }`}
+                                                    style={{ width: `${Math.min(((summary.avg_items_per_bin ?? 0) / 8) * 100, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex justify-between text-[9px] text-gray-300 mt-0.5 font-mono">
+                                                <span>0</span><span>4</span><span>8+</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Zonas por saturación de ítems */}
+                                {summary.zones_by_items && Object.keys(summary.zones_by_items).length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 border-t pt-4">Zonas más saturadas</h3>
+                                        <div className="space-y-2.5">
+                                            {(() => {
+                                                const entries = Object.entries(summary.zones_by_items);
+                                                const maxVal = entries[0]?.[1] || 1;
+                                                return entries.map(([zone, count]) => (
+                                                    <div key={zone}>
+                                                        <div className="flex justify-between text-[10px] font-medium text-gray-600 mb-0.5">
+                                                            <span>{zone}</span>
+                                                            <span className="font-mono text-gray-500">{count} ítems</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-[#285f94] transition-all duration-700"
+                                                                style={{ width: `${(count / maxVal) * 100}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Top pasillos */}
+                                {summary.top_aisles && Object.keys(summary.top_aisles).length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 border-t pt-4">Top pasillos</h3>
+                                        <div className="space-y-2.5">
+                                            {(() => {
+                                                const entries = Object.entries(summary.top_aisles);
+                                                const maxVal = entries[0]?.[1] || 1;
+                                                return entries.map(([aisle, count], idx) => (
+                                                    <div key={aisle} className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-black text-gray-300 w-3 text-right shrink-0">{idx + 1}</span>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between text-[10px] font-medium text-gray-600 mb-0.5">
+                                                                <span className="font-mono font-bold text-[#285f94]">Pasillo {aisle}</span>
+                                                                <span className="text-gray-500">{count}</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
+                                                                <div
+                                                                    className={`h-full transition-all duration-700 ${idx === 0 ? 'bg-red-400' : idx === 1 ? 'bg-amber-400' : 'bg-[#285f94]/60'}`}
+                                                                    style={{ width: `${(count / maxVal) * 100}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

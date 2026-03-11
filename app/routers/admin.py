@@ -49,21 +49,45 @@ async def get_slotting_summary(admin: bool = Depends(admin_login_required), db: 
             z = info.get("zone", "Otras")
             zones[z] = zones.get(z, 0) + 1
 
-        # Ocupación REAL: Bins con stock > 0
-        query = text("SELECT DISTINCT bin_1 FROM master_items WHERE physical_qty > 0 AND bin_1 IS NOT NULL")
+        # Ocupación REAL: Bins con stock > 0 y total de ítems por bin
+        query = text("SELECT bin_1, COUNT(*) as item_count FROM master_items WHERE physical_qty > 0 AND bin_1 IS NOT NULL GROUP BY bin_1")
         res = await db.execute(query)
-        bins_in_db = {str(row[0]).strip().upper() for row in res.all()}
+        rows = res.all()
+        bins_in_db = {str(row[0]).strip().upper(): row[1] for row in rows}
 
-        # Cruzar
-        storage_keys = {k.strip().upper() for k in storage.keys()}
-        in_use_count = len(bins_in_db.intersection(storage_keys))
-        
+        # Cruzar con layout maestro (normalizar claves)
+        storage_upper = {k.strip().upper(): v for k, v in storage.items()}
+        matched_bins = {b: c for b, c in bins_in_db.items() if b in storage_upper}
+        in_use_count = len(matched_bins)
+        total_items_in_bins = sum(matched_bins.values())
+        avg_items_per_bin = round(total_items_in_bins / in_use_count, 1) if in_use_count > 0 else 0
+
+        # Saturación por zona y pasillo (contando ítems, no bins)
+        zone_items = {}
+        aisle_items = {}
+        for bin_code, item_count in matched_bins.items():
+            info = storage_upper.get(bin_code, {})
+            z = info.get("zone", "Otras")
+            a = info.get("aisle", "?")
+            zone_items[z] = zone_items.get(z, 0) + item_count
+            if a and a != "nan":
+                aisle_items[a] = aisle_items.get(a, 0) + item_count
+
+        # Top 5 pasillos más saturados
+        top_aisles = sorted(aisle_items.items(), key=lambda x: x[1], reverse=True)[:5]
+        # Zonas ordenadas por saturación
+        zones_by_items = sorted(zone_items.items(), key=lambda x: x[1], reverse=True)
+
         return {
             "total": total_locations,
             "in_use": in_use_count,
             "free": total_locations - in_use_count,
             "occupancy_pct": round((in_use_count / total_locations * 100), 1) if total_locations > 0 else 0,
-            "by_zone": zones
+            "by_zone": zones,
+            "avg_items_per_bin": avg_items_per_bin,
+            "total_items_in_bins": total_items_in_bins,
+            "zones_by_items": dict(zones_by_items),
+            "top_aisles": dict(top_aisles)
         }
     except Exception as e:
         print(f"ERROR SUMMARY: {e}")
