@@ -186,13 +186,13 @@ const WaybillGRN = () => {
                     <table className="w-full text-xs border-collapse table-fixed">
                         <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>
-                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[9%]">Import Ref</th>
-                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[18%]">Waybill</th>
-                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[33%]">GRN Number</th>
-                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[6%]">Packs</th>
-                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[7%]">Lines</th>
-                                <th className="px-2 py-1.5 text-left font-medium uppercase tracking-wider text-[9px] w-[13%]">AAF Date</th>
-                                <th className="px-2 py-1.5 text-center font-medium uppercase tracking-wider text-[9px] w-[14%]">Acciones</th>
+                                <th className="px-2 py-1.5 text-left font-medium w-[9%]">Import Ref</th>
+                                <th className="px-2 py-1.5 text-left font-medium w-[18%]">Waybill</th>
+                                <th className="px-2 py-1.5 text-left font-medium w-[33%]">GRN Number</th>
+                                <th className="px-2 py-1.5 text-center font-medium w-[6%]">Packs</th>
+                                <th className="px-2 py-1.5 text-center font-medium w-[7%]">Lines</th>
+                                <th className="px-2 py-1.5 text-left font-medium w-[13%]">AAF Date</th>
+                                <th className="px-2 py-1.5 text-center font-medium w-[14%]">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -205,7 +205,7 @@ const WaybillGRN = () => {
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600 font-mono truncate" title={item.grn_number}>{item.grn_number || '-'}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 font-mono font-medium">{item.packs}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 truncate" title={item.lines}>{item.lines || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 text-[9px] truncate">
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 truncate">
                                         {item.aaf_date ? item.aaf_date.split(' ')[0] : '-'}
                                     </td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center">
@@ -219,7 +219,7 @@ const WaybillGRN = () => {
                                 </tr>
                             ))}
                             {loading && (
-                                <tr><td colSpan="7" className="py-4 text-center text-[#285f94] text-xs">
+                                <tr><td colSpan="7" className="py-0.5 text-center text-[#285f94] text-xs">
                                     <div className="flex items-center justify-center gap-2">
                                         <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -248,6 +248,8 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "GRN": r.grn,
                 "Código Item": r.item_code,
                 "Descripción": r.description,
+                "Ubicación": getattr(r, 'bin_location', '') or '',
+                "Reubicado": getattr(r, 'relocated_bin', '') or '',
                 "Cant. Esperada": r.qty_expected,
                 "Cant. Recibida": r.qty_received,
                 "Diferencia Total I.R.": r.difference
@@ -331,6 +333,15 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         except: pass
 
         # 3. Procesamiento simplificado y veloz con Pandas
+        # Extraer ubicaciones antes del groupby
+        loc_cols = [c for c in ['binLocation', 'relocatedBin'] if c in logs_df.columns]
+        if loc_cols:
+            df_locations = logs_df.groupby(['importReference', 'itemCode'])[loc_cols].last().reset_index()
+        else:
+            df_locations = logs_df[['importReference', 'itemCode']].drop_duplicates()
+            df_locations['binLocation'] = ''
+            df_locations['relocatedBin'] = ''
+
         logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
         logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
 
@@ -368,6 +379,15 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
         final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
 
+        # Unir ubicaciones
+        final_merge = pd.merge(
+            final_merge,
+            df_locations,
+            left_on=['importReference', 'itemCode'],
+            right_on=['importReference', 'itemCode'],
+            how='left'
+        )
+
         df_for_export = final_merge.rename(columns={
             "importReference": "I.R.",
             "waybill": "Waybill",
@@ -376,10 +396,12 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
             "Item_Description": "Descripción",
             "Quantity": "Cant. Esperada",
             "qtyReceived": "Cant. Recibida",
-            "Diferencia": "Diferencia Total I.R."
+            "Diferencia": "Diferencia Total I.R.",
+            "binLocation": "Ubicación",
+            "relocatedBin": "Reubicado"
         })[[
-            "I.R.", "Waybill", "GRN", "Código Item", 
-            "Descripción", "Cant. Esperada", "Cant. Recibida", "Diferencia Total I.R."
+            "I.R.", "Waybill", "GRN", "Código Item",
+            "Descripción", "Ubicación", "Reubicado", "Cant. Esperada", "Cant. Recibida", "Diferencia Total I.R."
         ]]
 
         output = BytesIO()

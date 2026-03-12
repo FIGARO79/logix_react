@@ -79,6 +79,16 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
     # 3. Procesamiento Pandas
     logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+    
+    # Extraer ubicaciones antes del groupby (tomar el último valor por importReference+itemCode)
+    loc_cols = [c for c in ['binLocation', 'relocatedBin'] if c in logs_df.columns]
+    if loc_cols:
+        df_locations = logs_df.groupby(['importReference', 'itemCode'])[loc_cols].last().reset_index()
+    else:
+        df_locations = logs_df[['importReference', 'itemCode']].drop_duplicates()
+        df_locations['binLocation'] = ''
+        df_locations['relocatedBin'] = ''
+    
     logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
 
     mapping_rows = []
@@ -116,6 +126,15 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
     final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
     final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
 
+    # Unir ubicaciones desde el log
+    final_merge = pd.merge(
+        final_merge,
+        df_locations,
+        left_on=['importReference', 'itemCode'],
+        right_on=['importReference', 'itemCode'],
+        how='left'
+    )
+
     df_final = final_merge.rename(columns={
         "importReference": "Import_Reference",
         "waybill": "Waybill",
@@ -123,16 +142,19 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         "itemCode": "Codigo_Item",
         "Item_Description": "Descripcion",
         "Quantity": "Cant_Esperada",
-        "qtyReceived": "Cant_Recibida"
+        "qtyReceived": "Cant_Recibida",
+        "binLocation": "Ubicacion",
+        "relocatedBin": "Reubicado"
     })
-    
-    # Añadir placeholders para campos de UI si no existen
-    df_final = df_final.copy()
-    df_final['Ubicacion'] = ""
-    df_final['Reubicado'] = ""
+
+    # Garantizar columnas de ubicación aunque no haya datos en el log
+    if 'Ubicacion' not in df_final.columns:
+        df_final['Ubicacion'] = ''
+    if 'Reubicado' not in df_final.columns:
+        df_final['Reubicado'] = ''
 
     return df_final[[
-        "Import_Reference", "Waybill", "GRN", "Codigo_Item", 
+        "Import_Reference", "Waybill", "GRN", "Codigo_Item",
         "Descripcion", "Ubicacion", "Reubicado", "Cant_Esperada", "Cant_Recibida", "Diferencia"
     ]].fillna("").to_dict(orient='records')
 
@@ -149,6 +171,8 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
             grn=row.get('GRN', ''),
             item_code=row.get('Codigo_Item', ''),
             description=row.get('Descripcion', ''),
+            bin_location=row.get('Ubicacion', '') or '',
+            relocated_bin=row.get('Reubicado', '') or '',
             qty_expected=int(row.get('Cant_Esperada', 0)),
             qty_received=int(row.get('Cant_Recibida', 0)),
             difference=int(row.get('Diferencia', 0)),

@@ -210,7 +210,7 @@ const Reconciliation = () => {
                         <table className="w-full text-xs border-collapse">
                             <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    {['Import_Reference', 'Waybill', 'GRN', 'Codigo_Item', 'Descripcion', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
+                                    {['Import_Reference', 'Waybill', 'GRN', 'Codigo_Item', 'Descripcion', 'Ubicacion', 'Reubicado', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
                                         <th
                                             key={head}
                                             onClick={() => requestSort(head)}
@@ -251,6 +251,8 @@ const Reconciliation = () => {
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 italic">{row.GRN}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap font-mono font-bold text-[#285f94]">{row.Codigo_Item}</td>
                                                 <td className="px-2 py-1.5 truncate max-w-[200px]" title={row.Descripcion}>{row.Descripcion}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono text-gray-700">{row.Ubicacion || '-'}</td>
+                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono text-gray-700">{row.Reubicado || '-'}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Esperada}</td>
                                                 <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono font-bold">{row.Cant_Recibida}</td>
                                                 <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono ${textClass}`}>
@@ -261,7 +263,7 @@ const Reconciliation = () => {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" className="px-2 py-4 text-center text-gray-500">
+                                        <td colSpan="10" className="px-2 py-4 text-center text-gray-500">
                                             No se encontraron datos {filterText && `para "${filterText}"`}
                                         </td>
                                     </tr>
