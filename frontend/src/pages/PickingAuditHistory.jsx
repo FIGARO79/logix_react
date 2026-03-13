@@ -128,6 +128,7 @@ const PickingAuditHistory = () => {
             const payload = {
                 order_number: editingAudit.order_number,
                 despatch_number: editingAudit.despatch_number,
+                customer_code: editingAudit.customer_code || '',
                 customer_name: editingAudit.customer_name || 'N/A',
                 status: editingAudit.status,
                 items: editingAudit.items.map(item => ({
@@ -333,9 +334,10 @@ const PickingAuditHistory = () => {
                                     <th className="px-2 py-2 text-center w-10">Envío</th>
                                     <th className="px-3 py-2 text-center w-8"></th>
                                     <th className="px-3 py-2">ID</th>
-                                    <th className="px-3 py-2">Pedido</th>
+                                    <th className="px-3 py-2">Orden</th>
                                     <th className="px-3 py-2">Despacho</th>
                                     <th className="px-3 py-2">Cliente</th>
+                                    <th className="px-3 py-2">Cód.</th>
                                     <th className="px-3 py-2">Usuario</th>
                                     <th className="px-3 py-2">Fecha</th>
                                     <th className="px-3 py-2 text-center">Estado</th>
@@ -371,6 +373,7 @@ const PickingAuditHistory = () => {
                                             <td className="px-3 py-2 text-xs text-[#285f94] font-semibold">{audit.order_number}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{audit.despatch_number}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[150px]">{audit.customer_name || 'N/A'}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 font-mono">{audit.customer_code || ''}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{audit.username}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{formatDate(audit.timestamp)}</td>
                                             <td className="px-3 py-2 text-center">
@@ -462,7 +465,10 @@ const PickingAuditHistory = () => {
                                             {audit.status}
                                         </span>
                                     </div>
-                                    <div className="text-sm font-medium mb-1">{audit.customer_name}</div>
+                                    <div className="text-sm font-medium mb-1">
+                                        <span className="text-gray-400 font-mono text-xs mr-2">{audit.customer_code}</span>
+                                        {audit.customer_name}
+                                    </div>
                                     <div className="flex justify-between items-end text-xs text-gray-500">
                                         <div>{formatDate(audit.timestamp)}</div>
                                         <div className="flex gap-2">

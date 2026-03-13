@@ -25,7 +25,7 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
         df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
         
-        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
+        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER", "CUSTOMER_NAME", "ORDER_LINE"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
@@ -53,6 +53,7 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
             "ITEM": "Item Code",
             "DESCRIPTION": "Item Description",
             "QTY": "Qty",
+            "CUSTOMER": "Customer Code",
             "CUSTOMER_NAME": "Customer Name",
             "ORDER_LINE": "Order Line"
         })
@@ -76,7 +77,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         # Leer CSV
         df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
         
-        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
+        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
@@ -92,7 +93,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         df["DESPATCH_"] = df["DESPATCH_"].astype(str).str.strip()
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
-        grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER_NAME"], as_index=False).agg(
+        grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME"], as_index=False).agg(
             total_lines=("ORDER_", "size"),
             print_time=("PICK_LIST_PRINTED_TIME", first_nonempty),
             time_zone=("Time_Zone_Hours", first_nonempty),
@@ -153,6 +154,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
             tracking_data.append({
                 "order_number": order_num,
                 "despatch_number": despatch_num,
+                "customer_code": row["CUSTOMER"],
                 "customer_name": row["CUSTOMER_NAME"],
                 "total_lines": int(row["total_lines"]),
                 "print_date": format_local_print_time(row["print_time"], row["time_zone"]),
@@ -216,6 +218,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
         response = {
             "order_number": str(audit.order_number or ""),
             "despatch_number": str(audit.despatch_number or ""),
+            "customer_code": str(audit.customer_code or ""),
             "customer_name": str(audit.customer_name or ""),
             "timestamp": str(audit.timestamp) if audit.timestamp else "",
             "total_packages": total_packages,
@@ -250,6 +253,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             "id": audit.id,
             "order_number": audit.order_number,
             "despatch_number": audit.despatch_number,
+            "customer_code": audit.customer_code,
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
             "items": [
@@ -325,6 +329,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             "id": audit.id,
             "order_number": audit.order_number,
             "despatch_number": audit.despatch_number,
+            "customer_code": audit.customer_code,
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
             "packages_assignment": packages_assignment,
@@ -383,6 +388,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
         # Actualizar auditoría principal
         existing_audit.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
         existing_audit.status = new_status
+        existing_audit.customer_code = audit_data.customer_code
         existing_audit.packages = audit_data.packages if audit_data.packages else 0
         
         # Actualizar items
@@ -470,6 +476,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
         new_audit = PickingAuditModel(
             order_number=audit_data.order_number,
             despatch_number=audit_data.despatch_number,
+            customer_code=audit_data.customer_code,
             customer_name=audit_data.customer_name,
             username=username,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),

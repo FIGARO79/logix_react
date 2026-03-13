@@ -100,28 +100,28 @@ const ConsolidatedPackingList = () => {
                     <span className="text-[10px] font-mono border border-black px-1.5 rounded">BOX-{keyName.padStart(3, '0')}</span>
                 </div>
             )}
-            <table className="min-w-full text-sm">
+            <table className="min-w-full text-sm table-fixed">
                 <thead className="bg-white text-black border-b border-black">
                     <tr>
-                        <th className="px-3 py-0.5 text-left w-12 uppercase text-[9px]">Línea</th>
-                        <th className="px-3 py-0.5 text-left w-1/4 uppercase text-[9px]">Código</th>
-                        <th className="px-3 py-0.5 text-left w-1/2 uppercase text-[9px]">Descripción</th>
-                        <th className="px-3 py-0.5 text-right w-1/4 uppercase text-[9px]">Cant.</th>
+                        <th className="px-2 py-0.5 text-left w-10 uppercase text-[9px]">Línea</th>
+                        <th className="px-2 py-0.5 text-left w-20 uppercase text-[9px]">Código</th>
+                        <th className="px-2 py-0.5 text-left uppercase text-[9px]">Descripción</th>
+                        <th className="px-2 py-0.5 text-right w-14 uppercase text-[9px]">Cant.</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 print:divide-black">
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-3 py-0.5 font-mono text-black text-[10px] font-bold">{item.order_line}</td>
-                                <td className="px-3 py-0.5 font-mono text-black text-[10px]">{item.item_code}</td>
-                                <td className="px-3 py-0.5 text-black text-[10px] truncate max-w-[200px]">{item.description}</td>
-                                <td className="px-3 py-0.5 text-right text-[10px] font-bold">{item.quantity}</td>
+                                <td className="px-2 py-0.5 font-mono text-black text-[9px] font-bold">{item.order_line}</td>
+                                <td className="px-2 py-0.5 font-mono text-black text-[9px] break-all">{item.item_code}</td>
+                                <td className="px-2 py-0.5 text-black text-[9px] leading-tight break-words">{item.description}</td>
+                                <td className="px-2 py-0.5 text-right text-[10px] font-bold whitespace-nowrap">{item.quantity}</td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="3" className="px-3 py-2 text-center text-[10px] text-gray-500 italic">Sin ítems</td>
+                            <td colSpan="4" className="px-3 py-2 text-center text-[10px] text-gray-500 italic">Sin ítems</td>
                         </tr>
                     )}
                 </tbody>
@@ -183,7 +183,10 @@ const ConsolidatedPackingList = () => {
                         <div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-1 print:mb-2">
                             <div>
                                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
-                                <span className="text-lg font-bold text-black uppercase">{data.orders[0]?.customer_name || 'N/A'}</span>
+                                <span className="text-lg font-bold text-black uppercase">
+                                    <span className="font-mono mr-2">{data.orders[0]?.customer_code}</span>
+                                    {data.orders[0]?.customer_name || 'N/A'}
+                                </span>
                             </div>
                         </div>
 

@@ -85,6 +85,7 @@ async def list_shipments(
                 "audit_id": audit.id,
                 "order_number": audit.order_number,
                 "despatch_number": audit.despatch_number,
+                "customer_code": audit.customer_code or "",
                 "customer_name": audit.customer_name or "N/A",
                 "packages": audit.packages or 0
             })
@@ -128,6 +129,7 @@ async def get_shipment(
             "audit_id": audit.id,
             "order_number": audit.order_number,
             "despatch_number": audit.despatch_number,
+            "customer_code": audit.customer_code or "",
             "customer_name": audit.customer_name or "N/A",
             "packages": audit.packages or 0
         })
@@ -218,6 +220,7 @@ async def get_consolidated_packing_list(
             "audit_id": audit.id,
             "order_number": str(audit.order_number or ""),
             "despatch_number": str(audit.despatch_number or ""),
+            "customer_code": str(audit.customer_code or ""),
             "customer_name": str(audit.customer_name or "N/A"),
             "timestamp": str(audit.timestamp) if audit.timestamp else "",
             "total_packages": int(audit.packages or 0),

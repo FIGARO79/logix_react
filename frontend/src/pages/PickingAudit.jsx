@@ -43,6 +43,7 @@ const PickingAudit = () => {
 
     // Audit Section
     const [auditActive, setAuditActive] = useState(false);
+    const [customerCode, setCustomerCode] = useState('');
     const [customerName, setCustomerName] = useState('');
     const [orderItems, setOrderItems] = useState([]);
 
@@ -100,6 +101,7 @@ const PickingAudit = () => {
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.length > 0) {
+                    setCustomerCode(data[0]['Customer Code'] || '');
                     setCustomerName(data[0]['Customer Name']);
                     // Map CSV columns to internal state
                     const items = data.map(row => ({
@@ -142,6 +144,7 @@ const PickingAudit = () => {
         setOrderItems([]);
         setOrderNumber('');
         setDespatchNumber('');
+        setCustomerCode('');
         setCustomerName('');
         setShowAssignmentModal(false);
         setPackageAssignments({});
@@ -283,6 +286,7 @@ const PickingAudit = () => {
         const payload = {
             order_number: orderNumber,
             despatch_number: despatchNumber,
+            customer_code: customerCode,
             customer_name: customerName,
             status: statusOverride || (hasDifferences ? 'Con Diferencia' : 'Completo'),
             items: orderItems.map(i => ({
@@ -336,7 +340,7 @@ const PickingAudit = () => {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-800">Auditoría en Curso</h1>
                             <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
-                            <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerName}</span></p>
+                            <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerCode} - {customerName}</span></p>
                         </div>
                         <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
                     </div>

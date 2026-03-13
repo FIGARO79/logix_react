@@ -40,6 +40,7 @@ class PickingAuditSummary(BaseModel):
     id: int
     order_number: str
     despatch_number: str
+    customer_code: Optional[str]
     customer_name: Optional[str]
     username: str
     timestamp: str
@@ -57,6 +58,7 @@ class PickingPackageItemModel(BaseModel):
 class PackingListResponse(BaseModel):
     order_number: str
     despatch_number: str
+    customer_code: str
     customer_name: str
     timestamp: str
     total_packages: int
@@ -191,6 +193,7 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
             "id": audit_orm.id,
             "order_number": audit_orm.order_number,
             "despatch_number": audit_orm.despatch_number,
+            "customer_code": audit_orm.customer_code,
             "customer_name": audit_orm.customer_name,
             "username": audit_orm.username,
             "timestamp": audit_orm.timestamp,
@@ -454,6 +457,7 @@ async def get_packing_list_data(
     return PackingListResponse(
         order_number=_to_str(audit.order_number),
         despatch_number=_to_str(audit.despatch_number),
+        customer_code=_to_str(audit.customer_code),
         customer_name=_to_str(audit.customer_name),
         timestamp=_to_str(audit.timestamp),
         total_packages=total_packages,

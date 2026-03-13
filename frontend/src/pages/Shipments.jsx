@@ -182,7 +182,10 @@ const Shipments = () => {
                                                                         <span className="font-bold text-[#285f94]">{a.order_number}</span>
                                                                         <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded border">{a.despatch_number}</span>
                                                                     </div>
-                                                                    <div className="text-xs text-gray-600 truncate">{a.customer_name}</div>
+                                                                    <div className="text-xs text-gray-600 truncate">
+                                                                        <span className="font-mono text-[10px] bg-gray-100 px-1 rounded mr-1">{a.customer_code}</span>
+                                                                        {a.customer_name}
+                                                                    </div>
                                                                     <div className="text-xs text-gray-400 mt-1">{a.packages} bulto(s)</div>
                                                                 </div>
                                                             ))}
@@ -249,7 +252,10 @@ const Shipments = () => {
                                                     <span className="font-bold text-[#285f94]">{a.order_number}</span>
                                                     <span className="text-xs text-gray-400 ml-2">/ {a.despatch_number}</span>
                                                 </div>
-                                                <span className="text-xs text-gray-500">{a.customer_name}</span>
+                                                <div className="text-right">
+                                                    <div className="text-[10px] font-mono text-gray-500">{a.customer_code}</div>
+                                                    <div className="text-xs text-gray-500">{a.customer_name}</div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
