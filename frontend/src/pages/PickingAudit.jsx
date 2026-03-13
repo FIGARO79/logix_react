@@ -809,6 +809,7 @@ const PickingAudit = () => {
                                 <tr>
                                     <th className="py-2.5 px-3 font-semibold">Order</th>
                                     <th className="py-2.5 px-3 font-semibold">Despatch</th>
+                                    <th className="py-2.5 px-3 font-semibold">Cód. Cliente</th>
                                     <th className="py-2.5 px-3 font-semibold">Cliente</th>
                                     <th className="py-2.5 px-3 font-semibold text-center">Líneas</th>
                                     <th
@@ -848,6 +849,7 @@ const PickingAudit = () => {
                                                     </div>
                                                 </td>
                                                 <td>{t.despatch_number}</td>
+                                                <td>{t.customer_code}</td>
                                                 <td className="truncate max-w-[150px]">{t.customer_name}</td>
                                                 <td className="text-center font-bold text-[#285f94]">{t.total_lines}</td>
                                                 <td className="text-gray-500 text-xs">{t.print_date}</td>
@@ -878,6 +880,10 @@ const PickingAudit = () => {
                                             {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
                                         </div>
                                         <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Cliente:</span>
+                                        <span className="text-xs font-bold text-gray-700">{t.customer_code}</span>
                                     </div>
                                     <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
                                     <div className="text-right text-xs text-gray-400">
