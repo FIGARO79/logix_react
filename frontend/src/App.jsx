@@ -30,7 +30,6 @@ const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
 const DashboardInventario = lazy(() => import('./pages/DashboardInventario'));
 const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
 const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
-const WaybillGRN = lazy(() => import('./pages/WaybillGRN'));
 const Shipments = lazy(() => import('./pages/Shipments'));
 const ConsolidatedPackingList = lazy(() => import('./pages/ConsolidatedPackingList'));
 const ErrorPage = lazy(() => import('./pages/Error'));
@@ -106,11 +105,6 @@ function App() {
                         <Route path="/inbound" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <Inbound />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/waybill-grn" element={
-                            <ProtectedRoute requiredPermission="inbound">
-                                <WaybillGRN />
                             </ProtectedRoute>
                         } />
                         <Route path="/label" element={<LabelPrinting />} />

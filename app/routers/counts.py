@@ -382,7 +382,7 @@ async def debug_last_counts(limit: int = 20, username: str = Depends(permission_
 
 
 @router.get('/counts/dashboard_stats')
-async def get_dashboard_stats(username: str = Depends(permission_required("counts")), db: AsyncSession = Depends(get_db)):
+async def get_dashboard_stats(username: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """
     Endpoint avanzado que calcula todos los KPIs industriales para el Dashboard.
     """
