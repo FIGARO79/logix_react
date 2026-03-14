@@ -150,6 +150,13 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: bool = Dep
 
 # --- Endpoints de Gestión de Usuarios ---
 
+@router.get('/verify')
+async def verify_admin_session(request: Request):
+    """API: Verifica si hay una sesión activa de administrador."""
+    if request.session.get("admin_logged_in"):
+        return JSONResponse({"success": True})
+    raise HTTPException(status_code=401, detail="No autorizado")
+
 @router.get('/users')
 async def get_admin_users_api(db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     users = await get_all_users(db)
