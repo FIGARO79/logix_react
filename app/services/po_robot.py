@@ -50,9 +50,9 @@ def run_po_robot(start_date: str, end_date: str):
             page.keyboard.type(end_date, delay=50)
             page.keyboard.press("Enter")
             
-            # 2. Selección de Colombia (usando el ID exacto)
-            print("🇨🇴 Seleccionando Colombia...", flush=True)
-            colombia_check = page.locator("#Form_SelectedCountries_3__IsSelected")
+            # 2. Selección de Chile (usando el ID exacto)
+            print("🇨🇱 Seleccionando Chile...", flush=True)
+            colombia_check = page.locator("#Form_SelectedCountries_2__IsSelected")
             colombia_check.scroll_into_view_if_needed()
             # El evento check es nativo de playwright para checkboxes
             colombia_check.check(force=True)

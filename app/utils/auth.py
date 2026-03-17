@@ -193,8 +193,8 @@ def permission_required(module: str | List[str]) -> Callable:
         if not user:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
             
-        # Si es admin, permitir todo
-        if username == 'admin':
+        # Si es admin, permitir todo (case-insensitive)
+        if username.lower() == 'admin':
             return username
 
         perms = user.permissions.split(',') if user.permissions else []
