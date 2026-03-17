@@ -207,6 +207,22 @@ function App() {
                                 <InboundHistory />
                             </ProtectedRoute>
                         } />
+                        <Route path="/admin/slotting" element={
+                            <ProtectedRoute>
+                                <SlottingConfig />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/admin/inventory" element={
+                            <ProtectedRoute>
+                                <AdminInventory />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/shipments" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <Shipments />
+                            </ProtectedRoute>
+                        } />
 
 
                         {/* Admin Routes */}
@@ -216,21 +232,7 @@ function App() {
                                 <AdminUsers />
                             </AdminProtectedRoute>
                         } />
-                        <Route path="/admin/inventory" element={
-                            <AdminProtectedRoute>
-                                <AdminInventory />
-                            </AdminProtectedRoute>
-                        } />
-                        <Route path="/admin/slotting" element={
-                            <AdminProtectedRoute>
-                                <SlottingConfig />
-                            </AdminProtectedRoute>
-                        } />
-                        <Route path="/shipments" element={
-                            <ProtectedRoute requiredPermission="picking">
-                                <Shipments />
-                            </ProtectedRoute>
-                        } />
+
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}

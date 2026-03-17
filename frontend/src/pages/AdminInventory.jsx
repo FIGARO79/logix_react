@@ -31,7 +31,7 @@ const AdminInventory = () => {
         try {
             const res = await fetch('/api/admin/inventory/summary');
             if (res.status === 401 || res.status === 403) {
-                navigate('/admin/login');
+                navigate('/login');
                 return;
             }
             if (!res.ok) throw new Error("Error al cargar estadísticas");
@@ -167,12 +167,6 @@ const AdminInventory = () => {
             <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
                 <h1 className="text-2xl font-normal text-gray-800">Panel de Control de Inventario</h1>
                 <div className="flex gap-4">
-                    <button
-                        onClick={() => navigate('/admin/users')}
-                        className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 transition-colors text-sm font-medium"
-                    >
-                        Gestionar Usuarios
-                    </button>
                 </div>
             </div>
 

@@ -51,7 +51,7 @@ const SlottingConfig = () => {
         try {
             const res = await fetch('/api/admin/slotting-config', { credentials: 'include' });
             if (res.status === 401 || res.status === 403) {
-                navigate('/admin/login');
+                navigate('/login');
                 return;
             }
             if (!res.ok) throw new Error('No se pudo cargar la configuración');
