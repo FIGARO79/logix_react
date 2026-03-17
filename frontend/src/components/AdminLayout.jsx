@@ -40,6 +40,10 @@ const AdminLayout = ({ children, title }) => {
                             Configuración Slotting
                         </Link>
 
+                        <Link to="/admin/maintenance" className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center border border-white/20 ml-2">
+                             Mantenimiento
+                        </Link>
+
                         <button onClick={handleLogout} className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
                             Cerrar Sesión
                         </button>

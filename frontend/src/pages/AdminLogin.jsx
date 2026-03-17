@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Get the return path from location state, or default to /admin/users
+    const from = location.state?.from?.pathname || "/admin/users";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        
         try {
             const res = await fetch('/api/admin/login', {
                 method: 'POST',
@@ -17,12 +25,14 @@ const AdminLogin = () => {
             });
 
             if (res.ok) {
-                navigate('/admin/users');
+                navigate(from, { replace: true });
             } else {
                 setError('Contraseña incorrecta');
             }
         } catch (err) {
-            setError('Error de conexión');
+            setError('Error de conexión con el servidor');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -43,14 +53,19 @@ const AdminLogin = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoFocus
+                            required
                         />
                     </div>
-                    <button type="submit" className="w-full bg-[#285f94] text-white font-bold py-2 rounded hover:bg-[#1e4a74]">
-                        Entrar
+                    <button 
+                        disabled={isLoading}
+                        type="submit" 
+                        className="w-full bg-[#285f94] text-white font-bold py-2 rounded hover:bg-[#1e4a74] disabled:opacity-50"
+                    >
+                        {isLoading ? 'Entrando...' : 'Entrar'}
                     </button>
                 </form>
                 <div className="mt-4 text-center">
-                    <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-gray-700">Volver a Inicio</button>
+                    <button onClick={() => navigate('/update')} className="text-sm text-gray-500 hover:text-gray-700">Cancelar y Volver</button>
                 </div>
             </div>
         </div>
