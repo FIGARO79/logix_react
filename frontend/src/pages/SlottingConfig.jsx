@@ -50,11 +50,12 @@ const SlottingConfig = () => {
         setLoading(true);
         try {
             const res = await fetch('/api/admin/slotting-config', { credentials: 'include' });
-            if (res.status === 401 || res.status === 403) {
-                navigate('/admin/login');
-                return;
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                    throw new Error('No tiene permisos para acceder a esta configuración');
+                }
+                throw new Error('No se pudo cargar la configuración');
             }
-            if (!res.ok) throw new Error('No se pudo cargar la configuración');
             const data = await res.json();
             setConfig(data);
             fetchSummary();

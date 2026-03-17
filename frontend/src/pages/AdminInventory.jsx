@@ -30,11 +30,12 @@ const AdminInventory = () => {
     const fetchStats = async () => {
         try {
             const res = await fetch('/api/admin/inventory/summary');
-            if (res.status === 401 || res.status === 403) {
-                navigate('/admin/login');
-                return;
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                    throw new Error('No tiene permisos para acceder al panel de inventario');
+                }
+                throw new Error("Error al cargar estadísticas");
             }
-            if (!res.ok) throw new Error("Error al cargar estadísticas");
             const data = await res.json();
             setStats(data.stats);
             setStage(data.stage);

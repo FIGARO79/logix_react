@@ -31,7 +31,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 # --- Endpoints de Slotting ---
 
 @router.get("/slotting-summary")
-async def get_slotting_summary(admin: bool = Depends(admin_login_required), db: AsyncSession = Depends(get_db)):
+async def get_slotting_summary(admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Genera estadísticas reales cruzando el JSON con la DB."""
     try:
         if not os.path.exists(SLOTTING_PARAMS_PATH):
@@ -94,17 +94,17 @@ async def get_slotting_summary(admin: bool = Depends(admin_login_required), db: 
         return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
 
 @router.get("/slotting-config")
-async def get_slotting_config(admin: bool = Depends(admin_login_required)):
+async def get_slotting_config(admin: str = Depends(permission_required("inventory"))):
     if not os.path.exists(SLOTTING_PARAMS_PATH): return {"turnover": {}, "storage": {}}
     with open(SLOTTING_PARAMS_PATH, 'r') as f: return json.load(f)
 
 @router.post("/slotting-config")
-async def update_slotting_config(data: dict = Body(...), admin: bool = Depends(admin_login_required)):
+async def update_slotting_config(data: dict = Body(...), admin: str = Depends(permission_required("inventory"))):
     with open(SLOTTING_PARAMS_PATH, 'w') as f: json.dump(data, f, indent=4)
     return {"message": "Guardado"}
 
 @router.get("/slotting-template")
-async def get_slotting_template(admin: bool = Depends(admin_login_required)):
+async def get_slotting_template(admin: str = Depends(permission_required("inventory"))):
     data_list = []
     try:
         with open(SLOTTING_PARAMS_PATH, 'r') as f:
@@ -119,7 +119,7 @@ async def get_slotting_template(admin: bool = Depends(admin_login_required)):
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=layout.xlsx"})
 
 @router.post("/slotting-upload")
-async def upload_slotting_config(file: UploadFile = File(...), admin: bool = Depends(admin_login_required)):
+async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depends(permission_required("inventory"))):
     try:
         df = pd.read_excel(BytesIO(await file.read()))
         new_storage = {}
