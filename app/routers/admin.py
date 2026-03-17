@@ -169,5 +169,40 @@ async def admin_login_api(request: Request, data: dict):
         return JSONResponse(content={"success": True})
     return JSONResponse(content={"success": False}, status_code=401)
 
+@router.post('/approve/{user_id}')
+async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await approve_user_by_id(db, user_id)
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+@router.post('/delete/{user_id}')
+async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await delete_user_by_id(db, user_id)
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+@router.post('/reset_password/{user_id}')
+async def admin_reset_password_api(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    # Reutilizar validación lógica de auth.py si es necesario, o usar la de reset_user_password
+    success = await reset_user_password(db, user_id, new_password)
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
+    raise HTTPException(status_code=400, detail="Error al restablecer contraseña o contraseña no cumple requisitos")
+
+@router.post('/permissions/{user_id}')
+async def update_user_permissions_api(user_id: int, data: dict = Body(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    perms_list = data.get('permissions', [])
+    perms_str = ",".join(perms_list)
+    
+    stmt = update(User).where(User.id == user_id).values(permissions=perms_str)
+    result = await db.execute(stmt)
+    await db.commit()
+    
+    if result.rowcount > 0:
+        return JSONResponse(content={"success": True, "message": "Permisos actualizados"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
 # Creamos un router vacío para compatibilidad con main.py si fuera necesario
 api_router = APIRouter()
