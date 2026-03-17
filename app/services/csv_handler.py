@@ -52,65 +52,77 @@ async def load_csv_data():
     
     # 1. Procesar Maestro de Items
     if os.path.exists(ITEM_MASTER_CSV_PATH):
-        _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-        df = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
-        
-        if df is not None:
-            # Normalización vectorizada
-            df['Item_Code'] = df['Item_Code'].str.strip().str.upper()
-            df['qty_numeric'] = pd.to_numeric(df['Physical_Qty'].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
+        try:
+            temp_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
+            df = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
             
-            # Indexación para búsqueda rápida
-            master_details_cache = df.set_index('Item_Code').to_dict('index')
-            master_qty_map = dict(zip(df['Item_Code'], df['qty_numeric']))
-            df_master_cache = df
-            
-            # Guardar persistencia JSON silenciosamente
-            try:
-                with open(MASTER_DETAILS_CACHE_PATH, 'w') as f: json.dump(master_details_cache, f, default=np_encoder)
-                with open(STOCK_QTY_CACHE_PATH, 'w') as f: json.dump(master_qty_map, f, default=np_encoder)
-            except Exception as e:
-                print(f"Error guardando caché maestro JSON: {e}")
+            if df is not None:
+                # Normalización vectorizada
+                df['Item_Code'] = df['Item_Code'].str.strip().str.upper()
+                df['qty_numeric'] = pd.to_numeric(df['Physical_Qty'].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
+                
+                # Indexación para búsqueda rápida
+                master_details_cache = df.set_index('Item_Code').to_dict('index')
+                master_qty_map = dict(zip(df['Item_Code'], df['qty_numeric']))
+                df_master_cache = df
+                _mtime_master = temp_mtime_master # Solo actualizar si cargó bien
+                
+                # Guardar persistencia JSON silenciosamente
+                try:
+                    with open(MASTER_DETAILS_CACHE_PATH, 'w') as f: json.dump(master_details_cache, f, default=np_encoder)
+                    with open(STOCK_QTY_CACHE_PATH, 'w') as f: json.dump(master_qty_map, f, default=np_encoder)
+                except Exception as e:
+                    print(f"Error guardando caché maestro JSON: {e}")
+        except Exception as e:
+            print(f"Error procesando Maestro de Items: {e}")
 
     # 2. Procesar GRN 280
     if os.path.exists(GRN_CSV_FILE_PATH):
-        _mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
-        df_g = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
-        if df_g is not None:
-            df_g['Quantity'] = pd.to_numeric(df_g['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-            df_grn_cache = df_g
-            
-            try:
-                # Guardar persistencia en JSON si es requerido
-                grn_dict = df_g.replace({np.nan: None}).to_dict(orient='records')
-                with open(GRN_CACHE_JSON_PATH, 'w') as f: json.dump(grn_dict, f, default=np_encoder)
-            except Exception as e:
-                print(f"Error guardando caché GRN JSON: {e}")
+        try:
+            temp_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
+            df_g = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
+            if df_g is not None:
+                # Normalización de GRN Numbers e Item Codes para evitar fallos de matching
+                df_g['Item_Code'] = df_g['Item_Code'].str.strip().str.upper()
+                df_g['GRN_Number'] = df_g['GRN_Number'].astype(str).str.strip().str.upper()
+                df_g['Quantity'] = pd.to_numeric(df_g['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+                
+                df_grn_cache = df_g
+                _mtime_grn = temp_mtime_grn # Solo actualizar si cargó bien
+                
+                try:
+                    # Guardar persistencia en JSON
+                    grn_dict = df_g.replace({np.nan: None}).to_dict(orient='records')
+                    with open(GRN_CACHE_JSON_PATH, 'w') as f: json.dump(grn_dict, f, default=np_encoder)
+                except Exception as e:
+                    print(f"Error guardando caché GRN JSON: {e}")
+        except Exception as e:
+            print(f"Error procesando GRN: {e}")
 
     print(f"✅ [SISTEMA] Datos cargados en RAM en {time.time() - start_time:.2f} segundos.")
 
 async def reload_cache_if_needed():
     """Verifica si los archivos CSV han cambiado en disco y recarga el caché si es necesario."""
-    global df_master_cache, _mtime_master, _mtime_grn
+    global df_master_cache, df_grn_cache, _mtime_master, _mtime_grn
     
     needs_reload = False
     
     # Si el caché está vacío, recarga obligatoria
-    if df_master_cache is None:
+    if df_master_cache is None or df_grn_cache is None:
         needs_reload = True
     else:
-        # Verificar Maestro de Items
+        # Verificar Maestro de Items INDEPENDIENTEMENTE
         if os.path.exists(ITEM_MASTER_CSV_PATH):
             current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             if current_mtime_master > _mtime_master:
-                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}). Recargando...")
+                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}).")
                 needs_reload = True
         
-        # Verificar GRN 280
-        if not needs_reload and os.path.exists(GRN_CSV_FILE_PATH):
+        # Verificar GRN 280 INDEPENDIENTEMENTE
+        if os.path.exists(GRN_CSV_FILE_PATH):
             current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
             if current_mtime_grn > _mtime_grn:
-                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}). Recargando...")
+                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}).")
                 needs_reload = True
 
     if needs_reload:
