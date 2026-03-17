@@ -11,7 +11,7 @@ from app.core.db import get_db
 from app.utils.auth import (
     get_all_users, approve_user_by_id, delete_user_by_id, 
     reset_user_password, get_user_by_id, admin_login_required,
-    permission_required, api_login_required
+    permission_required, api_login_required, toggle_admin_by_id
 )
 from app.models.sql_models import User
 from sqlalchemy import update
@@ -168,6 +168,37 @@ async def admin_login_api(request: Request, data: dict):
         request.session['admin_logged_in'] = True
         return JSONResponse(content={"success": True})
     return JSONResponse(content={"success": False}, status_code=401)
+
+@router.post('/approve/{user_id}')
+async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await approve_user_by_id(db, user_id)
+    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+
+@router.post('/toggle_admin/{user_id}')
+async def toggle_admin_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await toggle_admin_by_id(db, user_id)
+    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+
+@router.post('/delete/{user_id}')
+async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await delete_user_by_id(db, user_id)
+    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+
+@router.post('/reset_password/{user_id}')
+async def admin_reset_password_api(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    success = await reset_user_password(db, user_id, new_password)
+    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+
+class PermissionsUpdate(BaseModel):
+    permissions: List[str]
+
+@router.post('/permissions/{user_id}')
+async def update_user_permissions(user_id: int, data: PermissionsUpdate, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    perms_str = ",".join(data.permissions)
+    stmt = update(User).where(User.id == user_id).values(permissions=perms_str)
+    await db.execute(stmt)
+    await db.commit()
+    return JSONResponse(content={"success": True})
 
 # Creamos un router vacío para compatibilidad con main.py si fuera necesario
 api_router = APIRouter()

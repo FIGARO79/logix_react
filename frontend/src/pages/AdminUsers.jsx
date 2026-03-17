@@ -47,6 +47,15 @@ const AdminUsers = () => {
         } catch (e) { setError(e.message); }
     };
 
+    const handleToggleAdmin = async (id) => {
+        try {
+            const res = await fetch(`/api/admin/toggle_admin/${id}`, { method: 'POST' });
+            if (!res.ok) throw new Error("Failed to toggle admin status");
+            setMessage(`Estado de administrador actualizado para usuario ${id}`);
+            fetchUsers();
+        } catch (e) { setError(e.message); }
+    };
+
     const handleResetPassword = async (id) => {
         const newPass = prompt("Ingrese nueva contraseña:");
         if (!newPass) return;
@@ -147,6 +156,7 @@ const AdminUsers = () => {
                                 <th className="px-6 py-3 text-center w-16">ID</th>
                                 <th className="px-6 py-3 font-normal">Usuario</th>
                                 <th className="px-6 py-3 text-center font-normal">Estado</th>
+                                <th className="px-2 py-3 text-center font-normal text-xs text-red-600">ADMIN</th>
                                 {MODULES.map(m => (
                                     <th key={m} className="px-2 py-3 text-center font-normal text-xs">{m.toUpperCase()}</th>
                                 ))}
@@ -168,6 +178,14 @@ const AdminUsers = () => {
                                                 Pendiente
                                             </span>
                                         )}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={u.is_admin === 1}
+                                            onChange={() => handleToggleAdmin(u.id)}
+                                            className="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
+                                        />
                                     </td>
                                     {MODULES.map(m => {
                                         const perms = u.permissions
@@ -225,7 +243,7 @@ const AdminUsers = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan="4" className="text-center py-8 text-gray-400 italic">
+                                    <td colSpan={MODULES.length + 5} className="text-center py-8 text-gray-400 italic">
                                         No hay usuarios registrados.
                                     </td>
                                 </tr>
