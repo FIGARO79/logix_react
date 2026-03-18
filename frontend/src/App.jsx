@@ -214,25 +214,25 @@ function App() {
                                 <Shipments />
                             </ProtectedRoute>
                         } />
-                    </Route>
 
-                    {/* Admin Routes (Standalone - No general Layout) */}
-                    <Route path="/admin/login" element={<AdminLogin />} />
-                    <Route path="/admin/users" element={
-                        <AdminProtectedRoute>
-                            <AdminUsers />
-                        </AdminProtectedRoute>
-                    } />
-                    <Route path="/admin/inventory" element={
-                        <ProtectedRoute requiredPermission="inventory">
-                            <AdminInventory />
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/admin/slotting" element={
-                        <ProtectedRoute requiredPermission="inventory">
-                            <SlottingConfig />
-                        </ProtectedRoute>
-                    } />
+                        {/* Admin Routes (Integrated in Layout for Sidebar/Header access) */}
+                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route path="/admin/users" element={
+                            <AdminProtectedRoute>
+                                <AdminUsers />
+                            </AdminProtectedRoute>
+                        } />
+                        <Route path="/admin/inventory" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <AdminInventory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/admin/slotting" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <SlottingConfig />
+                            </ProtectedRoute>
+                        } />
+                    </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}
                     <Route path="/packing_list/print/:id" element={
