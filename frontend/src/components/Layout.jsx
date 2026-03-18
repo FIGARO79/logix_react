@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import '../styles/Layout.css';
 
@@ -42,6 +42,37 @@ const ArrowRepeatIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none
 const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [title, setTitle] = useState('Logix - Inicio');
+    const location = useLocation();
+
+    const routeTitles = {
+        '/dashboard': 'Logix - Inicio',
+        '/inbound': 'Logix - Inbound',
+        '/stock': 'Logix - Stock',
+        '/label': 'Logix - Etiquetado',
+        '/picking': 'Logix - Chequeo de Picking',
+        '/view_picking_audits': 'Logix - Pickings Empacados',
+        '/shipments': 'Logix - Envíos',
+        '/reconciliation': 'Logix - Conciliación',
+        '/view_logs': 'Logix - Logs',
+        '/planner': 'Logix - Plan Cíclico',
+        '/inventory-dashboard': 'Logix - Dashboard Inventario',
+        '/counts': 'Logix - Conteo W2W',
+        '/view_counts': 'Logix - Conteo General',
+        '/counts/manage': 'Logix - Gestionar Conteos',
+        '/update': 'Logix - Actualizar Ficheros',
+        '/admin/inventory': 'Admin - Inventario',
+        '/admin/slotting': 'Admin - Slotting',
+        '/admin/users': 'Admin - Usuarios',
+        '/admin/login': 'Admin - Acceso',
+    };
+
+    // Actualizamos el título automáticamente cuando cambia la ruta (según el mapa proporcionado)
+    useEffect(() => {
+        const routeTitle = routeTitles[location.pathname];
+        if (routeTitle) {
+            setTitle(routeTitle);
+        }
+    }, [location.pathname]);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
