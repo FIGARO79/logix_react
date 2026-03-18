@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 
 const AdminInventory = () => {
@@ -163,19 +162,7 @@ const AdminInventory = () => {
     };
 
     return (
-        <AdminLayout title="Administración de Inventario">
-            {/* Header Area */}
-            <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-                <h1 className="text-2xl font-normal text-gray-800">Panel de Control de Inventario</h1>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => navigate('/admin/users')}
-                        className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 transition-colors text-sm font-medium"
-                    >
-                        Gestionar Usuarios
-                    </button>
-                </div>
-            </div>
+        <div className="p-4 md:p-8">
 
             {message && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm">{message}</div>}
             {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm">{error}</div>}
@@ -562,7 +549,7 @@ const AdminInventory = () => {
                     </div>
                 </div>
             )}
-        </AdminLayout>
+        </div>
     );
 };
 

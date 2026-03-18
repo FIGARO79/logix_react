@@ -24,6 +24,7 @@ from app.core.config import (
     GRN_COLUMN_NAME_IN_CSV
 )
 from app.services.csv_handler import load_csv_data
+from app.services.csv_to_db import sync_master_csv_to_db # [NUEVO] Sincronización a MySQL
 from app.utils.auth import login_required
 from app.core.templates import templates
 
@@ -339,6 +340,19 @@ async def update_files_post(
     if files_uploaded:
         # Procesar en segundo plano para no bloquear al usuario
         background_tasks.add_task(load_csv_data)
+        
+        # [NUEVO] Si se subió el maestro, sincronizar también la DB MySQL
+        if item_master and item_master.filename:
+            async def sync_task():
+                async with db: # Reusar sesión o crear una nueva si es necesario
+                    # Pero db es AsyncSession de la request, podría estar cerrada.
+                    # Mejor usar una nueva sesión de la factory.
+                    from app.core.db import AsyncSessionLocal
+                    async with AsyncSessionLocal() as session:
+                        await sync_master_csv_to_db(session)
+            
+            background_tasks.add_task(sync_task)
+
         message += " Procesamiento de datos iniciado en segundo plano."
 
     if not files_uploaded and not error:

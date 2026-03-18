@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 
 const AdminUsers = () => {
@@ -113,7 +112,7 @@ const AdminUsers = () => {
     };
 
     return (
-        <AdminLayout title="Gestión de Usuarios">
+        <div className="p-4 md:p-8">
             {message && (
                 <div className="mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -134,9 +133,9 @@ const AdminUsers = () => {
             {/* Users Tile */}
             <div className="bg-white rounded shadow-sm border border-transparent hover:shadow-md transition-shadow">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 bg-gray-50 border-b border-gray-200">
-                    <h2 className="text-xl font-normal text-gray-800">Usuarios Registrados</h2>
-                    <span className="text-sm text-gray-500">{users.length} Usuarios</span>
+                <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 className="text-lg font-medium text-gray-800">Usuarios Registrados</h2>
+                    <span className="text-xs font-medium text-gray-500 bg-gray-200/50 px-2 py-1 rounded-full">{users.length} Usuarios</span>
                 </div>
 
                 {/* Table */}
@@ -225,7 +224,7 @@ const AdminUsers = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan="4" className="text-center py-8 text-gray-400 italic">
+                                    <td colSpan={MODULES.length + 4} className="text-center py-8 text-gray-400 italic">
                                         No hay usuarios registrados.
                                     </td>
                                 </tr>
@@ -246,7 +245,7 @@ const AdminUsers = () => {
                     Volver a la aplicación principal
                 </button>
             </div>
-        </AdminLayout>
+        </div>
     );
 };
 
