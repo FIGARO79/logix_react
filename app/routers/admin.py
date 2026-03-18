@@ -34,7 +34,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 # --- Endpoints de Slotting ---
 
 @router.get("/slotting-summary")
-async def get_slotting_summary(user: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)):
+async def get_slotting_summary(admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Genera estadísticas reales cruzando el JSON con la DB."""
     try:
         if not os.path.exists(SLOTTING_PARAMS_PATH):
@@ -97,17 +97,17 @@ async def get_slotting_summary(user: str = Depends(api_login_required), db: Asyn
         return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
 
 @router.get("/slotting-config")
-async def get_slotting_config(user: str = Depends(api_login_required)):
+async def get_slotting_config(admin: str = Depends(permission_required("inventory"))):
     if not os.path.exists(SLOTTING_PARAMS_PATH): return {"turnover": {}, "storage": {}}
     with open(SLOTTING_PARAMS_PATH, 'r') as f: return json.load(f)
 
 @router.post("/slotting-config")
-async def update_slotting_config(data: dict = Body(...), user: str = Depends(api_login_required)):
+async def update_slotting_config(data: dict = Body(...), admin: str = Depends(permission_required("inventory"))):
     with open(SLOTTING_PARAMS_PATH, 'w') as f: json.dump(data, f, indent=4)
     return {"message": "Guardado"}
 
 @router.get("/slotting-template")
-async def get_slotting_template(user: str = Depends(api_login_required)):
+async def get_slotting_template(admin: str = Depends(permission_required("inventory"))):
     data_list = []
     try:
         with open(SLOTTING_PARAMS_PATH, 'r') as f:
@@ -122,7 +122,7 @@ async def get_slotting_template(user: str = Depends(api_login_required)):
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=layout.xlsx"})
 
 @router.post("/slotting-upload")
-async def upload_slotting_config(file: UploadFile = File(...), user: str = Depends(api_login_required)):
+async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depends(permission_required("inventory"))):
     try:
         df = pd.read_excel(BytesIO(await file.read()))
         new_storage = {}
@@ -175,33 +175,36 @@ async def admin_login_api(request: Request, data: dict):
 @router.post('/approve/{user_id}')
 async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await approve_user_by_id(db, user_id)
-    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
-
-@router.post('/toggle_admin/{user_id}')
-async def toggle_admin_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
-    success = await toggle_admin_by_id(db, user_id)
-    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/delete/{user_id}')
 async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await delete_user_by_id(db, user_id)
-    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/reset_password/{user_id}')
 async def admin_reset_password_api(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await reset_user_password(db, user_id, new_password)
-    return JSONResponse(content={"success": success}, status_code=200 if success else 400)
-
-class PermissionsUpdate(BaseModel):
-    permissions: List[str]
+    if success:
+        return JSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
+    raise HTTPException(status_code=400, detail="Error al restablecer contraseña o contraseña no cumple requisitos")
 
 @router.post('/permissions/{user_id}')
-async def update_user_permissions(user_id: int, data: PermissionsUpdate, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
-    perms_str = ",".join(data.permissions)
+async def update_user_permissions_api(user_id: int, data: dict = Body(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
+    perms_list = data.get('permissions', [])
+    perms_str = ",".join(perms_list)
+    
     stmt = update(User).where(User.id == user_id).values(permissions=perms_str)
-    await db.execute(stmt)
+    result = await db.execute(stmt)
     await db.commit()
-    return JSONResponse(content={"success": True})
+    
+    if result.rowcount > 0:
+        return JSONResponse(content={"success": True, "message": "Permisos actualizados"})
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 # --- Endpoints de Mantenimiento de Sistema ---
 

@@ -210,12 +210,12 @@ function App() {
                             </ProtectedRoute>
                         } />
                         <Route path="/admin/slotting" element={
-                            <ProtectedRoute>
+                            <ProtectedRoute requiredPermission="inventory">
                                 <SlottingConfig />
                             </ProtectedRoute>
                         } />
                         <Route path="/admin/inventory" element={
-                            <ProtectedRoute>
+                            <ProtectedRoute requiredPermission="inventory">
                                 <AdminInventory />
                             </ProtectedRoute>
                         } />

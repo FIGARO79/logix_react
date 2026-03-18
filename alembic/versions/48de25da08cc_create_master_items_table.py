@@ -36,10 +36,10 @@ def upgrade() -> None:
 
 
     with op.batch_alter_table('cycle_counts', schema=None) as batch_op:
-        batch_op.create_foreign_key(None, 'stock_counts', ['count_id'], ['id'])
+        batch_op.create_foreign_key('fk_cycle_counts_stock_counts', 'stock_counts', ['count_id'], ['id'])
 
     with op.batch_alter_table('picking_package_items', schema=None) as batch_op:
-        batch_op.create_foreign_key(None, 'picking_audits', ['audit_id'], ['id'])
+        batch_op.create_foreign_key('fk_picking_package_items_picking_audits', 'picking_audits', ['audit_id'], ['id'])
 
     # ### end Alembic commands ###
 
