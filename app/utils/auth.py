@@ -82,19 +82,6 @@ async def approve_user_by_id(db: AsyncSession, user_id: int) -> bool:
     await db.commit()
     return result.rowcount > 0
 
-async def toggle_admin_by_id(db: AsyncSession, user_id: int) -> bool:
-    """Invierte el estado is_admin de un usuario."""
-    # Primero obtenemos el estado actual
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        return False
-    
-    new_status = 1 if user.is_admin == 0 else 0
-    user.is_admin = new_status
-    await db.commit()
-    return True
-
 async def delete_user_by_id(db: AsyncSession, user_id: int) -> bool:
     """Elimina un usuario por su ID."""
     stmt = delete(User).where(User.id == user_id)
@@ -206,8 +193,8 @@ def permission_required(module: str | List[str]) -> Callable:
         if not user:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
             
-        # Si es admin o superusuario admin, permitir todo
-        if user.is_admin == 1 or username.lower() == 'admin':
+        # Si es admin, permitir todo
+        if username == 'admin':
             return username
 
         perms = user.permissions.split(',') if user.permissions else []

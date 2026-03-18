@@ -11,7 +11,6 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_approved: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_admin: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     permissions: Mapped[Optional[str]] = mapped_column(String(500), default="")
 
     reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
@@ -21,7 +20,6 @@ class User(Base):
             "id": self.id,
             "username": self.username,
             "is_approved": self.is_approved,
-            "is_admin": self.is_admin,
             "permissions": self.permissions
         }
 

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 
 // Lazy load de páginas principales
@@ -33,7 +33,6 @@ const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountD
 const Shipments = lazy(() => import('./pages/Shipments'));
 const ConsolidatedPackingList = lazy(() => import('./pages/ConsolidatedPackingList'));
 const ErrorPage = lazy(() => import('./pages/Error'));
-const AdminMaintenance = lazy(() => import('./pages/AdminMaintenance'));
 
 // Componente de carga
 const LoadingFallback = () => (
@@ -85,7 +84,6 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 // Admin Protected Route Component
 const AdminProtectedRoute = ({ children }) => {
     const [isVerified, setIsVerified] = React.useState(null);
-    const location = useLocation();
 
     React.useEffect(() => {
         fetch('/api/admin/verify', { credentials: 'include' })
@@ -97,7 +95,7 @@ const AdminProtectedRoute = ({ children }) => {
     }, []);
 
     if (isVerified === null) return <LoadingFallback />;
-    if (isVerified === false) return <Navigate to="/admin/login" replace state={{ from: location }} />;
+    if (isVerified === false) return <Navigate to="/admin/login" replace />;
     return children;
 };
 
@@ -209,22 +207,6 @@ function App() {
                                 <InboundHistory />
                             </ProtectedRoute>
                         } />
-                        <Route path="/admin/slotting" element={
-                            <ProtectedRoute requiredPermission="inventory">
-                                <SlottingConfig />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/admin/inventory" element={
-                            <ProtectedRoute requiredPermission="inventory">
-                                <AdminInventory />
-                            </ProtectedRoute>
-                        } />
-
-                        <Route path="/shipments" element={
-                            <ProtectedRoute requiredPermission="picking">
-                                <Shipments />
-                            </ProtectedRoute>
-                        } />
 
 
                         {/* Admin Routes */}
@@ -234,12 +216,21 @@ function App() {
                                 <AdminUsers />
                             </AdminProtectedRoute>
                         } />
-                        <Route path="/admin/maintenance" element={
-                            <AdminProtectedRoute>
-                                <AdminMaintenance />
-                            </AdminProtectedRoute>
+                        <Route path="/admin/inventory" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <AdminInventory />
+                            </ProtectedRoute>
                         } />
-
+                        <Route path="/admin/slotting" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <SlottingConfig />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/shipments" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <Shipments />
+                            </ProtectedRoute>
+                        } />
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}

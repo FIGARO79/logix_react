@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 
 const Update = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const [messages, setMessages] = useState({ success: '', error: '', info: '' });
     const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +32,9 @@ const Update = () => {
     const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(firstDayOfYear));
     const [robotEndDate, setRobotEndDate] = useState(formatDateForInput(today));
 
-
+    // Password states
+    const [clearPassword, setClearPassword] = useState('');
+    const [backupPassword, setBackupPassword] = useState('');
 
     // GRN Selection State
     const [availableGrns, setAvailableGrns] = useState([]);
@@ -177,6 +178,74 @@ const Update = () => {
             }
         } catch (err) {
             setMessages({ success: '', error: err.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleClearDB = async (e) => {
+        e.preventDefault();
+        if (!window.confirm("¡PELIGRO! ¿Estás seguro de que quieres borrar TODOS los logs? Esta acción no se puede deshacer.")) return;
+
+        setMessages({ success: '', error: '' });
+        setIsLoading(true);
+
+        const formData = new FormData();
+        formData.append('password', clearPassword);
+
+        try {
+            const res = await fetch('/api/clear_database', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                setMessages({ success: data.message, error: '' });
+                setClearPassword('');
+            } else {
+                setMessages({ success: '', error: data.error || "Error clearing database" });
+            }
+        } catch (err) {
+            setMessages({ success: '', error: err.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBackup = async (e) => {
+        e.preventDefault();
+        setMessages({ success: '', error: '' });
+        setIsLoading(true);
+
+        const formData = new FormData();
+        formData.append('password', backupPassword);
+
+        try {
+            const res = await fetch('/api/export_all_log', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Backup_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setMessages({ success: "Backup generado correctamente", error: '', info: '' });
+            } else if (res.status === 404) {
+                const data = await res.json();
+                setMessages({ success: '', error: '', info: data.error || "No hay datos para exportar." });
+            } else {
+                const data = await res.json();
+                setMessages({ success: '', error: data.error || "Error generating backup", info: '' });
+            }
+        } catch (err) {
+            setMessages({ success: '', error: err.message, info: '' });
         } finally {
             setIsLoading(false);
         }
@@ -443,34 +512,57 @@ const Update = () => {
                 </div>
             </div>
 
+            {/* Database Maintenance Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* Maintenance Section */}
-            <div className="bg-[#fff1f0] shadow rounded-lg overflow-hidden mb-8 border border-red-200">
-                <div className="bg-[#fff1f0] px-6 py-2 border-b border-red-200 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <h2 className="text-lg font-bold text-red-900">Zona de Mantenimiento</h2>
+                {/* Clear DB */}
+                <div className="bg-red-50 shadow rounded-lg p-4 border border-red-200 flex flex-col justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold mb-2 text-red-800 flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            Zona de Peligro
+                        </h2>
+                        <p className="text-xs text-gray-600 mb-3">Ingrese la contraseña administrativa para borrar TODO el historial.</p>
                     </div>
+                    <form onSubmit={handleClearDB}>
+                        <input
+                            type="password"
+                            placeholder="Contraseña Admin"
+                            value={clearPassword}
+                            onChange={(e) => setClearPassword(e.target.value)}
+                            className="w-full text-sm border p-2 rounded mb-3"
+                            required
+                        />
+                        <button disabled={isLoading} type="submit" className="w-full text-sm bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 font-bold">
+                            Limpiar Base de Datos
+                        </button>
+                    </form>
                 </div>
-                <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <p className="text-red-800 font-medium text-sm leading-tight">Herramientas administrativas avanzadas.</p>
-                        <p className="text-red-600 text-xs mt-0.5 leading-tight">
-                            Acceso a limpieza de logs y copias de seguridad completas. Requiere autenticación de administrador adicional.
-                        </p>
+
+                {/* Backup */}
+                <div className="bg-green-50 shadow rounded-lg p-4 border border-green-200 flex flex-col justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold mb-2 text-green-800 flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Backup Completo
+                        </h2>
+                        <p className="text-xs text-gray-600 mb-3">Exportar todo el historial de logs (activo + archivado).</p>
                     </div>
-                    <button
-                        onClick={() => navigate('/admin/maintenance')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-all shadow-sm whitespace-nowrap"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Acceder a Mantenimiento
-                    </button>
+                    <form onSubmit={handleBackup}>
+                        <input
+                            type="password"
+                            placeholder="Contraseña Admin"
+                            value={backupPassword}
+                            onChange={(e) => setBackupPassword(e.target.value)}
+                            className="w-full text-sm border p-2 rounded mb-3"
+                            required
+                        />
+                        <button disabled={isLoading} type="submit" className="w-full text-sm bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 font-bold">
+                            Descargar Backup
+                        </button>
+                    </form>
                 </div>
+
             </div>
         </div>
     );

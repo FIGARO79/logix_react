@@ -598,7 +598,20 @@ const PickingAuditHistory = () => {
                                                                 onClick={() => handleQtyChange(idx, Math.max(0, item.qty_scan - 1))}
                                                                 className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors font-bold"
                                                             >−</button>
-                                                            <span className="w-9 h-7 flex items-center justify-center font-bold text-lg text-gray-800 bg-gray-50 border-x border-gray-200">{item.qty_scan}</span>
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={item.qty_scan}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/\D/g, '');
+                                                                    handleQtyChange(idx, val);
+                                                                }}
+                                                                className="h-7 text-center font-bold text-base text-gray-800 bg-white border-x border-gray-200 focus:outline-none"
+                                                                style={{ 
+                                                                    width: `${Math.max(45, (item.qty_scan?.toString().length || 1) * 12 + 24)}px`,
+                                                                    minWidth: '45px' 
+                                                                }}
+                                                            />
                                                             <button
                                                                 onClick={() => handleQtyChange(idx, item.qty_scan + 1)}
                                                                 className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors font-bold"
@@ -631,7 +644,20 @@ const PickingAuditHistory = () => {
                                                                                     }}
                                                                                     className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors text-sm font-bold"
                                                                                 >−</button>
-                                                                                <span className="w-7 h-6 flex items-center justify-center text-xs font-bold text-gray-800 bg-gray-50 border-x border-gray-200">{qty}</span>
+                                                                                 <input
+                                                                                    type="text"
+                                                                                    inputMode="numeric"
+                                                                                    value={qty}
+                                                                                    onChange={(e) => {
+                                                                                        const val = e.target.value.replace(/\D/g, '');
+                                                                                        handlePkgQtyChange(idx, pkgNum, val);
+                                                                                    }}
+                                                                                    className="h-6 text-center text-xs font-bold text-gray-800 bg-white border-x border-gray-200 focus:outline-none"
+                                                                                    style={{ 
+                                                                                        width: `${Math.max(40, (qty?.toString().length || 1) * 11 + 20)}px`,
+                                                                                        minWidth: '35px' 
+                                                                                    }}
+                                                                                />
                                                                                 <button
                                                                                     onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)}
                                                                                     className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors text-sm font-bold"

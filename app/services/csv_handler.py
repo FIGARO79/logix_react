@@ -115,14 +115,14 @@ async def reload_cache_if_needed():
         if os.path.exists(ITEM_MASTER_CSV_PATH):
             current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             if current_mtime_master > _mtime_master:
-                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}). Recargando...")
+                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}).")
                 needs_reload = True
         
         # Verificar GRN 280 INDEPENDIENTEMENTE
-        if not needs_reload and os.path.exists(GRN_CSV_FILE_PATH):
+        if os.path.exists(GRN_CSV_FILE_PATH):
             current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
             if current_mtime_grn > _mtime_grn:
-                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}). Recargando...")
+                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}).")
                 needs_reload = True
 
     if needs_reload:
