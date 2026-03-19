@@ -206,11 +206,12 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         'qtyReceived': 'Qty Received',
         'qtyGrn': 'Qty GRN',
         'difference': 'Difference',
+        'username': 'User',
         'timestamp': 'Date'
     })
     
     # Seleccionar y ordenar columnas
-    cols = ['Date', 'Import Reference', 'Waybill', 'Item Code', 'Description', 'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
+    cols = ['Date', 'User', 'Import Reference', 'Waybill', 'Item Code', 'Description', 'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
     df_export = df_export[cols]
 
     output = BytesIO()

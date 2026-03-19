@@ -53,6 +53,7 @@ class Log(Base):
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     # Nota: observaciones NO existe en tabla logs en producción (MySQL)
     # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
+    username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
 
 class AppState(Base):

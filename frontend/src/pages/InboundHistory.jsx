@@ -61,7 +61,8 @@ const InboundHistory = () => {
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase()))
+        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -97,6 +98,7 @@ const InboundHistory = () => {
                             <tr>
                                 <th className="px-2 py-1.5 text-left font-medium">ID</th>
                                 <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
+                                <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>
                                 <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
                                 <th className="px-2 py-1.5 text-left font-medium">WAYBILL</th>
                                 <th className="px-2 py-1.5 text-left font-medium">ITEM CODE</th>
@@ -109,12 +111,13 @@ const InboundHistory = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
-                            {filteredLogs.length === 0 && !loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">No encontrado.</td></tr>}
+                            {loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
+                            {filteredLogs.length === 0 && !loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No encontrado.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-700 font-medium uppercase">{log.username || '-'}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>

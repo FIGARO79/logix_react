@@ -663,12 +663,13 @@ const Inbound = () => {
                                     <th className="px-2 py-1.5 text-left font-medium">Bin (New)</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Qty Rec</th>
                                     <th className="px-2 py-1.5 text-left font-medium">Fecha/Hora</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Usuario</th>
                                     <th className="px-2 py-1.5 text-center font-medium">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? (
-                                    <tr><td colSpan="9" className="text-center py-4 text-gray-500">No hay registros</td></tr>
+                                    <tr><td colSpan="10" className="text-center py-4 text-gray-500">No hay registros</td></tr>
                                 ) : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                         <td className="px-2 py-1.5">{log.importReference}</td>
@@ -679,6 +680,7 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
                                         <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1.5 font-medium uppercase">{log.username || '-'}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>
