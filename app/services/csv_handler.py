@@ -32,6 +32,8 @@ master_qty_map = {}
 _last_check = 0
 _mtime_master = 0
 _mtime_grn = 0
+_last_check_mtime = 0
+RELOAD_CHECK_COOLDOWN = 30 # seconds
 
 async def read_csv_safe(file_path: str, columns: list = None):
     """Lee un archivo CSV de forma segura."""
@@ -103,27 +105,40 @@ async def load_csv_data():
 
 async def reload_cache_if_needed():
     """Verifica si los archivos CSV han cambiado en disco y recarga el caché si es necesario."""
-    global df_master_cache, df_grn_cache, _mtime_master, _mtime_grn
+    global df_master_cache, df_grn_cache, _mtime_master, _mtime_grn, _last_check_mtime
     
+    current_time = time.time()
+    
+    # 1. Throttling: Solo verificar mtime cada 30 segundos para evitar I/O excesivo
+    if current_time - _last_check_mtime < RELOAD_CHECK_COOLDOWN:
+        # Si el caché ya está cargado, no hacemos nada hasta que pase el cooldown
+        if df_master_cache is not None:
+            return
+
+    _last_check_mtime = current_time
     needs_reload = False
     
-    # Si el caché está vacío, recarga obligatoria
-    if df_master_cache is None or df_grn_cache is None:
+    # 2. Si el caché está vacío Y el archivo existe, recarga obligatoria
+    if df_master_cache is None and os.path.exists(ITEM_MASTER_CSV_PATH):
         needs_reload = True
-    else:
-        # Verificar Maestro de Items INDEPENDIENTEMENTE
-        if os.path.exists(ITEM_MASTER_CSV_PATH):
-            current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-            if current_mtime_master > _mtime_master:
-                print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}).")
-                needs_reload = True
-        
-        # Verificar GRN 280 INDEPENDIENTEMENTE
-        if os.path.exists(GRN_CSV_FILE_PATH):
-            current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
-            if current_mtime_grn > _mtime_grn:
-                print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}).")
-                needs_reload = True
+    
+    # 3. Verificar Maestro de Items INDEPENDIENTEMENTE si existe
+    if not needs_reload and os.path.exists(ITEM_MASTER_CSV_PATH):
+        current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
+        if current_mtime_master > _mtime_master:
+            print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}).")
+            needs_reload = True
+    
+    # 4. Verificar GRN 280 INDEPENDIENTEMENTE si existe
+    if not needs_reload and os.path.exists(GRN_CSV_FILE_PATH):
+        current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
+        if current_mtime_grn > _mtime_grn:
+            print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}).")
+            needs_reload = True
+            
+    # Caso especial: Si el archivo GRN apareció de repente (estaba None y ahora existe)
+    if not needs_reload and df_grn_cache is None and os.path.exists(GRN_CSV_FILE_PATH):
+        needs_reload = True
 
     if needs_reload:
         await load_csv_data()

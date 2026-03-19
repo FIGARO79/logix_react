@@ -12,6 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import db_logs, csv_handler
 from app.models.sql_models import ReconciliationHistory, GRNMaster
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
+import time
+
+# --- CACHÉ DE ARCHIVOS JSON ---
+_po_lookup_cache = None
+_po_lookup_mtime = 0
+_grn_json_cache = None
+_grn_json_mtime = 0
+_last_json_check = 0
+JSON_CHECK_COOLDOWN = 60 # seconds
 
 async def get_reconciliation_calculations(db: AsyncSession, archive_date: Optional[str] = None) -> List[Dict[str, Any]]:
     """Ejecuta los cálculos de conciliación en tiempo real."""
@@ -32,40 +41,58 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
     if logs_df.empty or grn_df is None:
         return []
 
-    # 2. Cargar Fuentes de Asociación FILTRADAS
+    # 2. Cargar Fuentes de Asociación (CON CACHÉ)
+    global _po_lookup_cache, _po_lookup_mtime, _grn_json_cache, _grn_json_mtime, _last_json_check
+    
+    current_time = time.time()
     active_irs = set(logs_df['importReference'].str.strip().str.upper().unique())
     ir_to_grns_map = {}
 
-    # A. po_lookup.json
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
-        try:
-            with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                po_cache = json.load(f)
-                po_ir_data = po_cache.get("ir_to_data", {})
-                for ir_in_logs in active_irs:
-                    data = po_ir_data.get(ir_in_logs)
-                    if data:
-                        grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
-                        if grns:
-                            if ir_in_logs not in ir_to_grns_map: ir_to_grns_map[ir_in_logs] = {"grns": set(), "wb": data.get("waybill")}
-                            ir_to_grns_map[ir_in_logs]["grns"].update(grns)
-        except: pass
+    # Verificar y recargar JSONs si es necesario o pasó el cooldown
+    if current_time - _last_json_check > JSON_CHECK_COOLDOWN:
+        _last_json_check = current_time
+        # Recargar PO Lookup si cambió
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            m = os.path.getmtime(PO_LOOKUP_JSON_PATH)
+            if m > _po_lookup_mtime or _po_lookup_cache is None:
+                try:
+                    with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
+                        _po_lookup_cache = json.load(f)
+                        _po_lookup_mtime = m
+                except: pass
+        
+        # Recargar GRN JSON si cambió
+        if os.path.exists(GRN_JSON_DATA_PATH):
+            m = os.path.getmtime(GRN_JSON_DATA_PATH)
+            if m > _grn_json_mtime or _grn_json_cache is None:
+                try:
+                    with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
+                        _grn_json_cache = json.load(f)
+                        _grn_json_mtime = m
+                except: pass
 
-    # B. grn_master_data.json
-    if os.path.exists(GRN_JSON_DATA_PATH):
-        try:
-            with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                inbound_data = json.load(f)
-                for row in inbound_data:
-                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                    if ir in active_irs:
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                        if ir and grn:
-                            if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
-                            ir_to_grns_map[ir]["grns"].add(grn)
-        except: pass
+    # A. Usar caché de po_lookup.json
+    if _po_lookup_cache:
+        po_ir_data = _po_lookup_cache.get("ir_to_data", {})
+        for ir_in_logs in active_irs:
+            data = po_ir_data.get(ir_in_logs)
+            if data:
+                grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
+                if grns:
+                    if ir_in_logs not in ir_to_grns_map: ir_to_grns_map[ir_in_logs] = {"grns": set(), "wb": data.get("waybill")}
+                    ir_to_grns_map[ir_in_logs]["grns"].update(grns)
 
-    # C. DB Maestro
+    # B. Usar caché de grn_master_data.json
+    if _grn_json_cache:
+        for row in _grn_json_cache:
+            ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+            if ir in active_irs:
+                grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                if ir and grn:
+                    if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
+                    ir_to_grns_map[ir]["grns"].add(grn)
+
+    # C. DB Maestro (Siempre consulta fresca por ser DB)
     try:
         stmt = select(GRNMaster).where(func.upper(GRNMaster.import_reference).in_(list(active_irs)))
         db_res = await db.execute(stmt)
