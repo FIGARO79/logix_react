@@ -183,7 +183,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
     return JSONResponse(content=versions)
 
 @router.get('/export_log')
-async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
+async def export_log(timezone_offset: int = 0, version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta los registros de log a Excel."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
@@ -194,24 +194,35 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
     df = pd.DataFrame(logs)
+ 
+    # Aplicar Timezone Offset si se proporciona
+    if timezone_offset != 0 and 'timestamp' in df.columns:
+        try:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            # El offset del navegador es en minutos (UTC - Local). 
+            # Ej: Bogotá es +300 (5h). Para volver a local, restamos el offset.
+            df['timestamp'] = df['timestamp'] - pd.to_timedelta(timezone_offset, unit='m')
+            df['timestamp'] = df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            print(f"Error ajustando timezone en export: {e}")
     
     # Renombrar columnas para el Excel
     df_export = df.rename(columns={
         'importReference': 'Import Reference',
         'waybill': 'Waybill',
-        'itemCode': 'Item Code',
-        'itemDescription': 'Description',
-        'binLocation': 'Bin Location',
-        'relocatedBin': 'Relocated Bin',
-        'qtyReceived': 'Qty Received',
-        'qtyGrn': 'Qty GRN',
-        'difference': 'Difference',
-        'username': 'User',
-        'timestamp': 'Date'
+        'itemCode': 'Código Item',
+        'itemDescription': 'Descripción',
+        'binLocation': 'Ubicación Original',
+        'relocatedBin': 'Reubicación',
+        'qtyReceived': 'Cant. Recibida',
+        'qtyGrn': 'Cant. GRN',
+        'difference': 'Diferencia',
+        'username': 'Usuario',
+        'timestamp': 'Fecha'
     })
     
     # Seleccionar y ordenar columnas
-    cols = ['Date', 'User', 'Import Reference', 'Waybill', 'Item Code', 'Description', 'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
+    cols = ['Fecha', 'Usuario', 'Import Reference', 'Waybill', 'Código Item', 'Descripción', 'Ubicación Original', 'Reubicación', 'Cant. Recibida', 'Cant. GRN', 'Diferencia']
     df_export = df_export[cols]
 
     output = BytesIO()
