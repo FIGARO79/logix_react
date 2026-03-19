@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_db
 from app.models.schemas import CountExecutionRequest
-from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
+from app.models.sql_models import CycleCount, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
 import json
@@ -166,7 +166,7 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     
     query = (
         select(CycleCount.item_code, func.count(CycleCount.id).label("count"))
-        .where(CycleCount.timestamp >= start_of_year)
+        .where(CycleCount.executed_date >= start_of_year)
         .group_by(CycleCount.item_code)
     )
     
@@ -372,12 +372,11 @@ async def get_daily_items_for_execution(
     ]
     
     # Verificar si ya existen conteos previos para esta fecha
-    from app.models.sql_models import CycleCountRecording
     from sqlalchemy import func
     
     count_check = await db.execute(
-        select(func.count(CycleCountRecording.id))
-        .where(CycleCountRecording.planned_date == date)
+        select(func.count(CycleCount.id))
+        .where(CycleCount.planned_date == date)
     )
     previous_count = count_check.scalar() or 0
     has_previous = previous_count > 0
@@ -420,10 +419,10 @@ async def get_daily_items_for_execution(
     items_with_diff_count = 0
     if has_previous:
         diff_check = await db.execute(
-            select(func.count(CycleCountRecording.id))
+            select(func.count(CycleCount.id))
             .where(
-                CycleCountRecording.planned_date == date,
-                CycleCountRecording.difference != 0
+                CycleCount.planned_date == date,
+                CycleCount.difference != 0
             )
         )
         items_with_diff_count = diff_check.scalar() or 0
@@ -443,12 +442,11 @@ async def get_items_with_differences(
     db: AsyncSession = Depends(get_db)
 ):
     """Obtiene los items que tienen diferencias en conteos previos para la fecha especificada."""
-    from app.models.sql_models import CycleCountRecording
     
     # Obtener items con diferencias de conteos previos
-    stmt = select(CycleCountRecording).where(
-        CycleCountRecording.planned_date == date,
-        CycleCountRecording.difference != 0
+    stmt = select(CycleCount).where(
+        CycleCount.planned_date == date,
+        CycleCount.difference != 0
     )
     result = await db.execute(stmt)
     previous_counts = result.scalars().all()
@@ -528,9 +526,9 @@ async def save_daily_execution(
             system = item.system_qty
             
             # Buscar si ya existe un registro para este item en la fecha planificada
-            existing_query = select(CycleCountRecording).where(
-                CycleCountRecording.item_code == item.item_code,
-                CycleCountRecording.planned_date == execution_data.date
+            existing_query = select(CycleCount).where(
+                CycleCount.item_code == item.item_code,
+                CycleCount.planned_date == execution_data.date
             )
             result = await db.execute(existing_query)
             existing_record = result.scalar_one_or_none()
@@ -546,7 +544,7 @@ async def save_daily_execution(
             else:
                 # Crear nuevo registro
                 diff = physical - system
-                new_record = CycleCountRecording(
+                new_record = CycleCount(
                     planned_date=execution_data.date,
                     executed_date=today,
                     item_code=item.item_code,
@@ -587,7 +585,7 @@ async def get_execution_stats(
     Basado en la tabla CycleCountRecording.
     """
     # Consultar todos los registros del año
-    query = select(CycleCountRecording).where(CycleCountRecording.executed_date.like(f"{year}-%"))
+    query = select(CycleCount).where(CycleCount.executed_date.like(f"{year}-%"))
     result = await db.execute(query)
     records = result.scalars().all()
     
@@ -598,7 +596,7 @@ async def get_execution_stats(
     
     for record in records:
         try:
-            date_obj = datetime.datetime.strptime(record.executed_date, "%Y-%m-%d")
+            date_obj = datetime.datetime.strptime(record.executed_date.split('T')[0], "%Y-%m-%d")
             month_idx = date_obj.month - 1 # 0-indexed
             
             cat = record.abc_code
@@ -654,23 +652,23 @@ async def get_cycle_count_differences(
     - only_differences=True (default): Solo registros con difference != 0
     - only_differences=False: Todos los registros
     """
-    query = select(CycleCountRecording)
+    query = select(CycleCount)
     
     # Filtrar solo si hay diferencias
     if only_differences:
-        query = query.where(CycleCountRecording.difference != 0)
+        query = query.where(CycleCount.difference != 0)
     
     if year:
-        query = query.where(CycleCountRecording.executed_date.like(f"{year}-%"))
+        query = query.where(CycleCount.executed_date.like(f"{year}-%"))
     
     if month:
         month_str = f"{str(month).zfill(2)}"
         if year:
-            query = query.where(CycleCountRecording.executed_date.like(f"{year}-{month_str}-%"))
+            query = query.where(CycleCount.executed_date.like(f"{year}-{month_str}-%"))
         else:
-            query = query.where(CycleCountRecording.executed_date.like(f"%-{month_str}-%"))
+            query = query.where(CycleCount.executed_date.like(f"%-{month_str}-%"))
     
-    query = query.order_by(CycleCountRecording.executed_date.desc(), CycleCountRecording.item_code)
+    query = query.order_by(CycleCount.executed_date.desc(), CycleCount.item_code)
     
     result = await db.execute(query)
     records = result.scalars().all()
@@ -709,7 +707,7 @@ async def update_cycle_count_difference(
     Recalcula automáticamente la diferencia.
     """
     result = await db.execute(
-        select(CycleCountRecording).where(CycleCountRecording.id == recording_id)
+        select(CycleCount).where(CycleCount.id == recording_id)
     )
     record = result.scalar_one_or_none()
     

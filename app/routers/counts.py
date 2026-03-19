@@ -14,7 +14,7 @@ from app.core.db import get_db
 import numpy as np
 
 from app.models.schemas import StockCount, Count
-from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel, CycleCountRecording
+from app.models.sql_models import CountSession, RecountList, StockCount as StockCountModel, CycleCount
 from app.services import db_counts, csv_handler
 from app.services.csv_handler import get_locations_with_stock_count # Importar el helper
 from app.utils.auth import login_required, api_login_required, permission_required
@@ -391,7 +391,7 @@ async def get_dashboard_stats(username: str = Depends(permission_required("inven
     
     try:
         # 1. Obtener todos los registros de grabaciones
-        result = await db.execute(select(CycleCountRecording))
+        result = await db.execute(select(CycleCount))
         recordings = result.scalars().all()
         
         if not recordings:
@@ -515,8 +515,8 @@ async def get_cycle_count_recordings(skip: int = 0, limit: int = 100, username: 
     try:
         # 1. Obtener bloque de registros paginado
         result = await db.execute(
-            select(CycleCountRecording)
-            .order_by(CycleCountRecording.executed_date.desc())
+            select(CycleCount)
+            .order_by(CycleCount.executed_date.desc())
             .offset(skip)
             .limit(limit)
         )
@@ -572,7 +572,7 @@ async def export_cycle_count_recordings(username: str = Depends(permission_requi
     """
     try:
         result = await db.execute(
-            select(CycleCountRecording).order_by(CycleCountRecording.executed_date.desc())
+            select(CycleCount).order_by(CycleCount.executed_date.desc())
         )
         recordings = result.scalars().all()
         

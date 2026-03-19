@@ -5,7 +5,7 @@ from app.core.db import get_db
 from app.utils.auth import get_current_user, login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCount, ReconciliationHistory, GRNMaster
 import pandas as pd
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
@@ -101,13 +101,7 @@ async def get_reconciliation_data(
             rows = res.scalars().all()
             
             result_data = [{
-                "Import_Reference": r.import_reference,
-                "Waybill": r.waybill,
-                "GRN": r.grn,
                 "Codigo_Item": r.item_code,
-                "Descripcion": r.description,
-                "Ubicacion": "",
-                "Reubicado": "",
                 "Cant_Esperada": r.qty_expected,
                 "Cant_Recibida": r.qty_received,
                 "Diferencia": r.difference
@@ -283,7 +277,7 @@ async def get_cycle_count_recordings(
     
     # Cargar registros de la DB
     t1 = time.time()
-    result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
+    result = await db.execute(select(CycleCount).order_by(CycleCount.id.desc()))
     recordings = result.scalars().all()
     print(f"⏱️ Query recordings: {time.time() - t1:.2f}s")
 
@@ -341,8 +335,6 @@ async def get_cycle_count_recordings(
             item_type = master_item.item_type or ""
             item_class = master_item.item_class or ""
             group_major = master_item.item_group_major or ""
-            sic_company = master_item.sic_code_company or ""
-            sic_stockroom = master_item.sic_code_stockroom or ""
 
         # Cálculos de valor
         diff = rec.difference if rec.difference is not None else 0
@@ -352,23 +344,17 @@ async def get_cycle_count_recordings(
         data.append({
             "stockroom": stockroom,
             "item_code": rec.item_code,
-            "description": rec.item_description,
             "item_type": item_type,
             "item_class": item_class,
             "group_major": group_major,
-            "sic_company": sic_company,
-            "sic_stockroom": sic_stockroom,
             "weight": weight,
-            "abc_code": rec.abc_code,
-            "bin_location": rec.bin_location,
             "system_qty": rec.system_qty,
             "physical_qty": rec.physical_qty,
             "difference": rec.difference,
             "value_diff": value_diff,
             "cost": cost,
             "count_value": count_value,
-            "executed_date": rec.executed_date,
-            "username": rec.username
+            "executed_date": rec.executed_date
         })
     
     print(f"⏱️ Build response data: {time.time() - t4:.2f}s")

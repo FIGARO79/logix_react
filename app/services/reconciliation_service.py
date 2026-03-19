@@ -166,13 +166,7 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
     records = [
         ReconciliationHistory(
             archive_date=archive_date,
-            import_reference=row.get('Import_Reference', ''),
-            waybill=row.get('Waybill', ''),
-            grn=row.get('GRN', ''),
             item_code=row.get('Codigo_Item', ''),
-            description=row.get('Descripcion', ''),
-            bin_location=row.get('Ubicacion', '') or '',
-            relocated_bin=row.get('Reubicado', '') or '',
             qty_expected=int(row.get('Cant_Esperada', 0)),
             qty_received=int(row.get('Cant_Recibida', 0)),
             difference=int(row.get('Diferencia', 0)),

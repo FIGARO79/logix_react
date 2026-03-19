@@ -47,9 +47,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
             'Item_Class': 'item_class',
             'Item_Group_Major': 'item_group_major',
             'Stockroom': 'stockroom',
-            'Cost_per_Unit': 'cost_per_unit',
-            'SIC_Code_Company': 'sic_code_company',
-            'SIC_Code_stockroom': 'sic_code_stockroom'
+            'Cost_per_Unit': 'cost_per_unit'
         }
         
         # Columnas extra que no están en COLUMNS_TO_READ_MASTER pero queremos si existen
@@ -110,8 +108,6 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     'item_group_major': str(row.get('Item_Group_Major', '')).strip()[:50],
                     'stockroom': str(row.get('Stockroom', '')).strip()[:50],
                     'cost_per_unit': cost,
-                    'sic_code_company': str(row.get('SIC_Code_Company', '')).strip()[:50],
-                    'sic_code_stockroom': str(row.get('SIC_Code_stockroom', '')).strip()[:50],
                     'updated_at': today
                 }
                 
@@ -147,8 +143,6 @@ async def sync_master_csv_to_db(db: AsyncSession):
                         'item_group_major': stmt.inserted.item_group_major,
                         'stockroom': stmt.inserted.stockroom,
                         'cost_per_unit': stmt.inserted.cost_per_unit,
-                        'sic_code_company': stmt.inserted.sic_code_company,
-                        'sic_code_stockroom': stmt.inserted.sic_code_stockroom,
                         'updated_at': stmt.inserted.updated_at
                     }
                     
