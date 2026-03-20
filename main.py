@@ -53,24 +53,33 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- Configuración de CORS [CRÍTICO PARA REACT] ---
+# Lista de orígenes permitidos
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "https://logixapp.dev",
+    "https://www.logixapp.dev"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    # En producción, reemplazar "*" con el dominio real del frontend (ej. "http://localhost:5173")
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://localhost:5173", "*"],
+    # Permitir orígenes específicos; usar "*" solo si no se requieren credenciales
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Middlewares de seguridad ---
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "localhost", "127.0.0.1"])
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
     max_age=None,
-    https_only=False
+    https_only=True # Cambiado a True ya que usamos HTTPS en producción
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
