@@ -1,37 +1,29 @@
-import pandas as pd
-import numpy as np
+import polars as pl
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.mysql import insert
+from sqlalchemy import update
 from app.models.sql_models import MasterItem
-from app.core.config import ITEM_MASTER_CSV_PATH, COLUMNS_TO_READ_MASTER
-from app.services.csv_handler import read_csv_safe
+from app.core.config import ITEM_MASTER_CSV_PATH
 import os
 
 async def sync_master_csv_to_db(db: AsyncSession):
     """
-    Lee el CSV maestro y sincroniza la tabla master_items en la DB.
-    Usa 'INSERT ON DUPLICATE KEY UPDATE' para eficiencia.
+    Lee el CSV maestro usando Polars y sincroniza la tabla master_items en la DB.
+    Optimizado para velocidad y bajo consumo de memoria.
     """
     if not os.path.exists(ITEM_MASTER_CSV_PATH):
         raise FileNotFoundError(f"Archivo maestro no encontrado: {ITEM_MASTER_CSV_PATH}")
 
-    print("⏳ Iniciando sincronización CSV -> DB...")
+    print("⏳ [POLARS] Iniciando sincronización CSV -> DB...")
 
     try:
         # 0. Pre-procesamiento: Resetear stock a 0 para items que podrían no venir en el CSV
         print("   Resetear cantidades a 0 antes de la carga...")
-        from sqlalchemy import update
         await db.execute(update(MasterItem).values(physical_qty=0))
         await db.commit()
     except Exception as e:
         print(f"⚠️ Error al resetear cantidades: {e}")
-        # No detenemos el proceso, pero advertimos
-    
-    # 1. Leer CSV (usamos chunks si es muy grande, pero pandas read_csv es rápido)
-    # Para optimización real, leeremos en chunks.
-    chunk_size = 5000
-    total_processed = 0
     
     try:
         # Mapeo de columnas CSV a Modelo DB
@@ -52,115 +44,73 @@ async def sync_master_csv_to_db(db: AsyncSession):
             'SIC_Code_stockroom': 'sic_code_stockroom'
         }
         
-        # Columnas extra que no están en COLUMNS_TO_READ_MASTER pero queremos si existen
-        # Ajustamos las columnas a leer
-        cols_to_read = list(col_map.keys())
-        
-        for chunk_idx, chunk in enumerate(pd.read_csv(
-            ITEM_MASTER_CSV_PATH,
-            usecols=lambda c: c in cols_to_read, # Leer solo columnas conocidas
-            dtype=str,
-            keep_default_na=False,
-            encoding='utf-8-sig',  # Maneja BOM (Byte Order Mark) del CSV
-            chunksize=chunk_size
-        )):
-            # Limpieza de datos (ya no necesaria con keep_default_na=False para strings)
-            # chunk = chunk.replace({np.nan: None})
-            
-            # Preparar lista de diccionarios para insert
+        # 1. Leer y transformar con Polars (Lazy loading para eficiencia)
+        q = (
+            pl.scan_csv(
+                ITEM_MASTER_CSV_PATH,
+                encoding='utf-8-sig',
+                infer_schema_length=10000,
+                null_values=['', 'nan', 'NAN', 'NaN', 'None']
+            )
+            .select([pl.col(c) for c in col_map.keys() if c in pl.scan_csv(ITEM_MASTER_CSV_PATH).columns])
+            .with_columns([
+                pl.col('Item_Code').str.strip_chars().str.to_uppercase(),
+                pl.col('Physical_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
+                pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(None),
+            ])
+            .filter(pl.col('Item_Code').is_not_null() & (pl.col('Item_Code') != ""))
+        )
+
+        df = q.collect()
+        total_items = df.height
+        print(f"📦 Procesando {total_items} items con Polars...")
+
+        # 2. Sincronización por lotes (Chunks) para no saturar la memoria de la DB
+        chunk_size = 5000
+        total_processed = 0
+        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        is_sqlite = db.bind.dialect.name == 'sqlite'
+
+        for i in range(0, total_items, chunk_size):
+            chunk_df = df.slice(i, chunk_size)
             insert_data = []
-            today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            for i, (_, row) in enumerate(chunk.iterrows()):
-                try:
-                    qty = 0
-                    if row.get('Physical_Qty'):
-                        # Remove commas from qty if present (safety)
-                        qty_str = str(row['Physical_Qty']).replace(',', '').strip()
-                        if qty_str:
-                            qty = int(float(qty_str))
-                except (ValueError, TypeError):
-                    qty = 0
+
+            for row in chunk_df.to_dicts():
+                # Preparar diccionario mapeado
+                item_data = {col_map[k]: v for k, v in row.items() if k in col_map}
                 
-                # Parse cost as float
-                cost = None
-                try:
-                    cost_val = row.get('Cost_per_Unit')
-                    if cost_val: # Empty string is False
-                        cost_str = str(cost_val).strip().replace(',', '')
-                        if cost_str:
-                            cost = float(cost_str)
-                            if cost > 99999999.99:
-                                print(f"⚠️ Cost too high for item {row.get('Item_Code')}: {cost} -> Capping at 99999999.99", flush=True)
-                                cost = 99999999.99
-                except (ValueError, TypeError) as e:
-                    print(f"⚠️ Error parsing cost for item {row.get('Item_Code')}: '{cost_val}' -> {e}", flush=True)
-                    cost = None
+                # Truncado de strings por seguridad (limites de DB)
+                if item_data.get('description'): item_data['description'] = str(item_data['description'])[:255]
+                if item_data.get('abc_code'): item_data['abc_code'] = str(item_data['abc_code'])[:10]
+                if item_data.get('bin_1'): item_data['bin_1'] = str(item_data['bin_1'])[:100]
+                if item_data.get('additional_bin'): item_data['additional_bin'] = str(item_data['additional_bin'])[:100]
                 
-                item_data = {
-                    'item_code': str(row['Item_Code']).strip().upper(),
-                    'description': str(row.get('Item_Description', '')).strip()[:255],
-                    'abc_code': str(row.get('ABC_Code_stockroom', '')).strip().upper()[:10],
-                    'physical_qty': qty,
-                    'bin_1': str(row.get('Bin_1', '')).strip()[:100],
-                    'additional_bin': str(row.get('Aditional_Bin_Location', '')).strip()[:100],
-                    'weight_per_unit': str(row.get('Weight_per_Unit', '')).strip()[:50],
-                    'item_type': str(row.get('Item_Type', '')).strip()[:50],
-                    'item_class': str(row.get('Item_Class', '')).strip()[:50],
-                    'item_group_major': str(row.get('Item_Group_Major', '')).strip()[:50],
-                    'stockroom': str(row.get('Stockroom', '')).strip()[:50],
-                    'cost_per_unit': cost,
-                    'sic_code_company': str(row.get('SIC_Code_Company', '')).strip()[:50],
-                    'sic_code_stockroom': str(row.get('SIC_Code_stockroom', '')).strip()[:50],
-                    'updated_at': today
-                }
+                # Limite de costo para evitar desbordamiento float(10,2) o similar
+                if item_data.get('cost_per_unit') and item_data['cost_per_unit'] > 99999999.99:
+                    item_data['cost_per_unit'] = 99999999.99
                 
-                if item_data['item_code']: # Skip empty codes
-                    insert_data.append(item_data)
-            
+                item_data['updated_at'] = today
+                insert_data.append(item_data)
+
             if insert_data:
-                # Detectar tipo de DB desde el bind del session
-                is_sqlite = db.bind.dialect.name == 'sqlite'
-                
                 if is_sqlite:
-                    # SQLite: INSERT OR REPLACE
-                    from sqlalchemy import text
-                    # Para SQLite usamos una aproximación más sencilla con merge o delete/insert
-                    # pero dado que item_code es PK, merge es eficiente.
                     for item in insert_data:
-                        new_item = MasterItem(**item)
-                        await db.merge(new_item)
+                        await db.merge(MasterItem(**item))
                 else:
                     # MySQL: Upsert eficiente
                     stmt = insert(MasterItem).values(insert_data)
-                    
-                    # Definir qué columnas actualizar en caso de duplicado
-                    update_dict = {
-                        'description': stmt.inserted.description,
-                        'abc_code': stmt.inserted.abc_code,
-                        'physical_qty': stmt.inserted.physical_qty,
-                        'bin_1': stmt.inserted.bin_1,
-                        'additional_bin': stmt.inserted.additional_bin,
-                        'weight_per_unit': stmt.inserted.weight_per_unit,
-                        'item_type': stmt.inserted.item_type,
-                        'item_class': stmt.inserted.item_class,
-                        'item_group_major': stmt.inserted.item_group_major,
-                        'stockroom': stmt.inserted.stockroom,
-                        'cost_per_unit': stmt.inserted.cost_per_unit,
-                        'sic_code_company': stmt.inserted.sic_code_company,
-                        'sic_code_stockroom': stmt.inserted.sic_code_stockroom,
-                        'updated_at': stmt.inserted.updated_at
-                    }
-                    
+                    update_dict = {k: getattr(stmt.inserted, k) for k in item_data.keys() if k != 'item_code'}
                     on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)
                     await db.execute(on_duplicate_key_stmt)
                 
                 total_processed += len(insert_data)
-                
+                print(f"   ➤ {total_processed}/{total_items} sincronizados...")
+
         await db.commit()
-        print(f"✅ Sincronización completada. {total_processed} items procesados.")
+        print(f"✅ [POLARS] Sincronización completada. {total_processed} items procesados.")
         return total_processed
 
     except Exception as e:
-        print(f"❌ Error en sincronización CSV -> DB: {e}")
+        print(f"❌ Error en sincronización Polars CSV -> DB: {e}")
+        await db.rollback()
         raise e

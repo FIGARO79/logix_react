@@ -160,10 +160,9 @@ async def run_po_robot_api(
         
         from app.services.po_robot import run_po_robot
         from app.core.config import PO_EXTRACTOR_EXCEL_PATH
-        from starlette.concurrency import run_in_threadpool
         
-        # 1. Ejecutar descarga de forma segura en un hilo aparte
-        success, msg = await run_in_threadpool(run_po_robot, payload.start_date, payload.end_date)
+        # 1. Ejecutar descarga de forma asíncrona nativa
+        success, msg = await run_po_robot(payload.start_date, payload.end_date)
         if not success:
             po_robot_status["status"] = "error"
             po_robot_status["message"] = f"Error en Robot: {msg}"
@@ -192,6 +191,8 @@ async def run_po_robot_api(
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+    # Log para depuración
+    print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
     return JSONResponse(content=po_robot_status)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
