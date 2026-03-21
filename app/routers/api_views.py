@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text, select, desc, distinct, func
+from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.utils.auth import get_current_user, login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
@@ -152,15 +153,17 @@ async def archive_reconciliation_snapshot(
 
 @router.get('/view_picking_audits', response_model=List[PickingAuditSummary])
 async def view_picking_audits_api(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(PickingAudit).order_by(PickingAudit.id.desc()))
+    # Usar selectinload para cargar items y package_items en una sola consulta eficiente
+    result = await db.execute(
+        select(PickingAudit)
+        .options(selectinload(PickingAudit.items), selectinload(PickingAudit.package_items))
+        .order_by(PickingAudit.id.desc())
+    )
     audits_orm = result.scalars().all()
     
     audits = []
     for audit_orm in audits_orm:
-        # Load items
-        result_items = await db.execute(select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_orm.id))
-        items_orm = result_items.scalars().all()
-        
+        # Los items ya están cargados en memoria gracias a selectinload
         items_data = [
             {
                 "id": item.id,
@@ -171,14 +174,12 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
                 "qty_scan": item.qty_scan,
                 "difference": item.difference,
                 "edited": item.edited if item.edited else 0
-            } for item in items_orm
+            } for item in audit_orm.items
         ]
         
-        # Obtener asignación de bultos
-        result_pkgs = await db.execute(select(PickingPackageItem).where(PickingPackageItem.audit_id == audit_orm.id))
-        package_items = result_pkgs.scalars().all()
+        # Los package_items también están cargados en memoria
         packages_assignment = {}
-        for pi in package_items:
+        for pi in audit_orm.package_items:
             order_line = pi.order_line
             if not order_line:
                 match = next((i for i in items_data if i["item_code"] == pi.item_code), None)

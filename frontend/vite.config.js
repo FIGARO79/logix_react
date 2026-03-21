@@ -26,8 +26,8 @@ export default defineConfig({
                     'react-vendor': ['react', 'react-dom', 'react-router-dom'],
                     // Separar bibliotecas de UI y utilidades
                     'ui-vendor': ['react-toastify', 'react-to-print'],
-                    // Separar QR Code (librería grande)
-                    'qrcode-vendor': ['html5-qrcode', 'qrcode'],
+                    // Separar Escáneres (Librerías grandes)
+                    'scanner-vendor': ['html5-qrcode', 'qrcode', 'react-barcode-scanner'],
                     // Separar Axios (HTTP client)
                     'http-vendor': ['axios']
                 }

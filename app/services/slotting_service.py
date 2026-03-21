@@ -47,8 +47,11 @@ class SlottingService:
             target_zone = "Cantilever"
         elif 0 < weight < 0.1:
             target_zone = "Minuteria"
-        elif sic_code in ['W', 'Z'] and weight > 10:
-            target_levels = [2, 3, 4, 5]
+        elif weight > 10:
+            target_levels = [3, 4, 5]
+            target_zone = "Rack"
+        elif 2 <= weight < 10:
+            target_levels = [2]
             target_zone = "Rack"
         
         if target_zone is None:
@@ -74,8 +77,12 @@ class SlottingService:
 
         turnover_map = self._load_params().get('turnover', {})
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
+        
+        # Forzar 'hot' para W y Z si no está definido en el mapa de rotación
+        if sic_code in ['W', 'Z']:
+            ideal_spot = 'hot'
 
-        if sic_code in ['Y', 'K', 'L', 'Z', '0']:
+        if sic_code in ['Y', 'K', 'L', 'Z', '0', 'W']:
             exact_matches = [c for c in candidates if c['spot'] == ideal_spot]
             if exact_matches: candidates = exact_matches
 
