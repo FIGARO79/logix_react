@@ -86,8 +86,10 @@ def load_plan_data():
 
 def save_plan_data(data):
     """Guarda los datos del plan en JSON."""
-    with open(PLAN_DATA_FILE, 'w') as f:
+    temp_file = f"{PLAN_DATA_FILE}.tmp"
+    with open(temp_file, 'w') as f:
         json.dump(data, f, indent=4)
+    os.replace(temp_file, PLAN_DATA_FILE)
 
 # Cargar configuración inicial
 PLANNER_CONFIG = load_config()
@@ -348,7 +350,6 @@ async def update_count_plan(
     # 3. Guardar
     save_plan_data(result_data)
     
-    return result_data
     return result_data
 
 

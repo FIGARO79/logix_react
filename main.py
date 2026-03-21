@@ -79,7 +79,7 @@ app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
     max_age=None,
-    https_only=True # Cambiado a True ya que usamos HTTPS en producción
+    https_only=False # Cambiado a False para permitir testing local en HTTP y evitar bucle de login
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
