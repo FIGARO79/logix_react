@@ -1,12 +1,12 @@
 """
-Servicio para la lógica de conciliación de Inbound y snapshots.
+Servicio para la lógica de conciliación de Inbound y snapshots optimizado con Polars.
 """
 import datetime
 import json
 import os
-import pandas as pd
+import polars as pl
 from typing import List, Optional, Dict, Any
-from sqlalchemy import select, distinct, desc, func, text
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler
@@ -14,26 +14,23 @@ from app.models.sql_models import ReconciliationHistory, GRNMaster
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
 async def get_reconciliation_calculations(db: AsyncSession, archive_date: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Ejecuta los cálculos de conciliación en tiempo real."""
+    """Ejecuta los cálculos de conciliación en tiempo real usando Polars."""
     await csv_handler.reload_cache_if_needed()
     
     # 1. Obtener Logs
-    if archive_date:
-        logs_list = await db_logs.load_archived_log_data_db_async(db, archive_date)
-    else:
-        logs_list = await db_logs.load_log_data_db_async(db)
+    logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
         
     if not logs_list:
         return []
         
-    logs_df = pd.DataFrame(logs_list)
-    grn_df = csv_handler.df_grn_cache
+    logs_pl = pl.from_dicts(logs_list)
+    grn_pl = csv_handler.df_grn_cache # Ya es Polars
     
-    if logs_df.empty or grn_df is None:
+    if logs_pl.is_empty() or grn_pl is None:
         return []
 
-    # 2. Cargar Fuentes de Asociación FILTRADAS
-    active_irs = set(logs_df['importReference'].str.strip().str.upper().unique())
+    # 2. Cargar Fuentes de Asociación (Filtradas para velocidad)
+    active_irs = set(logs_pl['importReference'].unique().to_list())
     ir_to_grns_map = {}
 
     # A. po_lookup.json
@@ -42,13 +39,13 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
                 po_cache = json.load(f)
                 po_ir_data = po_cache.get("ir_to_data", {})
-                for ir_in_logs in active_irs:
-                    data = po_ir_data.get(ir_in_logs)
-                    if data:
+                for ir in active_irs:
+                    if ir in po_ir_data:
+                        data = po_ir_data[ir]
                         grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
                         if grns:
-                            if ir_in_logs not in ir_to_grns_map: ir_to_grns_map[ir_in_logs] = {"grns": set(), "wb": data.get("waybill")}
-                            ir_to_grns_map[ir_in_logs]["grns"].update(grns)
+                            if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": data.get("waybill")}
+                            ir_to_grns_map[ir]["grns"].update(grns)
         except: pass
 
     # B. grn_master_data.json
@@ -77,86 +74,70 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                 else: ir_to_grns_map[ir_key]["grns"].update(grns_set)
     except: pass
 
-    # 3. Procesamiento Pandas
-    logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+    # 3. Procesamiento con Polars
     
-    # Extraer ubicaciones antes del groupby (tomar el último valor por importReference+itemCode)
-    loc_cols = [c for c in ['binLocation', 'relocatedBin'] if c in logs_df.columns]
-    if loc_cols:
-        df_locations = logs_df.groupby(['importReference', 'itemCode'])[loc_cols].last().reset_index()
-    else:
-        df_locations = logs_df[['importReference', 'itemCode']].drop_duplicates()
-        df_locations['binLocation'] = ''
-        df_locations['relocatedBin'] = ''
-    
-    logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
+    # A. Agrupar logs para sumar cantidades recibidas y tomar última ubicación
+    logs_grouped = logs_pl.group_by(['importReference', 'waybill', 'itemCode']).agg([
+        pl.col('qtyReceived').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64).fill_null(0).sum(),
+        pl.col('binLocation').last(),
+        pl.col('relocatedBin').last()
+    ])
 
+    # B. Construir mapa de I.R. a GRN
     mapping_rows = []
     for ir, info in ir_to_grns_map.items():
         for grn in info["grns"]:
             mapping_rows.append({"ir_map": ir, "wb_map": info["wb"], "grn_map": grn})
     
-    df_mapping = pd.DataFrame(mapping_rows) if mapping_rows else pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
-    if df_mapping.empty: df_mapping = pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
+    df_mapping = pl.from_dicts(mapping_rows) if mapping_rows else pl.DataFrame(schema={"ir_map": pl.Utf8, "wb_map": pl.Utf8, "grn_map": pl.Utf8})
 
-    grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-    df_expected_lines = pd.merge(df_mapping, grn_df, left_on='grn_map', right_on='GRN_Number', how='inner')
+    # C. Cruzar con GRN Maestro para obtener cantidades esperadas
+    # Polars Joins son significativamente más rápidos
+    df_expected = df_mapping.join(grn_pl, left_on='grn_map', right_on='GRN_Number', how='inner')
     
-    total_exp_per_ir_item = df_expected_lines.groupby(['ir_map', 'Item_Code'])['Quantity'].sum().reset_index()
-    total_exp_per_ir_item = total_exp_per_ir_item.rename(columns={'Quantity': 'Total_Esperado_IR'})
+    # Agrupar esperado por IR e Item
+    total_exp = df_expected.group_by(['ir_map', 'Item_Code']).agg(pl.col('Quantity').sum().alias('Total_Esperado_IR'))
 
-    merged = pd.merge(df_expected_lines, total_exp_per_ir_item, on=['ir_map', 'Item_Code'], how='left')
+    # D. Unión Final (Cruzar esperado con real)
+    merged = df_expected.join(total_exp, on=['ir_map', 'Item_Code'], how='left')
     
-    final_merge = pd.merge(
-        merged, 
+    final_merge = merged.join(
         logs_grouped, 
         left_on=['ir_map', 'Item_Code'], 
         right_on=['importReference', 'itemCode'], 
         how='outer'
     )
 
-    final_merge['qtyReceived'] = final_merge['qtyReceived'].fillna(0).astype(int)
-    final_merge['Quantity'] = final_merge['Quantity'].fillna(0).astype(int)
-    final_merge['Total_Esperado_IR'] = final_merge['Total_Esperado_IR'].fillna(0).astype(int)
-    
-    final_merge['importReference'] = final_merge['importReference'].fillna(final_merge['ir_map'])
-    final_merge['waybill'] = final_merge['waybill'].fillna(final_merge['wb_map'])
-    final_merge['itemCode'] = final_merge['itemCode'].fillna(final_merge['Item_Code'])
-    final_merge['Item_Description'] = final_merge['Item_Description'].fillna("No en sistema 280")
-    final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
-    final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
-
-    # Unir ubicaciones desde el log
-    final_merge = pd.merge(
-        final_merge,
-        df_locations,
-        left_on=['importReference', 'itemCode'],
-        right_on=['importReference', 'itemCode'],
-        how='left'
+    # E. Limpieza y Cálculos Finales
+    df_final = final_merge.with_columns([
+        pl.col('importReference').fill_null(pl.col('ir_map')),
+        pl.col('waybill').fill_null(pl.col('wb_map')),
+        pl.col('itemCode').fill_null(pl.col('Item_Code')),
+        pl.col('Item_Description').fill_null("No en sistema 280"),
+        pl.col('qtyReceived').fill_null(0).cast(pl.Int64),
+        pl.col('Quantity').fill_null(0).cast(pl.Int64),
+        pl.col('Total_Esperado_IR').fill_null(0).cast(pl.Int64),
+        pl.col('binLocation').fill_null(""),
+        pl.col('relocatedBin').fill_null("")
+    ]).with_columns(
+        (pl.col('qtyReceived') - pl.col('Total_Esperado_IR')).alias('Diferencia')
     )
 
-    df_final = final_merge.rename(columns={
-        "importReference": "Import_Reference",
-        "waybill": "Waybill",
-        "GRN_Number": "GRN",
-        "itemCode": "Codigo_Item",
-        "Item_Description": "Descripcion",
-        "Quantity": "Cant_Esperada",
-        "qtyReceived": "Cant_Recibida",
-        "binLocation": "Ubicacion",
-        "relocatedBin": "Reubicado"
-    })
+    # Renombrar columnas para el frontend
+    result = df_final.select([
+        pl.col('importReference').alias('Import_Reference'),
+        pl.col('waybill').alias('Waybill'),
+        pl.col('grn_map').alias('GRN').fill_null("SIN GRN"),
+        pl.col('itemCode').alias('Codigo_Item'),
+        pl.col('Item_Description').alias('Descripcion'),
+        pl.col('binLocation').alias('Ubicacion'),
+        pl.col('relocatedBin').alias('Reubicado'),
+        pl.col('Quantity').alias('Cant_Esperada'),
+        pl.col('qtyReceived').alias('Cant_Recibida'),
+        pl.col('Diferencia')
+    ]).to_dicts()
 
-    # Garantizar columnas de ubicación aunque no haya datos en el log
-    if 'Ubicacion' not in df_final.columns:
-        df_final['Ubicacion'] = ''
-    if 'Reubicado' not in df_final.columns:
-        df_final['Reubicado'] = ''
-
-    return df_final[[
-        "Import_Reference", "Waybill", "GRN", "Codigo_Item",
-        "Descripcion", "Ubicacion", "Reubicado", "Cant_Esperada", "Cant_Recibida", "Diferencia"
-    ]].fillna("").to_dict(orient='records')
+    return result
 
 async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False):
     """Guarda un snapshot de conciliación en la DB."""
@@ -186,26 +167,11 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
 
 async def auto_snapshot_before_update(db: AsyncSession, username: str):
     """Realiza un snapshot automático si hay datos pendientes de conciliación."""
-    print(f"DEBUG: Iniciando auto_snapshot_before_update para usuario: {username}")
     try:
-        # Calcular conciliación actual (Tiempo Real)
         current_data = await get_reconciliation_calculations(db)
-        
-        if not current_data:
-            print("DEBUG: Snapshot automático omitido: get_reconciliation_calculations devolvió lista vacía.")
-            return None
-            
-        print(f"DEBUG: Datos encontrados en conciliación: {len(current_data)} filas.")
-        
-        # Solo archivar si hay datos en la conciliación
-        if len(current_data) > 0:
+        if current_data and len(current_data) > 0:
             user_str = username if isinstance(username, str) else getattr(username, 'username', str(username))
-            archive_date = await create_snapshot(db, current_data, f"AUTO({user_str})", is_auto=True)
-            print(f"✅ Snapshot automático generado exitosamente: {archive_date}")
-            return archive_date
-        else:
-            print("DEBUG: Snapshot automático omitido: No hay datos calculados.")
-        
+            return await create_snapshot(db, current_data, f"AUTO({user_str})", is_auto=True)
         return None
     except Exception as e:
         print(f"❌ Error en snapshot automático: {e}")
