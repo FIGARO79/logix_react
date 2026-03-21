@@ -681,7 +681,7 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
                                         <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1.5 text-gray-600">{log.username}</td>
+                                        <td className="px-2 py-1.5 text-gray-600">{log.username?.toUpperCase()}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>

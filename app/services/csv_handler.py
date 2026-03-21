@@ -123,16 +123,19 @@ async def load_csv_data():
                 os.path.exists(MASTER_DETAILS_CACHE_PATH) and
                 os.path.exists(STOCK_QTY_CACHE_PATH)
             )
+            # El JSON es válido si su mtime es >= al CSV (se generó con ese CSV o después)
+            json_master_current = json_master_ok and (
+                os.path.getmtime(MASTER_DETAILS_CACHE_PATH) >= current_mtime_master
+            )
 
-            if json_master_ok and current_mtime_master == _mtime_master and df_master_cache is not None:
-                # Ya en memoria y CSV sin cambios → no hacer nada
+            if json_master_current and df_master_cache is not None:
+                # Ya en memoria y JSON sigue vigente → no hacer nada
                 print("⚡ [MAESTRO] En memoria y sin cambios — skipping.")
 
-            elif json_master_ok and current_mtime_master == _mtime_master:
-                # Cache JSON existe y CSV sin cambios → warm start desde JSON
+            elif json_master_current:
+                # JSON vigente pero no está en memoria → warm start desde JSON
                 print("⚡ [MAESTRO] Warm start desde JSON cache...")
                 await run_in_threadpool(_load_master_from_json)
-                # Preservar el mtime que ya teníamos (es el mismo)
                 _mtime_master = current_mtime_master
 
             else:
@@ -171,13 +174,16 @@ async def load_csv_data():
         try:
             current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
             json_grn_ok = os.path.exists(GRN_CACHE_JSON_PATH)
+            json_grn_current = json_grn_ok and (
+                os.path.getmtime(GRN_CACHE_JSON_PATH) >= current_mtime_grn
+            )
 
-            if json_grn_ok and current_mtime_grn == _mtime_grn and df_grn_cache is not None:
-                # Ya en memoria y CSV sin cambios → no hacer nada
+            if json_grn_current and df_grn_cache is not None:
+                # Ya en memoria y JSON sigue vigente → no hacer nada
                 print("⚡ [GRN] En memoria y sin cambios — skipping.")
 
-            elif json_grn_ok and current_mtime_grn == _mtime_grn:
-                # Warm start desde JSON
+            elif json_grn_current:
+                # JSON vigente pero no está en memoria → warm start desde JSON
                 print("⚡ [GRN] Warm start desde JSON cache...")
                 await run_in_threadpool(_load_grn_from_json)
                 _mtime_grn = current_mtime_grn

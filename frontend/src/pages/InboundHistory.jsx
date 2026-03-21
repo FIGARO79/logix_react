@@ -117,7 +117,7 @@ const InboundHistory = () => {
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.username}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.username?.toUpperCase()}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>
