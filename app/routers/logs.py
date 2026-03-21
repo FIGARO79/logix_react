@@ -56,7 +56,8 @@ async def find_item(
     traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
 
     # 2. Sugerencia de IA (Aprendizaje Histórico)
-    ai_predicted_bin = ai_slotting.predict_best_bin(
+    ai_predicted_bin = await ai_slotting.predict_best_bin(
+        db=db,
         item_code=item_code,
         sic_code=item_details.get('SIC_Code_stockroom'),
         fallback_bin=traditional_suggested_bin
@@ -123,7 +124,8 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
     if data.relocatedBin:
-        ai_slotting.learn_from_decision(
+        await ai_slotting.learn_from_decision(
+            db=db,
             item_code=item_code_form,
             final_bin=data.relocatedBin,
             sic_code=item_details.get('SIC_Code_stockroom')

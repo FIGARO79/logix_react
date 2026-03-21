@@ -248,7 +248,7 @@ class GRNMaster(Base):
     ct: Mapped[Optional[str]] = mapped_column(String(50))
     created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class ReconciliationHistory(Base):
+class ReconciliationHistory(Base) :
     __tablename__ = 'reconciliation_history'
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
@@ -264,4 +264,24 @@ class ReconciliationHistory(Base):
     difference: Mapped[int] = mapped_column(Integer)
     username: Mapped[str] = mapped_column(String(100))
     timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+# --- Modelos de IA y Aprendizaje ---
+
+class AIItemPattern(Base):
+    """Aprendizaje de IA para ítems específicos."""
+    __tablename__ = "ai_item_patterns"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    bin_code: Mapped[str] = mapped_column(String(100))
+    frequency: Mapped[int] = mapped_column(Integer, default=1)
+    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+class AICategoryPattern(Base):
+    """Aprendizaje de IA para categorías (SIC Codes)."""
+    __tablename__ = "ai_category_patterns"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sic_code: Mapped[str] = mapped_column(String(100), index=True)
+    bin_code: Mapped[str] = mapped_column(String(100))
+    frequency: Mapped[int] = mapped_column(Integer, default=1)
+    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 

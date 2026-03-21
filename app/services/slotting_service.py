@@ -50,9 +50,15 @@ class SlottingService:
         elif weight > 10:
             target_levels = [3, 4, 5]
             target_zone = "Rack"
-        elif 2 <= weight < 10:
+        elif 2 <= weight <= 10:
             target_levels = [2]
             target_zone = "Rack"
+        elif 0.1 <= weight < 2:
+            target_zone = "Rack"
+            if sic_code in ['W', 'X']:
+                target_levels = [1]
+            else:
+                target_levels = [1, 2]
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
@@ -111,5 +117,83 @@ class SlottingService:
         except Exception as e:
             print(f"Error calculando ocupación: {e}")
         return occupancy
+
+    async def get_occupancy_report(self, db: AsyncSession) -> Dict[str, Any]:
+        """Genera un reporte detallado de ocupación por zona y nivel."""
+        occupancy = await self._get_bins_occupancy(db)
+        storage = self._load_params().get('storage', {})
+        
+        # Diccionarios para estadísticas avanzadas
+        zones_by_items = {}
+        aisles_by_items = {}
+        total_items = 0
+        
+        report = {
+            "summary": {
+                "total_bins": len(storage), 
+                "filled_bins": 0, 
+                "available_bins": 0,
+                "occupancy_pct": 0,
+                "total_items": 0,
+                "avg_items_per_bin": 0
+            },
+            "zones": {},
+            "analytics": {
+                "zones_by_items": {},
+                "top_aisles": {}
+            }
+        }
+        
+        for bin_code, info in storage.items():
+            zone = info.get('zone', 'Unknown')
+            level = info.get('level', 0)
+            aisle = info.get('aisle', 'N/A')
+            
+            if zone not in report["zones"]:
+                report["zones"][zone] = {"total": 0, "occupied": 0, "levels": {}}
+            
+            if level not in report["zones"][zone]["levels"]:
+                report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0}
+            
+            # Contar bin en zona y nivel
+            report["zones"][zone]["total"] += 1
+            report["zones"][zone]["levels"][level]["total"] += 1
+            
+            # Calcular ocupación real de este bin
+            current_skus = occupancy.get(bin_code.upper(), 0)
+            limit = 3 if zone == "Minuteria" else 4
+            
+            if current_skus > 0:
+                report["zones"][zone]["occupied"] += 1
+                report["summary"]["filled_bins"] += 1
+                report["zones"][zone]["levels"][level]["occupied_skus"] += current_skus
+                total_items += current_skus
+                
+                # Stats para analítica
+                zones_by_items[zone] = zones_by_items.get(zone, 0) + current_skus
+                if aisle != 'N/A':
+                    aisles_by_items[aisle] = aisles_by_items.get(aisle, 0) + current_skus
+
+                if current_skus >= limit:
+                    report["zones"][zone]["levels"][level]["full_bins"] += 1
+            else:
+                report["summary"]["available_bins"] += 1
+        
+        # Cálculos finales de resumen
+        report["summary"]["total_items"] = total_items
+        if report["summary"]["total_bins"] > 0:
+            report["summary"]["occupancy_pct"] = round((report["summary"]["filled_bins"] / report["summary"]["total_bins"]) * 100, 1)
+            # Unificación: Promedio basado en bins en uso (densidad real)
+            report["summary"]["avg_items_per_bin"] = round(total_items / report["summary"]["filled_bins"], 1) if report["summary"]["filled_bins"] > 0 else 0
+
+        # Ordenar analítica
+        report["analytics"]["zones_by_items"] = dict(sorted(zones_by_items.items(), key=lambda x: x[1], reverse=True)[:5])
+        report["analytics"]["top_aisles"] = dict(sorted(aisles_by_items.items(), key=lambda x: x[1], reverse=True)[:5])
+        
+        # Agregar conteo de bins por zona (Layout Físico)
+        report["analytics"]["bins_by_zone"] = {z: data["total"] for z, data in report["zones"].items()}
+        report["analytics"]["bins_by_zone"] = dict(sorted(report["analytics"]["bins_by_zone"].items(), key=lambda x: x[1], reverse=True))
+                
+        return report
 
 slotting_service = SlottingService()

@@ -1,89 +1,112 @@
-import json
-import os
 import datetime
 from typing import Dict, Any, Optional, List
-from app.core.config import AI_SLOTTING_MEMORY_PATH
+from sqlalchemy import select, update, insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.sql_models import AIItemPattern, AICategoryPattern
 
 class AISlottingService:
     def __init__(self):
-        self.memory_path = AI_SLOTTING_MEMORY_PATH
-        self._ensure_memory_exists()
+        # Cache en memoria para predicciones instantáneas
+        self._item_cache = {}
+        self._category_cache = {}
+        self._initialized = False
 
-    def _ensure_memory_exists(self):
-        if not os.path.exists(self.memory_path):
-            os.makedirs(os.path.dirname(self.memory_path), exist_ok=True)
-            with open(self.memory_path, 'w') as f:
-                json.dump({
-                    "item_patterns": {},      # Memoria por Item Code específico
-                    "category_patterns": {},  # Memoria por SIC/ABC Code
-                    "stats": {"total_learned": 0, "last_update": None}
-                }, f, indent=4)
+    async def _ensure_initialized(self, db: AsyncSession):
+        """Carga los patrones de la DB a la memoria RAM al primer uso."""
+        if self._initialized:
+            return
 
-    def _load_memory(self) -> Dict[str, Any]:
-        try:
-            with open(self.memory_path, 'r') as f:
-                return json.load(f)
-        except:
-            return {"item_patterns": {}, "category_patterns": {}, "stats": {}}
+        # Cargar patrones de ítems
+        result_items = await db.execute(select(AIItemPattern))
+        for p in result_items.scalars().all():
+            if p.item_code not in self._item_cache:
+                self._item_cache[p.item_code] = {}
+            self._item_cache[p.item_code][p.bin_code] = p.frequency
 
-    def _save_memory(self, memory: Dict[str, Any]):
-        with open(self.memory_path, 'w') as f:
-            json.dump(memory, f, indent=4)
+        # Cargar patrones de categorías
+        result_cats = await db.execute(select(AICategoryPattern))
+        for p in result_cats.scalars().all():
+            if p.sic_code not in self._category_cache:
+                self._category_cache[p.sic_code] = {}
+            self._category_cache[p.sic_code][p.bin_code] = p.frequency
 
-    def learn_from_decision(self, item_code: str, final_bin: str, sic_code: str):
+        self._initialized = True
+        print(f"🧠 IA Slotting: Memoria cargada ({len(self._item_cache)} ítems, {len(self._category_cache)} categorías)")
+
+    async def learn_from_decision(self, db: AsyncSession, item_code: str, final_bin: str, sic_code: str):
         """
-        Registra una decisión de ubicación exitosa para 'entrenar' al modelo.
+        Registra una decisión de ubicación exitosa en la DB y actualiza el cache.
         """
         if not final_bin or not item_code:
             return
 
-        memory = self._load_memory()
+        await self._ensure_initialized(db)
+        
         item_code = item_code.strip().upper()
         final_bin = final_bin.strip().upper()
         sic_code = sic_code.strip().upper() if sic_code else "N/A"
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-        # 1. Aprender por Item Específico
-        if item_code not in memory["item_patterns"]:
-            memory["item_patterns"][item_code] = {}
+        # 1. Aprender por Item Específico (DB + Cache)
+        if item_code not in self._item_cache:
+            self._item_cache[item_code] = {}
         
-        memory["item_patterns"][item_code][final_bin] = memory["item_patterns"][item_code].get(final_bin, 0) + 1
-
-        # 2. Aprender por Categoría (SIC Code)
-        if sic_code not in memory["category_patterns"]:
-            memory["category_patterns"][sic_code] = {}
+        self._item_cache[item_code][final_bin] = self._item_cache[item_code].get(final_bin, 0) + 1
         
-        memory["category_patterns"][sic_code][final_bin] = memory["category_patterns"][sic_code].get(final_bin, 0) + 1
+        # Actualizar DB para Item
+        stmt_item = select(AIItemPattern).where(AIItemPattern.item_code == item_code, AIItemPattern.bin_code == final_bin)
+        res_item = await db.execute(stmt_item)
+        existing_item = res_item.scalar_one_or_none()
+        
+        if existing_item:
+            existing_item.frequency += 1
+            existing_item.last_updated = now
+        else:
+            db.add(AIItemPattern(item_code=item_code, bin_code=final_bin, frequency=1))
 
-        # 3. Actualizar Estadísticas
-        memory["stats"]["total_learned"] += 1
-        memory["stats"]["last_update"] = datetime.datetime.now().isoformat()
+        # 2. Aprender por Categoría (DB + Cache)
+        if sic_code not in self._category_cache:
+            self._category_cache[sic_code] = {}
+        
+        self._category_cache[sic_code][final_bin] = self._category_cache[sic_code].get(final_bin, 0) + 1
+        
+        # Actualizar DB para Categoría
+        stmt_cat = select(AICategoryPattern).where(AICategoryPattern.sic_code == sic_code, AICategoryPattern.bin_code == final_bin)
+        res_cat = await db.execute(stmt_cat)
+        existing_cat = res_cat.scalar_one_or_none()
+        
+        if existing_cat:
+            existing_cat.frequency += 1
+            existing_cat.last_updated = now
+        else:
+            db.add(AICategoryPattern(sic_code=sic_code, bin_code=final_bin, frequency=1))
 
-        self._save_memory(memory)
+        # El commit se suele manejar en el router, pero lo hacemos aquí para asegurar persistencia de IA
+        await db.commit()
 
-    def predict_best_bin(self, item_code: str, sic_code: str, fallback_bin: Optional[str] = None) -> Optional[str]:
+    async def predict_best_bin(self, db: AsyncSession, item_code: str, sic_code: str, fallback_bin: Optional[str] = None) -> Optional[str]:
         """
-        Predice la ubicación más probable basada en el aprendizaje previo.
+        Predice la ubicación más probable basada en el cache de memoria (respaldado por DB).
         """
-        memory = self._load_memory()
+        await self._ensure_initialized(db)
+        
         item_code = item_code.strip().upper()
         sic_code = sic_code.strip().upper() if sic_code else "N/A"
 
-        # Prioridad 1: ¿Hemos guardado este item exacto antes? (Alta Confianza)
-        if item_code in memory["item_patterns"]:
-            bins = memory["item_patterns"][item_code]
-            # Devolver el bin con mayor frecuencia de uso
+        # Prioridad 1: Item específico (Alta Confianza)
+        if item_code in self._item_cache:
+            bins = self._item_cache[item_code]
             best_bin = max(bins, key=bins.get)
-            if bins[best_bin] >= 2: # Necesitamos al menos 2 evidencias
+            if bins[best_bin] >= 2:
                 return best_bin
 
-        # Prioridad 2: ¿Qué ubicaciones son comunes para esta categoría SIC? (Media Confianza)
-        if sic_code in memory["category_patterns"]:
-            bins = memory["category_patterns"][sic_code]
+        # Prioridad 2: Categoría SIC (Media Confianza)
+        if sic_code in self._category_cache:
+            bins = self._category_cache[sic_code]
             best_bin = max(bins, key=bins.get)
-            if bins[best_bin] >= 5: # Necesitamos más evidencias para categorías generales
+            if bins[best_bin] >= 5:
                 return best_bin
 
-        # Prioridad 3: Fallback al algoritmo de Slotting tradicional
         return fallback_bin
 
 ai_slotting = AISlottingService()

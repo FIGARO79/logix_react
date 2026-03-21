@@ -28,6 +28,7 @@ const SetPassword = lazy(() => import('./pages/SetPassword'));
 const PackingListPrint = lazy(() => import('./pages/PackingListPrint'));
 const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
 const DashboardInventario = lazy(() => import('./pages/DashboardInventario'));
+const OccupancyDashboard = lazy(() => import('./pages/OccupancyDashboard'));
 const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
 const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
 const Shipments = lazy(() => import('./pages/Shipments'));
@@ -180,6 +181,11 @@ function App() {
                         <Route path="/inventory-dashboard" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <DashboardInventario />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/occupancy" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <OccupancyDashboard />
                             </ProtectedRoute>
                         } />
                         <Route path="/planner" element={

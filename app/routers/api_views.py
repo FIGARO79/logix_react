@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.utils.auth import get_current_user, login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
+from app.services.slotting_service import slotting_service
 from app.core.config import ASYNC_DB_URL
 from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
 import pandas as pd
@@ -464,4 +465,19 @@ async def get_packing_list_data(
         total_packages=total_packages,
         packages=packages
     )
+
+@router.get('/occupancy_stats', response_model=Dict[str, Any])
+async def get_occupancy_stats(
+    request: Request, 
+    username: str = Depends(login_required), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
+    try:
+        report = await slotting_service.get_occupancy_report(db)
+        return report
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
