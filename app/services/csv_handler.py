@@ -33,7 +33,7 @@ async def read_csv_safe_polars(file_path: str, columns: list = None):
         # Polars lee en paralelo y es mucho más rápido que Pandas
         df = pl.scan_csv(
             file_path, 
-            encoding='utf-8-sig',
+            encoding='utf8-lossy',
             infer_schema_length=10000,
             null_values=['', 'nan', 'NAN', 'NaN', 'None']
         )
