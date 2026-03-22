@@ -8,6 +8,28 @@ from typing import Dict, Any, Optional, List
 import datetime
 from sqlalchemy import distinct
 
+async def add_log(db: AsyncSession, username: str, action_type: str, message: str) -> bool:
+    """
+    Agrega un registro genérico a la tabla de logs para auditoría.
+    action_type: Tipo de acción (ej: 'PLANNER', 'INVENTORY', 'AUTH')
+    message: Descripción detallada de la acción
+    """
+    try:
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        new_log = Log(
+            timestamp=now,
+            username=username,
+            importReference=action_type, # Usamos este campo como categoría para logs genéricos
+            itemDescription=message[:255]
+        )
+        db.add(new_log)
+        await db.commit()
+        return True
+    except Exception as e:
+        print(f"Error en add_log: {e}")
+        await db.rollback()
+        return False
+
 async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) -> Optional[int]:
     """Guarda una entrada de log en la base de datos."""
     try:

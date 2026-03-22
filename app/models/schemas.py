@@ -59,12 +59,13 @@ class PickingAudit(BaseModel):
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
 
 
+from pydantic import BaseModel, Field
+
 class CountExecutionItem(BaseModel):
     item_code: str
     description: Optional[str] = None
     bin_location: Optional[str] = None
-    system_qty: int
-    physical_qty: int
+    physical_qty: int = Field(..., ge=0)
     abc_code: Optional[str] = None
 
 class CountExecutionRequest(BaseModel):

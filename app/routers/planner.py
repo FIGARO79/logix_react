@@ -16,6 +16,7 @@ from app.models.schemas import CountExecutionRequest
 from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
+from app.services.db_logs import add_log
 import json
 import os
 from pydantic import BaseModel
@@ -25,7 +26,6 @@ router = APIRouter(prefix="/api/planner", tags=["planner"])
 # --- Persistencia de Configuración ---
 from app.core.config import PLANNER_CONFIG_PATH, PLANNER_DATA_PATH
 
-# --- Persistencia de Configuración ---
 CONFIG_FILE = PLANNER_CONFIG_PATH
 PLAN_DATA_FILE = PLANNER_DATA_PATH
 
@@ -53,12 +53,11 @@ def load_config():
         except Exception:
             pass
             
-    # Sincronizar variable global HOLIDAYS
     global HOLIDAYS
     try:
         HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config.get("holidays", [])}
     except ValueError:
-        HOLIDAYS = set() # Fallback si hay error en formato
+        HOLIDAYS = set()
         
     return config
 
@@ -67,7 +66,6 @@ def save_config(config_data):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config_data, f, indent=4)
         
-    # Sincronizar variable global HOLIDAYS
     global HOLIDAYS
     try:
         HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config_data.get("holidays", [])}
@@ -93,40 +91,27 @@ def save_plan_data(data):
 
 # Cargar configuración inicial
 PLANNER_CONFIG = load_config()
-
-# Festivos (Default y Global)
-HOLIDAYS = set() # This will be populated by load_config()
+HOLIDAYS = set() 
 
 class PlannerConfigModel(BaseModel):
     start_date: str
     end_date: str
     holidays: list[str]
 
-# Configuración de frecuencias (Reglas de Negocio)
-FREQUENCY_MAP = {
-    'A': 3,
-    'B': 2,
-    'C': 1
-}
-
-
+FREQUENCY_MAP = {'A': 3, 'B': 2, 'C': 1}
 
 def get_working_days(start_date: datetime.date, end_date: datetime.date):
-    """Genera una lista de días hábiles (Lunes-Viernes) entre dos fechas, excluyendo festivos."""
+    """Genera una lista de días hábiles, excluyendo fines de semana y festivos configurados."""
     working_days = []
     current_date = start_date
     while current_date <= end_date:
-        # 0=Lunes, 4=Viernes. Excluir fines de semana y festivos
         if current_date.weekday() < 5 and current_date not in HOLIDAYS:
             working_days.append(current_date)
         current_date += datetime.timedelta(days=1)
     return working_days
 
 async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSession):
-    """
-    Lógica central para calcular el plan de conteos.
-    Devuelve un DataFrame con el plan.
-    """
+    """Lógica central para calcular el plan de conteos distribuidos en días hábiles."""
     try:
         s_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
         e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -136,599 +121,198 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     if s_date > e_date:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
 
-    # 1. Obtener todos los items del maestro desde DB (Optimizado)
     stmt_master = select(MasterItem).where(MasterItem.physical_qty > 0)
     result_master = await db.execute(stmt_master)
     items_db = result_master.scalars().all()
     
     if not items_db:
-        # Fallback: Si la tabla está vacía, intentar sincronizar al vuelo
         from app.services.csv_to_db import sync_master_csv_to_db
         await sync_master_csv_to_db(db)
-        # Re-intentar
         result_master = await db.execute(stmt_master)
         items_db = result_master.scalars().all()
 
     if not items_db:
-         raise HTTPException(status_code=500, detail="El maestro de items está vacío incluso después de intentar sincronizar.")
+         raise HTTPException(status_code=500, detail="El maestro de items está vacío.")
 
-    # Convertir a DataFrame para procesamiento vectorial (pandas es rápido en memoria con datos limpios)
-    # Solo necesitamos columnas clave
-    data_list = [{
-        'Item_Code': item.item_code, 
-        'ABC_Code_stockroom': item.abc_code, 
-        'Item_Description': item.description
-    } for item in items_db]
-    
+    data_list = [{'Item_Code': item.item_code, 'ABC_Code_stockroom': item.abc_code, 'Item_Description': item.description} for item in items_db]
     items_data = pd.DataFrame(data_list)
 
-    # 2. Consultar conteos realizados en el año actual
     current_year = datetime.datetime.now().year
     start_of_year = f"{current_year}-01-01"
-    
-    query = (
-        select(CycleCount.item_code, func.count(CycleCount.id).label("count"))
-        .where(CycleCount.timestamp >= start_of_year)
-        .group_by(CycleCount.item_code)
-    )
-    
+    query = (select(CycleCount.item_code, func.count(CycleCount.id).label("count")).where(CycleCount.timestamp >= start_of_year).group_by(CycleCount.item_code))
     result = await db.execute(query)
-    counts_db = result.all()
-    previous_counts_map = {row.item_code: row.count for row in counts_db}
+    previous_counts_map = {row.item_code: row.count for row in result.all()}
 
-    # 3. Calcular conteos necesarios
     tasks_to_schedule = []
-    
     for _, row in items_data.iterrows():
-        item_code = row['Item_Code']
-        abc_code = row['ABC_Code_stockroom']
-        description = row['Item_Description']
-        
+        item_code, abc_code, description = row['Item_Code'], row['ABC_Code_stockroom'], row['Item_Description']
         required = FREQUENCY_MAP.get(abc_code, 0)
         done = previous_counts_map.get(item_code, 0)
         pending = max(0, required - done)
-        
         for _ in range(pending):
-            tasks_to_schedule.append({
-                "Item Code": item_code,
-                "ABC Code": abc_code,
-                "Description": description
-            })
+            tasks_to_schedule.append({"Item Code": item_code, "ABC Code": abc_code, "Description": description})
 
     if not tasks_to_schedule:
         return pd.DataFrame(columns=["Item Code", "ABC Code", "Description", "Planned Date"])
     
-    # 4. Distribuir en días hábiles
     working_days = get_working_days(s_date, e_date)
     if not working_days:
-        raise HTTPException(status_code=400, detail="No hay días hábiles en el rango seleccionado (revise festivos y fines de semana).")
+        raise HTTPException(status_code=400, detail="No hay días hábiles en el rango seleccionado.")
         
     random.shuffle(tasks_to_schedule)
-    
     planned_rows = []
     num_days = len(working_days)
-    
     for i, task in enumerate(tasks_to_schedule):
         assigned_date = working_days[i % num_days]
-        planned_rows.append({
-            "Item Code": task["Item Code"],
-            "ABC Code": task["ABC Code"],
-            "Description": task["Description"],
-            "Planned Date": assigned_date
-        })
+        planned_rows.append({"Item Code": task["Item Code"], "ABC Code": task["ABC Code"], "Description": task["Description"], "Planned Date": assigned_date})
         
     df_output = pd.DataFrame(planned_rows)
     return df_output.sort_values(by=["Planned Date", "Item Code"])
 
-
 @router.get("/preview_plan")
-async def preview_count_plan(
-    start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
-    end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Devuelve el plan en formato JSON para previsualización."""
+async def preview_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     df_output = await calculate_count_plan_data(start_date, end_date, db)
-    
-    # Convertir fechas a string para JSON
     df_output['Planned Date'] = df_output['Planned Date'].astype(str)
-    
-    # Resumen por fecha
-    summary_by_date = df_output.groupby('Planned Date').size().reset_index(name='count')
-    
-    # Resumen por ABC
-    summary_by_abc = df_output.groupby('ABC Code').size().reset_index(name='count')
-    
     return {
         "total_items": len(df_output),
-        "summary_by_date": summary_by_date.to_dict(orient='records'),
-        "summary_by_abc": summary_by_abc.to_dict(orient='records'),
+        "summary_by_date": df_output.groupby('Planned Date').size().reset_index(name='count').to_dict(orient='records'),
+        "summary_by_abc": df_output.groupby('ABC Code').size().reset_index(name='count').to_dict(orient='records'),
         "details": df_output.to_dict(orient='records')
     }
 
-
 @router.get("/generate_plan")
-async def generate_count_plan(
-    start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
-    end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Genera y descarga el Excel."""
+async def generate_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     df_output = await calculate_count_plan_data(start_date, end_date, db)
-    
-    # 5. Generar Excel
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_output.to_excel(writer, index=False, sheet_name='Planificacion')
-        
-        # Ajustar ancho de columnas
-        worksheet = writer.sheets['Planificacion']
-        for col in worksheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            worksheet.column_dimensions[column].width = adjusted_width
-
     output.seek(0)
-    filename = f"plan_conteos_{start_date}_al_{end_date}.xlsx"
-    
-    return Response(
-        content=output.getvalue(),
-        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+    return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename=plan_conteos_{start_date}.xlsx"})
 
 @router.get("/config")
 async def get_planner_config(username: str = Depends(permission_required("planner"))):
-    """Obtiene la configuración actual (fechas)."""
     return PLANNER_CONFIG
 
 @router.post("/config")
-async def update_planner_config(
-    config: PlannerConfigModel,
-    username: str = Depends(permission_required("planner"))
-):
-    """Actualiza la configuración (fechas) y la guarda."""
+async def update_planner_config(config: PlannerConfigModel, username: str = Depends(permission_required("planner"))):
     try:
-        # Validar formato de fechas
-        datetime.datetime.strptime(config.start_date, '%Y-%m-%d')
-        datetime.datetime.strptime(config.end_date, '%Y-%m-%d')
-        # Validar festivos
-        for h in config.holidays:
-             datetime.datetime.strptime(h, '%Y-%m-%d')
-        
-        # Actualizar memoria y archivo
         global PLANNER_CONFIG
         PLANNER_CONFIG = config.dict()
         save_config(PLANNER_CONFIG)
-        
-        return {"message": "Configuración guardada correctamente", "config": PLANNER_CONFIG}
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD.")
-
+        return {"message": "Configuración guardada", "config": PLANNER_CONFIG}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/current_plan")
 async def get_current_plan(username: str = Depends(permission_required("planner"))):
-    """Obtiene el plan guardado (persistente)."""
-    data = load_plan_data()
-    if not data:
-        return {} # Retorno vacío si no hay plan
-    return data
+    return load_plan_data() or {}
 
 @router.post("/update_plan")
-async def update_count_plan(
-    start_date: str = Query(..., description="Fecha inicio (YYYY-MM-DD)"),
-    end_date: str = Query(..., description="Fecha fin (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Calcula el plan (igual que preview) PERO lo guarda en JSON para persistencia."""
-    # 1. Calcular usando la misma logica
+async def update_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     df_output = await calculate_count_plan_data(start_date, end_date, db)
-    
-    # 2. Formatear igual que preview
     df_output['Planned Date'] = df_output['Planned Date'].astype(str)
-    summary_by_date = df_output.groupby('Planned Date').size().reset_index(name='count')
-    summary_by_abc = df_output.groupby('ABC Code').size().reset_index(name='count')
-    
     result_data = {
         "total_items": len(df_output),
-        "summary_by_date": summary_by_date.to_dict(orient='records'),
-        "summary_by_abc": summary_by_abc.to_dict(orient='records'),
         "details": df_output.to_dict(orient='records'),
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
-    
-    # 3. Guardar
     save_plan_data(result_data)
-    
     return result_data
 
-
-# --- Nuevos Endpoints de Ejecución (Conteos Cíclicos) ---
-
 @router.get("/execution/daily_items")
-async def get_daily_items_for_execution(
-    date: str = Query(..., description="Fecha de ejecución (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Obtiene los items planificados para una fecha específica, enriquecidos con datos del maestro."""
+async def get_daily_items_for_execution(date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     plan_data = load_plan_data()
     if not plan_data or "details" not in plan_data:
-        return {"items": [], "has_previous_counts": False, "previous_count": 0}
+        return {"items": [], "has_previous_counts": False}
     
-    # Filtrar items para la fecha
-    daily_items = [
-        item for item in plan_data["details"] 
-        if item.get("Planned Date") == date
-    ]
+    daily_items = [item for item in plan_data["details"] if item.get("Planned Date") == date]
+    item_codes = [item.get("Item Code") for item in daily_items]
     
-    # Verificar si ya existen conteos previos para esta fecha
-    from app.models.sql_models import CycleCountRecording
-    from sqlalchemy import func
+    res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
+    master_map = {m.item_code: m for m in res_master.scalars().all()}
     
-    count_check = await db.execute(
-        select(func.count(CycleCountRecording.id))
-        .where(CycleCountRecording.planned_date == date)
-    )
-    previous_count = count_check.scalar() or 0
-    has_previous = previous_count > 0
-    
-    # Enriquecer con datos del maestro (Bin y Stock Teórico) desde DB
-    enrich_codes = [item.get("Item Code") for item in daily_items]
-    
-    stmt = select(MasterItem).where(MasterItem.item_code.in_(enrich_codes))
-    result = await db.execute(stmt)
-    db_items_map = {item.item_code: item for item in result.scalars().all()}
-    
-    enriched_items = []
+    enriched = []
     for item in daily_items:
-        item_code = item.get("Item Code")
-        db_item = db_items_map.get(item_code)
-        
-        bin_loc = "N/A"
-        system_qty = 0
-        additional = ""
-        
-        if db_item:
-             bin_loc = db_item.bin_1 or "N/A"
-             system_qty = db_item.physical_qty
-             additional = db_item.additional_bin or ""
-                 
-        enriched_items.append({
-            "item_code": item_code,
+        m = master_map.get(item.get("Item Code"))
+        enriched.append({
+            "item_code": item.get("Item Code"),
             "description": item.get("Description"),
             "abc_code": item.get("ABC Code"),
-            "bin_location": bin_loc,
-            "additional_locations": additional,
-            "system_qty": system_qty, 
+            "bin_location": m.bin_1 if m else "N/A",
+            "system_qty": m.physical_qty if m else 0,
             "planned_date": date
         })
-        
-    # Ordenar por ubicación para facilitar el recorrido en bodega
-    sorted_items = sorted(enriched_items, key=lambda x: x["bin_location"] or "")
-    
-    # Contar items con diferencias en conteos previos
-    items_with_diff_count = 0
-    if has_previous:
-        diff_check = await db.execute(
-            select(func.count(CycleCountRecording.id))
-            .where(
-                CycleCountRecording.planned_date == date,
-                CycleCountRecording.difference != 0
-            )
-        )
-        items_with_diff_count = diff_check.scalar() or 0
-    
-    return {
-        "items": sorted_items,
-        "has_previous_counts": has_previous,
-        "previous_count": previous_count,
-        "items_with_diff_count": items_with_diff_count
-    }
-
-
-@router.get("/execution/items_with_differences")
-async def get_items_with_differences(
-    date: str = Query(..., description="Fecha planificada (YYYY-MM-DD)"),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Obtiene los items que tienen diferencias en conteos previos para la fecha especificada."""
-    from app.models.sql_models import CycleCountRecording
-    
-    # Obtener items con diferencias de conteos previos
-    stmt = select(CycleCountRecording).where(
-        CycleCountRecording.planned_date == date,
-        CycleCountRecording.difference != 0
-    )
-    result = await db.execute(stmt)
-    previous_counts = result.scalars().all()
-    
-    if not previous_counts:
-        return {
-            "items": [],
-            "total_items_with_diff": 0
-        }
-    
-    # Obtener item_codes únicos
-    item_codes = list(set([rec.item_code for rec in previous_counts]))
-    
-    # Enriquecer con datos actuales del maestro
-    master_stmt = select(MasterItem).where(MasterItem.item_code.in_(item_codes))
-    master_result = await db.execute(master_stmt)
-    master_map = {item.item_code: item for item in master_result.scalars().all()}
-    
-    # Crear mapa de conteos previos (último por item)
-    prev_map = {}
-    for rec in previous_counts:
-        if rec.item_code not in prev_map:
-            prev_map[rec.item_code] = rec
-        elif rec.id > prev_map[rec.item_code].id:  # Más reciente
-            prev_map[rec.item_code] = rec
-    
-    enriched_items = []
-    for item_code, prev_rec in prev_map.items():
-        master_item = master_map.get(item_code)
-        
-        bin_loc = prev_rec.bin_location or "N/A"
-        current_system_qty = prev_rec.system_qty
-        additional = ""
-        
-        if master_item:
-            bin_loc = master_item.bin_1 or bin_loc
-            current_system_qty = master_item.physical_qty
-            additional = master_item.additional_bin or ""
-        
-        enriched_items.append({
-            "item_code": item_code,
-            "description": prev_rec.item_description,
-            "bin_location": bin_loc,
-            "additional_locations": additional,
-            "previous_physical_qty": prev_rec.physical_qty,
-            "previous_system_qty": prev_rec.system_qty,
-            "previous_difference": prev_rec.difference,
-            "system_qty": current_system_qty,
-            "abc_code": prev_rec.abc_code or "C",
-            "planned_date": date
-        })
-    
-    # Ordenar por ubicación
-    sorted_items = sorted(enriched_items, key=lambda x: x["bin_location"] or "")
-    
-    return {
-        "items": sorted_items,
-        "total_items_with_diff": len(sorted_items)
-    }
-
+    return {"items": sorted(enriched, key=lambda x: x["bin_location"])}
 
 @router.post("/execution/save")
-async def save_daily_execution(
-    execution_data: CountExecutionRequest,
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Guarda los conteos ejecutados del día en la tabla dedicada.
-    Si el item ya fue contado hoy, SUMA la cantidad al registro existente."""
+async def save_daily_execution(execution_data: CountExecutionRequest, username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    """Guarda conteos con validación estricta de system_qty desde el servidor."""
     try:
-        saved_count = 0
-        updated_count = 0
-        today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        
+        today_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        item_codes = [it.item_code for it in execution_data.items]
+        res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
+        master_map = {m.item_code: m for m in res_master.scalars().all()}
+
+        saved, updated = 0, 0
         for item in execution_data.items:
+            m_item = master_map.get(item.item_code)
+            if not m_item: continue
+
             physical = item.physical_qty
-            system = item.system_qty
+            system = m_item.physical_qty or 0
             
-            # Buscar si ya existe un registro para este item en la fecha planificada
-            existing_query = select(CycleCountRecording).where(
-                CycleCountRecording.item_code == item.item_code,
-                CycleCountRecording.planned_date == execution_data.date
-            )
-            result = await db.execute(existing_query)
-            existing_record = result.scalar_one_or_none()
+            res_exist = await db.execute(select(CycleCountRecording).where(CycleCountRecording.item_code == item.item_code, CycleCountRecording.planned_date == execution_data.date))
+            existing = res_exist.scalar_one_or_none()
             
-            if existing_record:
-                # REEMPLAZAR la cantidad existente (reconteo corrige el valor anterior)
-                existing_record.physical_qty = physical
-                existing_record.difference = existing_record.physical_qty - existing_record.system_qty
-                existing_record.username = username  # Actualizar usuario
-                existing_record.executed_date = today  # Actualizar fecha de ejecución
-                db.add(existing_record)
-                updated_count += 1
+            if existing:
+                if existing.physical_qty != physical:
+                    await add_log(db, username, "PLANNER", f"Update {item.item_code}: {existing.physical_qty}->{physical}")
+                existing.physical_qty, existing.system_qty = physical, system
+                existing.difference, existing.username, existing.executed_date = physical - system, username, today_iso
+                updated += 1
             else:
-                # Crear nuevo registro
-                diff = physical - system
-                new_record = CycleCountRecording(
-                    planned_date=execution_data.date,
-                    executed_date=today,
-                    item_code=item.item_code,
-                    item_description=item.description,
-                    bin_location=item.bin_location,
-                    system_qty=system,
-                    physical_qty=physical,
-                    difference=diff,
-                    username=username,
-                    abc_code=item.abc_code
-                )
-                db.add(new_record)
-                saved_count += 1
-            
+                db.add(CycleCountRecording(planned_date=execution_data.date, executed_date=today_iso, item_code=item.item_code, item_description=m_item.description, bin_location=m_item.bin_1, system_qty=system, physical_qty=physical, difference=physical-system, username=username, abc_code=m_item.abc_code))
+                saved += 1
+                await add_log(db, username, "PLANNER", f"New count: {item.item_code}={physical}")
+
         await db.commit()
-        
-        msg_parts = []
-        if saved_count > 0:
-            msg_parts.append(f"{saved_count} nuevos")
-        if updated_count > 0:
-            msg_parts.append(f"{updated_count} actualizados (sumados)")
-        
-        return {"message": f"Conteos guardados: {', '.join(msg_parts)}.", "success": True}
-        
+        return {"message": f"Guardados: {saved} nuevos, {updated} actualizados."}
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al guardar ejecución: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/execution/stats")
-async def get_execution_stats(
-    year: int = Query(datetime.datetime.now().year),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Obtiene estadísticas de ejecución y delta agrupadas por mes y categoría ABC.
-    Basado en la tabla CycleCountRecording.
-    """
-    # Consultar todos los registros del año
-    query = select(CycleCountRecording).where(CycleCountRecording.executed_date.like(f"{year}-%"))
-    result = await db.execute(query)
-    records = result.scalars().all()
-    
-    # Inicializar estructuras de datos
-    # Meses 0-11
-    executed_grid = {cat: [0]*12 for cat in ['A', 'B', 'C']}
+async def get_execution_stats(year: int = Query(datetime.datetime.now().year), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(CycleCountRecording).where(CycleCountRecording.executed_date.like(f"{year}-%")))
+    records = res.scalars().all()
+    exec_grid = {cat: [0]*12 for cat in ['A', 'B', 'C']}
     delta_grid = {cat: [0]*12 for cat in ['A', 'B', 'C']}
-    
-    for record in records:
+    for r in records:
         try:
-            date_obj = datetime.datetime.strptime(record.executed_date, "%Y-%m-%d")
-            month_idx = date_obj.month - 1 # 0-indexed
-            
-            cat = record.abc_code
-            if cat not in executed_grid:
-                cat = 'C' # Fallback
-                
-            # Ejecutado: Conteo de items contados
-            executed_grid[cat][month_idx] += 1
-            
-            # Delta: Suma absoluta de las diferencias (o neta? El usuario dijo "generar diferencias")
-            # Para KPI de exactitud, usually absolute. Para ajuste de inventario, net.
-            # Visualizaremos discrepancias (diff != 0)
-            if record.difference != 0:
-                delta_grid[cat][month_idx] += 1
-                
-        except (ValueError, TypeError):
-            continue
-            
-    return {
-        "executed": executed_grid,
-        "delta": delta_grid, # Items con diferencia
-        "year": year
-    }
-
-
-# --- NUEVOS ENDPOINTS PARA GESTIÓN DE DIFERENCIAS DE CONTEOS CÍCLICOS ---
-
-class CycleCountDifferenceResponse(BaseModel):
-    id: int
-    item_code: str
-    item_description: str | None
-    bin_location: str | None
-    system_qty: int
-    physical_qty: int
-    difference: int
-    executed_date: str
-    username: str
-    abc_code: str | None
-    planned_date: str
-
+            m_idx = datetime.datetime.strptime(r.executed_date[:10], "%Y-%m-%d").month - 1
+            cat = r.abc_code if r.abc_code in exec_grid else 'C'
+            exec_grid[cat][m_idx] += 1
+            if r.difference != 0: delta_grid[cat][m_idx] += 1
+        except: continue
+    return {"executed": exec_grid, "delta": delta_grid, "year": year}
 
 @router.get('/cycle_count_differences')
-async def get_cycle_count_differences(
-    year: int = Query(None),
-    month: int = Query(None),
-    only_differences: bool = Query(True),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Obtiene un listado de conteos cíclicos.
-    Permite filtrar por año y mes.
-    - only_differences=True (default): Solo registros con difference != 0
-    - only_differences=False: Todos los registros
-    """
+async def get_cycle_count_differences(year: int = Query(None), month: int = Query(None), only_differences: bool = Query(True), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     query = select(CycleCountRecording)
-    
-    # Filtrar solo si hay diferencias
-    if only_differences:
-        query = query.where(CycleCountRecording.difference != 0)
-    
-    if year:
-        query = query.where(CycleCountRecording.executed_date.like(f"{year}-%"))
-    
+    if only_differences: query = query.where(CycleCountRecording.difference != 0)
+    if year: query = query.where(CycleCountRecording.executed_date.like(f"{year}-%"))
     if month:
-        month_str = f"{str(month).zfill(2)}"
-        if year:
-            query = query.where(CycleCountRecording.executed_date.like(f"{year}-{month_str}-%"))
-        else:
-            query = query.where(CycleCountRecording.executed_date.like(f"%-{month_str}-%"))
-    
-    query = query.order_by(CycleCountRecording.executed_date.desc(), CycleCountRecording.item_code)
-    
-    result = await db.execute(query)
-    records = result.scalars().all()
-    
-    return [
-        CycleCountDifferenceResponse(
-            id=r.id,
-            item_code=r.item_code,
-            item_description=r.item_description,
-            bin_location=r.bin_location,
-            system_qty=r.system_qty,
-            physical_qty=r.physical_qty,
-            difference=r.difference,
-            executed_date=r.executed_date,
-            username=r.username,
-            abc_code=r.abc_code,
-            planned_date=r.planned_date
-        )
-        for r in records
-    ]
+        m_str = str(month).zfill(2)
+        query = query.where(CycleCountRecording.executed_date.like(f"%-%{m_str}-%"))
+    res = await db.execute(query.order_by(CycleCountRecording.executed_date.desc()))
+    return res.scalars().all()
 
-
-class UpdateCycleCountDifferenceRequest(BaseModel):
-    physical_qty: int
-
-
-@router.put('/cycle_count_differences/{recording_id}')
-async def update_cycle_count_difference(
-    recording_id: int,
-    data: UpdateCycleCountDifferenceRequest,
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Actualiza la cantidad física verificada de un conteo cíclico.
-    Recalcula automáticamente la diferencia.
-    """
-    result = await db.execute(
-        select(CycleCountRecording).where(CycleCountRecording.id == recording_id)
-    )
-    record = result.scalar_one_or_none()
-    
-    if not record:
-        raise HTTPException(status_code=404, detail="Registro no encontrado")
-    
-    # Actualizar cantidad física y recalcular diferencia
-    record.physical_qty = data.physical_qty
-    record.difference = data.physical_qty - record.system_qty
-    
-    db.add(record)
+@router.put('/cycle_count_differences/{rec_id}')
+async def update_cycle_count_diff(rec_id: int, data: dict, username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(CycleCountRecording).where(CycleCountRecording.id == rec_id))
+    r = res.scalar_one_or_none()
+    if not r: raise HTTPException(status_code=404, detail="No encontrado")
+    r.physical_qty = data['physical_qty']
+    r.difference = r.physical_qty - r.system_qty
     await db.commit()
-    await db.refresh(record)
-    
-    return {
-        "id": record.id,
-        "item_code": record.item_code,
-        "physical_qty": record.physical_qty,
-        "difference": record.difference,
-        "message": "Cantidad verificada actualizada exitosamente"
-    }
+    return {"message": "Actualizado"}
