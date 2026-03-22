@@ -364,14 +364,25 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
          return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     try:
         from app.services import db_logs
-        from openpyxl.utils import get_column_letter
+        import polars as pl
+        import openpyxl
+        
         logs_data = await db_logs.load_all_logs_db_async(db)
         if not logs_data: return JSONResponse(status_code=404, content={"error": "No hay datos"})
-        df = pd.DataFrame(logs_data)
-        df_export = df.rename(columns={'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'})
+        
+        df = pl.DataFrame(logs_data)
+        col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}
+        available = {k: v for k, v in col_rename.items() if k in df.columns}
+        df_export = df.rename(available)
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(df_export.columns)
+        for row in df_export.iter_rows():
+            ws.append(list(row))
+            
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, index=False)
+        wb.save(output)
         output.seek(0)
         return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=backup_logs.xlsx"})
     except Exception as e:

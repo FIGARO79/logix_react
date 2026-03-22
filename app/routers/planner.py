@@ -5,7 +5,7 @@ Genera un archivo Excel con los conteos sugeridos basado en la clasificación AB
 import datetime
 import random
 from io import BytesIO
-import pandas as pd
+import polars as pl
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -135,7 +135,8 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
          raise HTTPException(status_code=500, detail="El maestro de items está vacío.")
 
     data_list = [{'Item_Code': item.item_code, 'ABC_Code_stockroom': item.abc_code, 'Item_Description': item.description} for item in items_db]
-    items_data = pd.DataFrame(data_list)
+    import polars as pl
+    items_pl = pl.DataFrame(data_list)
 
     current_year = datetime.datetime.now().year
     start_of_year = f"{current_year}-01-01"
@@ -144,7 +145,7 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     previous_counts_map = {row.item_code: row.count for row in result.all()}
 
     tasks_to_schedule = []
-    for _, row in items_data.iterrows():
+    for row in items_pl.iter_rows(named=True):
         item_code, abc_code, description = row['Item_Code'], row['ABC_Code_stockroom'], row['Item_Description']
         required = FREQUENCY_MAP.get(abc_code, 0)
         done = previous_counts_map.get(item_code, 0)
@@ -153,7 +154,7 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
             tasks_to_schedule.append({"Item Code": item_code, "ABC Code": abc_code, "Description": description})
 
     if not tasks_to_schedule:
-        return pd.DataFrame(columns=["Item Code", "ABC Code", "Description", "Planned Date"])
+        return pl.DataFrame({"Item Code": [], "ABC Code": [], "Description": [], "Planned Date": []})
     
     working_days = get_working_days(s_date, e_date)
     if not working_days:
@@ -165,27 +166,46 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     for i, task in enumerate(tasks_to_schedule):
         assigned_date = working_days[i % num_days]
         planned_rows.append({"Item Code": task["Item Code"], "ABC Code": task["ABC Code"], "Description": task["Description"], "Planned Date": assigned_date})
-        
-    df_output = pd.DataFrame(planned_rows)
-    return df_output.sort_values(by=["Planned Date", "Item Code"])
+    df_output = pl.DataFrame(planned_rows)
+    return df_output.sort(["Planned Date", "Item Code"])
 
 @router.get("/preview_plan")
 async def preview_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     df_output = await calculate_count_plan_data(start_date, end_date, db)
-    df_output['Planned Date'] = df_output['Planned Date'].astype(str)
+    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
+    
+    # Resúmenes con Polars
+    summary_by_date = df_output.group_by("Planned Date").len(name="count").to_dicts()
+    summary_by_abc = df_output.group_by("ABC Code").len(name="count").to_dicts()
+    
     return {
         "total_items": len(df_output),
-        "summary_by_date": df_output.groupby('Planned Date').size().reset_index(name='count').to_dict(orient='records'),
-        "summary_by_abc": df_output.groupby('ABC Code').size().reset_index(name='count').to_dict(orient='records'),
-        "details": df_output.to_dict(orient='records')
+        "summary_by_date": summary_by_date,
+        "summary_by_abc": summary_by_abc,
+        "details": df_output.to_dicts()
     }
 
 @router.get("/generate_plan")
 async def generate_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+
     df_output = await calculate_count_plan_data(start_date, end_date, db)
+    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Planificacion'
+    ws.append(df_output.columns)
+    for row in df_output.iter_rows():
+        ws.append(list(row))
+    for i, col_name in enumerate(df_output.columns, start=1):
+        col_data = df_output[col_name].cast(pl.Utf8, strict=False)
+        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_output.to_excel(writer, index=False, sheet_name='Planificacion')
+    wb.save(output)
     output.seek(0)
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename=plan_conteos_{start_date}.xlsx"})
 
@@ -210,10 +230,10 @@ async def get_current_plan(username: str = Depends(permission_required("planner"
 @router.post("/update_plan")
 async def update_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
     df_output = await calculate_count_plan_data(start_date, end_date, db)
-    df_output['Planned Date'] = df_output['Planned Date'].astype(str)
+    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
     result_data = {
         "total_items": len(df_output),
-        "details": df_output.to_dict(orient='records'),
+        "details": df_output.to_dicts(),
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
     save_plan_data(result_data)

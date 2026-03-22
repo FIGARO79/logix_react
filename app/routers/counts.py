@@ -289,11 +289,19 @@ async def export_all_counts(tz: Optional[str] = 'UTC', username: str = Depends(p
         available_cols = [c for c in col_rename.keys() if c in df.columns]
         df_export = df.select(available_cols).rename({c: col_rename[c] for c in available_cols})
         
-        # 3. Generar Excel en memoria
+        # 3. Generar Excel en memoria con openpyxl directo (sin pandas)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Auditoria_W2W'
+        ws.append(df_export.columns)
+        for row in df_export.iter_rows():
+            ws.append(list(row))
+        for i, col_name in enumerate(df_export.columns, start=1):
+            col_data = df_export[col_name].cast(pl.Utf8, strict=False)
+            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+            ws.column_dimensions[get_column_letter(i)].width = float(max_len)
         output = BytesIO()
-        # Convertimos a Pandas solo para la escritura final a Excel (Polars usa xlsxwriter/openpyxl vía pandas)
-        df_export.to_pandas().to_excel(output, index=False, sheet_name='Auditoria_W2W')
-        
+        wb.save(output)
         output.seek(0)
         filename = f"auditoria_inventario_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
         
@@ -313,11 +321,19 @@ async def export_recordings(username: str = Depends(permission_required("invento
     if not data:
         return JSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
     
-    df = pd.DataFrame(data)
+    df = pl.DataFrame(data)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'RegistroConteos'
+    ws.append(df.columns)
+    for row in df.iter_rows():
+        ws.append(list(row))
+    for i, col_name in enumerate(df.columns, start=1):
+        col_data = df[col_name].cast(pl.Utf8, strict=False)
+        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='RegistroConteos')
-    
+    wb.save(output)
     output.seek(0)
     return Response(
         content=output.getvalue(),

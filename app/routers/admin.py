@@ -112,9 +112,17 @@ async def get_slotting_template(admin: str = Depends(permission_required("invent
             for b, i in storage.items():
                 data_list.append({"BIN": b, "ZONA": i.get('zone',''), "PASILLO": i.get('aisle',''), "NIVEL": i.get('level',0), "SPOT": i.get('spot','')})
     except: pass
-    df = pd.DataFrame(data_list if data_list else [{"BIN":"EJM"}]).sort_values(by="BIN")
+    import polars as pl
+    import openpyxl
+    df = pl.DataFrame(data_list if data_list else [{"BIN":"EJM", "ZONA":"", "PASILLO":"", "NIVEL":0, "SPOT":""}])
+    df = df.sort("BIN")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(df.columns)
+    for row in df.iter_rows():
+        ws.append(list(row))
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False)
+    wb.save(output)
     output.seek(0)
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=layout.xlsx"})
 
