@@ -298,220 +298,39 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
 
         # ── RAMA PRINCIPAL ─────────────────────────────────────────────────────
         else:
-            await csv_handler.reload_cache_if_needed()
+            # Usar la lógica centralizada del servicio
+            from app.services import reconciliation_service
+            result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
 
-        # 1. Logs desde DB → Polars
-        if archive_date:
-            result = await db.execute(text('SELECT * FROM logs WHERE archived_at = :date'), {"date": archive_date})
-        else:
-            result = await db.execute(text('SELECT * FROM logs WHERE archived_at IS NULL'))
+            if not result_data:
+                raise HTTPException(status_code=404, detail="No hay datos de conciliación para exportar")
 
-        raw_rows = result.fetchall()
-        if not raw_rows:
-            raise HTTPException(status_code=404, detail="No hay registros de log para generar la conciliación")
+            final_df = pl.DataFrame(result_data)
 
-        logs_pl = pl.DataFrame([dict(r._mapping) for r in raw_rows])
-
-        # Verificar cache GRN
-        if csv_handler.df_grn_cache is None:
-            raise HTTPException(status_code=404, detail="Caché GRN no disponible aún")
-
-        grn_pl: pl.DataFrame = csv_handler.df_grn_cache  # Ya es Polars
-
-        # 2. Normalizar columnas de logs
-        logs_pl = logs_pl.with_columns([
-            pl.col("importReference").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("waybill").cast(pl.Utf8).fill_null(""),
-            pl.col("qtyReceived").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
-        ])
-
-        # Columnas de ubicación opcionales
-        bin_cols = [c for c in ["binLocation", "relocatedBin"] if c in logs_pl.columns]
-        missing_bin = [c for c in ["binLocation", "relocatedBin"] if c not in logs_pl.columns]
-        for c in missing_bin:
-            logs_pl = logs_pl.with_columns(pl.lit("").alias(c))
-
-        # Última ubicación por IR + item
-        df_locations = (
-            logs_pl
-            .group_by(["importReference", "itemCode"])
-            .agg([
-                pl.col("binLocation").last().alias("binLocation"),
-                pl.col("relocatedBin").last().alias("relocatedBin"),
+            # Seleccionar y renombrar para el reporte Excel (manteniendo nombres de columnas del reporte)
+            df_for_export = final_df.select([
+                pl.col("Import_Reference").alias("I.R."),
+                pl.col("Waybill").alias("Waybill"),
+                pl.col("GRN").alias("GRN"),
+                pl.col("Codigo_Item").alias("Código Item"),
+                pl.col("Descripcion").alias("Descripción"),
+                pl.col("Ubicacion").alias("Ubicación"),
+                pl.col("Reubicado").alias("Reubicado"),
+                pl.col("Cant_Esperada").alias("Cant. Esperada"),
+                pl.col("Cant_Recibida").alias("Cant. Recibida"),
+                pl.col("Diferencia").alias("Diferencia Total I.R."),
             ])
-        )
 
-        # Suma de recibido por IR + waybill + item
-        logs_grouped = (
-            logs_pl
-            .group_by(["importReference", "waybill", "itemCode"])
-            .agg(pl.col("qtyReceived").sum().alias("qtyReceived"))
-        )
+            utc_now = datetime.datetime.now(datetime.timezone.utc)
+            client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+            timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+            filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
 
-        # 3. Construir mapa IR → GRNs (fuentes: JSON + DB)
-        ir_to_grns_map: dict[str, dict] = {}
-
-        # A. po_lookup.json
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                    po_cache = json.load(f)
-                    for ir, data in po_cache.get("ir_to_data", {}).items():
-                        grns = set(
-                            g.strip().upper()
-                            for item in data.get("items", [])
-                            if item.get("grn")
-                            for g in str(item["grn"]).split(',') if g.strip()
-                        )
-                        if grns:
-                            ir_key = ir.upper()
-                            if ir_key not in ir_to_grns_map:
-                                ir_to_grns_map[ir_key] = {"grns": set(), "wb": data.get("waybill")}
-                            ir_to_grns_map[ir_key]["grns"].update(grns)
-            except: pass
-
-        # B. grn_master_data.json
-        if os.path.exists(GRN_JSON_DATA_PATH):
-            try:
-                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                    inbound_data = json.load(f)
-                    for row in inbound_data:
-                        ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()
-                        if ir and grn:
-                            if ir not in ir_to_grns_map:
-                                ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
-                            ir_to_grns_map[ir]["grns"].add(grn)
-            except: pass
-
-        # C. DB GRN Master
-        try:
-            db_grns = await db.execute(select(GRNMaster))
-            for g_master in db_grns.scalars().all():
-                ir_key = str(g_master.import_reference).strip().upper()
-                if ir_key and g_master.grn_number:
-                    grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
-                    if ir_key not in ir_to_grns_map:
-                        ir_to_grns_map[ir_key] = {"grns": set(), "wb": g_master.waybill}
-                    ir_to_grns_map[ir_key]["grns"].update(grns_set)
-        except: pass
-
-        # 4. Construir DataFrame de mapeo IR → GRN (Polars)
-        mapping_rows = [
-            {"ir_map": ir, "wb_map": str(info["wb"] or ""), "grn_map": grn}
-            for ir, info in ir_to_grns_map.items()
-            for grn in info["grns"]
-        ]
-        if not mapping_rows:
-            raise HTTPException(status_code=404, detail="No se encontraron asociaciones IR→GRN")
-
-        df_mapping = pl.DataFrame(mapping_rows)
-
-        # 5. Normalizar GRN cache
-        grn_pl = grn_pl.with_columns([
-            pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
-            pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
-        ])
-
-        # 6. Join: mapping + GRN (líneas esperadas por IR)
-        df_expected = df_mapping.join(
-            grn_pl.select(["GRN_Number", "Item_Code", "Item_Description", "Quantity"]),
-            left_on="grn_map",
-            right_on="GRN_Number",
-            how="inner"
-        )
-
-        # Total esperado por IR + Item
-        total_exp = (
-            df_expected
-            .group_by(["ir_map", "Item_Code"])
-            .agg(pl.col("Quantity").sum().alias("Total_Esperado_IR"))
-        )
-
-        df_expected = df_expected.join(total_exp, on=["ir_map", "Item_Code"], how="left")
-
-        # 7. Join final: esperado ↔ recibido (outer)
-        # Polars no tiene outer join directo por claves diferentes; usamos left + anti-join pattern
-        final = df_expected.join(
-            logs_grouped,
-            left_on=["ir_map", "Item_Code"],
-            right_on=["importReference", "itemCode"],
-            how="left"
-        )
-
-        # También agregar logs que no tienen GRN asociado (outer derecho)
-        logs_sin_grn = logs_grouped.join(
-            df_expected.select(["ir_map", "Item_Code"]).rename({"ir_map": "importReference", "Item_Code": "itemCode"}),
-            on=["importReference", "itemCode"],
-            how="anti"
-        ).with_columns([
-            pl.col("importReference").alias("ir_map"),
-            pl.lit("").alias("wb_map"),
-            pl.lit("SIN GRN").alias("grn_map"),
-            pl.col("itemCode").alias("Item_Code"),
-            pl.lit("No en sistema 280").alias("Item_Description"),
-            pl.lit(0.0).alias("Quantity"),
-            pl.lit(0.0).alias("Total_Esperado_IR"),
-        ]).rename({"importReference": "importReference", "waybill": "waybill", "itemCode": "itemCode"})
-
-        # Unificar ambos partes
-        final = pl.concat([final, logs_sin_grn], how="diagonal")
-
-        # 8. Rellenar nulos y calcular diferencia
-        final = final.with_columns([
-            pl.col("qtyReceived").fill_null(0.0),
-            pl.col("Quantity").fill_null(0.0),
-            pl.col("Total_Esperado_IR").fill_null(0.0),
-            pl.col("importReference").fill_null(pl.col("ir_map")),
-            pl.col("waybill").fill_null(pl.col("wb_map")),
-            pl.col("itemCode").fill_null(pl.col("Item_Code")),
-            pl.col("grn_map").fill_null("SIN GRN"),
-            pl.col("Item_Description").fill_null("No en sistema 280"),
-        ]).with_columns([
-            (pl.col("qtyReceived") - pl.col("Total_Esperado_IR")).alias("Diferencia"),
-            pl.col("qtyReceived").cast(pl.Int64),
-            pl.col("Quantity").cast(pl.Int64),
-            pl.col("Total_Esperado_IR").cast(pl.Int64),
-        ])
-
-        # 9. Unir ubicaciones
-        final = final.join(
-            df_locations,
-            left_on=["importReference", "itemCode"],
-            right_on=["importReference", "itemCode"],
-            how="left"
-        ).with_columns([
-            pl.col("binLocation").fill_null(""),
-            pl.col("relocatedBin").fill_null(""),
-        ])
-
-        # 10. Seleccionar y renombrar para exportar
-        df_for_export = final.select([
-            pl.col("importReference").alias("I.R."),
-            pl.col("waybill").alias("Waybill"),
-            pl.col("grn_map").alias("GRN"),
-            pl.col("itemCode").alias("Código Item"),
-            pl.col("Item_Description").alias("Descripción"),
-            pl.col("binLocation").alias("Ubicación"),
-            pl.col("relocatedBin").alias("Reubicado"),
-            pl.col("Quantity").alias("Cant. Esperada"),
-            pl.col("qtyReceived").alias("Cant. Recibida"),
-            pl.col("Diferencia").alias("Diferencia Total I.R."),
-        ])
-
-        utc_now = datetime.datetime.now(datetime.timezone.utc)
-        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
-        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
-        filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
-
-        return Response(
-            content=_write_excel_polars(df_for_export, 'ReporteDeConciliacion'),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
+            return Response(
+                content=_write_excel_polars(df_for_export, 'ReporteDeConciliacion'),
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
 
     except HTTPException:
         raise

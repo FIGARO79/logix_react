@@ -1,12 +1,13 @@
 """
 Servicio para la lógica de conciliación de Inbound y snapshots optimizado con Polars.
+Unifica la lógica de la vista web y la exportación de Excel, respetando las líneas individuales del Reporte 280.
 """
 import datetime
 import json
 import os
 import polars as pl
 from typing import List, Optional, Dict, Any
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler
@@ -15,109 +16,218 @@ from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
 async def get_reconciliation_calculations(db: AsyncSession, archive_date: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Ejecuta los cálculos de conciliación basándose en el Reporte 280 como fuente principal.
-    Cruce: 280.Order_Number <-> PO.Customer_Reference
+    Ejecuta los cálculos de conciliación cruzando el Reporte 280 con los Logs de Inbound.
+    Mantiene el desglose línea por línea del Reporte 280 (no agrupa items repetidos).
     """
     try:
         await csv_handler.reload_cache_if_needed()
         
-        grn_pl = csv_handler.df_grn_cache # Reporte 280 (Polars)
-        if grn_pl is None or grn_pl.is_empty():
-            print("⚠️ [RECONCILIATION] Reporte 280 está vacío o no existe.")
-            return []
-
         # 1. Obtener Logs (Lo recibido físicamente)
         logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
-        if logs_list:
-            logs_pl = pl.from_dicts(logs_list)
-        else:
-            logs_pl = pl.DataFrame(schema={
-                "importReference": pl.Utf8, "waybill": pl.Utf8, "itemCode": pl.Utf8, 
-                "qtyReceived": pl.Float64, "binLocation": pl.Utf8, "relocatedBin": pl.Utf8
-            })
+        if not logs_list:
+            print("⚠️ [RECONCILIATION] No hay registros de log para procesar.")
+            return []
 
-        # 2. Cargar Mapeo de Purchase Order (PO Lookup)
-        ir_mapping_rows = []
+        logs_pl = pl.from_dicts(logs_list)
+
+        # 2. Normalizar columnas de logs
+        logs_pl = logs_pl.with_columns([
+            pl.col("importReference").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("waybill").cast(pl.Utf8).fill_null(""),
+            pl.col("qtyReceived").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+        ])
+
+        # Columnas de ubicación opcionales
+        for c in ["binLocation", "relocatedBin"]:
+            if c not in logs_pl.columns:
+                logs_pl = logs_pl.with_columns(pl.lit("").alias(c))
+
+        # Última ubicación por IR + item
+        df_locations = (
+            logs_pl
+            .group_by(["importReference", "itemCode"])
+            .agg([
+                pl.col("binLocation").last().alias("binLocation"),
+                pl.col("relocatedBin").last().alias("relocatedBin"),
+            ])
+        )
+
+        # Suma de recibido por IR + item (Agrupamos solo por estas dos para evitar multiplicar filas de la 280)
+        logs_grouped = (
+            logs_pl
+            .group_by(["importReference", "itemCode"])
+            .agg([
+                pl.col("qtyReceived").sum().alias("qtyReceived"),
+                pl.col("waybill").first().alias("Waybill_Log")
+            ])
+        )
+
+        # 3. Construir mapa IR → GRNs (fuentes: JSON + DB)
+        ir_to_grns_map: dict[str, dict] = {}
+
+        # A. po_lookup.json
         if os.path.exists(PO_LOOKUP_JSON_PATH):
             try:
                 with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
                     po_cache = json.load(f)
-                    cust_ref_data = po_cache.get("customer_ref_to_data", {})
-                    for cust_ref, info in cust_ref_data.items():
-                        ir_mapping_rows.append({
-                            "order_ref": str(cust_ref).strip().upper(),
-                            "ir_mapped": info["import_ref"],
-                            "wb_mapped": info["waybill"]
-                        })
-            except Exception as e:
-                print(f"⚠️ [RECONCILIATION] Error leyendo PO Lookup: {e}")
-        
-        df_po_map = pl.from_dicts(ir_mapping_rows) if ir_mapping_rows else pl.DataFrame(schema={"order_ref": pl.Utf8, "ir_mapped": pl.Utf8, "wb_mapped": pl.Utf8})
+                    for ir, data in po_cache.get("ir_to_data", {}).items():
+                        grns = set(
+                            g.strip().upper()
+                            for item in data.get("items", [])
+                            if item.get("grn")
+                            for g in str(item["grn"]).split(',') if g.strip()
+                        )
+                        if grns:
+                            ir_key = ir.upper()
+                            if ir_key not in ir_to_grns_map:
+                                ir_to_grns_map[ir_key] = {"grns": set(), "wb": data.get("waybill")}
+                            ir_to_grns_map[ir_key]["grns"].update(grns)
+            except: pass
 
-        # 3. Procesar Reporte 280 (El "Esperado")
-        df_280 = grn_pl.with_columns([
-            pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().alias("Order_Key"),
-            pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Key")
+        # B. grn_master_data.json
+        if os.path.exists(GRN_JSON_DATA_PATH):
+            try:
+                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
+                    inbound_data = json.load(f)
+                    for row in inbound_data:
+                        ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                        grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()
+                        if ir and grn:
+                            if ir not in ir_to_grns_map:
+                                ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
+                            ir_to_grns_map[ir]["grns"].add(grn)
+            except: pass
+
+        # C. DB GRN Master
+        try:
+            db_grns = await db.execute(select(GRNMaster))
+            for g_master in db_grns.scalars().all():
+                ir_key = str(g_master.import_reference).strip().upper()
+                if ir_key and g_master.grn_number:
+                    grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
+                    if ir_key not in ir_to_grns_map:
+                        ir_to_grns_map[ir_key] = {"grns": set(), "wb": g_master.waybill}
+                    ir_to_grns_map[ir_key]["grns"].update(grns_set)
+        except: pass
+
+        if not ir_to_grns_map:
+            print("⚠️ [RECONCILIATION] No se encontraron asociaciones IR→GRN.")
+            return logs_grouped.select([
+                pl.col("importReference").alias("Import_Reference"),
+                pl.lit("SIN WAYBILL").alias("Waybill"),
+                pl.lit("SIN GRN").alias("GRN"),
+                pl.col("itemCode").alias("Codigo_Item"),
+                pl.lit("No en reporte 280").alias("Descripcion"),
+                pl.lit("").alias("Ubicacion"),
+                pl.lit("").alias("Reubicado"),
+                pl.lit(0).alias("Cant_Esperada"),
+                pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
+                pl.col("qtyReceived").cast(pl.Int64).alias("Diferencia")
+            ]).to_dicts()
+
+        # 4. Construir DataFrame de mapeo IR → GRN
+        mapping_rows = [
+            {"ir_map": ir, "wb_map": str(info["wb"] or ""), "grn_map": grn}
+            for ir, info in ir_to_grns_map.items()
+            for grn in info["grns"]
+        ]
+        df_mapping = pl.DataFrame(mapping_rows)
+
+        # 5. Normalizar GRN cache (Reporte 280)
+        grn_pl = csv_handler.df_grn_cache
+        if grn_pl is None:
+            return []
+
+        grn_pl = grn_pl.with_columns([
+            pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
+            pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
         ])
 
-        # Unimos 280 con el mapeo de PO
-        df_expected = df_280.join(df_po_map, left_on="Order_Key", right_on="order_ref", how="left")
+        # 6. Join: mapping + GRN (líneas individuales esperadas)
+        df_expected = df_mapping.join(
+            grn_pl.select(["GRN_Number", "Item_Code", "Item_Description", "Quantity"]),
+            left_on="grn_map",
+            right_on="GRN_Number",
+            how="inner"
+        )
 
-        # 4. Procesar Logs (El "Recibido")
-        if not logs_pl.is_empty():
-            logs_grouped = logs_pl.group_by(['importReference', 'itemCode']).agg([
-                pl.col('qtyReceived').cast(pl.Utf8).str.replace_all(',', '').cast(pl.Float64).fill_null(0.0).sum().alias("Total_Recibido"),
-                pl.col('waybill').first().alias("Waybill_Log"),
-                pl.col('binLocation').last().alias("Ultima_Ubicacion"),
-                pl.col('relocatedBin').last().alias("Ultima_Reubicacion")
-            ]).with_columns([
-                pl.col("importReference").str.to_uppercase().alias("IR_Log_Key"),
-                pl.col("itemCode").str.to_uppercase().alias("Item_Log_Key")
-            ])
-        else:
-            logs_grouped = pl.DataFrame(schema={
-                "importReference": pl.Utf8, "itemCode": pl.Utf8, "Total_Recibido": pl.Float64,
-                "Waybill_Log": pl.Utf8, "Ultima_Ubicacion": pl.Utf8, "Ultima_Reubicacion": pl.Utf8,
-                "IR_Log_Key": pl.Utf8, "Item_Log_Key": pl.Utf8
-            })
+        # Total esperado por IR + Item (para cálculo de diferencia global del item)
+        total_exp = (
+            df_expected
+            .group_by(["ir_map", "Item_Code"])
+            .agg(pl.col("Quantity").sum().alias("Total_Esperado_IR"))
+        )
+        df_expected = df_expected.join(total_exp, on=["ir_map", "Item_Code"], how="left")
 
-        # 5. Cruce Final (Esperado vs Recibido)
-        reconciliation = df_expected.join(
+        # 7. Join final: esperado ↔ recibido
+        final = df_expected.join(
             logs_grouped,
-            left_on=["ir_mapped", "Item_Key"],
-            right_on=["IR_Log_Key", "Item_Log_Key"],
-            how="outer"
+            left_on=["ir_map", "Item_Code"],
+            right_on=["importReference", "itemCode"],
+            how="left"
         )
 
-        # 6. Limpieza de columnas y cálculos
-        final_df = reconciliation.with_columns([
-            pl.col("ir_mapped").fill_null(pl.col("importReference")).fill_null("SIN I.R."),
-            pl.col("wb_mapped").fill_null(pl.col("Waybill_Log")).fill_null("SIN WAYBILL"),
-            pl.col("Item_Code").fill_null(pl.col("itemCode")),
+        # Logs que no tienen GRN asociado (anti-join)
+        logs_sin_grn = logs_grouped.join(
+            df_expected.select(["ir_map", "Item_Code"]).rename({"ir_map": "importReference", "Item_Code": "itemCode"}),
+            on=["importReference", "itemCode"],
+            how="anti"
+        ).with_columns([
+            pl.col("importReference").alias("ir_map"),
+            pl.col("Waybill_Log").alias("wb_map"),
+            pl.lit("SIN GRN").alias("grn_map"),
+            pl.col("itemCode").alias("Item_Code"),
+            pl.lit("No en reporte 280").alias("Item_Description"),
+            pl.lit(0.0).alias("Quantity"),
+            pl.lit(0.0).alias("Total_Esperado_IR"),
+        ])
+
+        # Unificar
+        final = pl.concat([final, logs_sin_grn.select(final.columns)], how="diagonal")
+
+        # 8. Rellenar nulos y cálculos finales
+        final = final.with_columns([
+            pl.col("qtyReceived").fill_null(0.0),
+            pl.col("Quantity").fill_null(0.0),
+            pl.col("Total_Esperado_IR").fill_null(0.0),
+            pl.col("ir_map").fill_null("SIN I.R."),
+            pl.col("wb_map").fill_null("SIN WAYBILL"),
+            pl.col("Item_Code").fill_null("SIN CODIGO"),
+            pl.col("grn_map").fill_null("SIN GRN"),
             pl.col("Item_Description").fill_null("No en reporte 280"),
-            pl.col("Quantity").fill_null(0).cast(pl.Int64).alias("Cant_Esperada"),
-            pl.col("Total_Recibido").fill_null(0).cast(pl.Int64).alias("Cant_Recibida"),
-            pl.col("GRN_Number").fill_null("PENDIENTE"),
-            pl.col("Ultima_Ubicacion").fill_null(""),
-            pl.col("Ultima_Reubicacion").fill_null("")
-        ]).with_columns(
-            (pl.col("Cant_Recibida") - pl.col("Cant_Esperada")).alias("Diferencia")
-        )
+        ]).with_columns([
+            # La diferencia es el total recibido del item menos el total esperado del item en esa IR
+            (pl.col("qtyReceived") - pl.col("Total_Esperado_IR")).alias("Diferencia"),
+            pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
+            pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"), # Cantidad de esta línea específica
+        ])
 
-        final_df = final_df.filter((pl.col("Cant_Recibida") > 0) | (pl.col("Cant_Esperada") > 0))
+        # 9. Unir ubicaciones
+        final = final.join(
+            df_locations,
+            left_on=["ir_map", "Item_Code"],
+            right_on=["importReference", "itemCode"],
+            how="left"
+        ).with_columns([
+            pl.col("binLocation").fill_null(""),
+            pl.col("relocatedBin").fill_null(""),
+        ])
 
-        # Seleccionar y renombrar para el frontend
-        result = final_df.select([
-            pl.col('ir_mapped').alias('Import_Reference'),
-            pl.col('wb_mapped').alias('Waybill'),
-            pl.col('GRN_Number').alias('GRN'),
-            pl.col('Item_Code').alias('Codigo_Item'),
-            pl.col('Item_Description').alias('Descripcion'),
-            pl.col('Ultima_Ubicacion').alias('Ubicacion'),
-            pl.col('Ultima_Reubicacion').alias('Reubicado'),
-            pl.col('Cant_Esperada'),
-            pl.col('Cant_Recibida'),
-            pl.col('Diferencia')
+        # 10. Seleccionar y renombrar para el frontend (Sin .unique() para mantener todas las líneas)
+        result = final.select([
+            pl.col("ir_map").alias("Import_Reference"),
+            pl.col("wb_map").alias("Waybill"),
+            pl.col("grn_map").alias("GRN"),
+            pl.col("Item_Code").alias("Codigo_Item"),
+            pl.col("Item_Description").alias("Descripcion"),
+            pl.col("binLocation").alias("Ubicacion"),
+            pl.col("relocatedBin").alias("Reubicado"),
+            pl.col("Cant_Linea").alias("Cant_Esperada"), # Mostramos la cantidad de la línea individual
+            pl.col("Cant_Recibida"),                     # Mostramos el total recibido (repetido en las líneas del item)
+            pl.col("Diferencia")                        # Mostramos la diferencia total (repetida en las líneas del item)
         ]).sort(["Import_Reference", "GRN"]).to_dicts()
 
         return result
