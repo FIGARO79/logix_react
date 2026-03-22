@@ -80,12 +80,16 @@ async def find_item(
         final_suggested_bin = None
         is_ai_prediction = False
 
+    # 4. Información de Cross-Docking (Xdock)
+    xdock_quantity = await csv_handler.get_xdock_info(item_code)
+
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
         "suggestedBin": final_suggested_bin,
         "is_ai_prediction": is_ai_prediction,
+        "xdockQty": xdock_quantity,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),

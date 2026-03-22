@@ -482,6 +482,21 @@ const Inbound = () => {
                                 <div>
                                     <label className="form-label">Qty Received</label>
                                     <input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" />
+                                    
+                                    {/* Sugerencia de Cross-Docking (Xdock) - Ahora debajo de Cantidad */}
+                                    {itemData?.xdockQty > 0 && (
+                                        <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-bold uppercase text-red-700">⚠️ Cross-Docking (Xdock)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="text-sm font-mono font-bold text-red-800">{itemData.xdockQty} UNIDADES</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="form-label">Bin (Original)</label>
@@ -491,6 +506,7 @@ const Inbound = () => {
                                     <label className="form-label">Relocate (New)</label>
                                     <div className="flex flex-col gap-2">
                                         <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
+                                        
                                         {itemData?.suggestedBin && (
                                             <div 
                                                 className="bg-emerald-50 border border-emerald-200 rounded p-2 cursor-pointer hover:bg-emerald-100 transition-colors"

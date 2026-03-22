@@ -9,6 +9,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 
 DATABASE_FOLDER = os.path.join(PROJECT_ROOT, 'databases')
 ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0250.csv')
+RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSLAMP0006.csv')
 GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0280.csv')
 PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240.csv')
 GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'GRN.xlsx')
@@ -26,6 +27,7 @@ SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
 STOCK_QTY_CACHE_PATH = os.path.join(JSON_FOLDER, 'stock_qty_cache.json')
 MASTER_DETAILS_CACHE_PATH = os.path.join(JSON_FOLDER, 'master_details_cache.json')
 GRN_CACHE_JSON_PATH = os.path.join(JSON_FOLDER, 'grn_cache.json')
+RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, 'reservation_cache.json')
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')
