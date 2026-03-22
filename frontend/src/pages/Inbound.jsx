@@ -484,24 +484,20 @@ const Inbound = () => {
                                     <label className="form-label">Qty Received</label>
                                     <input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" />
 
-                                    {/* Sugerencia de Cross-Docking (Xdock) - Con Desglose de Saldo */}
-                                    {itemData?.xdockTotal > 0 && (
+                                    {/* Sugerencia de Cross-Docking (Xdock) - Solo se muestra si hay saldo pendiente */}
+                                    {itemData?.xdockPending > 0 && (
                                         <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">Cross-Docking (Xdock)</span>
+                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">⚠️ Cross-Docking (Xdock)</span>
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="flex justify-between items-center text-[12px] uppercase font-bold text-gray-500">
+                                                <div className="flex justify-between items-center text-[9px] uppercase font-bold text-gray-500">
                                                     <span>Total Reservado:</span>
                                                     <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center text-[12px] uppercase font-bold">
-                                                    <span className={itemData.xdockPending > 0 ? "text-red-600" : "text-emerald-600"}>
-                                                        {itemData.xdockPending > 0 ? "Pendiente Separar:" : "Reserva Completada:"}
-                                                    </span>
-                                                    <span className={`font-mono text-sm ${itemData.xdockPending > 0 ? "text-red-800" : "text-emerald-700"}`}>
-                                                        {itemData.xdockPending > 0 ? `${itemData.xdockPending} UNIDADES` : "✅ OK"}
-                                                    </span>
+                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold">
+                                                    <span className="text-red-600">Pendiente Separar:</span>
+                                                    <span className="font-mono text-sm text-red-800">{itemData.xdockPending} UNIDADES</span>
                                                 </div>
                                             </div>
                                         </div>
