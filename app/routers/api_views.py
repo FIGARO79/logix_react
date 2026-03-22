@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text, select, desc, distinct, func
+from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.utils.auth import get_current_user, login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
+from app.services.slotting_service import slotting_service
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCount, ReconciliationHistory, GRNMaster
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
 import pandas as pd
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
@@ -101,7 +103,13 @@ async def get_reconciliation_data(
             rows = res.scalars().all()
             
             result_data = [{
+                "Import_Reference": r.import_reference,
+                "Waybill": r.waybill,
+                "GRN": r.grn,
                 "Codigo_Item": r.item_code,
+                "Descripcion": r.description,
+                "Ubicacion": "",
+                "Reubicado": "",
                 "Cant_Esperada": r.qty_expected,
                 "Cant_Recibida": r.qty_received,
                 "Diferencia": r.difference
@@ -141,20 +149,19 @@ async def archive_reconciliation_snapshot(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.get('/view_picking_audits', response_model=List[PickingAuditSummary])
 async def view_picking_audits_api(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(PickingAudit).order_by(PickingAudit.id.desc()))
+    # Usar selectinload para cargar items y package_items en una sola consulta eficiente
+    result = await db.execute(
+        select(PickingAudit)
+        .options(selectinload(PickingAudit.items), selectinload(PickingAudit.package_items))
+        .order_by(PickingAudit.id.desc())
+    )
     audits_orm = result.scalars().all()
     
     audits = []
     for audit_orm in audits_orm:
-        # Load items
-        result_items = await db.execute(select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_orm.id))
-        items_orm = result_items.scalars().all()
-        
+        # Los items ya están cargados en memoria gracias a selectinload
         items_data = [
             {
                 "id": item.id,
@@ -165,14 +172,12 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
                 "qty_scan": item.qty_scan,
                 "difference": item.difference,
                 "edited": item.edited if item.edited else 0
-            } for item in items_orm
+            } for item in audit_orm.items
         ]
         
-        # Obtener asignación de bultos
-        result_pkgs = await db.execute(select(PickingPackageItem).where(PickingPackageItem.audit_id == audit_orm.id))
-        package_items = result_pkgs.scalars().all()
+        # Los package_items también están cargados en memoria
         packages_assignment = {}
-        for pi in package_items:
+        for pi in audit_orm.package_items:
             order_line = pi.order_line
             if not order_line:
                 match = next((i for i in items_data if i["item_code"] == pi.item_code), None)
@@ -205,8 +210,6 @@ async def get_counts_data(
     username: str = Depends(login_required), 
     db: AsyncSession = Depends(get_db)
 ):
-    from app.services.csv_handler import master_qty_map
-    
     all_counts = await db_counts.load_all_counts_db_async(db)
     
     # Obtener información de sesiones (usuario y etapa)
@@ -277,7 +280,7 @@ async def get_cycle_count_recordings(
     
     # Cargar registros de la DB
     t1 = time.time()
-    result = await db.execute(select(CycleCount).order_by(CycleCount.id.desc()))
+    result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
     recordings = result.scalars().all()
     print(f"⏱️ Query recordings: {time.time() - t1:.2f}s")
 
@@ -335,6 +338,8 @@ async def get_cycle_count_recordings(
             item_type = master_item.item_type or ""
             item_class = master_item.item_class or ""
             group_major = master_item.item_group_major or ""
+            sic_company = master_item.sic_code_company or ""
+            sic_stockroom = master_item.sic_code_stockroom or ""
 
         # Cálculos de valor
         diff = rec.difference if rec.difference is not None else 0
@@ -344,17 +349,23 @@ async def get_cycle_count_recordings(
         data.append({
             "stockroom": stockroom,
             "item_code": rec.item_code,
+            "description": rec.item_description,
             "item_type": item_type,
             "item_class": item_class,
             "group_major": group_major,
+            "sic_company": sic_company,
+            "sic_stockroom": sic_stockroom,
             "weight": weight,
+            "abc_code": rec.abc_code,
+            "bin_location": rec.bin_location,
             "system_qty": rec.system_qty,
             "physical_qty": rec.physical_qty,
             "difference": rec.difference,
             "value_diff": value_diff,
             "cost": cost,
             "count_value": count_value,
-            "executed_date": rec.executed_date
+            "executed_date": rec.executed_date,
+            "username": rec.username
         })
     
     print(f"⏱️ Build response data: {time.time() - t4:.2f}s")
@@ -450,3 +461,17 @@ async def get_packing_list_data(
         packages=packages
     )
 
+@router.get('/occupancy_stats', response_model=Dict[str, Any])
+async def get_occupancy_stats(
+    request: Request, 
+    username: str = Depends(login_required), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
+    try:
+        report = await slotting_service.get_occupancy_report(db)
+        return report
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))

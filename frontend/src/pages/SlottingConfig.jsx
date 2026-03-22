@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 import * as Icons from '../components/Icons';
 
@@ -154,22 +155,26 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="p-4 md:p-8">
-            <div className="flex justify-end items-center mb-6 gap-3">
-                <button 
-                    onClick={() => setShowUpload(!showUpload)} 
-                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2"
-                >
-                    <Icons.UploadIcon className="w-4 h-4" />
-                    Cargar Excel
-                </button>
-                <button 
-                    onClick={() => handleSave()} 
-                    disabled={saving} 
-                    className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] transition-colors text-sm font-bold shadow-sm disabled:opacity-50 flex items-center gap-2"
-                >
-                    {saving ? 'Guardando...' : <><Icons.CheckCircleIcon className="w-4 h-4 text-white/80" /> Publicar Cambios</>}
-                </button>
+        <AdminLayout title="Configuración de Almacenamiento">
+            {/* Header Area */}
+            <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+                <h1 className="text-2xl font-normal text-gray-800">Estrategia de Slotting y Layout</h1>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setShowUpload(!showUpload)} 
+                        className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2"
+                    >
+                        <Icons.UploadIcon className="w-4 h-4" />
+                        Cargar Excel
+                    </button>
+                    <button 
+                        onClick={() => handleSave()} 
+                        disabled={saving} 
+                        className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] transition-colors text-sm font-bold shadow-sm disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {saving ? 'Guardando...' : <><Icons.CheckCircleIcon className="w-4 h-4 text-white/80" /> Publicar Cambios</>}
+                    </button>
+                </div>
             </div>
 
             {success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm">{success}</div>}
@@ -270,9 +275,7 @@ const SlottingConfig = () => {
                                     ) : activeTab === 'storage' ? (
                                         filteredBins.map(([code, info]) => (
                                             <tr key={code} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                <td className="px-3 py-0.5 font-mono text-[12px] font-semibold">
-                                                    <a href="#" className="text-[#285f94] hover:underline" onClick={(e) => e.preventDefault()}>{code}</a>
-                                                </td>
+                                                <td className="px-3 py-0.5 font-mono text-[12px] font-semibold text-[#285f94]">{code}</td>
                                                 <td className="px-3 py-0.5">
                                                     <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[11px] font-medium focus:ring-0 p-0 h-6 w-full cursor-pointer">
                                                         <option value="Rack">Rack</option>
@@ -282,10 +285,10 @@ const SlottingConfig = () => {
                                                     </select>
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center w-20">
-                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border border-gray-200 w-10 text-[11px] font-bold text-center h-6 p-0 rounded focus:border-[#285f94] outline-none" />
+                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center w-20">
-                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border border-gray-200 w-10 text-[11px] font-bold text-center h-6 p-0 rounded focus:border-[#285f94] outline-none" />
+                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center leading-none">
                                                     <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-full ${getSpotColor(info.spot)}`}>
@@ -464,7 +467,7 @@ const SlottingConfig = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </AdminLayout>
     );
 };
 

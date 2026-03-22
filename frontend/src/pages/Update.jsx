@@ -136,6 +136,8 @@ const Update = () => {
             // Expanded keywords for better detection
             if (name.includes('master') || name.includes('item') || name.includes('maestro') || name.includes('inventario') || name.includes('250')) {
                 formData.append('item_master', file);
+            } else if (name.includes('0006') || name.includes('reserva')) {
+                formData.append('reservation_file', file);
             } else if (name.includes('280') || name.includes('pedido') || name.includes('reporte') || name.includes('grn') || name.includes('entrada')) {
                 // Detectar si es el Excel de GRN o el CSV de reconciliación
                 if (name.endsWith('.xlsx')) {

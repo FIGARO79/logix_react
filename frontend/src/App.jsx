@@ -28,6 +28,7 @@ const SetPassword = lazy(() => import('./pages/SetPassword'));
 const PackingListPrint = lazy(() => import('./pages/PackingListPrint'));
 const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
 const DashboardInventario = lazy(() => import('./pages/DashboardInventario'));
+const OccupancyDashboard = lazy(() => import('./pages/OccupancyDashboard'));
 const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
 const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
 const Shipments = lazy(() => import('./pages/Shipments'));
@@ -182,6 +183,11 @@ function App() {
                                 <DashboardInventario />
                             </ProtectedRoute>
                         } />
+                        <Route path="/occupancy" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <OccupancyDashboard />
+                            </ProtectedRoute>
+                        } />
                         <Route path="/planner" element={
                             <ProtectedRoute requiredPermission="planner">
                                 <Planner />
@@ -209,13 +215,7 @@ function App() {
                         } />
 
 
-                        <Route path="/shipments" element={
-                            <ProtectedRoute requiredPermission="picking">
-                                <Shipments />
-                            </ProtectedRoute>
-                        } />
-
-                        {/* Admin Routes (Integrated in Layout for Sidebar/Header access) */}
+                        {/* Admin Routes */}
                         <Route path="/admin/login" element={<AdminLogin />} />
                         <Route path="/admin/users" element={
                             <AdminProtectedRoute>
@@ -230,6 +230,11 @@ function App() {
                         <Route path="/admin/slotting" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <SlottingConfig />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/shipments" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <Shipments />
                             </ProtectedRoute>
                         } />
                     </Route>

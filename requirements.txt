@@ -38,3 +38,4 @@ bcrypt>=4.2.0
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
 playwright>=1.42.0
+polars>=1.39.3

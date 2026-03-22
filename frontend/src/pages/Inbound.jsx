@@ -80,7 +80,8 @@ const Inbound = () => {
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.itemDescription && log.itemDescription.toLowerCase().includes(searchTerm.toLowerCase()))
+        (log.itemDescription && log.itemDescription.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // Generar QR para la etiqueta cuando cambia el item
@@ -305,35 +306,39 @@ const Inbound = () => {
                         width: 70mm; height: 100mm; 
                         box-sizing: border-box;
                         padding: 3.5mm; 
-                        position: relative;
                         background: white;
+                        display: flex;
+                        flex-direction: column;
                     }
                     .label-logo { 
-                        height: 7mm; 
-                        display: block; 
-                        margin-bottom: 3.5mm; 
+                        height: 7mm;
+                        display: block;
+                        margin-bottom: 3.5mm;
+                        flex-shrink: 0;
                     }
                     
                     /* Header */
                     .label-item-code {
                         font-size: 12pt; font-weight: bold; margin-bottom: 0;
                         line-height: 1.2; color: #000;
+                        word-break: break-word;
                     }
                     .label-item-description {
-                        font-size: 12pt; font-weight: bold; margin-bottom: 18mm;
+                        font-size: 12pt; font-weight: bold; margin-bottom: 2mm;
                         line-height: 1.2; color: #000;
+                        word-break: break-word;
+                        flex-grow: 1;
                     }
 
                     /* Data Table */
                     .label-data-table {
                         font-size: 9pt;
                         line-height: 1.4;
-                        margin-bottom: 9mm;
+                        flex-shrink: 0;
                     }
                     .label-row {
                         display: grid;
                         grid-template-columns: 28mm 1fr;
-                        /* gap: 2mm; */
                     }
                     .label-label {
                          font-weight: normal; color: #000;
@@ -344,13 +349,11 @@ const Inbound = () => {
                     
                     /* Footer */
                     .label-footer { 
-                        position: absolute; 
-                        bottom: 3.5mm; 
-                        left: 3.5mm; 
-                        right: 3.5mm;
                         display: flex; 
                         align-items: flex-end; 
-                        justify-content: space-between; 
+                        justify-content: space-between;
+                        margin-top: 2mm;
+                        flex-shrink: 0;
                     }
                     
                     .label-disclaimer { 
@@ -366,7 +369,8 @@ const Inbound = () => {
                         height: 25mm; 
                         display: flex; 
                         justify-content: center; 
-                        align-items: center; 
+                        align-items: center;
+                        flex-shrink: 0;
                     }
                     #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
                 </style>
@@ -402,9 +406,7 @@ const Inbound = () => {
 
                     <!-- Footer -->
                     <div class="label-footer">
-                        <div style="display:flex; flex-direction:column; justify-content:flex-end; height: 25mm;">
-                             <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
-                        </div>
+                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
                      
                         <div id="qrCodeContainer">
                             ${qrImage ? `<img src="${qrImage}" />` : ''}
@@ -440,15 +442,15 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label className="form-label">Import Reference</label>
-                                    <input type="text" value={importRef} 
-                                        onChange={e => setImportRef(e.target.value.toUpperCase())} 
+                                    <input type="text" value={importRef}
+                                        onChange={e => setImportRef(e.target.value.toUpperCase())}
                                         onBlur={e => handleLookupReference('import_ref', e.target.value)}
                                         placeholder="I.R." required disabled={!!editId} />
                                 </div>
                                 <div>
                                     <label className="form-label">Waybill</label>
-                                    <input type="text" value={waybill} 
-                                        onChange={e => setWaybill(e.target.value.toUpperCase())} 
+                                    <input type="text" value={waybill}
+                                        onChange={e => setWaybill(e.target.value.toUpperCase())}
                                         onBlur={e => handleLookupReference('waybill', e.target.value)}
                                         placeholder="W.B." required />
                                 </div>
@@ -481,6 +483,25 @@ const Inbound = () => {
                                 <div>
                                     <label className="form-label">Qty Received</label>
                                     <input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" />
+
+                                    {/* Sugerencia de Cross-Docking (Xdock) - Solo se muestra si hay saldo pendiente */}
+                                    {itemData?.xdockPending > 0 && (
+                                        <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">⚠️ Cross-Docking (Xdock)</span>
+                                            </div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex justify-between items-center text-[9px] uppercase font-bold text-gray-500">
+                                                    <span>Total Reservado:</span>
+                                                    <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold">
+                                                    <span className="text-red-600">Pendiente Separar:</span>
+                                                    <span className="font-mono text-sm text-red-800">{itemData.xdockPending} UNIDADES</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="form-label">Bin (Original)</label>
@@ -490,8 +511,9 @@ const Inbound = () => {
                                     <label className="form-label">Relocate (New)</label>
                                     <div className="flex flex-col gap-2">
                                         <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
+
                                         {itemData?.suggestedBin && (
-                                            <div 
+                                            <div
                                                 className="bg-emerald-50 border border-emerald-200 rounded p-2 cursor-pointer hover:bg-emerald-100 transition-colors"
                                                 onClick={() => setRelocatedBin(itemData.suggestedBin)}
                                                 title="Haz clic para usar esta ubicación"
@@ -570,19 +592,20 @@ const Inbound = () => {
                                     boxSizing: 'border-box',
                                     background: 'white',
                                     border: '1px solid #ccc',
-                                    position: 'relative',
                                     fontFamily: 'Arial, sans-serif',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column'
                                 }}>
                                     {/* Logo */}
-                                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm' }} />
+                                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
 
                                     {/* Header */}
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2 }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, marginBottom: '18mm' }}>{itemData?.description || 'Description'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', flexGrow: 1, marginBottom: '2mm' }}>{itemData?.description || 'Description'}</div>
 
                                     {/* Data Table */}
-                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, marginBottom: '9mm' }}>
+                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0 }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                                             <div>Quantity/pack</div>
                                             <div>{quantity || 1} EA</div>
@@ -602,13 +625,11 @@ const Inbound = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div style={{ position: 'absolute', bottom: '3.5mm', left: '3.5mm', right: '3.5mm', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '25mm' }}>
-                                            <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
-                                                All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                            </p>
-                                        </div>
-                                        <div style={{ width: '25mm', height: '25mm' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0 }}>
+                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
+                                            All trademarks and logotypes appearing on this label are owned by Sandvik Group
+                                        </p>
+                                        <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
                                             {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
                                         </div>
                                     </div>
@@ -636,13 +657,7 @@ const Inbound = () => {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <button onClick={() => {
-                                const tzOffset = new Date().getTimezoneOffset();
-                                const url = currentVersion 
-                                    ? `/api/export_log?version_date=${currentVersion}&timezone_offset=${tzOffset}` 
-                                    : `/api/export_log?timezone_offset=${tzOffset}`;
-                                window.location.href = url;
-                            }} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
+                            <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar
                             </button>
@@ -686,7 +701,7 @@ const Inbound = () => {
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>
                                         <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1.5 font-medium uppercase">{log.username || '-'}</td>
+                                        <td className="px-2 py-1.5 text-gray-600">{log.username?.toUpperCase()}</td>
                                         <td className="px-2 py-1.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded flex items-center justify-center transition-colors" title="Editar">✎</button>

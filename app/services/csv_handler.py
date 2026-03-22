@@ -1,10 +1,10 @@
 import os
 import json
-import pandas as pd
-import numpy as np
+import polars as pl
 from starlette.concurrency import run_in_threadpool
 from fastapi import HTTPException
 import time
+import traceback
 
 # Importaciones de configuración
 from app.core.config import (
@@ -14,160 +14,172 @@ from app.core.config import (
     COLUMNS_TO_READ_GRN,
     MASTER_DETAILS_CACHE_PATH,
     GRN_CACHE_JSON_PATH,
-    STOCK_QTY_CACHE_PATH
+    STOCK_QTY_CACHE_PATH,
+    RESERVATION_CSV_PATH,
+    RESERVATION_JSON_PATH
 )
-
-def np_encoder(object):
-    """Función para parsear tipos numpy a nativos para JSON"""
-    if isinstance(object, np.generic):
-        return object.item()
-    return str(object)
 
 # --- CACHÉ DE ALTO RENDIMIENTO (ESTADO CALIENTE) ---
 df_master_cache = None 
 df_grn_cache = None    
 master_details_cache = {} 
 master_qty_map = {} 
+reservation_qty_map = {} # Cache para Xdock (Item_Code -> Sum Qty)
 
 _last_check = 0
 _mtime_master = 0
 _mtime_grn = 0
-_last_check_mtime = 0
-RELOAD_CHECK_COOLDOWN = 30 # seconds
 
-async def read_csv_safe(file_path: str, columns: list = None):
-    """Lee un archivo CSV de forma segura."""
-    if not os.path.exists(file_path): return None
+async def generate_reservation_cache():
+    """Lee el CSV de reservas y genera el caché de Xdock con limpieza de comas."""
+    global reservation_qty_map
+    if not os.path.exists(RESERVATION_CSV_PATH):
+        if os.path.exists(RESERVATION_JSON_PATH):
+            try:
+                with open(RESERVATION_JSON_PATH, 'r', encoding='utf-8') as f:
+                    reservation_qty_map = json.load(f)
+            except: pass
+        return
+    
     try:
-        df = await run_in_threadpool(pd.read_csv, file_path, usecols=columns, dtype=str, keep_default_na=True, encoding='utf-8-sig')
-        return df.replace({np.nan: ''})
+        # Leer como Utf8 para limpiar comas de miles
+        df = pl.read_csv(RESERVATION_CSV_PATH, infer_schema_length=0, null_values=['', 'nan', 'NaN'], 
+                         columns=["Item_Code", "Quantity_reserved", "SO_Number"], ignore_errors=True)
+        
+        summary = (
+            df.filter((pl.col("SO_Number").is_not_null()) & (pl.col("SO_Number").cast(pl.Utf8).str.strip_chars() != ""))
+            .with_columns([
+                pl.col("Quantity_reserved").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+            ])
+            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase())
+            .agg(pl.col("Quantity_reserved").sum().alias("total"))
+        )
+        reservation_qty_map = {row["Item_Code"]: int(row["total"]) for row in summary.to_dicts()}
+        with open(RESERVATION_JSON_PATH, 'w', encoding='utf-8') as f:
+            json.dump(reservation_qty_map, f)
     except Exception as e:
-        print(f"Error crítico leyendo CSV {file_path}: {e}")
-        return None
+        print(f"❌ Error Xdock Cache: {e}")
 
 async def load_csv_data():
-    """Carga y procesa todo una sola vez al inicio o cuando sea necesario."""
-    global df_master_cache, df_grn_cache, master_details_cache, master_qty_map, _mtime_master, _mtime_grn
+    """Carga y sincroniza todos los archivos maestros en memoria RAM con Polars."""
+    global df_master_cache, df_grn_cache, master_qty_map, _mtime_master, _mtime_grn
     
-    start_time = time.time()
-    print("⚡ [SISTEMA] Iniciando carga relámpago de datos maestros...")
-    
-    # 1. Procesar Maestro de Items
-    if os.path.exists(ITEM_MASTER_CSV_PATH):
-        try:
-            temp_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-            df = await read_csv_safe(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER)
+    t0 = time.time()
+    print("⚡ [POLARS] Sincronizando caché de memoria RAM...", flush=True)
+
+    try:
+        # 1. Maestro de Items
+        if os.path.exists(ITEM_MASTER_CSV_PATH):
+            _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             
-            if df is not None:
-                # Normalización vectorizada
-                df['Item_Code'] = df['Item_Code'].str.strip().str.upper()
-                df['qty_numeric'] = pd.to_numeric(df['Physical_Qty'].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
-                
-                # Indexación para búsqueda rápida
-                master_details_cache = df.set_index('Item_Code').to_dict('index')
-                master_qty_map = dict(zip(df['Item_Code'], df['qty_numeric']))
-                df_master_cache = df
-                _mtime_master = temp_mtime_master # Solo actualizar si cargó bien
-                
-                # Guardar persistencia JSON silenciosamente
-                try:
-                    with open(MASTER_DETAILS_CACHE_PATH, 'w') as f: json.dump(master_details_cache, f, default=np_encoder)
-                    with open(STOCK_QTY_CACHE_PATH, 'w') as f: json.dump(master_qty_map, f, default=np_encoder)
-                except Exception as e:
-                    print(f"Error guardando caché maestro JSON: {e}")
-        except Exception as e:
-            print(f"Error procesando Maestro de Items: {e}")
+            raw_master = pl.read_csv(
+                ITEM_MASTER_CSV_PATH, 
+                columns=COLUMNS_TO_READ_MASTER,
+                infer_schema_length=0, # Utf8 total
+                null_values=['', 'nan', 'NaN', 'None', 'null'],
+                ignore_errors=True,
+                encoding='utf-8-sig'
+            )
 
-    # 2. Procesar GRN 280
-    if os.path.exists(GRN_CSV_FILE_PATH):
-        try:
-            temp_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
-            df_g = await read_csv_safe(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN)
-            if df_g is not None:
-                # Normalización de GRN Numbers e Item Codes para evitar fallos de matching
-                df_g['Item_Code'] = df_g['Item_Code'].str.strip().str.upper()
-                df_g['GRN_Number'] = df_g['GRN_Number'].astype(str).str.strip().str.upper()
-                df_g['Quantity'] = pd.to_numeric(df_g['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-                
-                df_grn_cache = df_g
-                _mtime_grn = temp_mtime_grn # Solo actualizar si cargó bien
-                
-                try:
-                    # Guardar persistencia en JSON
-                    grn_dict = df_g.replace({np.nan: None}).to_dict(orient='records')
-                    with open(GRN_CACHE_JSON_PATH, 'w') as f: json.dump(grn_dict, f, default=np_encoder)
-                except Exception as e:
-                    print(f"Error guardando caché GRN JSON: {e}")
-        except Exception as e:
-            print(f"Error procesando GRN: {e}")
+            # Limpieza exhaustiva: Physical_Qty, Cost_per_Unit y Weight_per_Unit
+            df_master_cache = raw_master.with_columns([
+                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                pl.col("Physical_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+                pl.col("Cost_per_Unit").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+                pl.col("Weight_per_Unit").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+            ])
 
-    print(f"✅ [SISTEMA] Datos cargados en RAM en {time.time() - start_time:.2f} segundos.")
+            master_qty_map = {
+                row["Item_Code"]: int(row["Physical_Qty"]) 
+                for row in df_master_cache.select(["Item_Code", "Physical_Qty"]).to_dicts()
+                if row["Item_Code"]
+            }
+            print(f"   ➤ Maestro: {len(master_qty_map)} items cargados.")
+
+        # 2. GRN (Pendientes)
+        if os.path.exists(GRN_CSV_FILE_PATH):
+            _mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
+            raw_grn = pl.read_csv(
+                GRN_CSV_FILE_PATH, 
+                columns=COLUMNS_TO_READ_GRN,
+                infer_schema_length=0, 
+                null_values=['', 'nan', 'NaN'], 
+                ignore_errors=True
+            )
+            
+            # Limpiar comas en Quantity de GRN
+            df_grn_cache = raw_grn.with_columns([
+                pl.col("Quantity").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+            ])
+            print(f"   ➤ GRN: {df_grn_cache.height} líneas activas.")
+
+        # 3. Reservas (Xdock)
+        await generate_reservation_cache()
+
+        print(f"✅ [POLARS] Memoria RAM lista en {time.time() - t0:.3f}s", flush=True)
+
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO cargando CSVs: {e}")
+        print(traceback.format_exc())
+        if df_master_cache is None: master_qty_map = {}
 
 async def reload_cache_if_needed():
-    """Verifica si los archivos CSV han cambiado en disco y recarga el caché si es necesario."""
-    global df_master_cache, df_grn_cache, _mtime_master, _mtime_grn, _last_check_mtime
+    """Revisa si los archivos han cambiado y recarga si es necesario."""
+    global _last_check, _mtime_master, _mtime_grn
+    now = time.time()
+    if now - _last_check < 5: return 
     
-    current_time = time.time()
-    
-    # 1. Throttling: Solo verificar mtime cada 30 segundos para evitar I/O excesivo
-    if current_time - _last_check_mtime < RELOAD_CHECK_COOLDOWN:
-        # Si el caché ya está cargado, no hacemos nada hasta que pase el cooldown
-        if df_master_cache is not None:
-            return
-
-    _last_check_mtime = current_time
     needs_reload = False
+    if os.path.exists(ITEM_MASTER_CSV_PATH) and os.path.getmtime(ITEM_MASTER_CSV_PATH) > _mtime_master: needs_reload = True
+    if os.path.exists(GRN_CSV_FILE_PATH) and os.path.getmtime(GRN_CSV_FILE_PATH) > _mtime_grn: needs_reload = True
     
-    # 2. Si el caché está vacío Y el archivo existe, recarga obligatoria
-    if df_master_cache is None and os.path.exists(ITEM_MASTER_CSV_PATH):
-        needs_reload = True
-    
-    # 3. Verificar Maestro de Items INDEPENDIENTEMENTE si existe
-    if not needs_reload and os.path.exists(ITEM_MASTER_CSV_PATH):
-        current_mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-        if current_mtime_master > _mtime_master:
-            print(f"🔄 [SISTEMA] Cambio detectado en Maestro ({ITEM_MASTER_CSV_PATH}).")
-            needs_reload = True
-    
-    # 4. Verificar GRN 280 INDEPENDIENTEMENTE si existe
-    if not needs_reload and os.path.exists(GRN_CSV_FILE_PATH):
-        current_mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
-        if current_mtime_grn > _mtime_grn:
-            print(f"🔄 [SISTEMA] Cambio detectado en GRN ({GRN_CSV_FILE_PATH}).")
-            needs_reload = True
-            
-    # Caso especial: Si el archivo GRN apareció de repente (estaba None y ahora existe)
-    if not needs_reload and df_grn_cache is None and os.path.exists(GRN_CSV_FILE_PATH):
-        needs_reload = True
-
     if needs_reload:
         await load_csv_data()
+    _last_check = now
 
 async def get_item_details_from_master_csv(item_code: str):
-    if not master_details_cache: await reload_cache_if_needed()
-    return master_details_cache.get(str(item_code).strip().upper())
+    """Obtiene el detalle completo de un item desde el caché Polars."""
+    global df_master_cache
+    await reload_cache_if_needed()
+    if df_master_cache is None: return None
+    
+    item_code = item_code.upper().strip()
+    res = df_master_cache.filter(pl.col("Item_Code") == item_code)
+    if res.height > 0:
+        return res.to_dicts()[0]
+    return None
 
 async def get_total_expected_quantity_for_item(item_code: str):
-    if df_grn_cache is None: await reload_cache_if_needed()
+    """Suma la cantidad pendiente en el GRN para un item."""
+    global df_grn_cache
+    await reload_cache_if_needed()
     if df_grn_cache is None: return 0
-    item_code = str(item_code).strip().upper()
-    return int(df_grn_cache[df_grn_cache['Item_Code'] == item_code]['Quantity'].sum())
-
-async def get_stock_data():
-    if df_master_cache is None: await reload_cache_if_needed()
-    return df_master_cache
-
-async def load_master_subset(columns: list, positive_stock_only: bool = False):
-    if df_master_cache is None: await reload_cache_if_needed()
-    if df_master_cache is None: return pd.DataFrame(columns=columns)
     
-    if positive_stock_only:
-        df = df_master_cache[df_master_cache['qty_numeric'] > 0]
-    else:
-        df = df_master_cache
-        
-    return df[columns]
+    item_code = item_code.upper().strip()
+    res = df_grn_cache.filter(pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
+    if res.height > 0:
+        return int(res.select(pl.col("Quantity").sum())[0,0] or 0)
+    return 0
+
+async def get_xdock_info(item_code: str):
+    """Retorna cantidad reservada desde RAM."""
+    global reservation_qty_map
+    if not reservation_qty_map: await generate_reservation_cache()
+    return reservation_qty_map.get(item_code.upper().strip(), 0)
 
 async def get_locations_with_stock_count():
-    if not master_qty_map: await reload_cache_if_needed()
+    """Cuenta items con stock > 0."""
+    global master_qty_map
+    if not master_qty_map: await load_csv_data()
     return len([c for c, q in master_qty_map.items() if q > 0])
+
+async def read_csv_safe_polars(file_path: str, columns: list = None):
+    if not os.path.exists(file_path): return None
+    try:
+        # Para lecturas genéricas, intentamos detectar tipos pero ignoramos errores de comas si no se especifica limpieza
+        df = pl.read_csv(file_path, infer_schema_length=10000, null_values=['', 'nan', 'NaN'], ignore_errors=True)
+        if columns:
+            available = [c for c in columns if c in df.columns]
+            return df.select(available)
+        return df
+    except: return None

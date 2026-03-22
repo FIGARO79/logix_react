@@ -79,10 +79,7 @@ const InboundHistory = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <button
-                        onClick={() => {
-                            const tzOffset = new Date().getTimezoneOffset();
-                            window.location.href = `/api/export_log?timezone_offset=${tzOffset}`;
-                        }}
+                        onClick={() => window.location.href = '/api/export_log'}
                         className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
@@ -120,7 +117,7 @@ const InboundHistory = () => {
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-700 font-medium uppercase">{log.username || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.username?.toUpperCase()}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>

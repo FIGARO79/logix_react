@@ -51,9 +51,9 @@ class Log(Base):
     qtyReceived: Mapped[Optional[int]] = mapped_column(Integer)
     qtyGrn: Mapped[Optional[int]] = mapped_column(Integer)
     difference: Mapped[Optional[int]] = mapped_column(Integer)
+    username: Mapped[Optional[str]] = mapped_column(String(100))
     # Nota: observaciones NO existe en tabla logs en producción (MySQL)
     # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
-    username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
 
 class AppState(Base):
@@ -116,16 +116,10 @@ class CycleCount(Base):
     __tablename__ = "cycle_counts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    planned_date: Mapped[str] = mapped_column(String(50), nullable=False)
-    executed_date: Mapped[str] = mapped_column(String(50), nullable=False)
     item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    item_description: Mapped[Optional[str]] = mapped_column(String(255))
-    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
-    system_qty: Mapped[int] = mapped_column(Integer, default=0)
-    physical_qty: Mapped[int] = mapped_column(Integer, nullable=False)
-    difference: Mapped[int] = mapped_column(Integer, default=0)
-    username: Mapped[str] = mapped_column(String(100), nullable=False)
+    timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+    count_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("stock_counts.id"))
 
 class PickingAudit(Base):
     __tablename__ = "picking_audits"
@@ -202,6 +196,20 @@ class ShipmentAudit(Base):
     audit = relationship("PickingAudit", back_populates="shipment_links")
 
 
+class CycleCountRecording(Base):
+    __tablename__ = "cycle_count_recordings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    planned_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    executed_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    item_description: Mapped[Optional[str]] = mapped_column(String(255))
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
+    system_qty: Mapped[int] = mapped_column(Integer, default=0)
+    physical_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    difference: Mapped[int] = mapped_column(Integer, default=0)
+    username: Mapped[str] = mapped_column(String(100))
+    abc_code: Mapped[Optional[str]] = mapped_column(String(10))
 
 
 class MasterItem(Base):
@@ -219,6 +227,8 @@ class MasterItem(Base):
     item_group_major: Mapped[Optional[str]] = mapped_column(String(50))
     stockroom: Mapped[Optional[str]] = mapped_column(String(50))
     cost_per_unit: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    sic_code_company: Mapped[Optional[str]] = mapped_column(String(50))
+    sic_code_stockroom: Mapped[Optional[str]] = mapped_column(String(50))
     updated_at: Mapped[str] = mapped_column(String(50), nullable=True)
 
 class GRNMaster(Base):
@@ -227,20 +237,50 @@ class GRNMaster(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     import_reference: Mapped[str] = mapped_column(String(255), index=True)
     waybill: Mapped[str] = mapped_column(String(255), index=True)
-    grn_number: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    grn_number: Mapped[str] = mapped_column(Text, nullable=True)
     packs: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    lines: Mapped[Optional[str]] = mapped_column(String(255))
     aaf_date: Mapped[Optional[str]] = mapped_column(String(50))
     grn1_date: Mapped[Optional[str]] = mapped_column(String(50))
+    aaf_grn1: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
+    grn3_date: Mapped[Optional[str]] = mapped_column(String(50))
     grn1_grn3: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
+    ct: Mapped[Optional[str]] = mapped_column(String(50))
     created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
 class ReconciliationHistory(Base):
     __tablename__ = 'reconciliation_history'
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    archive_date: Mapped[str] = mapped_column(String(50), index=True)  # ID del lote (timestamp ISO)
+    archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
+    import_reference: Mapped[str] = mapped_column(String(100))
+    waybill: Mapped[str] = mapped_column(String(100))
+    grn: Mapped[str] = mapped_column(String(100))
     item_code: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(Text)
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    relocated_bin: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     qty_expected: Mapped[int] = mapped_column(Integer)
     qty_received: Mapped[int] = mapped_column(Integer)
     difference: Mapped[int] = mapped_column(Integer)
     username: Mapped[str] = mapped_column(String(100))
+    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
+# --- Modelos de IA y Aprendizaje ---
+
+class AIItemPattern(Base):
+    """Aprendizaje de IA para ítems específicos."""
+    __tablename__ = "ai_item_patterns"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    bin_code: Mapped[str] = mapped_column(String(100))
+    frequency: Mapped[int] = mapped_column(Integer, default=1)
+    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+class AICategoryPattern(Base):
+    """Aprendizaje de IA para categorías (SIC Codes)."""
+    __tablename__ = "ai_category_patterns"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sic_code: Mapped[str] = mapped_column(String(100), index=True)
+    bin_code: Mapped[str] = mapped_column(String(100))
+    frequency: Mapped[int] = mapped_column(Integer, default=1)
+    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
