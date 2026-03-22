@@ -25,7 +25,7 @@ const OccupancyDashboard = ({ setTitle }) => {
     };
 
     const getHeatmapStyle = (percentage) => {
-        if (percentage === 0) return 'bg-slate-50 text-slate-300 border-slate-100';
+        if (percentage === 0) return 'bg-slate-50 text-slate-500 border-slate-100';
         if (percentage < 30) return 'bg-emerald-50 text-emerald-700 border-emerald-100';
         if (percentage < 75) return 'bg-amber-50 text-amber-700 border-amber-100';
         return 'bg-red-50 text-red-700 border-red-100 font-bold';
@@ -66,16 +66,16 @@ const OccupancyDashboard = ({ setTitle }) => {
             {/* Global Utilization Summary */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
                 {[
-                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-slate-500' },
-                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-slate-900' },
-                    { label: 'Available', val: data.summary.available_bins, color: 'text-slate-400' },
-                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-600' : 'text-slate-900' },
-                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-slate-500' },
-                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-slate-500' }
+                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-slate-800' },
+                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-slate-800' },
+                    { label: 'Available', val: data.summary.available_bins, color: 'text-slate-800' },
+                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-600' : 'text-slate-800' },
+                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-slate-800' },
+                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-slate-800' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white p-4 border border-slate-200 shadow-sm">
-                        <label className="text-[9px] uppercase text-slate-400 font-bold tracking-widest block mb-1">{s.label}</label>
-                        <p className={`text-xl font-light font-mono ${s.color}`}>{s.val}</p>
+                        <label className="text-[9px] uppercase text-slate-500 font-bold tracking-widest block mb-1">{s.label}</label>
+                        <p className={`text-2xl font-bold font-mono ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
             </div>
@@ -91,9 +91,9 @@ const OccupancyDashboard = ({ setTitle }) => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/30">Zone Identifier</th>
+                                <th className="px-6 py-3 text-left text-[10px] font-bold text-white uppercase tracking-wider border-b border-slate-600">Zone Identifier</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-3 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/30">
+                                    <th key={level} className="px-2 py-3 text-center text-[10px] font-bold text-white uppercase tracking-wider border-b border-slate-600">
                                         Level {level}
                                     </th>
                                 ))}
@@ -124,11 +124,11 @@ const OccupancyDashboard = ({ setTitle }) => {
                                                             ${getHeatmapStyle(occupancyPercent)}
                                                             transition-all duration-200
                                                         `}>
-                                                            <span className="text-lg font-mono font-light leading-none mb-1">{occupancyPercent}%</span>
-                                                            <div className="text-[8px] uppercase tracking-tighter font-bold opacity-60 text-center">
+                                                            <span className="text-lg font-mono font-bold leading-none mb-1">{occupancyPercent}%</span>
+                                                            <div className="text-[8px] uppercase tracking-tighter font-bold opacity-80 text-center">
                                                                 {levelData.full_bins}/{levelData.total} Bins
                                                             </div>
-                                                            <div className="text-[8px] font-medium opacity-50">
+                                                            <div className="text-[8px] font-semibold opacity-70">
                                                                 {levelData.occupied_skus} SKUs
                                                             </div>
                                                         </div>
@@ -181,7 +181,7 @@ const OccupancyDashboard = ({ setTitle }) => {
                                 <div className="flex items-center gap-3">
                                     <span className="text-[10px] font-semibold text-slate-600">{zone}</span>
                                 </div>
-                                <span className="font-mono text-xs text-slate-400 font-bold">{count} <span className="text-[9px] uppercase ml-0.5 opacity-50">Units</span></span>
+                                <span className="font-mono text-sm text-slate-700 font-bold">{count} <span className="text-[9px] uppercase ml-0.5 text-slate-400">Units</span></span>
                             </div>
                         ))}
                     </div>
