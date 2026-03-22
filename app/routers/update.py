@@ -67,15 +67,29 @@ async def process_po_extractor_logic(file_path: str):
         return str(obj)
 
     try:
-        # Leer columnas necesarias del Excel
-        cols_to_use = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
+        # Definir columnas base y opcionales
+        base_cols = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
+        opt_col = "Customer Reference"
         
-        try:
-            df_po_raw = pl.read_excel(file_path, columns=cols_to_use)
-        except Exception:
-            df_po_raw = pl.read_excel(file_path).select(cols_to_use)
+        # Leer todo el Excel primero para verificar columnas
+        df_full = pl.read_excel(file_path)
         
-        df_po = df_po_raw.select(pl.all().cast(pl.Utf8)).fill_null("")
+        # Filtrar columnas disponibles
+        available_cols = [c for c in base_cols if c in df_full.columns]
+        missing_base = [c for c in base_cols if c not in df_full.columns]
+        
+        if missing_base:
+            return False, f"Faltan columnas obligatorias: {missing_base}"
+            
+        # Extraer datos base
+        df_po = df_full.select(available_cols).select(pl.all().cast(pl.Utf8)).fill_null("")
+        
+        # Manejar columna opcional "Customer Reference"
+        if opt_col in df_full.columns:
+            df_po = df_po.with_columns(df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col))
+        else:
+            print(f"⚠️ Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
+            df_po = df_po.with_columns(pl.lit("").alias(opt_col))
         
         # LIMPIEZA CRÍTICA
         df_po = df_po.filter((pl.col("Waybill") != "") & (pl.col("Import Ref Code") != ""))
@@ -85,12 +99,15 @@ async def process_po_extractor_logic(file_path: str):
             pl.col("Waybill").str.strip_chars().str.to_uppercase(),
             pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
             pl.col("Item Code").str.strip_chars().str.to_uppercase(),
-            pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars()
+            pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
+            pl.col(opt_col).str.strip_chars().str.to_uppercase()
         ])
 
         wb_lookup = {}
         ir_lookup = {}
+        customer_ref_to_grn = {} # Mapeo: Customer Reference -> {grns, ir, waybill}
 
+        # Procesar agrupado por Waybill
         for wb, group in df_po.group_by("Waybill"):
             wb_str = str(wb[0]) if isinstance(wb, tuple) else str(wb)
             first_row = group.row(0, named=True)
@@ -99,7 +116,8 @@ async def process_po_extractor_logic(file_path: str):
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"]
+                    "grn": row["GRN Number"],
+                    "customer_ref": row[opt_col]
                 })
             
             wb_lookup[wb_str] = {
@@ -107,24 +125,45 @@ async def process_po_extractor_logic(file_path: str):
                 "items": items_list
             }
 
-        for ir, group in df_po.groupby("Import Ref Code"):
-            first_row = group.iloc[0]
+        # Generar mapeos basados en I.R. y Customer Reference
+        for ir, group in df_po.group_by("Import Ref Code"):
+            ir_str = str(ir[0]) if isinstance(ir, tuple) else str(ir)
+            first_row = group.row(0, named=True)
             items_list = []
-            for _, row in group.iterrows():
+            for row in group.iter_rows(named=True):
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"]
+                    "grn": row["GRN Number"],
+                    "customer_ref": row[opt_col]
                 })
+                
+                # Mapeo por Customer Reference (solo si existe)
+                cust_ref = row[opt_col]
+                if cust_ref:
+                    if cust_ref not in customer_ref_to_grn:
+                        customer_ref_to_grn[cust_ref] = {
+                            "import_ref": ir_str,
+                            "waybill": row["Waybill"],
+                            "grns": set()
+                        }
+                    if row["GRN Number"]:
+                        grns_in_row = set(g.strip().upper() for g in row["GRN Number"].split(',') if g.strip())
+                        customer_ref_to_grn[cust_ref]["grns"].update(grns_in_row)
             
-            ir_lookup[ir] = {
+            ir_lookup[ir_str] = {
                 "waybill": first_row["Waybill"],
                 "items": items_list
             }
         
+        # Convertir sets a listas para JSON
+        for ref in customer_ref_to_grn:
+            customer_ref_to_grn[ref]["grns"] = list(customer_ref_to_grn[ref]["grns"])
+
         lookup_data = {
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
+            "customer_ref_to_data": customer_ref_to_grn,
             "updated_at": datetime.datetime.now().isoformat()
         }
         
@@ -310,10 +349,13 @@ async def update_files_post(
             with open(po_path, "wb") as buffer:
                 shutil.copyfileobj(po_extractor.file, buffer)
             success, msg = await process_po_extractor_logic(po_path)
-            message += f"{msg} "
-            files_uploaded = True
+            if success:
+                message += f"{msg} "
+                files_uploaded = True
+            else:
+                error += f"Error PO Extractor: {msg}. "
         except Exception as e:
-            error += f'Error PO Extractor: {str(e)}. '
+            error += f'Error PO Extractor (Crash): {str(e)}. '
 
     if files_uploaded:
         background_tasks.add_task(load_csv_data)

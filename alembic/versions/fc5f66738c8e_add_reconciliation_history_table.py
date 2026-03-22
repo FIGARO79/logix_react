@@ -128,7 +128,7 @@ def upgrade() -> None:
                existing_nullable=True,
                existing_server_default=sa.text('(NULL)'))
         batch_op.create_index(batch_op.f('ix_cycle_counts_item_code'), ['item_code'], unique=False)
-        batch_op.create_foreign_key(None, 'stock_counts', ['count_id'], ['id'])
+        batch_op.create_foreign_key('fk_cycle_counts_stock_counts_v2', 'stock_counts', ['count_id'], ['id'])
 
     with op.batch_alter_table('grn_master', schema=None) as batch_op:
         batch_op.alter_column('import_reference',

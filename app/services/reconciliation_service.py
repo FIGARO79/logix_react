@@ -14,130 +14,118 @@ from app.models.sql_models import ReconciliationHistory, GRNMaster
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
 async def get_reconciliation_calculations(db: AsyncSession, archive_date: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Ejecuta los cálculos de conciliación en tiempo real usando Polars."""
-    await csv_handler.reload_cache_if_needed()
-    
-    # 1. Obtener Logs
-    logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
-        
-    if not logs_list:
-        return []
-        
-    logs_pl = pl.from_dicts(logs_list)
-    grn_pl = csv_handler.df_grn_cache # Ya es Polars
-    
-    if logs_pl.is_empty() or grn_pl is None:
-        return []
-
-    # 2. Cargar Fuentes de Asociación (Filtradas para velocidad)
-    active_irs = set(logs_pl['importReference'].unique().to_list())
-    ir_to_grns_map = {}
-
-    # A. po_lookup.json
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
-        try:
-            with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                po_cache = json.load(f)
-                po_ir_data = po_cache.get("ir_to_data", {})
-                for ir in active_irs:
-                    if ir in po_ir_data:
-                        data = po_ir_data[ir]
-                        grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
-                        if grns:
-                            if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": data.get("waybill")}
-                            ir_to_grns_map[ir]["grns"].update(grns)
-        except: pass
-
-    # B. grn_master_data.json
-    if os.path.exists(GRN_JSON_DATA_PATH):
-        try:
-            with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                inbound_data = json.load(f)
-                for row in inbound_data:
-                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                    if ir in active_irs:
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                        if ir and grn:
-                            if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
-                            ir_to_grns_map[ir]["grns"].add(grn)
-        except: pass
-
-    # C. DB Maestro
+    """
+    Ejecuta los cálculos de conciliación basándose en el Reporte 280 como fuente principal.
+    Cruce: 280.Order_Number <-> PO.Customer_Reference
+    """
     try:
-        stmt = select(GRNMaster).where(func.upper(GRNMaster.import_reference).in_(list(active_irs)))
-        db_res = await db.execute(stmt)
-        for g_master in db_res.scalars().all():
-            ir_key = str(g_master.import_reference).strip().upper()
-            if g_master.grn_number:
-                grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
-                if ir_key not in ir_to_grns_map: ir_to_grns_map[ir_key] = {"grns": grns_set, "wb": g_master.waybill}
-                else: ir_to_grns_map[ir_key]["grns"].update(grns_set)
-    except: pass
+        await csv_handler.reload_cache_if_needed()
+        
+        grn_pl = csv_handler.df_grn_cache # Reporte 280 (Polars)
+        if grn_pl is None or grn_pl.is_empty():
+            print("⚠️ [RECONCILIATION] Reporte 280 está vacío o no existe.")
+            return []
 
-    # 3. Procesamiento con Polars
-    
-    # A. Agrupar logs para sumar cantidades recibidas y tomar última ubicación
-    logs_grouped = logs_pl.group_by(['importReference', 'waybill', 'itemCode']).agg([
-        pl.col('qtyReceived').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64).fill_null(0).sum(),
-        pl.col('binLocation').last(),
-        pl.col('relocatedBin').last()
-    ])
+        # 1. Obtener Logs (Lo recibido físicamente)
+        logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
+        if logs_list:
+            logs_pl = pl.from_dicts(logs_list)
+        else:
+            logs_pl = pl.DataFrame(schema={
+                "importReference": pl.Utf8, "waybill": pl.Utf8, "itemCode": pl.Utf8, 
+                "qtyReceived": pl.Float64, "binLocation": pl.Utf8, "relocatedBin": pl.Utf8
+            })
 
-    # B. Construir mapa de I.R. a GRN
-    mapping_rows = []
-    for ir, info in ir_to_grns_map.items():
-        for grn in info["grns"]:
-            mapping_rows.append({"ir_map": ir, "wb_map": info["wb"], "grn_map": grn})
-    
-    df_mapping = pl.from_dicts(mapping_rows) if mapping_rows else pl.DataFrame(schema={"ir_map": pl.Utf8, "wb_map": pl.Utf8, "grn_map": pl.Utf8})
+        # 2. Cargar Mapeo de Purchase Order (PO Lookup)
+        ir_mapping_rows = []
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
+                    po_cache = json.load(f)
+                    cust_ref_data = po_cache.get("customer_ref_to_data", {})
+                    for cust_ref, info in cust_ref_data.items():
+                        ir_mapping_rows.append({
+                            "order_ref": str(cust_ref).strip().upper(),
+                            "ir_mapped": info["import_ref"],
+                            "wb_mapped": info["waybill"]
+                        })
+            except Exception as e:
+                print(f"⚠️ [RECONCILIATION] Error leyendo PO Lookup: {e}")
+        
+        df_po_map = pl.from_dicts(ir_mapping_rows) if ir_mapping_rows else pl.DataFrame(schema={"order_ref": pl.Utf8, "ir_mapped": pl.Utf8, "wb_mapped": pl.Utf8})
 
-    # C. Cruzar con GRN Maestro para obtener cantidades esperadas
-    # Polars Joins son significativamente más rápidos
-    df_expected = df_mapping.join(grn_pl, left_on='grn_map', right_on='GRN_Number', how='inner')
-    
-    # Agrupar esperado por IR e Item
-    total_exp = df_expected.group_by(['ir_map', 'Item_Code']).agg(pl.col('Quantity').sum().alias('Total_Esperado_IR'))
+        # 3. Procesar Reporte 280 (El "Esperado")
+        df_280 = grn_pl.with_columns([
+            pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().alias("Order_Key"),
+            pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Key")
+        ])
 
-    # D. Unión Final (Cruzar esperado con real)
-    merged = df_expected.join(total_exp, on=['ir_map', 'Item_Code'], how='left')
-    
-    final_merge = merged.join(
-        logs_grouped, 
-        left_on=['ir_map', 'Item_Code'], 
-        right_on=['importReference', 'itemCode'], 
-        how='outer'
-    )
+        # Unimos 280 con el mapeo de PO
+        df_expected = df_280.join(df_po_map, left_on="Order_Key", right_on="order_ref", how="left")
 
-    # E. Limpieza y Cálculos Finales
-    df_final = final_merge.with_columns([
-        pl.col('importReference').fill_null(pl.col('ir_map')),
-        pl.col('waybill').fill_null(pl.col('wb_map')),
-        pl.col('itemCode').fill_null(pl.col('Item_Code')),
-        pl.col('Item_Description').fill_null("No en sistema 280"),
-        pl.col('qtyReceived').fill_null(0).cast(pl.Int64),
-        pl.col('Quantity').fill_null(0).cast(pl.Int64),
-        pl.col('Total_Esperado_IR').fill_null(0).cast(pl.Int64),
-        pl.col('binLocation').fill_null(""),
-        pl.col('relocatedBin').fill_null("")
-    ]).with_columns(
-        (pl.col('qtyReceived') - pl.col('Total_Esperado_IR')).alias('Diferencia')
-    )
+        # 4. Procesar Logs (El "Recibido")
+        if not logs_pl.is_empty():
+            logs_grouped = logs_pl.group_by(['importReference', 'itemCode']).agg([
+                pl.col('qtyReceived').cast(pl.Utf8).str.replace_all(',', '').cast(pl.Float64).fill_null(0.0).sum().alias("Total_Recibido"),
+                pl.col('waybill').first().alias("Waybill_Log"),
+                pl.col('binLocation').last().alias("Ultima_Ubicacion"),
+                pl.col('relocatedBin').last().alias("Ultima_Reubicacion")
+            ]).with_columns([
+                pl.col("importReference").str.to_uppercase().alias("IR_Log_Key"),
+                pl.col("itemCode").str.to_uppercase().alias("Item_Log_Key")
+            ])
+        else:
+            logs_grouped = pl.DataFrame(schema={
+                "importReference": pl.Utf8, "itemCode": pl.Utf8, "Total_Recibido": pl.Float64,
+                "Waybill_Log": pl.Utf8, "Ultima_Ubicacion": pl.Utf8, "Ultima_Reubicacion": pl.Utf8,
+                "IR_Log_Key": pl.Utf8, "Item_Log_Key": pl.Utf8
+            })
 
-    # Renombrar columnas para el frontend
-    result = df_final.select([
-        pl.col('importReference').alias('Import_Reference'),
-        pl.col('waybill').alias('Waybill'),
-        pl.col('grn_map').alias('GRN').fill_null("SIN GRN"),
-        pl.col('itemCode').alias('Codigo_Item'),
-        pl.col('Item_Description').alias('Descripcion'),
-        pl.col('binLocation').alias('Ubicacion'),
-        pl.col('relocatedBin').alias('Reubicado'),
-        pl.col('Quantity').alias('Cant_Esperada'),
-        pl.col('qtyReceived').alias('Cant_Recibida'),
-        pl.col('Diferencia')
-    ]).to_dicts()
+        # 5. Cruce Final (Esperado vs Recibido)
+        reconciliation = df_expected.join(
+            logs_grouped,
+            left_on=["ir_mapped", "Item_Key"],
+            right_on=["IR_Log_Key", "Item_Log_Key"],
+            how="outer"
+        )
 
-    return result
+        # 6. Limpieza de columnas y cálculos
+        final_df = reconciliation.with_columns([
+            pl.col("ir_mapped").fill_null(pl.col("importReference")).fill_null("SIN I.R."),
+            pl.col("wb_mapped").fill_null(pl.col("Waybill_Log")).fill_null("SIN WAYBILL"),
+            pl.col("Item_Code").fill_null(pl.col("itemCode")),
+            pl.col("Item_Description").fill_null("No en reporte 280"),
+            pl.col("Quantity").fill_null(0).cast(pl.Int64).alias("Cant_Esperada"),
+            pl.col("Total_Recibido").fill_null(0).cast(pl.Int64).alias("Cant_Recibida"),
+            pl.col("GRN_Number").fill_null("PENDIENTE"),
+            pl.col("Ultima_Ubicacion").fill_null(""),
+            pl.col("Ultima_Reubicacion").fill_null("")
+        ]).with_columns(
+            (pl.col("Cant_Recibida") - pl.col("Cant_Esperada")).alias("Diferencia")
+        )
+
+        final_df = final_df.filter((pl.col("Cant_Recibida") > 0) | (pl.col("Cant_Esperada") > 0))
+
+        # Seleccionar y renombrar para el frontend
+        result = final_df.select([
+            pl.col('ir_mapped').alias('Import_Reference'),
+            pl.col('wb_mapped').alias('Waybill'),
+            pl.col('GRN_Number').alias('GRN'),
+            pl.col('Item_Code').alias('Codigo_Item'),
+            pl.col('Item_Description').alias('Descripcion'),
+            pl.col('Ultima_Ubicacion').alias('Ubicacion'),
+            pl.col('Ultima_Reubicacion').alias('Reubicado'),
+            pl.col('Cant_Esperada'),
+            pl.col('Cant_Recibida'),
+            pl.col('Diferencia')
+        ]).sort(["Import_Reference", "GRN"]).to_dicts()
+
+        return result
+    except Exception as e:
+        import traceback
+        print(f"❌ [RECONCILIATION ERROR]: {e}")
+        print(traceback.format_exc())
+        return []
 
 async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False):
     """Guarda un snapshot de conciliación en la DB."""

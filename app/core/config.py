@@ -67,7 +67,7 @@ COLUMNS_TO_READ_MASTER = [
     'Stockroom', 'Item_Type', 'Item_Class', 'Item_Group_Major', 'SIC_Code_Company', 'Cost_per_Unit'
 ]
 GRN_COLUMN_NAME_IN_CSV = 'GRN_Number'
-COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description']
+COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description', 'Order_Number']
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Cargar desde variables de entorno (OBLIGATORIAS)
