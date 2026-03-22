@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const DashboardInventario = () => {
@@ -8,7 +8,7 @@ const DashboardInventario = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setTitle("Dashboard de Inteligencia de Inventario");
+        setTitle("Inventory Intelligence Dashboard");
         fetchStats();
     }, [setTitle]);
 
@@ -16,7 +16,7 @@ const DashboardInventario = () => {
         setLoading(true);
         try {
             const res = await fetch('/api/counts/dashboard_stats', { credentials: 'include' });
-            if (!res.ok) throw new Error("Error cargando estadísticas");
+            if (!res.ok) throw new Error("Error loading inventory statistics");
             const data = await res.json();
             setStats(data);
         } catch (err) {
@@ -27,117 +27,140 @@ const DashboardInventario = () => {
     };
 
     const formatMoney = (val) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+        return new Intl.NumberFormat('en-US', { 
+            style: 'currency', 
+            currency: 'USD',
+            minimumFractionDigits: 2
+        }).format(val || 0);
     };
 
-    if (loading) return <div className="p-10 text-center text-gray-500 italic">Analizando datos maestros...</div>;
-    if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
-    if (stats?.empty) return <div className="p-10 text-center text-gray-500">No hay datos suficientes para generar el dashboard. Inicie los conteos cíclicos.</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Analyzing master data...</div>
+        </div>
+    );
+
+    if (error) return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="bg-red-50 text-red-600 px-4 py-2 rounded border border-red-100 text-xs font-medium">{error}</div>
+        </div>
+    );
+
+    if (stats?.empty) return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-slate-400 text-xs uppercase tracking-widest">No data available. Initiate cycle counts.</div>
+        </div>
+    );
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 font-sans bg-gray-50 min-h-screen">
+        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-slate-800">
             
-            {/* 1. KPIs de Exactitud (ERI) */}
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                Exactitud de Registro de Inventario (ERI)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg border-b-4 border-blue-500 relative overflow-hidden">
-                    <label className="text-[10px] uppercase text-blue-300 font-bold tracking-tighter">ERI GLOBAL</label>
-                    <div className="text-4xl font-mono font-bold mt-1">{stats.eri.Global}%</div>
-                    <div className="text-[10px] text-gray-400 mt-2 italic">Muestra: {stats.total_items} items</div>
-                    <div className="absolute top-[-10px] right-[-10px] opacity-10">
-                        <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    </div>
+            {/* Header Section Compact */}
+            <div className="mb-6 border-b border-slate-200 pb-4 flex justify-between items-end">
+                <div>
+                    <h1 className="text-xl font-light text-slate-900 tracking-tight">Inventory Accuracy Metrics</h1>
+                    <p className="text-slate-400 text-[9px] uppercase tracking-widest font-bold">Operational Performance Insight</p>
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
-                    <label className="text-[10px] uppercase text-gray-400 font-bold">ERI CLASE A</label>
-                    <div className="text-3xl font-bold text-gray-800 mt-1">{stats.eri.A}%</div>
-                    <div className="w-full bg-gray-100 h-1.5 mt-3 rounded-full overflow-hidden">
-                        <div className="bg-red-500 h-full" style={{width: `${stats.eri.A}%`}}></div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-                    <label className="text-[10px] uppercase text-gray-400 font-bold">ERI CLASE B</label>
-                    <div className="text-3xl font-bold text-gray-800 mt-1">{stats.eri.B}%</div>
-                    <div className="w-full bg-gray-100 h-1.5 mt-3 rounded-full overflow-hidden">
-                        <div className="bg-yellow-500 h-full" style={{width: `${stats.eri.B}%`}}></div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
-                    <label className="text-[10px] uppercase text-gray-400 font-bold">ERI CLASE C</label>
-                    <div className="text-3xl font-bold text-gray-800 mt-1">{stats.eri.C}%</div>
-                    <div className="w-full bg-gray-100 h-1.5 mt-3 rounded-full overflow-hidden">
-                        <div className="bg-green-500 h-full" style={{width: `${stats.eri.C}%`}}></div>
-                    </div>
+                <div className="text-right">
+                    <span className="text-slate-400 text-[9px] uppercase font-bold tracking-widest block">Audit Sample</span>
+                    <span className="text-xl font-light text-slate-700">{stats.total_items} <span className="text-[10px] text-slate-400 ml-0.5">Items</span></span>
                 </div>
             </div>
 
-            {/* 2. Impacto Financiero y Ajustes */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m.5-1c.28 0 .546-.083.783-.232M6 14a6 6 0 1112 0 6 6 0 01-12 0z"/></svg>
-                        Valorización de Ajustes
-                    </h3>
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-end border-b pb-4">
+            {/* ERI Section Compact */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white p-4 border border-slate-200 shadow-sm">
+                    <label className="text-[9px] uppercase text-slate-400 font-bold tracking-widest block mb-2">ERI Global</label>
+                    <div className="flex items-baseline gap-0.5">
+                        <span className="text-3xl font-light text-slate-900">{stats.eri.Global}</span>
+                        <span className="text-sm text-slate-300">%</span>
+                    </div>
+                    <div className="mt-2 h-0.5 w-full bg-slate-100">
+                        <div className="bg-slate-900 h-full" style={{width: `${stats.eri.Global}%`}}></div>
+                    </div>
+                </div>
+                {['A', 'B', 'C'].map(clase => (
+                    <div key={clase} className="bg-white p-4 border border-slate-200 shadow-sm">
+                        <label className="text-[9px] uppercase text-slate-400 font-bold tracking-widest block mb-2">Class {clase} Accuracy</label>
+                        <div className="flex items-baseline gap-0.5">
+                            <span className="text-2xl font-light text-slate-800">{stats.eri[clase]}</span>
+                            <span className="text-xs text-slate-300">%</span>
+                        </div>
+                        <div className="mt-2 h-0.5 w-full bg-slate-100">
+                            <div className={`h-full ${clase === 'A' ? 'bg-slate-700' : clase === 'B' ? 'bg-slate-500' : 'bg-slate-300'}`} 
+                                 style={{width: `${stats.eri[clase]}%`}}></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Financial Impact & Pareto Compact */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                
+                {/* Adjustments Column Compact */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white p-6 border border-slate-200 shadow-sm h-full">
+                        <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                            Financial Impact
+                        </h3>
+                        
+                        <div className="space-y-6">
                             <div>
-                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-tight">Impacto Neto (Financiero)</p>
-                                <p className={`text-3xl font-mono font-bold ${stats.adjustments.value.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <label className="text-[9px] uppercase font-bold text-slate-400 tracking-widest block mb-1">Net Reconciliation</label>
+                                <div className={`text-2xl font-light ${stats.adjustments.value.net >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
                                     {formatMoney(stats.adjustments.value.net)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                    {stats.adjustments.units.net > 0 ? '+' : ''}{stats.adjustments.units.net} Units Net
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[9px] uppercase font-bold text-slate-400 tracking-widest block mb-1">Gross Variance</label>
+                                <div className="text-2xl font-light text-slate-900">
+                                    {formatMoney(stats.adjustments.value.gross)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                    {stats.adjustments.units.gross} Total Units
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-50">
+                                <p className="text-[9px] text-slate-300 leading-tight uppercase font-medium">
+                                    * Absolute sum of discrepancies.
                                 </p>
                             </div>
-                            <div className="text-right">
-                                <p className="text-[10px] uppercase font-bold text-gray-400">Unidades Netas</p>
-                                <p className="text-xl font-bold text-gray-700">{stats.adjustments.units.net > 0 ? '+' : ''}{stats.adjustments.units.net}</p>
-                            </div>
                         </div>
-                        <div className="flex justify-between items-end">
-                            <div>
-                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-tight">Volumen Bruto de Error (Pérdida de Control)</p>
-                                <p className="text-3xl font-mono font-bold text-orange-600">{formatMoney(stats.adjustments.value.gross)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] uppercase font-bold text-gray-400">Unidades Brutas</p>
-                                <p className="text-xl font-bold text-gray-700">{stats.adjustments.units.gross}</p>
-                            </div>
-                        </div>
-                        <p className="text-[11px] text-gray-400 italic bg-gray-50 p-3 rounded-lg border border-dashed border-gray-200">
-                            * El ajuste bruto representa la suma absoluta de todos los errores. Es el indicador real de la calidad operativa de los procesos de picking y almacenamiento.
-                        </p>
                     </div>
                 </div>
 
-                {/* Pareto de Pérdidas */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="bg-gray-800 p-4">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            Top 10: Mayores Discrepancias Financieras
+                {/* Top Discrepancies Table Compact */}
+                <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            Top 10 Value Variance
                         </h3>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-[11px]">
-                            <thead className="bg-gray-50 border-b">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50/50">
                                 <tr>
-                                    <th className="px-4 py-3 text-gray-500 uppercase">Item</th>
-                                    <th className="px-4 py-3 text-gray-500 uppercase">Unidades</th>
-                                    <th className="px-4 py-3 text-gray-500 uppercase text-right">Valor Absoluto</th>
+                                    <th className="px-6 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">Item</th>
+                                    <th className="px-6 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Qty Diff</th>
+                                    <th className="px-6 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-right">Abs Value</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-slate-100">
                                 {stats.top_losses.map((item, i) => (
-                                    <tr key={i} className="hover:bg-red-50 transition-colors">
-                                        <td className="px-4 py-2">
-                                            <div className="font-bold text-gray-700">{item.code}</div>
-                                            <div className="text-[10px] text-gray-400 truncate max-w-[180px]">{item.desc}</div>
+                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-1.5">
+                                            <div className="text-xs font-semibold text-slate-700">{item.code}</div>
+                                            <div className="text-[9px] text-slate-400 truncate max-w-[200px]">{item.desc}</div>
                                         </td>
-                                        <td className={`px-4 py-2 font-mono font-bold ${item.diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        <td className={`px-6 py-1.5 text-center font-mono text-[11px] ${item.diff > 0 ? 'text-slate-600' : 'text-red-500'}`}>
                                             {item.diff > 0 ? '+' : ''}{item.diff}
                                         </td>
-                                        <td className="px-4 py-2 text-right font-mono font-bold text-gray-800">
+                                        <td className="px-6 py-1.5 text-right font-mono text-[11px] text-slate-900 font-medium">
                                             {formatMoney(item.abs_val_diff)}
                                         </td>
                                     </tr>
@@ -148,49 +171,54 @@ const DashboardInventario = () => {
                 </div>
             </div>
 
-            {/* 3. Productividad y Zonas Críticas */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Productividad de Usuarios */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6 flex items-center gap-2">
-                        Productividad y Calidad por Usuario
+            {/* Performance & Hot Zones Compact */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* User Performance Compact */}
+                <div className="bg-white p-6 border border-slate-200 shadow-sm">
+                    <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                        Personnel Audit Quality
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {stats.productivity.map((u, i) => (
-                            <div key={i} className="group">
-                                <div className="flex justify-between text-[11px] mb-1">
-                                    <span className="font-bold text-gray-600">{u.user}</span>
-                                    <span className="text-gray-400">{u.items} conteos | Error: <span className={u.error_rate > 10 ? 'text-red-500 font-bold' : 'text-green-600'}>{u.error_rate}%</span></span>
+                            <div key={i}>
+                                <div className="flex justify-between items-end mb-1.5">
+                                    <div>
+                                        <span className="text-xs font-semibold text-slate-700 block leading-tight">{u.user}</span>
+                                        <span className="text-[9px] text-slate-400 uppercase font-bold">{u.items} Audits</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-xs font-mono font-bold ${u.error_rate > 10 ? 'text-red-500' : 'text-slate-900'}`}>{u.error_rate}% <span className="text-[9px] text-slate-300 ml-0.5">Error</span></span>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-[#285f94] h-full group-hover:bg-blue-400 transition-all" style={{width: `${(u.items / stats.total_items) * 100}%`}}></div>
+                                <div className="w-full bg-slate-100 h-0.5">
+                                    <div className="bg-slate-900 h-full opacity-60" style={{width: `${(u.items / stats.total_items) * 100}%`}}></div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Zonas Calientes de Error */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6 flex items-center gap-2 text-red-600">
-                        <svg className="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        Densidad de Error por Zona (Pasillos)
+                {/* Location Risk Zones Compact */}
+                <div className="bg-white p-6 border border-slate-200 shadow-sm">
+                    <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                        Variance Density by Zone
                     </h3>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 gap-4">
                         {stats.zones.map((z, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100">
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-red-600 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">
+                                    <div className="text-lg font-light text-slate-300 w-6">
                                         {z.zone}
                                     </div>
                                     <div>
-                                        <p className="text-[10px] uppercase font-bold text-red-800 tracking-tight">ZONA {z.zone}</p>
-                                        <p className="text-xs text-red-600">{z.total} muestras auditadas</p>
+                                        <p className="text-[9px] uppercase font-bold text-slate-500 tracking-widest">Zone {z.zone}</p>
+                                        <p className="text-[10px] text-slate-400">{z.total} Samples</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xl font-mono font-bold text-red-700">{z.error_rate}%</p>
-                                    <p className="text-[9px] uppercase text-red-400 font-bold italic text-right">Tasa de Error</p>
+                                    <p className={`text-lg font-mono font-bold ${z.error_rate > 15 ? 'text-red-600' : 'text-slate-800'}`}>{z.error_rate}%</p>
+                                    <p className="text-[8px] uppercase text-slate-300 font-bold tracking-tighter">Density</p>
                                 </div>
                             </div>
                         ))}

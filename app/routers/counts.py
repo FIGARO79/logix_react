@@ -129,5 +129,74 @@ async def get_dashboard_stats(username: str = Depends(permission_required("inven
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error en dashboard stats: {e}")
 
-# ... (El resto de funciones como recordings y export_recordings pueden seguir usando Pandas o migrarse después)
-# Por ahora mantendré el resto del archivo intacto para asegurar estabilidad.
+@router.get('/counts/recordings', response_model=List[Dict[str, Any]])
+async def get_cycle_count_recordings(
+    username: str = Depends(permission_required("inventory")), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene todos los registros de conteo histórico con detalles del maestro."""
+    try:
+        # 1. Cargar registros de la DB
+        result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
+        recordings = result.scalars().all()
+
+        if not recordings:
+            return []
+
+        # 2. Batch query para todos los item codes necesarios
+        item_codes = list({rec.item_code for rec in recordings if rec.item_code})
+        result_items = await db.execute(
+            select(MasterItem).where(MasterItem.item_code.in_(item_codes))
+        )
+        master_map = {item.item_code: item for item in result_items.scalars().all()}
+        
+        data = []
+        for rec in recordings:
+            master_item = master_map.get(rec.item_code)
+            
+            # Valores base del maestro
+            cost = float(master_item.cost_per_unit) if master_item and master_item.cost_per_unit else 0.0
+            weight = float(master_item.weight_per_unit) if master_item and master_item.weight_per_unit else 0.0
+
+            data.append({
+                "id": rec.id,
+                "item_code": rec.item_code,
+                "description": rec.item_description,
+                "abc_code": rec.abc_code,
+                "bin_location": rec.bin_location,
+                "system_qty": rec.system_qty,
+                "physical_qty": rec.physical_qty,
+                "difference": rec.difference,
+                "cost": cost,
+                "weight": weight,
+                "value_diff": (rec.difference or 0) * cost,
+                "count_value": (rec.physical_qty or 0) * cost,
+                "executed_date": rec.executed_date,
+                "username": rec.username,
+                "stockroom": master_item.stockroom if master_item else ""
+            })
+        
+        return data
+
+    except Exception as e:
+        print(f"Error en recordings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get('/counts/export_recordings')
+async def export_recordings(username: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
+    """Exporta los registros de conteo a Excel."""
+    data = await get_cycle_count_recordings(username, db)
+    if not data:
+        return JSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
+    
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='RegistroConteos')
+    
+    output.seek(0)
+    return Response(
+        content=output.getvalue(),
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": "attachment; filename=registro_conteos.xlsx"}
+    )

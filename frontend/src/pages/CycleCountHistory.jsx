@@ -177,7 +177,7 @@ const CycleCountHistory = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {visibleRecordings.map((rec, idx) => (
-                                <tr key={rec.id} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                                <tr key={`rec-${rec.id || idx}`} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                                     <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{rec.stockroom}</td>
                                     <td className="px-3 py-2 whitespace-nowrap">
                                         <span className="text-[#285f94] font-medium hover:underline cursor-pointer">{rec.item_code}</span>
