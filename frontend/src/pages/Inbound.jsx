@@ -306,35 +306,39 @@ const Inbound = () => {
                         width: 70mm; height: 100mm; 
                         box-sizing: border-box;
                         padding: 3.5mm; 
-                        position: relative;
                         background: white;
+                        display: flex;
+                        flex-direction: column;
                     }
                     .label-logo { 
-                        height: 7mm; 
-                        display: block; 
-                        margin-bottom: 3.5mm; 
+                        height: 7mm;
+                        display: block;
+                        margin-bottom: 3.5mm;
+                        flex-shrink: 0;
                     }
                     
                     /* Header */
                     .label-item-code {
                         font-size: 12pt; font-weight: bold; margin-bottom: 0;
                         line-height: 1.2; color: #000;
+                        word-break: break-word;
                     }
                     .label-item-description {
-                        font-size: 12pt; font-weight: bold; margin-bottom: 18mm;
+                        font-size: 12pt; font-weight: bold; margin-bottom: 2mm;
                         line-height: 1.2; color: #000;
+                        word-break: break-word;
+                        flex-grow: 1;
                     }
 
                     /* Data Table */
                     .label-data-table {
                         font-size: 9pt;
                         line-height: 1.4;
-                        margin-bottom: 9mm;
+                        flex-shrink: 0;
                     }
                     .label-row {
                         display: grid;
                         grid-template-columns: 28mm 1fr;
-                        /* gap: 2mm; */
                     }
                     .label-label {
                          font-weight: normal; color: #000;
@@ -345,13 +349,11 @@ const Inbound = () => {
                     
                     /* Footer */
                     .label-footer { 
-                        position: absolute; 
-                        bottom: 3.5mm; 
-                        left: 3.5mm; 
-                        right: 3.5mm;
                         display: flex; 
                         align-items: flex-end; 
-                        justify-content: space-between; 
+                        justify-content: space-between;
+                        margin-top: 2mm;
+                        flex-shrink: 0;
                     }
                     
                     .label-disclaimer { 
@@ -367,7 +369,8 @@ const Inbound = () => {
                         height: 25mm; 
                         display: flex; 
                         justify-content: center; 
-                        align-items: center; 
+                        align-items: center;
+                        flex-shrink: 0;
                     }
                     #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
                 </style>
@@ -403,9 +406,7 @@ const Inbound = () => {
 
                     <!-- Footer -->
                     <div class="label-footer">
-                        <div style="display:flex; flex-direction:column; justify-content:flex-end; height: 25mm;">
-                             <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
-                        </div>
+                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
                      
                         <div id="qrCodeContainer">
                             ${qrImage ? `<img src="${qrImage}" />` : ''}
@@ -587,19 +588,20 @@ const Inbound = () => {
                                     boxSizing: 'border-box',
                                     background: 'white',
                                     border: '1px solid #ccc',
-                                    position: 'relative',
                                     fontFamily: 'Arial, sans-serif',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column'
                                 }}>
                                     {/* Logo */}
-                                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm' }} />
+                                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
 
                                     {/* Header */}
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2 }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, marginBottom: '18mm' }}>{itemData?.description || 'Description'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', flexGrow: 1, marginBottom: '2mm' }}>{itemData?.description || 'Description'}</div>
 
                                     {/* Data Table */}
-                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, marginBottom: '9mm' }}>
+                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0 }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                                             <div>Quantity/pack</div>
                                             <div>{quantity || 1} EA</div>
@@ -619,13 +621,11 @@ const Inbound = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div style={{ position: 'absolute', bottom: '3.5mm', left: '3.5mm', right: '3.5mm', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '25mm' }}>
-                                            <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
-                                                All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                            </p>
-                                        </div>
-                                        <div style={{ width: '25mm', height: '25mm' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0 }}>
+                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
+                                            All trademarks and logotypes appearing on this label are owned by Sandvik Group
+                                        </p>
+                                        <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
                                             {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
                                         </div>
                                     </div>
