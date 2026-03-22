@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-import pandas as pd
+import polars as pl
 import os
 import shutil
 import json
@@ -59,7 +59,6 @@ async def process_po_extractor_logic(file_path: str):
     from app.core.config import PO_LOOKUP_JSON_PATH
     import datetime
     import json
-    import pandas as pd
     import numpy as np
 
     def np_encoder(obj):
@@ -70,34 +69,40 @@ async def process_po_extractor_logic(file_path: str):
     try:
         # Leer columnas necesarias del Excel
         cols_to_use = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
-        df_po = pd.read_excel(file_path, usecols=cols_to_use, dtype=str)
+        
+        try:
+            df_po_raw = pl.read_excel(file_path, columns=cols_to_use)
+        except Exception:
+            df_po_raw = pl.read_excel(file_path).select(cols_to_use)
+        
+        df_po = df_po_raw.select(pl.all().cast(pl.Utf8)).fill_null("")
         
         # LIMPIEZA CRÍTICA
-        df_po = df_po.fillna("")
-        df_po = df_po.dropna(subset=["Waybill", "Import Ref Code"])
+        df_po = df_po.filter((pl.col("Waybill") != "") & (pl.col("Import Ref Code") != ""))
         
         # Normalizar datos
-        df_po["Waybill"] = df_po["Waybill"].astype(str).str.strip().str.upper()
-        df_po["Import Ref Code"] = df_po["Import Ref Code"].astype(str).str.strip().str.upper()
-        df_po["Item Code"] = df_po["Item Code"].astype(str).str.strip().str.upper()
-        df_po["GRN Number"] = df_po["GRN Number"].astype(str).str.replace("/", ",", regex=False).str.strip()
+        df_po = df_po.with_columns([
+            pl.col("Waybill").str.strip_chars().str.to_uppercase(),
+            pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
+            pl.col("Item Code").str.strip_chars().str.to_uppercase(),
+            pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars()
+        ])
 
         wb_lookup = {}
         ir_lookup = {}
 
-        df_po = df_po[(df_po["Waybill"] != "") & (df_po["Import Ref Code"] != "")]
-
-        for wb, group in df_po.groupby("Waybill"):
-            first_row = group.iloc[0]
+        for wb, group in df_po.group_by("Waybill"):
+            wb_str = str(wb[0]) if isinstance(wb, tuple) else str(wb)
+            first_row = group.row(0, named=True)
             items_list = []
-            for _, row in group.iterrows():
+            for row in group.iter_rows(named=True):
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
                     "grn": row["GRN Number"]
                 })
             
-            wb_lookup[wb] = {
+            wb_lookup[wb_str] = {
                 "import_ref": first_row["Import Ref Code"],
                 "items": items_list
             }
@@ -235,24 +240,25 @@ async def update_files_post(
             if auto_snap:
                 message += f"Snapshot de seguridad generado: {auto_snap}. "
 
-            new_data_df = pd.read_csv(grn_file.file, dtype=str)
+            grn_bytes = grn_file.file.read()
+            new_data_df = pl.read_csv(grn_bytes, infer_schema_length=0)
             
             if selected_grns_280:
                 try:
                     selected_list = json.loads(selected_grns_280)
                     if selected_list:
-                        new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
+                        new_data_df = new_data_df.filter(pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(selected_list))
                 except: pass
 
             if update_option_280 == 'combine' and os.path.exists(GRN_CSV_FILE_PATH):
-                existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
-                new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
-                existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
-                combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
-                combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                existing_data_df = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0)
+                new_grns = new_data_df.get_column(GRN_COLUMN_NAME_IN_CSV).unique()
+                existing_data_df = existing_data_df.filter(~pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(new_grns))
+                combined_df = pl.concat([existing_data_df, new_data_df], how="vertical")
+                combined_df.write_csv(GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" combinado. '
             else:
-                new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+                new_data_df.write_csv(GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" reemplazado. '
             files_uploaded = True
         except Exception as e:
@@ -280,9 +286,9 @@ async def update_files_post(
     # Manejo del archivo Excel de GRN (Inbound) -> Convertir a JSON
     if grn_excel and grn_excel.filename:
         try:
-            excel_df = pd.read_excel(grn_excel.file)
-            excel_df = excel_df.replace({np.nan: None})
-            data_list = excel_df.to_dict(orient='records')
+            excel_bytes = grn_excel.file.read()
+            excel_df = pl.read_excel(excel_bytes)
+            data_list = excel_df.to_dicts()
             with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
                 json.dump(data_list, f, indent=4, default=np_encoder)
             message += f'Archivo Excel "{grn_excel.filename}" procesado. '
@@ -332,10 +338,10 @@ async def reload_cache_api(username: str = Depends(login_required)):
 async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(login_required)):
     try:
         contents = await file.read()
-        df = pd.read_csv(BytesIO(contents), dtype=str, keep_default_na=True)
+        df = pl.read_csv(contents, infer_schema_length=0)
         if GRN_COLUMN_NAME_IN_CSV not in df.columns:
             return JSONResponse(status_code=400, content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"})
-        grns = sorted(df[GRN_COLUMN_NAME_IN_CSV].dropna().unique().tolist())
+        grns = sorted(df.get_column(GRN_COLUMN_NAME_IN_CSV).drop_nulls().unique().to_list())
         return JSONResponse(content={"grns": grns})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})

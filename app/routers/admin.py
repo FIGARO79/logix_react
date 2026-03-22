@@ -21,7 +21,7 @@ from app.services.csv_handler import load_csv_data
 from app.core.limiter import limiter
 import json
 import os
-import pandas as pd
+
 import datetime
 from io import BytesIO
 
@@ -129,16 +129,23 @@ async def get_slotting_template(admin: str = Depends(permission_required("invent
 @router.post("/slotting-upload")
 async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depends(permission_required("inventory"))):
     try:
-        df = pd.read_excel(BytesIO(await file.read()))
+        import polars as pl
+        file_bytes = await file.read()
+        df = pl.read_excel(file_bytes)
         new_storage = {}
-        for _, r in df.iterrows():
-            b = str(r.get("BIN", "")).strip().upper()
-            if b and b.lower() != "nan":
+        for r in df.iter_rows(named=True):
+            b = str(r.get("BIN", "") or "").strip().upper()
+            if b and b.lower() != "nan" and b.lower() != "none" and b != "":
+                val_nivel = r.get("NIVEL")
+                try:
+                    nivel = int(val_nivel) if val_nivel is not None else 0
+                except:
+                    nivel = 0
                 new_storage[b] = {
-                    "zone": str(r.get("ZONA", "")), 
-                    "aisle": str(r.get("PASILLO", "")), 
-                    "level": int(r.get("NIVEL", 0)) if pd.notna(r.get("NIVEL", pd.NA)) else 0, 
-                    "spot": str(r.get("SPOT", ""))
+                    "zone": str(r.get("ZONA", "") or ""), 
+                    "aisle": str(r.get("PASILLO", "") or ""), 
+                    "level": nivel, 
+                    "spot": str(r.get("SPOT", "") or "")
                 }
         
         if os.path.exists(SLOTTING_PARAMS_PATH):

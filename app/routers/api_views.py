@@ -8,7 +8,7 @@ from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
 from app.core.config import ASYNC_DB_URL
 from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
-import pandas as pd
+
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 

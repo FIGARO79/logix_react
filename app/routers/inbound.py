@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import json
 import os
-import pandas as pd
+
 import gc
 from app.core.config import PO_LOOKUP_JSON_PATH, PO_EXTRACTOR_EXCEL_PATH
 
@@ -53,22 +53,29 @@ async def lookup_reference(
         return result
 
     try:
+        import polars as pl
         cols = ["Waybill", "Import Ref Code"]
-        df = pd.read_excel(file_path, usecols=cols, dtype=str)
-        df = df.fillna("")
-        df["Waybill"] = df["Waybill"].str.strip().str.upper()
-        df["Import Ref Code"] = df["Import Ref Code"].str.strip().str.upper()
+        try:
+            df = pl.read_excel(file_path, columns=cols).cast(pl.Utf8)
+        except Exception as read_e:
+            df = pl.read_excel(file_path).select(cols).cast(pl.Utf8)
+            
+        df = df.fill_null("")
+        df = df.with_columns([
+            pl.col("Waybill").str.strip_chars().str.to_uppercase(),
+            pl.col("Import Ref Code").str.strip_chars().str.to_uppercase()
+        ])
 
         if waybill:
             val = waybill.strip().upper()
-            match = df[df["Waybill"] == val]
-            if not match.empty:
-                result["import_ref"] = match.iloc[0]["Import Ref Code"]
+            match = df.filter(pl.col("Waybill") == val)
+            if match.height > 0:
+                result["import_ref"] = match[0, "Import Ref Code"]
         elif import_ref:
             val = import_ref.strip().upper()
-            match = df[df["Import Ref Code"] == val]
-            if not match.empty:
-                result["waybill"] = match.iloc[0]["Waybill"]
+            match = df.filter(pl.col("Import Ref Code") == val)
+            if match.height > 0:
+                result["waybill"] = match[0, "Waybill"]
         
         del df
         gc.collect()

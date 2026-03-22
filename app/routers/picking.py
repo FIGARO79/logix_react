@@ -3,7 +3,7 @@ Router para endpoints de picking.
 """
 import os
 import datetime
-import pandas as pd
+import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,31 +23,33 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
         if not os.path.exists(PICKING_CSV_PATH):
             raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
 
-        df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
+        df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
         required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER", "CUSTOMER_NAME", "ORDER_LINE"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
         # Limpiar espacios en blanco en columnas clave y comas de miles en QTY
-        df["ORDER_"] = df["ORDER_"].astype(str).str.strip()
-        df["DESPATCH_"] = df["DESPATCH_"].astype(str).str.strip()
+        df = df.with_columns([
+            pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
+            pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars()
+        ])
         if "QTY" in df.columns:
-            df["QTY"] = df["QTY"].astype(str).str.replace(',', '', regex=False)
+            df = df.with_columns(pl.col("QTY").cast(pl.Utf8).str.replace_all(',', ''))
 
         # Limpiar inputs
         order_number_clean = str(order_number).strip()
         despatch_number_clean = str(despatch_number).strip()
 
-        order_data = df[
-            (df["ORDER_"] == order_number_clean) & 
-            (df["DESPATCH_"] == despatch_number_clean)
-        ]
+        order_data = df.filter(
+            (pl.col("ORDER_") == order_number_clean) & 
+            (pl.col("DESPATCH_") == despatch_number_clean)
+        )
 
-        if order_data.empty:
+        if order_data.height == 0:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
 
-        order_data = order_data.rename(columns={
+        order_data = order_data.rename({
             "ORDER_": "Order Number",
             "DESPATCH_": "Despatch Number",
             "ITEM": "Item Code",
@@ -58,9 +60,9 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
             "ORDER_LINE": "Order Line"
         })
 
-        order_data = order_data.fillna("")
+        order_data = order_data.fill_null("")
         
-        return JSONResponse(content=order_data.to_dict(orient="records"))
+        return JSONResponse(content=order_data.to_dicts())
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -75,37 +77,30 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
             raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
 
         # Leer CSV
-        df = pd.read_csv(PICKING_CSV_PATH, dtype=str)
+        df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
         required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
 
-        # Función auxiliar: primer valor no vacío del grupo
-        def first_nonempty(series):
-            for val in series:
-                if pd.notna(val) and str(val).strip() != "":
-                    return str(val).strip()
-            return None
-
         # Limpiar datos clave antes de agrupar
-        df["ORDER_"] = df["ORDER_"].astype(str).str.strip()
-        df["DESPATCH_"] = df["DESPATCH_"].astype(str).str.strip()
+        df = df.with_columns([
+            pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
+            pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
+            pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars(),
+            pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars()
+        ])
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
-        grouped = df.groupby(["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME"], as_index=False).agg(
-            total_lines=("ORDER_", "size"),
-            print_time=("PICK_LIST_PRINTED_TIME", first_nonempty),
-            time_zone=("Time_Zone_Hours", first_nonempty),
-        )
-
-        # Obtener fecha de modificación del archivo como respaldo
-        # file_mod_time = os.path.getmtime(picking_file_path)
-        # fallback_date = datetime.datetime.fromtimestamp(file_mod_time).strftime("%Y-%m-%d %H:%M")
+        grouped = df.group_by(["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME"]).agg([
+            pl.col("ORDER_").len().alias("total_lines"),
+            pl.col("PICK_LIST_PRINTED_TIME").filter(pl.col("PICK_LIST_PRINTED_TIME") != "").first().alias("print_time"),
+            pl.col("Time_Zone_Hours").filter(pl.col("Time_Zone_Hours") != "").first().alias("time_zone")
+        ])
 
         def format_local_print_time(raw_time: str, tz_value: str) -> str:
             """Devuelve la hora local del CSV formateada; si no existe, devuelve vacío."""
-            if pd.isna(raw_time) or str(raw_time).strip() == "":
+            if raw_time is None or str(raw_time).strip() == "":
                 return "" # No mostrar fecha si no hay dato en el CSV
 
             raw_time_str = str(raw_time).strip()
@@ -122,7 +117,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
                 return raw_time_str # Devolver valor crudo para diagnóstico si falla parseo
 
             tzinfo = None
-            tz_str = "" if pd.isna(tz_value) else str(tz_value).strip()
+            tz_str = "" if tz_value is None else str(tz_value).strip()
             if tz_str:
                 # Time_Zone_Hours viene en formato +/-HH:MM (ej: -6:00)
                 sign = -1 if tz_str.startswith("-") else 1
@@ -147,7 +142,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
 
         # Construir respuesta
         tracking_data = []
-        for _, row in grouped.iterrows():
+        for row in grouped.iter_rows(named=True):
             order_num = str(row["ORDER_"]).strip()
             despatch_num = str(row["DESPATCH_"]).strip()
             

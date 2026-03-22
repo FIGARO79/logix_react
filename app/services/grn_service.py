@@ -32,9 +32,7 @@ async def seed_grn_from_excel(db: AsyncSession):
     if df is None and os.path.exists(GRN_EXCEL_PATH):
         try:
             print(f"📗 [POLARS] Cargando GRN desde Excel: {GRN_EXCEL_PATH}", flush=True)
-            import pandas as pd
-            pdf = pd.read_excel(GRN_EXCEL_PATH)
-            df = pl.from_pandas(pdf)
+            df = pl.read_excel(GRN_EXCEL_PATH)
         except Exception as e:
             print(f"❌ Error leyendo Excel GRN: {e}")
             return {"error": f"Error leyendo Excel: {e}", "count": 0}

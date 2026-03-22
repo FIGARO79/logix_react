@@ -2,7 +2,7 @@
 Router para endpoints de logs (inbound).
 """
 import datetime
-import pandas as pd
+
 import os
 import json
 from io import BytesIO

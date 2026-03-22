@@ -2,7 +2,7 @@
 Router para endpoints de gestión de inventario y conteos administrativos.
 """
 import datetime
-import pandas as pd
+
 from io import BytesIO
 from urllib.parse import urlencode
 from typing import Optional, Dict, Any, Union
