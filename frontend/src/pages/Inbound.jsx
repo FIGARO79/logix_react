@@ -442,15 +442,15 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label className="form-label">Import Reference</label>
-                                    <input type="text" value={importRef} 
-                                        onChange={e => setImportRef(e.target.value.toUpperCase())} 
+                                    <input type="text" value={importRef}
+                                        onChange={e => setImportRef(e.target.value.toUpperCase())}
                                         onBlur={e => handleLookupReference('import_ref', e.target.value)}
                                         placeholder="I.R." required disabled={!!editId} />
                                 </div>
                                 <div>
                                     <label className="form-label">Waybill</label>
-                                    <input type="text" value={waybill} 
-                                        onChange={e => setWaybill(e.target.value.toUpperCase())} 
+                                    <input type="text" value={waybill}
+                                        onChange={e => setWaybill(e.target.value.toUpperCase())}
                                         onBlur={e => handleLookupReference('waybill', e.target.value)}
                                         placeholder="W.B." required />
                                 </div>
@@ -483,18 +483,26 @@ const Inbound = () => {
                                 <div>
                                     <label className="form-label">Qty Received</label>
                                     <input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" />
-                                    
-                                    {/* Sugerencia de Cross-Docking (Xdock) - Ahora debajo de Cantidad */}
-                                    {itemData?.xdockQty > 0 && (
+
+                                    {/* Sugerencia de Cross-Docking (Xdock) - Con Desglose de Saldo */}
+                                    {itemData?.xdockTotal > 0 && (
                                         <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-bold uppercase text-red-700">⚠️ Cross-Docking (Xdock)</span>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">Cross-Docking (Xdock)</span>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span className="text-sm font-mono font-bold text-red-800">{itemData.xdockQty} UNIDADES</span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex justify-between items-center text-[12px] uppercase font-bold text-gray-500">
+                                                    <span>Total Reservado:</span>
+                                                    <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[12px] uppercase font-bold">
+                                                    <span className={itemData.xdockPending > 0 ? "text-red-600" : "text-emerald-600"}>
+                                                        {itemData.xdockPending > 0 ? "Pendiente Separar:" : "Reserva Completada:"}
+                                                    </span>
+                                                    <span className={`font-mono text-sm ${itemData.xdockPending > 0 ? "text-red-800" : "text-emerald-700"}`}>
+                                                        {itemData.xdockPending > 0 ? `${itemData.xdockPending} UNIDADES` : "✅ OK"}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -507,9 +515,9 @@ const Inbound = () => {
                                     <label className="form-label">Relocate (New)</label>
                                     <div className="flex flex-col gap-2">
                                         <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
-                                        
+
                                         {itemData?.suggestedBin && (
-                                            <div 
+                                            <div
                                                 className="bg-emerald-50 border border-emerald-200 rounded p-2 cursor-pointer hover:bg-emerald-100 transition-colors"
                                                 onClick={() => setRelocatedBin(itemData.suggestedBin)}
                                                 title="Haz clic para usar esta ubicación"

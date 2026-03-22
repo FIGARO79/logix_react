@@ -165,6 +165,20 @@ async def get_total_received_for_import_reference_async(db: AsyncSession, import
         return 0
 
 
+async def get_total_received_for_item_async(db: AsyncSession, item_code: str) -> int:
+    """Obtiene el total recibido para un item específico en los logs activos (no archivados)."""
+    try:
+        stmt = select(func.sum(Log.qtyReceived)).where(
+            Log.itemCode == item_code,
+            Log.archived_at.is_(None)
+        )
+        result = await db.execute(stmt)
+        total = result.scalar()
+        return int(total) if total is not None else 0
+    except Exception as e:
+        print(f"Error calculando total recibido para {item_code}: {e}")
+        return 0
+
 async def delete_log_entry_db_async(db: AsyncSession, log_id: int) -> bool:
     """Elimina una entrada de log."""
     try:

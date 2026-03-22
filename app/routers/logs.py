@@ -81,7 +81,11 @@ async def find_item(
         is_ai_prediction = False
 
     # 4. Información de Cross-Docking (Xdock)
-    xdock_quantity = await csv_handler.get_xdock_info(item_code)
+    total_reserved = await csv_handler.get_xdock_info(item_code)
+    already_received = await db_logs.get_total_received_for_item_async(db, item_code)
+    
+    # El saldo de Xdock es lo reservado menos lo que ya entró en esta sesión
+    xdock_pending = max(0, total_reserved - already_received)
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
@@ -89,7 +93,8 @@ async def find_item(
         "binLocation": effective_bin_location,
         "suggestedBin": final_suggested_bin,
         "is_ai_prediction": is_ai_prediction,
-        "xdockQty": xdock_quantity,
+        "xdockTotal": total_reserved,
+        "xdockPending": xdock_pending,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
