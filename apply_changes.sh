@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: /home/debian/logix)
+# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: /home/debian/logix_cl)
 # ==============================================================================
 # Ejecuta este script después de hacer cambios en el código para aplicarlos.
 # Uso: ./apply_changes.sh
@@ -65,5 +65,5 @@ echo ""
 echo "========================================================"
 echo "✅ ACTUALIZACIÓN COMPLETADA EN EL ENTORNO UNIFICADO"
 echo "========================================================"
-echo "Los cambios están activos en /home/debian/logix"
+echo "Los cambios están activos en /home/debian/logix_cl"
 echo "Refresca tu navegador para ver los cambios."

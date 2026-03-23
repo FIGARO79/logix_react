@@ -74,7 +74,7 @@ app.add_middleware(
 )
 
 # --- Middlewares de seguridad ---
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "localhost", "127.0.0.1"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "logixapp.online", "localhost", "127.0.0.1"])
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(
