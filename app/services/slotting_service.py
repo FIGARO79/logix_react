@@ -1,6 +1,6 @@
 import json
 import os
-import pandas as pd
+
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_

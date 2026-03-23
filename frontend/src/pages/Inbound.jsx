@@ -488,10 +488,10 @@ const Inbound = () => {
                                     {itemData?.xdockPending > 0 && (
                                         <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">⚠️ Cross-Docking (Xdock)</span>
+                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">Cross-Docking (Xdock)</span>
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="flex justify-between items-center text-[9px] uppercase font-bold text-gray-500">
+                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-gray-500">
                                                     <span>Total Reservado:</span>
                                                     <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
                                                 </div>

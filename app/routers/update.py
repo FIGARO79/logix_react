@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-import pandas as pd
+import polars as pl
 import os
 import shutil
 import json
@@ -21,10 +21,11 @@ from app.core.config import (
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
-    GRN_COLUMN_NAME_IN_CSV
+    RESERVATION_CSV_PATH,
+    GRN_COLUMN_NAME_IN_CSV,
+    ADMIN_PASSWORD
 )
 from app.services.csv_handler import load_csv_data
-from app.services.csv_to_db import sync_master_csv_to_db # [NUEVO] Sincronización a MySQL
 from app.utils.auth import login_required
 from app.core.templates import templates
 
@@ -58,7 +59,6 @@ async def process_po_extractor_logic(file_path: str):
     from app.core.config import PO_LOOKUP_JSON_PATH
     import datetime
     import json
-    import pandas as pd
     import numpy as np
 
     def np_encoder(obj):
@@ -67,58 +67,103 @@ async def process_po_extractor_logic(file_path: str):
         return str(obj)
 
     try:
-        # Leer columnas necesarias del Excel
-        cols_to_use = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
-        df_po = pd.read_excel(file_path, usecols=cols_to_use, dtype=str)
+        # Definir columnas base y opcionales
+        base_cols = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
+        opt_col = "Customer Reference"
+        
+        # Leer todo el Excel primero para verificar columnas
+        df_full = pl.read_excel(file_path)
+        
+        # Filtrar columnas disponibles
+        available_cols = [c for c in base_cols if c in df_full.columns]
+        missing_base = [c for c in base_cols if c not in df_full.columns]
+        
+        if missing_base:
+            return False, f"Faltan columnas obligatorias: {missing_base}"
+            
+        # Extraer datos base
+        df_po = df_full.select(available_cols).select(pl.all().cast(pl.Utf8)).fill_null("")
+        
+        # Manejar columna opcional "Customer Reference"
+        if opt_col in df_full.columns:
+            df_po = df_po.with_columns(df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col))
+        else:
+            print(f"⚠️ Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
+            df_po = df_po.with_columns(pl.lit("").alias(opt_col))
         
         # LIMPIEZA CRÍTICA
-        df_po = df_po.fillna("")
-        df_po = df_po.dropna(subset=["Waybill", "Import Ref Code"])
+        df_po = df_po.filter((pl.col("Waybill") != "") & (pl.col("Import Ref Code") != ""))
         
         # Normalizar datos
-        df_po["Waybill"] = df_po["Waybill"].astype(str).str.strip().str.upper()
-        df_po["Import Ref Code"] = df_po["Import Ref Code"].astype(str).str.strip().str.upper()
-        df_po["Item Code"] = df_po["Item Code"].astype(str).str.strip().str.upper()
-        df_po["GRN Number"] = df_po["GRN Number"].astype(str).str.replace("/", ",", regex=False).str.strip()
+        df_po = df_po.with_columns([
+            pl.col("Waybill").str.strip_chars().str.to_uppercase(),
+            pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
+            pl.col("Item Code").str.strip_chars().str.to_uppercase(),
+            pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
+            pl.col(opt_col).str.strip_chars().str.to_uppercase()
+        ])
 
         wb_lookup = {}
         ir_lookup = {}
+        customer_ref_to_grn = {} # Mapeo: Customer Reference -> {grns, ir, waybill}
 
-        df_po = df_po[(df_po["Waybill"] != "") & (df_po["Import Ref Code"] != "")]
-
-        for wb, group in df_po.groupby("Waybill"):
-            first_row = group.iloc[0]
+        # Procesar agrupado por Waybill
+        for wb, group in df_po.group_by("Waybill"):
+            wb_str = str(wb[0]) if isinstance(wb, tuple) else str(wb)
+            first_row = group.row(0, named=True)
             items_list = []
-            for _, row in group.iterrows():
+            for row in group.iter_rows(named=True):
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"]
+                    "grn": row["GRN Number"],
+                    "customer_ref": row[opt_col]
                 })
             
-            wb_lookup[wb] = {
+            wb_lookup[wb_str] = {
                 "import_ref": first_row["Import Ref Code"],
                 "items": items_list
             }
 
-        for ir, group in df_po.groupby("Import Ref Code"):
-            first_row = group.iloc[0]
+        # Generar mapeos basados en I.R. y Customer Reference
+        for ir, group in df_po.group_by("Import Ref Code"):
+            ir_str = str(ir[0]) if isinstance(ir, tuple) else str(ir)
+            first_row = group.row(0, named=True)
             items_list = []
-            for _, row in group.iterrows():
+            for row in group.iter_rows(named=True):
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"]
+                    "grn": row["GRN Number"],
+                    "customer_ref": row[opt_col]
                 })
+                
+                # Mapeo por Customer Reference (solo si existe)
+                cust_ref = row[opt_col]
+                if cust_ref:
+                    if cust_ref not in customer_ref_to_grn:
+                        customer_ref_to_grn[cust_ref] = {
+                            "import_ref": ir_str,
+                            "waybill": row["Waybill"],
+                            "grns": set()
+                        }
+                    if row["GRN Number"]:
+                        grns_in_row = set(g.strip().upper() for g in row["GRN Number"].split(',') if g.strip())
+                        customer_ref_to_grn[cust_ref]["grns"].update(grns_in_row)
             
-            ir_lookup[ir] = {
+            ir_lookup[ir_str] = {
                 "waybill": first_row["Waybill"],
                 "items": items_list
             }
         
+        # Convertir sets a listas para JSON
+        for ref in customer_ref_to_grn:
+            customer_ref_to_grn[ref]["grns"] = list(customer_ref_to_grn[ref]["grns"])
+
         lookup_data = {
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
+            "customer_ref_to_data": customer_ref_to_grn,
             "updated_at": datetime.datetime.now().isoformat()
         }
         
@@ -161,10 +206,9 @@ async def run_po_robot_api(
         
         from app.services.po_robot import run_po_robot
         from app.core.config import PO_EXTRACTOR_EXCEL_PATH
-        from starlette.concurrency import run_in_threadpool
         
-        # 1. Ejecutar descarga de forma segura en un hilo aparte
-        success, msg = await run_in_threadpool(run_po_robot, payload.start_date, payload.end_date)
+        # 1. Ejecutar descarga de forma asíncrona nativa
+        success, msg = await run_po_robot(payload.start_date, payload.end_date)
         if not success:
             po_robot_status["status"] = "error"
             po_robot_status["message"] = f"Error en Robot: {msg}"
@@ -193,6 +237,8 @@ async def run_po_robot_api(
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+    # Log para depuración
+    print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
     return JSONResponse(content=po_robot_status)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
@@ -203,6 +249,7 @@ async def update_files_post(
     item_master: UploadFile = File(None),
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
+    reservation_file: UploadFile = File(None), # Nuevo campo para Reservas (Xdock)
     grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
     po_extractor: UploadFile = File(None), # Nuevo campo para Purchase Order Extractor
     update_option_280: str = Form(None),
@@ -219,7 +266,6 @@ async def update_files_post(
 
     # Manejo del maestro de items
     if item_master and item_master.filename:
-        # Permitir cualquier nombre, confiamos en la clasificación del frontend
         with open(ITEM_MASTER_CSV_PATH, "wb") as buffer:
             shutil.copyfileobj(item_master.file, buffer)
         message += f'Archivo "{item_master.filename}" actualizado (Maestro). '
@@ -228,53 +274,46 @@ async def update_files_post(
     # Manejo del archivo GRN (280)
     if grn_file and grn_file.filename:
         try:
-            # [NUEVO] Generar Snapshot Automático ANTES de tocar los archivos
             from app.services import reconciliation_service
             auto_snap = await reconciliation_service.auto_snapshot_before_update(db, username)
             if auto_snap:
                 message += f"Snapshot de seguridad generado: {auto_snap}. "
 
-            new_data_df = pd.read_csv(grn_file.file, dtype=str)
+            grn_bytes = grn_file.file.read()
+            new_data_df = pl.read_csv(grn_bytes, infer_schema_length=0)
             
             if selected_grns_280:
                 try:
                     selected_list = json.loads(selected_grns_280)
                     if selected_list:
-                        original_count = len(new_data_df)
-                        new_data_df = new_data_df[new_data_df[GRN_COLUMN_NAME_IN_CSV].isin(selected_list)]
-                        message += f"Filtrado: {len(new_data_df)} registros de {original_count}. "
-                except json.JSONDecodeError:
-                    pass
+                        new_data_df = new_data_df.filter(pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(selected_list))
+                except: pass
 
-            if update_option_280 == 'combine':
-                if os.path.exists(GRN_CSV_FILE_PATH):
-                    existing_data_df = pd.read_csv(GRN_CSV_FILE_PATH, dtype=str)
-                    
-                    # Obtener las GRNs que vienen en el archivo nuevo
-                    new_grns = new_data_df[GRN_COLUMN_NAME_IN_CSV].unique()
-                    
-                    # Eliminar del archivo existente todas las líneas de las GRNs que vienen en el nuevo archivo
-                    # Esto permite actualizar GRNs completas manteniendo todas sus líneas (incluyendo duplicados)
-                    existing_data_df = existing_data_df[~existing_data_df[GRN_COLUMN_NAME_IN_CSV].isin(new_grns)]
-                    
-                    # Combinar: mantener las GRNs que no están en el nuevo archivo + todas las líneas del nuevo archivo
-                    combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
-                else:
-                    combined_df = new_data_df
-
-                combined_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+            if update_option_280 == 'combine' and os.path.exists(GRN_CSV_FILE_PATH):
+                existing_data_df = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0)
+                new_grns = new_data_df.get_column(GRN_COLUMN_NAME_IN_CSV).unique()
+                existing_data_df = existing_data_df.filter(~pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(new_grns))
+                combined_df = pl.concat([existing_data_df, new_data_df], how="vertical")
+                combined_df.write_csv(GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" combinado. '
-            
-            else:  # 'replace'
-                new_data_df.to_csv(GRN_CSV_FILE_PATH, index=False)
+            else:
+                new_data_df.write_csv(GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" reemplazado. '
-            
             files_uploaded = True
         except Exception as e:
-            import traceback
-            print(f"ERROR procesando archivo GRN: {str(e)}")
-            print(traceback.format_exc())
-            error += f'Error procesando archivo GRN: {str(e)}. '
+            error += f'Error procesando GRN: {str(e)}. '
+
+    # Manejo del archivo de Reservas (AURRSLAMP0006)
+    if reservation_file and reservation_file.filename:
+        with open(RESERVATION_CSV_PATH, "wb") as buffer:
+            shutil.copyfileobj(reservation_file.file, buffer)
+        
+        # [NUEVO] Generar caché rápido de Xdock en segundo plano
+        from app.services.csv_handler import generate_reservation_cache
+        background_tasks.add_task(generate_reservation_cache)
+        
+        message += f'Archivo "{reservation_file.filename}" actualizado (Xdock). '
+        files_uploaded = True
 
     # Manejo del archivo de picking (240)
     if picking_file and picking_file.filename:
@@ -286,40 +325,21 @@ async def update_files_post(
     # Manejo del archivo Excel de GRN (Inbound) -> Convertir a JSON
     if grn_excel and grn_excel.filename:
         try:
-            from app.core.config import GRN_JSON_DATA_PATH
-            # Leer el Excel directamente desde el stream
-            excel_df = pd.read_excel(grn_excel.file)
-            # Reemplazar NaN por None para JSON valid
-            excel_df = excel_df.replace({np.nan: None})
-            
-            # Convertir a lista de diccionarios
-            data_list = excel_df.to_dict(orient='records')
-            
-            # Guardar como JSON persistente
+            excel_bytes = grn_excel.file.read()
+            excel_df = pl.read_excel(excel_bytes)
+            data_list = excel_df.to_dicts()
             with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
                 json.dump(data_list, f, indent=4, default=np_encoder)
-            
-            # [NUEVO] Eliminar el Excel original si existe para mantener el flujo limpio
-            from app.core.config import GRN_EXCEL_PATH
-            if os.path.exists(GRN_EXCEL_PATH):
-                os.remove(GRN_EXCEL_PATH)
-                print(f"🗑️ Archivo Excel original eliminado: {GRN_EXCEL_PATH}")
-
-            message += f'Archivo Excel "{grn_excel.filename}" procesado, convertido a JSON y original eliminado. '
+            message += f'Archivo Excel "{grn_excel.filename}" procesado. '
             files_uploaded = True
-
-            # Trigger sync to DB as well
             from app.services.grn_service import seed_grn_from_excel
             from app.core.db import AsyncSessionLocal
-
             async def run_sync():
                 async with AsyncSessionLocal() as session:
                     await seed_grn_from_excel(session)
-
             background_tasks.add_task(run_sync)
         except Exception as e:
-            print(f"ERROR procesando Excel GRN: {str(e)}")
-            error += f'Error procesando Excel GRN: {str(e)}. '
+            error += f'Error Excel GRN: {str(e)}. '
 
     # Manejo del Purchase Order Extractor
     if po_extractor and po_extractor.filename:
@@ -328,40 +348,22 @@ async def update_files_post(
             po_path = PO_EXTRACTOR_EXCEL_PATH
             with open(po_path, "wb") as buffer:
                 shutil.copyfileobj(po_extractor.file, buffer)
-            
-            # --- USAR LA NUEVA LÓGICA REFACTORIZADA ---
             success, msg = await process_po_extractor_logic(po_path)
-            message += f"{msg} "
-            files_uploaded = True
+            if success:
+                message += f"{msg} "
+                files_uploaded = True
+            else:
+                error += f"Error PO Extractor: {msg}. "
         except Exception as e:
-            print(f"ERROR guardando Purchase Order Extractor: {str(e)}")
-            error += f'Error guardando Purchase Order Extractor: {str(e)}. '
+            error += f'Error PO Extractor (Crash): {str(e)}. '
 
     if files_uploaded:
-        # Procesar en segundo plano para no bloquear al usuario
         background_tasks.add_task(load_csv_data)
-        
-        # [NUEVO] Si se subió el maestro, sincronizar también la DB MySQL
-        if item_master and item_master.filename:
-            async def sync_task():
-                async with db: # Reusar sesión o crear una nueva si es necesario
-                    # Pero db es AsyncSession de la request, podría estar cerrada.
-                    # Mejor usar una nueva sesión de la factory.
-                    from app.core.db import AsyncSessionLocal
-                    async with AsyncSessionLocal() as session:
-                        await sync_master_csv_to_db(session)
-            
-            background_tasks.add_task(sync_task)
-
-        message += " Procesamiento de datos iniciado en segundo plano."
-
-    if not files_uploaded and not error:
-        error = "No seleccionaste ningún archivo para subir."
+        message += " Procesamiento en segundo plano iniciado."
 
     if error:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": error})
-    
-    return JSONResponse(content={"message": message})
+        return JSONResponse(status_code=400, content={"error": error})
+    return JSONResponse(content={"message": message or "No se subieron archivos."})
 
 
 @router.post('/api/reload_cache', response_class=JSONResponse)
@@ -378,198 +380,58 @@ async def reload_cache_api(username: str = Depends(login_required)):
 async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(login_required)):
     try:
         contents = await file.read()
-        df = pd.read_csv(BytesIO(contents), dtype=str, keep_default_na=True)
-        
+        df = pl.read_csv(contents, infer_schema_length=0)
         if GRN_COLUMN_NAME_IN_CSV not in df.columns:
-            return JSONResponse(
-                status_code=400, 
-                content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV} en el archivo."}
-            )
-        
-        grns = df[GRN_COLUMN_NAME_IN_CSV].dropna().unique().tolist()
-        grns.sort()
-        
+            return JSONResponse(status_code=400, content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"})
+        grns = sorted(df.get_column(GRN_COLUMN_NAME_IN_CSV).drop_nulls().unique().to_list())
         return JSONResponse(content={"grns": grns})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
 @router.post('/api/clear_database')
 async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    """API: Limpia la base de datos de logs (Zona de Peligro)."""
     if password != ADMIN_PASSWORD:
         return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
-    
-    try:
-        await db.execute(delete(Log))
-        await db.commit()
-        return JSONResponse(content={"message": "Base de datos de logs limpiada correctamente"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    await db.execute(delete(Log))
+    await db.commit()
+    return JSONResponse(content={"message": "Base de datos de logs limpiada"})
 
 @router.post('/clear_database')
 async def clear_database(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    # La URL de redirección debe ser construida correctamente
     redirect_url = request.url_for('update_files_get')
-
     if password != ADMIN_PASSWORD:
-        query_params = urlencode({'error': 'Contraseña incorrecta'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
-    
-    try:
-        await db.execute(delete(Log))
-        await db.commit()
-        
-        query_params = urlencode({'message': 'Base de datos de logs limpiada'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
-    
-    except Exception as e:
-        query_params = urlencode({'error': str(e)})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url=f"{redirect_url}?error=Contraseña+incorrecta", status_code=302)
+    await db.execute(delete(Log))
+    await db.commit()
+    return RedirectResponse(url=f"{redirect_url}?message=Base+de+datos+limpiada", status_code=302)
 
-
-# --- Endpoint para descargar TODO el log (Backup) ---
 @router.post('/api/export_all_log')
 async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    """API: Exporta TODOS los registros (activos y archivados)."""
     if password != ADMIN_PASSWORD:
          return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
-
     try:
         from app.services import db_logs
-        from openpyxl.utils import get_column_letter
-
-        # Reuse logic? Copied for safety and speed.
+        import polars as pl
+        import openpyxl
+        
         logs_data = await db_logs.load_all_logs_db_async(db)
+        if not logs_data: return JSONResponse(status_code=404, content={"error": "No hay datos"})
         
-        if not logs_data:
-             return JSONResponse(status_code=404, content={"error": "No hay datos para exportar backup"})
-
-        df = pd.DataFrame(logs_data)
-        try:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            if df['timestamp'].dt.tz is not None:
-                 colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-                 df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
-        except Exception:
-            pass
+        df = pl.DataFrame(logs_data)
+        col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}
+        available = {k: v for k, v in col_rename.items() if k in df.columns}
+        df_export = df.rename(available)
         
-        if 'archived_at' in df.columns:
-             df['archived_at'] = df['archived_at'].fillna('Activo')
-
-        df_export = df.rename(columns={
-            'timestamp': 'Timestamp', 'importReference': 'Import Reference', 'waybill': 'Waybill',
-            'itemCode': 'Item Code', 'itemDescription': 'Item Description',
-            'binLocation': 'Bin Location (Original)', 'relocatedBin': 'Relocated Bin (New)',
-            'qtyReceived': 'Qty. Received', 'qtyGrn': 'Qty. Expected (Total)', 'difference': 'Difference',
-            'archived_at': 'Estado / Fecha Archivo'
-        })
-        
-        cols = ['Timestamp', 'Import Reference', 'Waybill', 'Item Code', 'Item Description', 
-                'Bin Location (Original)', 'Relocated Bin (New)', 'Qty. Received', 
-                'Qty. Expected (Total)', 'Difference', 'Estado / Fecha Archivo']
-        cols = [c for c in cols if c in df_export.columns]
-        df_export = df_export[cols]
-
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(df_export.columns)
+        for row in df_export.iter_rows():
+            ws.append(list(row))
+            
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, index=False, sheet_name='BackupCompleto')
-            worksheet = writer.sheets['BackupCompleto']
-            for i, col_name in enumerate(df_export.columns):
-                column_letter = get_column_letter(i + 1)
-                max_len = df_export[col_name].astype(str).str.len().max()
-                max_len = max(int(max_len) + 2 if pd.notna(max_len) else len(col_name) + 2, len(col_name) + 2)
-                worksheet.column_dimensions[column_letter].width = max_len
-
+        wb.save(output)
         output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"BACKUP_FULL_LOG_{timestamp_str}.xlsx"
-        
-        return Response(
-            content=output.getvalue(),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
+        return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=backup_logs.xlsx"})
     except Exception as e:
-        import traceback
-        return JSONResponse(status_code=500, content={"error": f"Error generando backup: {traceback.format_exc()}"})
-
-# Old endpoint kept for legacy safety
-@router.post('/export_all_log')
-async def export_all_log(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    """Exporta TODOS los registros (activos y archivados) a Excel como backup."""
-    redirect_url = request.url_for('update_files_get')
-
-    if password != ADMIN_PASSWORD:
-        query_params = urlencode({'error': 'Contraseña incorrecta'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
-
-    try:
-        from app.services import db_logs
-        from openpyxl.utils import get_column_letter
-
-        # Cargar TODOS los logs
-        logs_data = await db_logs.load_all_logs_db_async(db)
-        
-        if not logs_data:
-             query_params = urlencode({'error': 'No hay datos para exportar backup'})
-             return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
-
-        df = pd.DataFrame(logs_data)
-
-        # Procesar timestamp
-        try:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            if df['timestamp'].dt.tz is not None:
-                 colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-                 df['timestamp'] = df['timestamp'].dt.tz_convert(colombia_tz).dt.tz_localize(None)
-        except Exception:
-            pass
-        
-        # Procesar archived_at para formato limpio
-        if 'archived_at' in df.columns:
-             df['archived_at'] = df['archived_at'].fillna('Activo')
-
-        df_export = df.rename(columns={
-            'timestamp': 'Timestamp', 'importReference': 'Import Reference', 'waybill': 'Waybill',
-            'itemCode': 'Item Code', 'itemDescription': 'Item Description',
-            'binLocation': 'Bin Location (Original)', 'relocatedBin': 'Relocated Bin (New)',
-            'qtyReceived': 'Qty. Received', 'qtyGrn': 'Qty. Expected (Total)', 'difference': 'Difference',
-            'archived_at': 'Estado / Fecha Archivo'
-        })
-
-        # Columnas a exportar (asegurando orden)
-        cols = ['Timestamp', 'Import Reference', 'Waybill', 'Item Code', 'Item Description', 
-                'Bin Location (Original)', 'Relocated Bin (New)', 'Qty. Received', 
-                'Qty. Expected (Total)', 'Difference', 'Estado / Fecha Archivo']
-        
-        # Filtrar solo columnas existentes (por si acaso)
-        cols = [c for c in cols if c in df_export.columns]
-        df_export = df_export[cols]
-
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, index=False, sheet_name='BackupCompleto')
-            worksheet = writer.sheets['BackupCompleto']
-            for i, col_name in enumerate(df_export.columns):
-                column_letter = get_column_letter(i + 1)
-                max_len = df_export[col_name].astype(str).str.len().max()
-                max_len = int(max_len) + 2 if pd.notna(max_len) else len(col_name) + 2
-                worksheet.column_dimensions[column_letter].width = max_len
-
-        output.seek(0)
-        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"BACKUP_FULL_LOG_{timestamp_str}.xlsx"
-        
-        return Response(
-            content=output.getvalue(),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        query_params = urlencode({'error': f'Error generando backup: {str(e)}'})
-        return RedirectResponse(url=f'{redirect_url}?{query_params}', status_code=status.HTTP_302_FOUND)
+        return JSONResponse(status_code=500, content={"error": str(e)})

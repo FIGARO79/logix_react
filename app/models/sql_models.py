@@ -248,7 +248,7 @@ class GRNMaster(Base):
     ct: Mapped[Optional[str]] = mapped_column(String(50))
     created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class ReconciliationHistory(Base):
+class ReconciliationHistory(Base) :
     __tablename__ = 'reconciliation_history'
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
@@ -284,3 +284,4 @@ class AICategoryPattern(Base):
     bin_code: Mapped[str] = mapped_column(String(100))
     frequency: Mapped[int] = mapped_column(Integer, default=1)
     last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+

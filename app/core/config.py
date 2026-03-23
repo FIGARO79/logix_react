@@ -9,6 +9,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 
 DATABASE_FOLDER = os.path.join(PROJECT_ROOT, 'databases')
 ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0250.csv')
+RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSLAMP0006.csv')
 GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0280.csv')
 PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240.csv')
 GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'GRN.xlsx')
@@ -26,6 +27,7 @@ SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
 STOCK_QTY_CACHE_PATH = os.path.join(JSON_FOLDER, 'stock_qty_cache.json')
 MASTER_DETAILS_CACHE_PATH = os.path.join(JSON_FOLDER, 'master_details_cache.json')
 GRN_CACHE_JSON_PATH = os.path.join(JSON_FOLDER, 'grn_cache.json')
+RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, 'reservation_cache.json')
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')
@@ -65,7 +67,7 @@ COLUMNS_TO_READ_MASTER = [
     'Stockroom', 'Item_Type', 'Item_Class', 'Item_Group_Major', 'SIC_Code_Company', 'Cost_per_Unit'
 ]
 GRN_COLUMN_NAME_IN_CSV = 'GRN_Number'
-COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description']
+COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description', 'Order_Number']
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Cargar desde variables de entorno (OBLIGATORIAS)

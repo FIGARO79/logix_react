@@ -243,17 +243,13 @@ async def save_stock_count(db: AsyncSession, session_id: int, item_code: str, co
         await db.refresh(new_count)
 
         # --- NUEVO: Registrar también en CycleCount para el planificador ---
+        # Se asume que cada conteo válido cuenta como un "ciclo" completado para ese item
         try:
-            # Enriquecemos con datos de sistema si están disponibles
-            system_qty = int(bin_location_system) if str(bin_location_system).isdigit() else 0
-            
             new_cycle_entry = CycleCount(
                 item_code=item_code,
-                planned_date=new_count.timestamp, # Fecha planificada (en este flujo usamos la misma)
-                executed_date=new_count.timestamp,
-                system_qty=system_qty, # Nota: Esto se debería obtener del maestro realmente
-                physical_qty=counted_qty,
-                difference=(counted_qty - system_qty)
+                timestamp=new_count.timestamp,
+                abc_code=None, # Se podría llenar si tuviéramos el dato aquí, o dejar que el planner lo cruce
+                count_id=new_count.id
             )
             db.add(new_cycle_entry)
             await db.commit()

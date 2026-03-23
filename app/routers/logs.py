@@ -2,7 +2,7 @@
 Router para endpoints de logs (inbound).
 """
 import datetime
-import pandas as pd
+
 import os
 import json
 from io import BytesIO
@@ -56,7 +56,8 @@ async def find_item(
     traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
 
     # 2. Sugerencia de IA (Aprendizaje Histórico)
-    ai_predicted_bin = ai_slotting.predict_best_bin(
+    ai_predicted_bin = await ai_slotting.predict_best_bin(
+        db=db,
         item_code=item_code,
         sic_code=item_details.get('SIC_Code_stockroom'),
         fallback_bin=traditional_suggested_bin
@@ -79,12 +80,21 @@ async def find_item(
         final_suggested_bin = None
         is_ai_prediction = False
 
+    # 4. Información de Cross-Docking (Xdock)
+    total_reserved = await csv_handler.get_xdock_info(item_code)
+    already_received = await db_logs.get_total_received_for_item_async(db, item_code)
+    
+    # El saldo de Xdock es lo reservado menos lo que ya entró en esta sesión
+    xdock_pending = max(0, total_reserved - already_received)
+
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
         "description": item_details.get('Item_Description', 'N/A'),
         "binLocation": effective_bin_location,
         "suggestedBin": final_suggested_bin,
         "is_ai_prediction": is_ai_prediction,
+        "xdockTotal": total_reserved,
+        "xdockPending": xdock_pending,
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
@@ -123,7 +133,8 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
     if data.relocatedBin:
-        ai_slotting.learn_from_decision(
+        await ai_slotting.learn_from_decision(
+            db=db,
             item_code=item_code_form,
             final_bin=data.relocatedBin,
             sic_code=item_details.get('SIC_Code_stockroom')
@@ -183,7 +194,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
     return JSONResponse(content=versions)
 
 @router.get('/export_log')
-async def export_log(timezone_offset: int = 0, version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
+async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta los registros de log a Excel."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
@@ -193,254 +204,139 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     if not logs:
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
-    df = pd.DataFrame(logs)
- 
-    # Aplicar Timezone Offset si se proporciona
-    if timezone_offset != 0 and 'timestamp' in df.columns:
-        try:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            # El offset del navegador es en minutos (UTC - Local). 
-            # Ej: Bogotá es +300 (5h). Para volver a local, restamos el offset.
-            df['timestamp'] = df['timestamp'] - pd.to_timedelta(timezone_offset, unit='m')
-            df['timestamp'] = df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
-        except Exception as e:
-            print(f"Error ajustando timezone en export: {e}")
-    
-    # Renombrar columnas para el Excel
-    df_export = df.rename(columns={
-        'importReference': 'Import Reference',
-        'waybill': 'Waybill',
-        'itemCode': 'Código Item',
-        'itemDescription': 'Descripción',
-        'binLocation': 'Ubicación Original',
-        'relocatedBin': 'Reubicación',
-        'qtyReceived': 'Cant. Recibida',
-        'qtyGrn': 'Cant. GRN',
-        'difference': 'Diferencia',
-        'username': 'Usuario',
-        'timestamp': 'Fecha'
-    })
-    
-    # Seleccionar y ordenar columnas
-    cols = ['Fecha', 'Usuario', 'Import Reference', 'Waybill', 'Código Item', 'Descripción', 'Ubicación Original', 'Reubicación', 'Cant. Recibida', 'Cant. GRN', 'Diferencia']
-    df_export = df_export[cols]
+    import polars as pl
+    col_map = {
+        'importReference': 'Import Reference', 'waybill': 'Waybill',
+        'itemCode': 'Item Code', 'itemDescription': 'Description',
+        'binLocation': 'Bin Location', 'relocatedBin': 'Relocated Bin',
+        'qtyReceived': 'Qty Received', 'qtyGrn': 'Qty GRN',
+        'difference': 'Difference', 'timestamp': 'Date',
+    }
+    cols_out = ['Date', 'Import Reference', 'Waybill', 'Item Code', 'Description',
+                'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
+
+    df_pl = pl.DataFrame(logs)
+    available = {k: v for k, v in col_map.items() if k in df_pl.columns}
+    df_export = df_pl.rename(available).select([c for c in cols_out if c in df_pl.rename(available).columns])
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'InboundLogs'
+    ws.append(df_export.columns)
+    for row in df_export.iter_rows():
+        ws.append(list(row))
+    for i, col_name in enumerate(df_export.columns, start=1):
+        col_data = df_export[col_name].cast(pl.Utf8, strict=False)
+        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_export.to_excel(writer, index=False, sheet_name='InboundLogs')
-        worksheet = writer.sheets['InboundLogs']
-        for i, col_name in enumerate(df_export.columns):
-            column_letter = get_column_letter(i + 1)
-            # Cálculo de ancho más robusto
-            max_val_len = df_export[col_name].apply(lambda x: len(str(x)) if x is not None else 0).max()
-            max_len = max(max_val_len, len(col_name)) + 2
-            worksheet.column_dimensions[column_letter].width = max_len
-
+    wb.save(output)
     output.seek(0)
     filename = f"inbound_logs_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @router.get('/export_reconciliation')
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, snapshot_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
-    """Genera y exporta el reporte de conciliación (Optimizado y Desglosado)."""
+    """Genera y exporta el reporte de conciliación (100% Polars, sin Pandas)."""
+    import polars as pl
     from app.models.sql_models import GRNMaster, ReconciliationHistory
-    
+
+    def _write_excel_polars(df: pl.DataFrame, sheet_name: str) -> bytes:
+        """Convierte un DataFrame Polars a Excel con openpyxl, auto-ajustando anchos."""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = sheet_name
+
+        # Cabeceras
+        ws.append(df.columns)
+        # Filas
+        for row in df.iter_rows():
+            ws.append(list(row))
+
+        # Auto-ajustar ancho de columnas
+        for i, col_name in enumerate(df.columns, start=1):
+            col_letter = get_column_letter(i)
+            col_data = df[col_name].cast(pl.Utf8, strict=False)
+            max_data = col_data.str.len_chars().max() or 0
+            ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output.getvalue()
+
     try:
+        # ── RAMA SNAPSHOT ──────────────────────────────────────────────────────
         if snapshot_date:
             stmt = select(ReconciliationHistory).where(ReconciliationHistory.archive_date == snapshot_date)
             res = await db.execute(stmt)
             rows = res.scalars().all()
-            
+
             if not rows:
                 raise HTTPException(status_code=404, detail="No se encontraron datos para este snapshot")
-                
-            df_for_export = pd.DataFrame([{
-                "I.R.": r.import_reference,
-                "Waybill": r.waybill,
-                "GRN": r.grn,
-                "Código Item": r.item_code,
-                "Descripción": r.description,
-                "Ubicación": getattr(r, 'bin_location', '') or '',
-                "Reubicado": getattr(r, 'relocated_bin', '') or '',
-                "Cant. Esperada": r.qty_expected,
-                "Cant. Recibida": r.qty_received,
-                "Diferencia Total I.R.": r.difference
+
+            df_for_export = pl.DataFrame([{
+                "I.R.":               r.import_reference,
+                "Waybill":            r.waybill,
+                "GRN":                r.grn,
+                "Código Item":        r.item_code,
+                "Descripción":        r.description,
+                "Ubicación":          getattr(r, 'bin_location', '') or '',
+                "Reubicado":          getattr(r, 'relocated_bin', '') or '',
+                "Cant. Esperada":     int(r.qty_expected or 0),
+                "Cant. Recibida":     int(r.qty_received or 0),
+                "Diferencia Total I.R.": int(r.difference or 0),
             } for r in rows])
-            
-            # [CORRECCIÓN] Si es snapshot, generar el Excel y retornar aquí mismo
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_for_export.to_excel(writer, index=False, sheet_name='SnapshotConciliacion')
-                worksheet = writer.sheets['SnapshotConciliacion']
-                for i, col_name in enumerate(df_for_export.columns):
-                    column_letter = get_column_letter(i + 1)
-                    try:
-                        series = df_for_export[col_name].astype(str)
-                        data_max_len = series.map(len).max()
-                        if pd.isna(data_max_len): data_max_len = 0
-                    except:
-                        data_max_len = 0
-                    max_len = max(int(data_max_len), len(col_name)) + 2
-                    worksheet.column_dimensions[column_letter].width = float(max_len)
-            
-            output.seek(0)
+
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
-            return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+            return Response(
+                content=_write_excel_polars(df_for_export, 'SnapshotConciliacion'),
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
 
+        # ── RAMA PRINCIPAL ─────────────────────────────────────────────────────
         else:
-            await csv_handler.reload_cache_if_needed()
-        
-        # 1. Obtener Logs (Base del reporte) usando la sesión db
-        if archive_date:
-            result = await db.execute(text('SELECT * FROM logs WHERE archived_at = :date'), {"date": archive_date})
-        else:
-            result = await db.execute(text('SELECT * FROM logs WHERE archived_at IS NULL'))
-        
-        rows = result.fetchall()
-        logs_df = pd.DataFrame([dict(r._mapping) for r in rows]) if rows else pd.DataFrame()
+            # Usar la lógica centralizada del servicio
+            from app.services import reconciliation_service
+            result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
 
-        grn_df = csv_handler.df_grn_cache 
+            if not result_data:
+                raise HTTPException(status_code=404, detail="No hay datos de conciliación para exportar")
 
-        if logs_df.empty or grn_df is None:
-            raise HTTPException(status_code=404, detail="No hay datos suficientes para generar la conciliación")
+            final_df = pl.DataFrame(result_data)
 
-        # 2. Cargar Fuentes de Asociación (PO JSON + Inbound JSON + DB Maestro)
-        ir_to_grns_map = {}
+            # Seleccionar y renombrar para el reporte Excel (manteniendo nombres de columnas del reporte)
+            df_for_export = final_df.select([
+                pl.col("Import_Reference").alias("I.R."),
+                pl.col("Waybill").alias("Waybill"),
+                pl.col("GRN").alias("GRN"),
+                pl.col("Codigo_Item").alias("Código Item"),
+                pl.col("Descripcion").alias("Descripción"),
+                pl.col("Ubicacion").alias("Ubicación"),
+                pl.col("Reubicado").alias("Reubicado"),
+                pl.col("Cant_Esperada").alias("Cant. Esperada"),
+                pl.col("Cant_Recibida").alias("Cant. Recibida"),
+                pl.col("Diferencia").alias("Diferencia Total I.R."),
+            ])
 
-        # A. po_lookup.json
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                    po_cache = json.load(f)
-                    for ir, data in po_cache.get("ir_to_data", {}).items():
-                        grns = set(g.strip().upper() for item in data.get("items", []) if item.get("grn") for g in str(item["grn"]).split(',') if g.strip())
-                        if grns:
-                            ir_key = ir.upper()
-                            if ir_key not in ir_to_grns_map: ir_to_grns_map[ir_key] = {"grns": set(), "wb": data.get("waybill")}
-                            ir_to_grns_map[ir_key]["grns"].update(grns)
-            except: pass
+            utc_now = datetime.datetime.now(datetime.timezone.utc)
+            client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
+            timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
+            filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
 
-        # B. grn_master_data.json
-        if os.path.exists(GRN_JSON_DATA_PATH):
-            try:
-                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                    inbound_data = json.load(f)
-                    for row in inbound_data:
-                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                        if ir and grn:
-                            if ir not in ir_to_grns_map: ir_to_grns_map[ir] = {"grns": set(), "wb": row.get("Waybill", row.get("waybill", ""))}
-                            ir_to_grns_map[ir]["grns"].add(grn)
-            except: pass
+            return Response(
+                content=_write_excel_polars(df_for_export, 'ReporteDeConciliacion'),
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
 
-        # C. DB Maestro
-        try:
-            db_grns = await db.execute(select(GRNMaster))
-            for g_master in db_grns.scalars().all():
-                ir_key = str(g_master.import_reference).strip().upper()
-                if ir_key and g_master.grn_number:
-                    grns_set = set(g.strip().upper() for g in str(g_master.grn_number).split(',') if g.strip())
-                    if ir_key not in ir_to_grns_map: ir_to_grns_map[ir_key] = {"grns": set(), "wb": g_master.waybill}
-                    ir_to_grns_map[ir_key]["grns"].update(grns_set)
-        except: pass
-
-        # 3. Procesamiento simplificado y veloz con Pandas
-        # Extraer ubicaciones antes del groupby
-        loc_cols = [c for c in ['binLocation', 'relocatedBin'] if c in logs_df.columns]
-        if loc_cols:
-            df_locations = logs_df.groupby(['importReference', 'itemCode'])[loc_cols].last().reset_index()
-        else:
-            df_locations = logs_df[['importReference', 'itemCode']].drop_duplicates()
-            df_locations['binLocation'] = ''
-            df_locations['relocatedBin'] = ''
-
-        logs_df['qtyReceived'] = pd.to_numeric(logs_df['qtyReceived'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-        logs_grouped = logs_df.groupby(['importReference', 'waybill', 'itemCode'])['qtyReceived'].sum().reset_index()
-
-        mapping_rows = []
-        for ir, info in ir_to_grns_map.items():
-            for grn in info["grns"]:
-                mapping_rows.append({"ir_map": ir, "wb_map": info["wb"], "grn_map": grn})
-        
-        df_mapping = pd.DataFrame(mapping_rows) if mapping_rows else pd.DataFrame(columns=["ir_map", "wb_map", "grn_map"])
-
-        grn_df['Quantity'] = pd.to_numeric(grn_df['Quantity'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-        df_expected_lines = pd.merge(df_mapping, grn_df, left_on='grn_map', right_on='GRN_Number', how='inner')
-        
-        total_exp_per_ir_item = df_expected_lines.groupby(['ir_map', 'Item_Code'])['Quantity'].sum().reset_index()
-        total_exp_per_ir_item = total_exp_per_ir_item.rename(columns={'Quantity': 'Total_Esperado_IR'})
-
-        merged = pd.merge(df_expected_lines, total_exp_per_ir_item, on=['ir_map', 'Item_Code'], how='left')
-        
-        final_merge = pd.merge(
-            merged, 
-            logs_grouped, 
-            left_on=['ir_map', 'Item_Code'], 
-            right_on=['importReference', 'itemCode'], 
-            how='outer'
-        )
-
-        final_merge['qtyReceived'] = final_merge['qtyReceived'].fillna(0).astype(int)
-        final_merge['Quantity'] = final_merge['Quantity'].fillna(0).astype(int)
-        final_merge['Total_Esperado_IR'] = final_merge['Total_Esperado_IR'].fillna(0).astype(int)
-        
-        final_merge['importReference'] = final_merge['importReference'].fillna(final_merge['ir_map'])
-        final_merge['waybill'] = final_merge['waybill'].fillna(final_merge['wb_map'])
-        final_merge['itemCode'] = final_merge['itemCode'].fillna(final_merge['Item_Code'])
-        final_merge['Item_Description'] = final_merge['Item_Description'].fillna("No en sistema 280")
-        final_merge['GRN_Number'] = final_merge['GRN_Number'].fillna("SIN GRN")
-        final_merge['Diferencia'] = final_merge['qtyReceived'] - final_merge['Total_Esperado_IR']
-
-        # Unir ubicaciones
-        final_merge = pd.merge(
-            final_merge,
-            df_locations,
-            left_on=['importReference', 'itemCode'],
-            right_on=['importReference', 'itemCode'],
-            how='left'
-        )
-
-        df_for_export = final_merge.rename(columns={
-            "importReference": "I.R.",
-            "waybill": "Waybill",
-            "GRN_Number": "GRN",
-            "itemCode": "Código Item",
-            "Item_Description": "Descripción",
-            "Quantity": "Cant. Esperada",
-            "qtyReceived": "Cant. Recibida",
-            "Diferencia": "Diferencia Total I.R.",
-            "binLocation": "Ubicación",
-            "relocatedBin": "Reubicado"
-        })[[
-            "I.R.", "Waybill", "GRN", "Código Item",
-            "Descripción", "Ubicación", "Reubicado", "Cant. Esperada", "Cant. Recibida", "Diferencia Total I.R."
-        ]]
-
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_for_export.to_excel(writer, index=False, sheet_name='ReporteDeConciliacion')
-            worksheet = writer.sheets['ReporteDeConciliacion']
-            for i, col_name in enumerate(df_for_export.columns):
-                column_letter = get_column_letter(i + 1)
-                try:
-                    series = df_for_export[col_name].astype(str)
-                    data_max_len = series.map(len).max()
-                    if pd.isna(data_max_len): data_max_len = 0
-                except:
-                    data_max_len = 0
-                
-                max_len = max(int(data_max_len), len(col_name)) + 2
-                worksheet.column_dimensions[column_letter].width = float(max_len)
-
-        output.seek(0)
-        utc_now = datetime.datetime.now(datetime.timezone.utc)
-        client_time = utc_now - datetime.timedelta(minutes=timezone_offset)
-        timestamp_str = client_time.strftime("%Y%m%d_%H%M%S")
-        
-        filename = f"reporte_conciliacion_{timestamp_str}.xlsx"
-        return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
-
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error interno al generar el archivo de conciliación: {e}")
+
+

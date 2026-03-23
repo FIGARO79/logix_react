@@ -8,7 +8,7 @@ from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
 from app.core.config import ASYNC_DB_URL
 from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
-import pandas as pd
+
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 
@@ -149,6 +149,9 @@ async def archive_reconciliation_snapshot(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get('/view_picking_audits', response_model=List[PickingAuditSummary])
 async def view_picking_audits_api(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     # Usar selectinload para cargar items y package_items en una sola consulta eficiente
@@ -210,6 +213,8 @@ async def get_counts_data(
     username: str = Depends(login_required), 
     db: AsyncSession = Depends(get_db)
 ):
+    from app.services.csv_handler import master_qty_map
+    
     all_counts = await db_counts.load_all_counts_db_async(db)
     
     # Obtener información de sesiones (usuario y etapa)
@@ -475,3 +480,4 @@ async def get_occupancy_stats(
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+

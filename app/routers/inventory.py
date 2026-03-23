@@ -2,7 +2,7 @@
 Router para endpoints de gestión de inventario y conteos administrativos.
 """
 import datetime
-import pandas as pd
+
 from io import BytesIO
 from urllib.parse import urlencode
 from typing import Optional, Dict, Any, Union
@@ -37,9 +37,12 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
     }
     
     try:
+        # Asegurar caché actualizado
+        await csv_handler.reload_cache_if_needed()
+        
         # --- Estadísticas Generales (del maestro de items) ---
-        if master_qty_map:
-            total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and int(qty) > 0)  # type: ignore[arg-type]
+        if csv_handler.master_qty_map:
+            total_items_with_stock = sum(1 for qty in csv_handler.master_qty_map.values() if qty is not None and int(qty) > 0)  # type: ignore[arg-type]
             summary['general']['total_items_master'] = total_items_with_stock
 
         # --- Estadísticas por Etapa ---
@@ -262,70 +265,81 @@ async def finalize_inventory(request: Request, user: str = Depends(permission_re
 
 @router.get('/admin/inventory/report', name='generate_inventory_report')
 async def generate_inventory_report(request: Request, user: str = Depends(permission_required("inventory"))):
-    """Genera un reporte Excel del inventario."""
+    """Genera un reporte Excel del inventario (100% Polars + openpyxl)."""
+    import polars as pl
+    import openpyxl
+    from openpyxl.utils import get_column_letter
 
     try:
-        # Usamos pandas read_sql con connection para queries complejos de reporte
-        async with async_engine.connect() as conn:
-            query = """
-                SELECT
-                    sc.item_code,
-                    sc.item_description,
-                    cs.inventory_stage,
-                    sc.counted_qty
-                FROM stock_counts sc
-                JOIN count_sessions cs ON sc.session_id = cs.id
-            """
-            # Pandas read_sql espera una conexión raw o compatible, usamos run_sync
-            all_counts_df = await conn.run_sync(lambda sync_conn: pd.read_sql_query(text(query), sync_conn))
-
-        if all_counts_df.empty:
+        result = await db.execute(text("""
+            SELECT sc.item_code, sc.item_description, cs.inventory_stage, sc.counted_qty
+            FROM stock_counts sc
+            JOIN count_sessions cs ON sc.session_id = cs.id
+        """))
+        rows = result.fetchall()
+        if not rows:
             query_params = urlencode({"error": "No hay datos de conteo para generar un informe."})
             return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
 
-        stage_counts = all_counts_df.groupby(['item_code', 'item_description', 'inventory_stage'])['counted_qty'].sum().reset_index()
+        df = pl.DataFrame([dict(r._mapping) for r in rows]).with_columns([
+            pl.col("counted_qty").cast(pl.Int64).fill_null(0),
+            pl.col("inventory_stage").cast(pl.Int64),
+        ])
 
-        pivot_df = stage_counts.pivot_table(
-            index=['item_code', 'item_description'],
-            columns='inventory_stage',
-            values='counted_qty',
-            aggfunc='sum'
-        ).fillna(0)
+        # Suma por item + etapa
+        stage_sums = (
+            df.group_by(["item_code", "item_description", "inventory_stage"])
+            .agg(pl.col("counted_qty").sum().alias("counted_qty"))
+        )
 
-        pivot_df.columns = [f'Conteo Etapa {int(col)}' for col in pivot_df.columns]
-        
-        system_qtys = pd.Series(csv_handler.master_qty_map, name='Cantidad Sistema').astype('float64').fillna(0)
-        
-        report_df = pivot_df.join(system_qtys, on='item_code').fillna(0)
-        report_df.rename_axis(index={'item_code': 'Item Code', 'item_description': 'Description'}, inplace=True)
-        report_df.reset_index(inplace=True)
+        # Pivot manual: una columna por etapa
+        stages = sorted(df["inventory_stage"].unique().to_list())
+        base = stage_sums.select(["item_code", "item_description"]).unique()
+        for s in stages:
+            stage_df = (
+                stage_sums.filter(pl.col("inventory_stage") == s)
+                .select(["item_code", pl.col("counted_qty").alias(f"Conteo Etapa {s}")])
+            )
+            base = base.join(stage_df, on="item_code", how="left")
+        base = base.with_columns([pl.col(f"Conteo Etapa {s}").fill_null(0) for s in stages])
 
-        final_qty = pd.Series(0, index=report_df.index)
-        for stage in sorted([int(c.split()[-1]) for c in pivot_df.columns], reverse=True):
-            stage_col = f'Conteo Etapa {stage}'
-            final_qty = np.where(final_qty == 0, report_df.get(stage_col, 0), final_qty)
-        report_df['Cantidad Final Contada'] = final_qty
+        # Cantidad sistema desde maestro RAM
+        sys_map = csv_handler.master_qty_map
+        base = base.with_columns(
+            pl.col("item_code").map_elements(lambda c: int(sys_map.get(c, 0)), return_dtype=pl.Int64).alias("Cantidad Sistema")
+        )
 
-        report_df['Diferencia Final'] = report_df['Cantidad Final Contada'] - report_df['Cantidad Sistema']
+        # Cantidad final contada (último conteo no-cero)
+        stage_cols_sorted = [f"Conteo Etapa {s}" for s in sorted(stages, reverse=True)]
+        final_expr = pl.lit(0).cast(pl.Int64)
+        for sc in stage_cols_sorted:
+            final_expr = pl.when(final_expr == 0).then(pl.col(sc)).otherwise(final_expr)
+        base = base.with_columns(final_expr.alias("Cantidad Final Contada"))
+        base = base.with_columns(
+            (pl.col("Cantidad Final Contada") - pl.col("Cantidad Sistema")).alias("Diferencia Final")
+        )
 
-        cols = ['Item Code', 'Description', 'Cantidad Sistema']
-        stage_cols = sorted([col for col in report_df.columns if 'Conteo Etapa' in col])
-        final_cols = ['Cantidad Final Contada', 'Diferencia Final']
-        report_df = report_df[cols + stage_cols + final_cols]
+        # Ordenar columnas
+        fixed_start = ["item_code", "item_description", "Cantidad Sistema"]
+        stage_cols_asc = [f"Conteo Etapa {s}" for s in sorted(stages)]
+        fixed_end = ["Cantidad Final Contada", "Diferencia Final"]
+        report_df = base.select(fixed_start + stage_cols_asc + fixed_end).rename({
+            "item_code": "Item Code", "item_description": "Description"
+        })
 
-        for col in report_df.columns:
-            if 'Cantidad' in col or 'Conteo' in col or 'Diferencia' in col:
-                report_df[col] = report_df[col].astype(int)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'InformeFinalInventario'
+        ws.append(report_df.columns)
+        for row in report_df.iter_rows():
+            ws.append(list(row))
+        for i, col_name in enumerate(report_df.columns, start=1):
+            col_data = report_df[col_name].cast(pl.Utf8, strict=False)
+            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+            ws.column_dimensions[get_column_letter(i)].width = float(max_len)
 
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            report_df.to_excel(writer, index=False, sheet_name='InformeFinalInventario')
-            worksheet = writer.sheets['InformeFinalInventario']
-            for i, col_name in enumerate(report_df.columns):
-                column_letter = get_column_letter(i + 1)
-                max_len = max(report_df[col_name].astype(str).map(len).max(), len(col_name)) + 2
-                worksheet.column_dimensions[column_letter].width = max_len
-        
+        wb.save(output)
         output.seek(0)
         timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"informe_final_inventario_{timestamp_str}.xlsx"
@@ -341,6 +355,7 @@ async def generate_inventory_report(request: Request, user: str = Depends(permis
         return RedirectResponse(url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND)
 
 
+
 @router.get('/api/export_recount_list/{stage_number}', name='export_recount_list')
 async def export_recount_list(request: Request, stage_number: int, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Exporta la lista de items a recontar para una etapa específica."""
@@ -354,6 +369,10 @@ async def export_recount_list(request: Request, stage_number: int, user: str = D
     # Importar la función para obtener detalles del item
     from app.services.csv_handler import get_item_details_from_master_csv
     
+    import polars as pl
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+
     enriched_data = []
     for row in items_to_recount:
         item_code = row.item_code
@@ -365,24 +384,25 @@ async def export_recount_list(request: Request, stage_number: int, user: str = D
                 'Ubicación en Sistema': details.get('Bin_1', 'N/A')
             })
         else:
-            # Para items "fantasma" que no están en el maestro
             enriched_data.append({
                 'Código de Item': item_code,
                 'Descripción': 'ITEM NO ENCONTRADO EN MAESTRO',
                 'Ubicación en Sistema': 'N/A'
             })
 
-    df = pd.DataFrame(enriched_data)
-    
+    df = pl.DataFrame(enriched_data)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f'Reconteo_Etapa_{stage_number}'
+    ws.append(df.columns)
+    for row in df.iter_rows():
+        ws.append(list(row))
+    for i, col_name in enumerate(df.columns, start=1):
+        col_data = df[col_name].cast(pl.Utf8, strict=False)
+        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name=f'Reconteo_Etapa_{stage_number}')
-        worksheet = writer.sheets[f'Reconteo_Etapa_{stage_number}']
-        for i, col_name in enumerate(df.columns):
-            column_letter = get_column_letter(i + 1)
-            max_len = max(df[col_name].astype(str).map(len).max(), len(col_name)) + 2
-            worksheet.column_dimensions[column_letter].width = max_len
-    
+    wb.save(output)
     output.seek(0)
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"lista_reconteo_etapa_{stage_number}_{timestamp_str}.xlsx"

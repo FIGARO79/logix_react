@@ -2,12 +2,22 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import ASYNC_DB_URL
 
+# Configuración de argumentos de conexión
+connect_args = {}
+# Esta configuración de hilos y timeout aplica SOLAMENTE a SQLite local/dev
+if ASYNC_DB_URL.startswith("sqlite"):
+    connect_args = {
+        "timeout": 60,
+        "check_same_thread": False
+    }
+
 # Crear el motor asíncrono
 engine = create_async_engine(
     ASYNC_DB_URL,
     echo=False, # Cambiar a True para ver las consultas SQL en consola
     future=True,
-    pool_recycle=280
+    pool_recycle=280,
+    connect_args=connect_args
 )
 
 # Fábrica de sesiones

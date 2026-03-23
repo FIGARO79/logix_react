@@ -1,103 +1,107 @@
 import os
-import time
-from playwright.sync_api import sync_playwright
-from app.core.config import PO_EXTRACTOR_EXCEL_PATH
+import asyncio
+from playwright.async_api import async_playwright
+from app.core.config import PO_EXTRACTOR_EXCEL_PATH, INSTANCE_FOLDER
 
 REPORT_URL = "https://sandvik-controltower.azurewebsites.net/Report/PurchaseOrderExtractor"
 
-def run_po_robot(start_date: str, end_date: str):
+async def run_po_robot(start_date: str, end_date: str):
     """
-    Ejecuta el robot de Playwright con selectores robustos y fechas dinámicas.
-    start_date, end_date deben venir en formato MM/DD/YYYY o DD/MM/YYYY según 
-    requiera KendoUI (esperamos que la UI nos lo mande listo, por defecto DD/MM/YYYY o DD-MM-YYYY).
+    Ejecuta el robot de Playwright de forma asíncrona con selectores robustos y fechas dinámicas.
     """
-    with sync_playwright() as p:
-        print(f"🔧 Iniciando navegador Chromium para periodo {start_date} a {end_date}...", flush=True)
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
+    # Asegurar que la carpeta de debug existe
+    debug_dir = os.path.join(INSTANCE_FOLDER, 'debug_robot')
+    os.makedirs(debug_dir, exist_ok=True)
+    
+    print(f"🤖 [ROBOT] Iniciando tarea para {start_date} - {end_date}...", flush=True)
+    async with async_playwright() as p:
+        print(f"🔧 [ROBOT] Navegador Chromium...", flush=True)
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
-        page = context.new_page()
+        page = await context.new_page()
 
         try:
-            print(f"🚀 Accediendo a {REPORT_URL}...", flush=True)
-            # Timeout extendido para carga inicial en Azure
+            print(f"🚀 [ROBOT] Accediendo a {REPORT_URL}...", flush=True)
             try:
-                page.goto(REPORT_URL, wait_until="load", timeout=120000)
+                await page.goto(REPORT_URL, wait_until="load", timeout=120000)
+                print(f"📍 [ROBOT] URL actual: {page.url}", flush=True)
             except Exception as e:
-                print(f"⚠️ Warning en goto: {e}. Intentando continuar...", flush=True)
+                print(f"⚠️ [ROBOT] Warning en goto: {e}. Intentando continuar...", flush=True)
             
-            print("⏳ Esperando renderizado inicial (10s)...", flush=True)
-            time.sleep(10)
+            print("⏳ [ROBOT] Esperando renderizado (10s)...", flush=True)
+            await asyncio.sleep(10)
             
-            # Diagnóstico visual inicial
-            page.screenshot(path="debug_initial.png")
-            print("📸 Captura 'debug_initial.png' guardada.", flush=True)
+            initial_snap = os.path.join(debug_dir, "debug_initial.png")
+            await page.screenshot(path=initial_snap)
+            print(f"📸 [ROBOT] Captura '{initial_snap}' guardada.", flush=True)
 
-            print("📝 Llenando formulario...", flush=True)
+            print("📝 [ROBOT] Llenando formulario...", flush=True)
 
-            # 1. Fechas ATD (usando los IDs exactos provistos)
-            print(f"   Llenando 'Data Range ATD' ({start_date} - {end_date})...", flush=True)
+            # 1. Fechas ATD
+            print(f"   ➤ [ROBOT] Fecha Inicio: {start_date}", flush=True)
+            await page.locator("#Form_StartDate").click()
+            await page.locator("#Form_StartDate").clear()
+            await page.keyboard.type(start_date, delay=50)
+            await page.keyboard.press("Enter")
+
+            print(f"   ➤ [ROBOT] Fecha Fin: {end_date}", flush=True)
+            await page.locator("#Form_EndDate").click()
+            await page.locator("#Form_EndDate").clear()
+            await page.keyboard.type(end_date, delay=50)
+            await page.keyboard.press("Enter")
             
-            # KendoUI requiere simular escritura humana para registrar el cambio
-            page.locator("#Form_StartDate").click()
-            page.locator("#Form_StartDate").clear()
-            page.keyboard.type(start_date, delay=50)
-            page.keyboard.press("Enter")
+            # 2. Selección de Colombia
+            print("🇨🇴 [ROBOT] Seleccionando Colombia...", flush=True)
+            colombia_check = page.locator("#Form_SelectedCountries_3__IsSelected")
+            await colombia_check.scroll_into_view_if_needed()
+            await colombia_check.check(force=True)
 
-            page.locator("#Form_EndDate").click()
-            page.locator("#Form_EndDate").clear()
-            page.keyboard.type(end_date, delay=50)
-            page.keyboard.press("Enter")
-            
-            # 2. Selección de Chile (usando el ID exacto)
-            print("🇨🇱 Seleccionando Chile...", flush=True)
-            colombia_check = page.locator("#Form_SelectedCountries_2__IsSelected")
-            colombia_check.scroll_into_view_if_needed()
-            # El evento check es nativo de playwright para checkboxes
-            colombia_check.check(force=True)
-
-            # 3. Exportar (usando el input con name='Form.Export')
-            print("💾 Buscando botón Export...", flush=True)
+            # 3. Exportar
+            print("💾 [ROBOT] Buscando botón Export...", flush=True)
             btn = page.locator("input[name='Form.Export']")
-            btn.scroll_into_view_if_needed()
-            btn.wait_for(state="visible", timeout=10000)
-            print("🚀 Iniciando descarga...", flush=True)
-
+            await btn.scroll_into_view_if_needed()
+            await btn.wait_for(state="visible", timeout=10000)
+            
+            print("🚀 [ROBOT] Iniciando descarga...", flush=True)
             try:
-                # Vamos a capturar la pantalla justo al darle click para ver si hay un error de validación (e.g. fechas)
-                with page.expect_download(timeout=180000) as download_info:
-                    print("🚀 Dando click y esperando evento de descarga (3 mins max)...", flush=True)
-                    # CRÍTICO: no_wait_after=True para evitar que Playwright haga timeout esperando respuesta del POST
-                    btn.click(force=True, no_wait_after=True)
-                    # NO usar wait_for_timeout ni screenshot aquí porque la página se queda bloqueada cargando el archivo!
+                async with page.expect_download(timeout=180000) as download_info:
+                    print("🚀 [ROBOT] Click en Export y esperando...", flush=True)
+                    await btn.click(force=True, no_wait_after=True)
                 
-                download = download_info.value
-                download.save_as(PO_EXTRACTOR_EXCEL_PATH)
-                print(f"✅ Descarga completada: {PO_EXTRACTOR_EXCEL_PATH}", flush=True)
-                browser.close()
+                download = await download_info.value
+                await download.save_as(PO_EXTRACTOR_EXCEL_PATH)
+                print(f"✅ [ROBOT] Descarga completada en {PO_EXTRACTOR_EXCEL_PATH}", flush=True)
+                await browser.close()
                 return True, "Archivo actualizado correctamente."
             except Exception as download_err:
-                print(f"⚠️ Error en descarga: {download_err}", flush=True)
-                # Revisar si el archivo es reciente (modificado en los últimos 5 minutos)
-                if os.path.exists(PO_EXTRACTOR_EXCEL_PATH) and (time.time() - os.path.getmtime(PO_EXTRACTOR_EXCEL_PATH) < 300):
-                     print("📂 Archivo detectado manualmente como reciente.", flush=True)
-                     browser.close()
+                print(f"⚠️ [ROBOT] Error en descarga: {download_err}", flush=True)
+                if os.path.exists(PO_EXTRACTOR_EXCEL_PATH) and (asyncio.get_event_loop().time() - os.path.getmtime(PO_EXTRACTOR_EXCEL_PATH) < 300):
+                     print("📂 [ROBOT] Archivo reciente detectado.", flush=True)
+                     await browser.close()
                      return True, "Archivo actualizado (Detección manual)."
                 
-                # Tomar captura final para ver si hubo un mensaje de error
-                page.screenshot(path="debug_error_final.png")
-                print("📸 Captura 'debug_error_final.png' guardada.", flush=True)
-                browser.close()
-                raise download_err
+                err_snap = os.path.join(debug_dir, "debug_error_final.png")
+                await page.screenshot(path=err_snap)
+                await browser.close()
+                return False, f"Error en descarga: {str(download_err)}"
 
         except Exception as e:
-            error_path = "error_robot.png"
-            page.screenshot(path=error_path)
-            browser.close()
-            print(f"❌ Error: {str(e)}", flush=True)
+            error_snap = os.path.join(debug_dir, "error_robot.png")
+            await page.screenshot(path=error_snap)
+            await browser.close()
+            print(f"❌ [ROBOT] Error general: {str(e)}", flush=True)
             return False, f"Error: {str(e)}"
 
 if __name__ == "__main__":
-    success, msg = run_po_robot()
-    print(msg, flush=True)
+    import sys
+    if len(sys.argv) < 3:
+        print("Uso: python po_robot.py <start_date> <end_date>")
+        sys.exit(1)
+    
+    async def main():
+        success, msg = await run_po_robot(sys.argv[1], sys.argv[2])
+        print(msg)
+    
+    asyncio.run(main())
