@@ -87,7 +87,7 @@ const Inbound = () => {
     // Generar QR para la etiqueta cuando cambia el item
     useEffect(() => {
         if (itemData?.itemCode) {
-            QRCode.toDataURL(itemData.itemCode, { width: 96, margin: 1 })
+            QRCode.toDataURL(itemData.itemCode, { width: 256, margin: 0 })
                 .then(url => setQrImage(url))
                 .catch(err => console.error(err));
         } else {
@@ -311,27 +311,37 @@ const Inbound = () => {
                         flex-direction: column;
                     }
                     .label-logo { 
-                        height: 7mm;
-                        display: block;
+                        height: 7mm; 
+                        display: block; 
                         margin-bottom: 3.5mm;
                         flex-shrink: 0;
+                        align-self: flex-start;
                     }
                     
                     /* Header */
-                    .label-item-code {
-                        font-size: 12pt; font-weight: bold; margin-bottom: 0;
-                        line-height: 1.2; color: #000;
+                    .label-item-code { 
+                        font-family: Arial, sans-serif;
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin: 0; 
+                        line-height: 1.2; 
+                        color: #000;
                         word-break: break-word;
                     }
-                    .label-item-description {
-                        font-size: 12pt; font-weight: bold; margin-bottom: 2mm;
-                        line-height: 1.2; color: #000;
+                    .label-item-description { 
+                        font-family: Arial, sans-serif;
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin: 0 0 2mm 0;
+                        line-height: 1.2; 
+                        color: #000;
                         word-break: break-word;
                         flex-grow: 1;
                     }
 
                     /* Data Table */
                     .label-data-table {
+                        width: 100%;
                         font-size: 9pt;
                         line-height: 1.4;
                         flex-shrink: 0;
@@ -359,7 +369,7 @@ const Inbound = () => {
                     .label-disclaimer { 
                         font-size: 7pt; 
                         color: #000; 
-                        max-width: 40mm; 
+                        max-width: 35mm; 
                         line-height: 1.1; 
                         margin: 0; 
                     }
@@ -626,7 +636,7 @@ const Inbound = () => {
 
                                     {/* Footer */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0 }}>
-                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '40mm', lineHeight: 1.1, color: '#000' }}>
+                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
                                             All trademarks and logotypes appearing on this label are owned by Sandvik Group
                                         </p>
                                         <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
