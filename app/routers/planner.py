@@ -259,6 +259,7 @@ async def get_daily_items_for_execution(date: str = Query(...), username: str = 
             "description": item.get("Description"),
             "abc_code": item.get("ABC Code"),
             "bin_location": m.bin_1 if m else "N/A",
+            "additional_locations": m.additional_bin if m and m.additional_bin else "",
             "system_qty": m.physical_qty if m else 0,
             "planned_date": date
         })
@@ -291,7 +292,22 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
                 existing.difference, existing.username, existing.executed_date = physical - system, username, today_iso
                 updated += 1
             else:
-                db.add(CycleCountRecording(planned_date=execution_data.date, executed_date=today_iso, item_code=item.item_code, item_description=m_item.description, bin_location=m_item.bin_1, system_qty=system, physical_qty=physical, difference=physical-system, username=username, abc_code=m_item.abc_code))
+                bin_loc = m_item.bin_1
+                if m_item.additional_bin:
+                    bin_loc = f"{bin_loc} | {m_item.additional_bin}"
+                
+                db.add(CycleCountRecording(
+                    planned_date=execution_data.date, 
+                    executed_date=today_iso, 
+                    item_code=item.item_code, 
+                    item_description=m_item.description, 
+                    bin_location=bin_loc, 
+                    system_qty=system, 
+                    physical_qty=physical, 
+                    difference=physical-system, 
+                    username=username, 
+                    abc_code=m_item.abc_code
+                ))
                 saved += 1
                 await add_log(db, username, "PLANNER", f"New count: {item.item_code}={physical}")
 
