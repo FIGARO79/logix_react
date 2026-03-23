@@ -168,13 +168,27 @@ const Reconciliation = () => {
                     </select>
 
                     {/* Search Box */}
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        className="h-8 px-2 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
-                        value={filterText}
-                        onChange={(e) => setFilterText(e.target.value)}
-                    />
+                    <div className="relative w-full sm:w-72 flex-shrink-0">
+                        <input
+                            type="text"
+                            placeholder="Buscar..."
+                            className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                            value={filterText}
+                            onChange={(e) => setFilterText(e.target.value)}
+                        />
+                        {filterText && (
+                            <button
+                                type="button"
+                                onClick={() => setFilterText('')}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                title="Borrar búsqueda"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </button>
+                        )}
+                    </div>
 
                     {/* Export Button */}
                     <button
