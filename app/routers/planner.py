@@ -91,7 +91,6 @@ def save_plan_data(data):
 
 # Cargar configuración inicial
 PLANNER_CONFIG = load_config()
-HOLIDAYS = set() 
 
 class PlannerConfigModel(BaseModel):
     start_date: str
@@ -229,13 +228,55 @@ async def get_current_plan(username: str = Depends(permission_required("planner"
 
 @router.post("/update_plan")
 async def update_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
-    df_output = await calculate_count_plan_data(start_date, end_date, db)
-    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
+    """
+    Actualiza la planificación de forma incremental:
+    Conserva los ítems ya programados en el pasado y regenera solo el futuro respetando feriados.
+    """
+    today = datetime.date.today()
+    
+    # 1. Cargar plan actual para extraer el pasado
+    current_plan = load_plan_data()
+    past_details = []
+    if current_plan and "details" in current_plan:
+        for it in current_plan["details"]:
+            try:
+                p_date = datetime.datetime.strptime(it.get("Planned Date"), "%Y-%m-%d").date()
+                if p_date < today:
+                    past_details.append(it)
+            except (ValueError, TypeError):
+                continue
+
+    # 2. Generar nueva planificación para el futuro (mañana en adelante)
+    tomorrow = today + datetime.timedelta(days=1)
+    tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+    
+    # Asegurarse de que el rango futuro sea válido
+    try:
+        e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
+        if tomorrow > e_date:
+            # Si el rango es inválido o ya pasó, solo guardamos el pasado preserve
+            result_data = {
+                "total_items": len(past_details),
+                "details": past_details,
+                "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }
+            save_plan_data(result_data)
+            return result_data
+    except Exception:
+        pass
+
+    # Calcular lo nuevo desde mañana
+    df_future = await calculate_count_plan_data(tomorrow_str, end_date, db)
+    future_details = df_future.with_columns(pl.col("Planned Date").cast(pl.Utf8)).to_dicts()
+    
+    # 3. Combinar y guardar
+    all_details = past_details + future_details
     result_data = {
-        "total_items": len(df_output),
-        "details": df_output.to_dicts(),
+        "total_items": len(all_details),
+        "details": all_details,
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
+    
     save_plan_data(result_data)
     return result_data
 
