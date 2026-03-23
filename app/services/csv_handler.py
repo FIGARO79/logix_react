@@ -1,5 +1,5 @@
 import os
-import json
+import orjson
 import polars as pl
 from starlette.concurrency import run_in_threadpool
 from fastapi import HTTPException
@@ -12,9 +12,6 @@ from app.core.config import (
     GRN_CSV_FILE_PATH,
     COLUMNS_TO_READ_MASTER,
     COLUMNS_TO_READ_GRN,
-    MASTER_DETAILS_CACHE_PATH,
-    GRN_CACHE_JSON_PATH,
-    STOCK_QTY_CACHE_PATH,
     RESERVATION_CSV_PATH,
     RESERVATION_JSON_PATH
 )
@@ -36,8 +33,8 @@ async def generate_reservation_cache():
     if not os.path.exists(RESERVATION_CSV_PATH):
         if os.path.exists(RESERVATION_JSON_PATH):
             try:
-                with open(RESERVATION_JSON_PATH, 'r', encoding='utf-8') as f:
-                    reservation_qty_map = json.load(f)
+                with open(RESERVATION_JSON_PATH, 'rb') as f:
+                    reservation_qty_map = orjson.loads(f.read())
             except: pass
         return
     
@@ -55,8 +52,8 @@ async def generate_reservation_cache():
             .agg(pl.col("Quantity_reserved").sum().alias("total"))
         )
         reservation_qty_map = {row["Item_Code"]: int(row["total"]) for row in summary.to_dicts()}
-        with open(RESERVATION_JSON_PATH, 'w', encoding='utf-8') as f:
-            json.dump(reservation_qty_map, f)
+        with open(RESERVATION_JSON_PATH, 'wb') as f:
+            f.write(orjson.dumps(reservation_qty_map))
     except Exception as e:
         print(f"❌ Error Xdock Cache: {e}")
 

@@ -3,7 +3,7 @@ Servicio para la lógica de conciliación de Inbound y snapshots optimizado con 
 Unifica la lógica de la vista web y la exportación de Excel, respetando las líneas individuales del Reporte 280.
 """
 import datetime
-import json
+import orjson
 import os
 import polars as pl
 from typing import List, Optional, Dict, Any
@@ -69,8 +69,8 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # A. po_lookup.json
         if os.path.exists(PO_LOOKUP_JSON_PATH):
             try:
-                with open(PO_LOOKUP_JSON_PATH, 'r', encoding='utf-8') as f:
-                    po_cache = json.load(f)
+                with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
+                    po_cache = orjson.loads(f.read())
                     for ir, data in po_cache.get("ir_to_data", {}).items():
                         grns = set(
                             g.strip().upper()
@@ -88,8 +88,8 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # B. grn_master_data.json
         if os.path.exists(GRN_JSON_DATA_PATH):
             try:
-                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                    inbound_data = json.load(f)
+                with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                    inbound_data = orjson.loads(f.read())
                     for row in inbound_data:
                         ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
                         grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()

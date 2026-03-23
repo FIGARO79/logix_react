@@ -2,7 +2,7 @@
 Router para endpoints de stock/inventario.
 """
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.services import csv_handler, db_logs
@@ -16,7 +16,7 @@ async def get_stock(username: str = Depends(permission_required("stock"))):
     """Obtiene datos de stock desde el CSV."""
     stock_data = await csv_handler.get_stock_data()
     if stock_data is not None:
-        return JSONResponse(stock_data.to_dict(orient='records'))
+        return ORJSONResponse(stock_data.to_dict(orient='records'))
     raise HTTPException(status_code=500, detail="No se pudo cargar los datos de stock.")
 
 
@@ -26,7 +26,7 @@ async def get_stock_item(item_code: str, username: str = Depends(permission_requ
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado.")
-    return JSONResponse(item_details)
+    return ORJSONResponse(item_details)
 
 
 @router.get('/get_item_details/{item_code}')
@@ -48,4 +48,4 @@ async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(
         'additional_bins': item_details.get('Aditional_Bin_Location'),
         'weight_kg': item_details.get('Weight_per_Unit')
     }
-    return JSONResponse(content=response_data)
+    return ORJSONResponse(content=response_data)

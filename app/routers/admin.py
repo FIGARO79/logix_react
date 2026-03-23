@@ -2,7 +2,7 @@
 Router para endpoints administrativos simplificado y unificado.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, ORJSONResponse, Response
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +19,7 @@ from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT, SLOTTING_PARAMS_PATH
 from app.core.templates import templates
 from app.services.csv_handler import load_csv_data
 from app.core.limiter import limiter
-import json
+import orjson
 import os
 
 import datetime
@@ -37,8 +37,8 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
         if not os.path.exists(SLOTTING_PARAMS_PATH):
             return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
             
-        with open(SLOTTING_PARAMS_PATH, 'r') as f:
-            config = json.load(f)
+        with open(SLOTTING_PARAMS_PATH, 'rb') as f:
+            config = orjson.loads(f.read())
         
         storage = config.get("storage", {})
         total_locations = len(storage)
@@ -107,8 +107,8 @@ async def update_slotting_config(data: dict = Body(...), admin: str = Depends(pe
 async def get_slotting_template(admin: str = Depends(permission_required("inventory"))):
     data_list = []
     try:
-        with open(SLOTTING_PARAMS_PATH, 'r') as f:
-            storage = json.load(f).get('storage', {})
+        with open(SLOTTING_PARAMS_PATH, 'rb') as f:
+            storage = orjson.loads(f.read()).get('storage', {})
             for b, i in storage.items():
                 data_list.append({"BIN": b, "ZONA": i.get('zone',''), "PASILLO": i.get('aisle',''), "NIVEL": i.get('level',0), "SPOT": i.get('spot','')})
     except: pass
@@ -149,14 +149,14 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
                 }
         
         if os.path.exists(SLOTTING_PARAMS_PATH):
-            with open(SLOTTING_PARAMS_PATH, 'r') as f: 
-                config = json.load(f)
+            with open(SLOTTING_PARAMS_PATH, 'rb') as f: 
+                config = orjson.loads(f.read())
         else:
             config = {}
             
         config["storage"] = new_storage
-        with open(SLOTTING_PARAMS_PATH, 'w') as f: 
-            json.dump(config, f, indent=4)
+        with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
+            f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
             
         return {"message": "Cargado correctamente"}
     except Exception as e:
@@ -169,33 +169,33 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
 async def verify_admin_session(request: Request):
     """API: Verifica si hay una sesión activa de administrador."""
     if request.session.get("admin_logged_in"):
-        return JSONResponse({"success": True})
+        return ORJSONResponse({"success": True})
     raise HTTPException(status_code=401, detail="No autorizado")
 
 @router.get('/users')
 async def get_admin_users_api(db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     users = await get_all_users(db)
-    return JSONResponse(content=users)
+    return ORJSONResponse(content=users)
 
 @router.post('/login')
 async def admin_login_api(request: Request, data: dict):
     if data.get('password') == ADMIN_PASSWORD:
         request.session['admin_logged_in'] = True
-        return JSONResponse(content={"success": True})
-    return JSONResponse(content={"success": False}, status_code=401)
+        return ORJSONResponse(content={"success": True})
+    return ORJSONResponse(content={"success": False}, status_code=401)
 
 @router.post('/approve/{user_id}')
 async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await approve_user_by_id(db, user_id)
     if success:
-        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
+        return ORJSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/delete/{user_id}')
 async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await delete_user_by_id(db, user_id)
     if success:
-        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
+        return ORJSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/reset_password/{user_id}')
@@ -203,7 +203,7 @@ async def admin_reset_password_api(user_id: int, new_password: str = Form(...), 
     # Reutilizar validación lógica de auth.py si es necesario, o usar la de reset_user_password
     success = await reset_user_password(db, user_id, new_password)
     if success:
-        return JSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
+        return ORJSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
     raise HTTPException(status_code=400, detail="Error al restablecer contraseña o contraseña no cumple requisitos")
 
 @router.post('/permissions/{user_id}')
@@ -216,7 +216,7 @@ async def update_user_permissions_api(user_id: int, data: dict = Body(...), db: 
     await db.commit()
     
     if result.rowcount > 0:
-        return JSONResponse(content={"success": True, "message": "Permisos actualizados"})
+        return ORJSONResponse(content={"success": True, "message": "Permisos actualizados"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 # Creamos un router vacío para compatibilidad con main.py si fuera necesario

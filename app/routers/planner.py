@@ -17,7 +17,7 @@ from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
 from app.services.db_logs import add_log
-import json
+import orjson
 import os
 from pydantic import BaseModel
 
@@ -47,8 +47,8 @@ def load_config():
     config = default_config
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r') as f:
-                loaded = json.load(f)
+            with open(CONFIG_FILE, 'rb') as f:
+                loaded = orjson.loads(f.read())
                 config.update(loaded)
         except Exception:
             pass
@@ -63,8 +63,8 @@ def load_config():
 
 def save_config(config_data):
     """Guarda la configuración en el archivo JSON."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config_data, f, indent=4)
+    with open(CONFIG_FILE, 'wb') as f:
+        f.write(orjson.dumps(config_data, option=orjson.OPT_INDENT_2))
         
     global HOLIDAYS
     try:
@@ -77,16 +77,16 @@ def load_plan_data():
     if not os.path.exists(PLAN_DATA_FILE):
         return None
     try:
-        with open(PLAN_DATA_FILE, 'r') as f:
-            return json.load(f)
+        with open(PLAN_DATA_FILE, 'rb') as f:
+            return orjson.loads(f.read())
     except Exception:
         return None
 
 def save_plan_data(data):
     """Guarda los datos del plan en JSON."""
     temp_file = f"{PLAN_DATA_FILE}.tmp"
-    with open(temp_file, 'w') as f:
-        json.dump(data, f, indent=4)
+    with open(temp_file, 'wb') as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
     os.replace(temp_file, PLAN_DATA_FILE)
 
 # Cargar configuración inicial

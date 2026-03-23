@@ -24,9 +24,6 @@ AI_SLOTTING_MEMORY_PATH = os.path.join(JSON_FOLDER, 'ai_slotting_memory.json')
 PLANNER_CONFIG_PATH = os.path.join(JSON_FOLDER, 'planner_config.json')
 PLANNER_DATA_PATH = os.path.join(JSON_FOLDER, 'planner_data.json')
 SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
-STOCK_QTY_CACHE_PATH = os.path.join(JSON_FOLDER, 'stock_qty_cache.json')
-MASTER_DETAILS_CACHE_PATH = os.path.join(JSON_FOLDER, 'master_details_cache.json')
-GRN_CACHE_JSON_PATH = os.path.join(JSON_FOLDER, 'grn_cache.json')
 RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, 'reservation_cache.json')
 
 # --- Carpeta Instance para datos de aplicación ---
