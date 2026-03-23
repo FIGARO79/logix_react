@@ -37,9 +37,12 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
     }
     
     try:
+        # Asegurar caché actualizado
+        await csv_handler.reload_cache_if_needed()
+        
         # --- Estadísticas Generales (del maestro de items) ---
-        if master_qty_map:
-            total_items_with_stock = sum(1 for qty in master_qty_map.values() if qty is not None and int(qty) > 0)  # type: ignore[arg-type]
+        if csv_handler.master_qty_map:
+            total_items_with_stock = sum(1 for qty in csv_handler.master_qty_map.values() if qty is not None and int(qty) > 0)  # type: ignore[arg-type]
             summary['general']['total_items_master'] = total_items_with_stock
 
         # --- Estadísticas por Etapa ---

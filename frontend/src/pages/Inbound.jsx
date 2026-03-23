@@ -491,7 +491,7 @@ const Inbound = () => {
                                                 <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">Cross-Docking (Xdock)</span>
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="flex justify-between items-center text-[9px] uppercase font-bold text-gray-500">
+                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-gray-500">
                                                     <span>Total Reservado:</span>
                                                     <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
                                                 </div>

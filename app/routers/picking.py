@@ -79,6 +79,12 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         # Leer CSV
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
+        # [CORRECCIÓN] Filtrar líneas vacías o nulas de ORDER_ antes de procesar
+        df = df.filter(
+            (pl.col("ORDER_").is_not_null()) & 
+            (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() != "")
+        )
+
         required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
@@ -87,8 +93,10 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         df = df.with_columns([
             pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
             pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
-            pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars(),
-            pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars()
+            pl.col("CUSTOMER").cast(pl.Utf8).fill_null(""),
+            pl.col("CUSTOMER_NAME").cast(pl.Utf8).fill_null(""),
+            pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars().fill_null(""),
+            pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars().fill_null("")
         ])
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
@@ -100,10 +108,11 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
 
         def format_local_print_time(raw_time: str, tz_value: str) -> str:
             """Devuelve la hora local del CSV formateada; si no existe, devuelve vacío."""
-            if raw_time is None or str(raw_time).strip() == "":
+            if raw_time is None or str(raw_time).strip() == "" or str(raw_time).lower() == "none":
                 return "" # No mostrar fecha si no hay dato en el CSV
 
             raw_time_str = str(raw_time).strip()
+            # ... resto de la lógica ...
 
             parsed_time = None
             for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
@@ -143,14 +152,17 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         # Construir respuesta
         tracking_data = []
         for row in grouped.iter_rows(named=True):
-            order_num = str(row["ORDER_"]).strip()
-            despatch_num = str(row["DESPATCH_"]).strip()
+            order_num = str(row["ORDER_"] or "").strip()
+            despatch_num = str(row["DESPATCH_"] or "").strip()
             
+            if not order_num: # Doble validación preventiva
+                continue
+
             tracking_data.append({
                 "order_number": order_num,
                 "despatch_number": despatch_num,
-                "customer_code": row["CUSTOMER"],
-                "customer_name": row["CUSTOMER_NAME"],
+                "customer_code": str(row["CUSTOMER"] or "").strip(),
+                "customer_name": str(row["CUSTOMER_NAME"] or "").strip(),
                 "total_lines": int(row["total_lines"]),
                 "print_date": format_local_print_time(row["print_time"], row["time_zone"]),
                 "is_audited": (order_num, despatch_num) in audited_pairs

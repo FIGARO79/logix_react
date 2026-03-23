@@ -173,7 +173,12 @@ async def get_cycle_count_recordings(
                 "count_value": (rec.physical_qty or 0) * cost,
                 "executed_date": rec.executed_date,
                 "username": rec.username,
-                "stockroom": master_item.stockroom if master_item else ""
+                "stockroom": master_item.stockroom if master_item else "",
+                "item_type": master_item.item_type if master_item else "",
+                "item_class": master_item.item_class if master_item else "",
+                "item_group": master_item.item_group_major if master_item else "",
+                "sic_company": master_item.sic_code_company if master_item else "",
+                "sic_stockroom": master_item.sic_code_stockroom if master_item else ""
             })
         
         return data
