@@ -78,5 +78,9 @@ frontend/node_modules/
 
 # Guía de despliegue con claves
 vm_setup/GUIA_DESPLIEGUE_OVH.md
-
+reservation_cache.json
+planner_config.json
+ai_slotting_memory.json
+po_lookup.json
+grn_master_data.json    
 
