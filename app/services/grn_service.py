@@ -1,7 +1,7 @@
 import polars as pl
 import datetime
 import os
-import json
+import orjson
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.dialects.mysql import insert
@@ -24,8 +24,8 @@ async def seed_grn_from_excel(db: AsyncSession):
         except Exception as e:
             print(f"⚠️ Error leyendo JSON GRN con Polars: {e}, intentando vía buffer...")
             try:
-                with open(GRN_JSON_DATA_PATH, 'r', encoding='utf-8') as f:
-                    df = pl.from_dicts(json.load(f))
+                with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                    df = pl.from_dicts(orjson.loads(f.read()))
             except: pass
 
     # 2. Si no hay JSON viable, cargar desde Excel (Puente vía Pandas por compatibilidad)
@@ -140,8 +140,9 @@ async def export_grn_to_json(db: AsyncSession):
                 "CT": r.ct
             })
             
-        with open(GRN_JSON_DATA_PATH, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, default=str)
+        with open(GRN_JSON_DATA_PATH, 'wb') as f:
+            # orjson.OPT_INDENT_2 para mantener cierta legibilidad
+            f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
         return True
     except Exception as e:
         print(f"❌ [POLARS] Error exportando JSON: {e}")

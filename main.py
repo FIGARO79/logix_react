@@ -4,6 +4,7 @@ Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitec
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -46,31 +47,41 @@ app = FastAPI(
     title="Logix API V2",
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse
 )
 # Forzar recarga completa de rutas para instantáneas de conciliación
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- Configuración de CORS [CRÍTICO PARA REACT] ---
+# Lista de orígenes permitidos
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "https://logixapp.dev",
+    "https://www.logixapp.dev"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    # En producción, reemplazar "*" con el dominio real del frontend (ej. "http://localhost:5173")
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://localhost:5173", "*"],
+    # Permitir orígenes específicos; usar "*" solo si no se requieren credenciales
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Middlewares de seguridad ---
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "localhost", "127.0.0.1"])
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
     max_age=None,
-    https_only=False
+    https_only=False # Cambiado a False para permitir testing local en HTTP y evitar bucle de login
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
@@ -115,4 +126,5 @@ async def root():
 
 if __name__ == "__main__":
     import granian
-    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True).serve()
+    # loop="uvloop" asegura el uso del bucle de eventos de alto rendimiento
+    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, loop="uvloop").serve()

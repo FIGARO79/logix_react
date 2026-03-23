@@ -4,7 +4,7 @@ from app.core.db import get_db
 from app.utils.auth import permission_required
 from pydantic import BaseModel
 from typing import Optional
-import json
+import orjson
 import os
 
 import gc
@@ -29,8 +29,8 @@ async def lookup_reference(
     # INTENTO 1: USAR CACHÉ JSON (Ultrarrápido)
     if os.path.exists(cache_path):
         try:
-            with open(cache_path, "r", encoding="utf-8") as f:
-                cache = json.load(f)
+            with open(cache_path, "rb") as f:
+                cache = orjson.loads(f.read())
             
             data = None
             if waybill:

@@ -338,8 +338,8 @@ const Inbound = () => {
                         word-break: break-word;
                         flex-grow: 1;
                     }
-
-                    /* Data Table */
+                    
+                    /* Grid Data Table */
                     .label-data-table {
                         width: 100%;
                         font-size: 9pt;
@@ -391,8 +391,8 @@ const Inbound = () => {
                     <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
                     
                     <!-- Header -->
-                    <div class="label-item-code">${itemData?.itemCode || 'CODE'}</div>
-                    <div class="label-item-description">${itemData?.description || 'Description'}</div>
+                    <div class="label-item-code">${itemData?.itemCode || ''}</div>
+                    <div class="label-item-description">${itemData?.description || ''}</div>
 
                     <!-- Data Grid -->
                     <div class="label-data-table">
@@ -410,14 +410,13 @@ const Inbound = () => {
                         </div>
                         <div class="label-row">
                             <div class="label-label">Bin location</div>
-                            <div class="label-value">${relocatedBin || itemData?.binLocation || 'BIN'}</div>
+                            <div class="label-value">${relocatedBin || itemData?.binLocation || ''}</div>
                         </div>
                     </div>
 
                     <!-- Footer -->
                     <div class="label-footer">
                         <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
-                     
                         <div id="qrCodeContainer">
                             ${qrImage ? `<img src="${qrImage}" />` : ''}
                         </div>
@@ -630,7 +629,7 @@ const Inbound = () => {
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                                             <div>Bin location</div>
-                                            <div>{relocatedBin || itemData?.binLocation || 'BIN'}</div>
+                                            <div>{relocatedBin || itemData?.binLocation || ''}</div>
                                         </div>
                                     </div>
 
@@ -660,13 +659,27 @@ const Inbound = () => {
                     <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center">
                         <h2 className="text-base font-semibold tracking-tight whitespace-nowrap mb-2 md:mb-0">Registros de Inbound</h2>
                         <div className="flex gap-2 items-center flex-wrap md:flex-nowrap justify-center md:justify-end">
-                            <input
-                                type="text"
-                                placeholder="Buscar..."
-                                className="h-5 px-1 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-48 transition-all duration-150"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="relative w-full sm:w-72 flex-shrink-0">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar..."
+                                    className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                        title="Borrar búsqueda"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
                             <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                                 Exportar

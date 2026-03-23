@@ -1,4 +1,4 @@
-import json
+import orjson
 import os
 
 from typing import Optional, Dict, Any, List
@@ -15,8 +15,8 @@ class SlottingService:
     def _load_params(self) -> Dict[str, Any]:
         try:
             if os.path.exists(self.params_path):
-                with open(self.params_path, 'r') as f:
-                    return json.load(f)
+                with open(self.params_path, 'rb') as f:
+                    return orjson.loads(f.read())
         except Exception as e:
             print(f"Error cargando slotting_parameters.json: {e}")
         return {"turnover": {}, "storage": {}}

@@ -4,12 +4,12 @@ Router para endpoints de logs (inbound).
 import datetime
 
 import os
-import json
+import orjson
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import ORJSONResponse, Response
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
@@ -104,7 +104,7 @@ async def find_item(
         "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
         "supersededBy": item_details.get('SupersededBy', 'N/A')
     }
-    return JSONResponse(content=response_data)
+    return ORJSONResponse(content=response_data)
 
 @router.post('/add_log')
 async def add_log(data: LogEntry, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
@@ -143,7 +143,7 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     
     if log_id:
-        return JSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
+        return ORJSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
     else:
         raise HTTPException(status_code=500, detail="Error al guardar el registro en la base de datos.")
 
@@ -155,17 +155,17 @@ async def get_logs(version_date: Optional[str] = None, username: str = Depends(l
             logs = await db_logs.load_archived_log_data_db_async(db, version_date)
         else:
             logs = await db_logs.load_log_data_db_async(db)
-        return JSONResponse(content=logs)
+        return ORJSONResponse(content=logs)
     except Exception as e:
         print(f"Error cargando logs: {e}")
-        return JSONResponse(status_code=500, content={"error": "Error interno al cargar logs"})
+        return ORJSONResponse(status_code=500, content={"error": "Error interno al cargar logs"})
 
 @router.delete('/delete_log/{log_id}')
 async def delete_log(log_id: int, username: str = Depends(permission_required(["admin", "inbound"])), db: AsyncSession = Depends(get_db)):
     """Elimina un registro de log."""
     success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
-        return JSONResponse(content={"message": "Registro eliminado"})
+        return ORJSONResponse(content={"message": "Registro eliminado"})
     else:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
 
@@ -174,7 +174,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(permission
     """Actualiza un registro de log existente."""
     success = await db_logs.update_log_entry_db_async(db, log_id, data)
     if success:
-        return JSONResponse(content={"message": "Registro actualizado correctamente"})
+        return ORJSONResponse(content={"message": "Registro actualizado correctamente"})
     else:
         raise HTTPException(status_code=404, detail="Registro no encontrado o error al actualizar")
 
@@ -183,15 +183,15 @@ async def archive_logs(username: str = Depends(permission_required("inbound")), 
     """Archiva los registros actuales."""
     archive_date = await db_logs.archive_current_logs_db_async(db)
     if archive_date:
-        return JSONResponse(content={"message": "Registros archivados correctamente", "archive_date": archive_date})
+        return ORJSONResponse(content={"message": "Registros archivados correctamente", "archive_date": archive_date})
     else:
-        return JSONResponse(status_code=400, content={"message": "No hay registros activos para archivar"})
+        return ORJSONResponse(status_code=400, content={"message": "No hay registros activos para archivar"})
 
 @router.get('/logs/versions')
 async def get_log_versions(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene las fechas de las versiones archivadas."""
     versions = await db_logs.get_archived_versions_db_async(db)
-    return JSONResponse(content=versions)
+    return ORJSONResponse(content=versions)
 
 @router.get('/export_log')
 async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):

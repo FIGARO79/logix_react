@@ -17,7 +17,7 @@ from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
 from app.services.db_logs import add_log
-import json
+import orjson
 import os
 from pydantic import BaseModel
 
@@ -47,8 +47,8 @@ def load_config():
     config = default_config
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r') as f:
-                loaded = json.load(f)
+            with open(CONFIG_FILE, 'rb') as f:
+                loaded = orjson.loads(f.read())
                 config.update(loaded)
         except Exception:
             pass
@@ -63,8 +63,8 @@ def load_config():
 
 def save_config(config_data):
     """Guarda la configuración en el archivo JSON."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config_data, f, indent=4)
+    with open(CONFIG_FILE, 'wb') as f:
+        f.write(orjson.dumps(config_data, option=orjson.OPT_INDENT_2))
         
     global HOLIDAYS
     try:
@@ -77,21 +77,20 @@ def load_plan_data():
     if not os.path.exists(PLAN_DATA_FILE):
         return None
     try:
-        with open(PLAN_DATA_FILE, 'r') as f:
-            return json.load(f)
+        with open(PLAN_DATA_FILE, 'rb') as f:
+            return orjson.loads(f.read())
     except Exception:
         return None
 
 def save_plan_data(data):
     """Guarda los datos del plan en JSON."""
     temp_file = f"{PLAN_DATA_FILE}.tmp"
-    with open(temp_file, 'w') as f:
-        json.dump(data, f, indent=4)
+    with open(temp_file, 'wb') as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
     os.replace(temp_file, PLAN_DATA_FILE)
 
 # Cargar configuración inicial
 PLANNER_CONFIG = load_config()
-HOLIDAYS = set() 
 
 class PlannerConfigModel(BaseModel):
     start_date: str
@@ -229,13 +228,55 @@ async def get_current_plan(username: str = Depends(permission_required("planner"
 
 @router.post("/update_plan")
 async def update_count_plan(start_date: str = Query(...), end_date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
-    df_output = await calculate_count_plan_data(start_date, end_date, db)
-    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
+    """
+    Actualiza la planificación de forma incremental:
+    Conserva los ítems ya programados en el pasado y regenera solo el futuro respetando feriados.
+    """
+    today = datetime.date.today()
+    
+    # 1. Cargar plan actual para extraer el pasado
+    current_plan = load_plan_data()
+    past_details = []
+    if current_plan and "details" in current_plan:
+        for it in current_plan["details"]:
+            try:
+                p_date = datetime.datetime.strptime(it.get("Planned Date"), "%Y-%m-%d").date()
+                if p_date < today:
+                    past_details.append(it)
+            except (ValueError, TypeError):
+                continue
+
+    # 2. Generar nueva planificación para el futuro (mañana en adelante)
+    tomorrow = today + datetime.timedelta(days=1)
+    tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+    
+    # Asegurarse de que el rango futuro sea válido
+    try:
+        e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
+        if tomorrow > e_date:
+            # Si el rango es inválido o ya pasó, solo guardamos el pasado preserve
+            result_data = {
+                "total_items": len(past_details),
+                "details": past_details,
+                "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }
+            save_plan_data(result_data)
+            return result_data
+    except Exception:
+        pass
+
+    # Calcular lo nuevo desde mañana
+    df_future = await calculate_count_plan_data(tomorrow_str, end_date, db)
+    future_details = df_future.with_columns(pl.col("Planned Date").cast(pl.Utf8)).to_dicts()
+    
+    # 3. Combinar y guardar
+    all_details = past_details + future_details
     result_data = {
-        "total_items": len(df_output),
-        "details": df_output.to_dicts(),
+        "total_items": len(all_details),
+        "details": all_details,
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
+    
     save_plan_data(result_data)
     return result_data
 
@@ -259,6 +300,7 @@ async def get_daily_items_for_execution(date: str = Query(...), username: str = 
             "description": item.get("Description"),
             "abc_code": item.get("ABC Code"),
             "bin_location": m.bin_1 if m else "N/A",
+            "additional_locations": m.additional_bin if m and m.additional_bin else "",
             "system_qty": m.physical_qty if m else 0,
             "planned_date": date
         })
@@ -291,7 +333,22 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
                 existing.difference, existing.username, existing.executed_date = physical - system, username, today_iso
                 updated += 1
             else:
-                db.add(CycleCountRecording(planned_date=execution_data.date, executed_date=today_iso, item_code=item.item_code, item_description=m_item.description, bin_location=m_item.bin_1, system_qty=system, physical_qty=physical, difference=physical-system, username=username, abc_code=m_item.abc_code))
+                bin_loc = m_item.bin_1
+                if m_item.additional_bin:
+                    bin_loc = f"{bin_loc} | {m_item.additional_bin}"
+                
+                db.add(CycleCountRecording(
+                    planned_date=execution_data.date, 
+                    executed_date=today_iso, 
+                    item_code=item.item_code, 
+                    item_description=m_item.description, 
+                    bin_location=bin_loc, 
+                    system_qty=system, 
+                    physical_qty=physical, 
+                    difference=physical-system, 
+                    username=username, 
+                    abc_code=m_item.abc_code
+                ))
                 saved += 1
                 await add_log(db, username, "PLANNER", f"New count: {item.item_code}={physical}")
 
