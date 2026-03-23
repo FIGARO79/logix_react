@@ -11,13 +11,23 @@ if ASYNC_DB_URL.startswith("sqlite"):
         "check_same_thread": False
     }
 
+# Argumentos base del motor asíncrono
+engine_kwargs = {
+    "echo": False, # Cambiar a True para ver las consultas SQL en consola
+    "future": True,
+    "pool_recycle": 280,
+    "connect_args": connect_args
+}
+
+# Añadir configuración de pool solo si NO es SQLite
+if not ASYNC_DB_URL.startswith("sqlite"):
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+
 # Crear el motor asíncrono
 engine = create_async_engine(
     ASYNC_DB_URL,
-    echo=False, # Cambiar a True para ver las consultas SQL en consola
-    future=True,
-    pool_recycle=280,
-    connect_args=connect_args
+    **engine_kwargs
 )
 
 # Fábrica de sesiones
