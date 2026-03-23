@@ -12,6 +12,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - **Database**:
     - **Production**: MySQL / MariaDB (via `aiomysql`)
     - **Development**: SQLite (via `aiosqlite`)
+- **Data Engine**: Polars (High-performance DataFrames)
 - **ORM**: SQLAlchemy (Async)
 - **Migrations**: Alembic
 - **Deployment**: Systemd + Nginx
@@ -106,6 +107,7 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - **Blind Receiving**: Recepción ciega de mercancía sin cantidades esperadas
 - **GRN Master**: Gestión persistente de registros GRN (Goods Received Note)
 - **Auto-Snapshot**: Generación automática de instantáneas de conciliación antes de actualizar registros GRN.
+- **PO Extractor**: Extracción avanzada de órdenes de compra con soporte para Referencia de Cliente opcional.
 
 ### 📤 Outbound Operations
 - **Picking Audit**: Auditoría de picking con escaneo QR
@@ -162,7 +164,13 @@ SECRET_KEY=your_secret_key
 
 ## 🔄 Recent Updates
 
-### v2.3.0 (Hoy)
+### v2.4.0 (2026-03-22)
+- ✅ **Migración a Polars**: Sustitución de Pandas por Polars para un procesamiento de datos significativamente más rápido.
+- ✅ **Mejoras en PO Extractor**: Nuevo soporte para columnas de Referencia de Cliente y manejo optimizado de datos.
+- ✅ **Refinamiento Visual**: Mejora integral de la legibilidad del Dashboard (colores, fuentes y pesos).
+- ✅ **Optimización Xdock**: Simplificación de la vista de sugerencias para un flujo de trabajo más ágil.
+
+### v2.3.0 (2026-03-22)
 - ✅ **Unificación de Rutas**: Proyecto consolidado en `/home/debian/logix`.
 - ✅ **Auto-Snapshot**: Instantáneas automáticas de conciliación ante cambios en GRN.
 - ✅ **Optimización de RAM**: Script dedicado para liberación de memoria y caché.
