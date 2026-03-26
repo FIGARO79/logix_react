@@ -68,6 +68,8 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
             return False
             
         # Actualizar solo los campos proporcionados
+        if 'importReference' in entry_data_for_db:
+            log.importReference = entry_data_for_db['importReference']
         if 'waybill' in entry_data_for_db:
             log.waybill = entry_data_for_db['waybill']
         if 'relocatedBin' in entry_data_for_db:

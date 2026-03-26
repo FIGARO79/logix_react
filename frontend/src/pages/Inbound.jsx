@@ -178,6 +178,7 @@ const Inbound = () => {
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify({
+                        importReference: payload.importReference,
                         waybill: payload.waybill,
                         qtyReceived: payload.quantity,
                         relocatedBin: payload.relocatedBin
@@ -452,7 +453,7 @@ const Inbound = () => {
                                     <input type="text" value={importRef}
                                         onChange={e => setImportRef(e.target.value.toUpperCase())}
                                         onBlur={e => handleLookupReference('import_ref', e.target.value)}
-                                        placeholder="I.R." required disabled={!!editId} />
+                                        placeholder="I.R." required />
                                 </div>
                                 <div>
                                     <label className="form-label">Waybill</label>
