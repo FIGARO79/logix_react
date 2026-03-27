@@ -184,7 +184,9 @@ const ConsolidatedPackingList = () => {
                             <div>
                                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
                                 <span className="text-lg font-bold text-black uppercase">
-                                    <span className="font-mono mr-2">{data.orders[0]?.customer_code}</span>
+                                    {data.orders[0]?.customer_code && (
+                                        <span className="font-bold bg-gray-100 px-1 rounded mr-2">[{data.orders[0]?.customer_code}]</span>
+                                    )}
                                     {data.orders[0]?.customer_name || 'N/A'}
                                 </span>
                             </div>

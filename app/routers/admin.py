@@ -96,11 +96,11 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
 @router.get("/slotting-config")
 async def get_slotting_config(admin: str = Depends(permission_required("inventory"))):
     if not os.path.exists(SLOTTING_PARAMS_PATH): return {"turnover": {}, "storage": {}}
-    with open(SLOTTING_PARAMS_PATH, 'r') as f: return json.load(f)
+    with open(SLOTTING_PARAMS_PATH, 'rb') as f: return orjson.loads(f.read())
 
 @router.post("/slotting-config")
 async def update_slotting_config(data: dict = Body(...), admin: str = Depends(permission_required("inventory"))):
-    with open(SLOTTING_PARAMS_PATH, 'w') as f: json.dump(data, f, indent=4)
+    with open(SLOTTING_PARAMS_PATH, 'wb') as f: f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
     return {"message": "Guardado"}
 
 @router.get("/slotting-template")

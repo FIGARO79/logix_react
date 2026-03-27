@@ -337,7 +337,6 @@ const PickingAuditHistory = () => {
                                     <th className="px-3 py-2">Orden</th>
                                     <th className="px-3 py-2">Despacho</th>
                                     <th className="px-3 py-2">Cliente</th>
-                                    <th className="px-3 py-2">Cód.</th>
                                     <th className="px-3 py-2">Usuario</th>
                                     <th className="px-3 py-2">Fecha</th>
                                     <th className="px-3 py-2 text-center">Estado</th>
@@ -372,8 +371,12 @@ const PickingAuditHistory = () => {
                                             <td className="px-3 py-2 text-xs font-medium text-gray-900">{audit.id}</td>
                                             <td className="px-3 py-2 text-xs text-[#285f94] font-semibold">{audit.order_number}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{audit.despatch_number}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[150px]">{audit.customer_name || 'N/A'}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 font-mono">{audit.customer_code || ''}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[200px]">
+                                                {audit.customer_code && (
+                                                    <span className="font-bold text-[#285f94] mr-1">[{audit.customer_code}]</span>
+                                                )}
+                                                {audit.customer_name || 'N/A'}
+                                            </td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{audit.username}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{formatDate(audit.timestamp)}</td>
                                             <td className="px-3 py-2 text-center">
@@ -466,7 +469,9 @@ const PickingAuditHistory = () => {
                                         </span>
                                     </div>
                                     <div className="text-sm font-medium mb-1">
-                                        <span className="text-gray-400 font-mono text-xs mr-2">{audit.customer_code}</span>
+                                        {audit.customer_code && (
+                                            <span className="font-bold text-[#285f94] mr-2">[{audit.customer_code}]</span>
+                                        )}
                                         {audit.customer_name}
                                     </div>
                                     <div className="flex justify-between items-end text-xs text-gray-500">
