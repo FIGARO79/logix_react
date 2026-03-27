@@ -73,28 +73,50 @@ const Inbound = () => {
     const itemCodeRef = useRef(null);
     const printFrameRef = useRef(null);
 
-    // Carga inicial y listeners de red
+    // --- Helpers de Sincronización ---
+    const runAutoSync = async () => {
+        if (isSyncing) return;
+        setIsSyncing(true);
+        await checkAndSyncIfNeeded();
+        setIsSyncing(false);
+    };
+
+    // Carga inicial y listeners de red/foco
     useEffect(() => {
         loadLogs();
         loadVersions();
         
-        // Verificar y sincronizar maestros si es necesario
-        checkAndSyncIfNeeded();
-        // Sincronizar registros pendientes si hay internet
+        // Check inicial
+        runAutoSync();
         syncPendingInbound().then(() => loadLogs());
+
+        // Intervalo de revisión cada 10 minutos (600,000 ms)
+        const syncInterval = setInterval(() => {
+            runAutoSync();
+        }, 600000);
 
         const handleOnline = () => {
             setOffline(false);
+            runAutoSync();
             syncPendingInbound().then(() => loadLogs());
         };
+        
+        const handleFocus = () => {
+            // Al volver a la pestaña, verificar si hubo cambios en el servidor
+            runAutoSync();
+        };
+
         const handleOffline = () => setOffline(true);
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
+        window.addEventListener('focus', handleFocus);
 
         return () => {
+            clearInterval(syncInterval);
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('focus', handleFocus);
         };
     }, []);
 
@@ -608,7 +630,9 @@ const Inbound = () => {
                                         className={`p-1.5 rounded hover:bg-gray-200 transition-colors ${isSyncing ? 'animate-spin pointer-events-none' : ''}`}
                                         title="Forzar Sincronización de Maestro"
                                     >
-                                        🔄
+                                        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>

@@ -46,3 +46,13 @@ h6 {
 .no-spinner[type=number] {
     -moz-appearance: textfield;
 }
+
+/* Animación de giro para el botón de sincronización */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
