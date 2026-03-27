@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
+import { getDB } from '../utils/offlineDb';
+import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import '../styles/Label.css';
 
 const Inbound = () => {
@@ -24,6 +26,8 @@ const Inbound = () => {
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [offline, setOffline] = useState(!navigator.onLine);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
@@ -69,10 +73,29 @@ const Inbound = () => {
     const itemCodeRef = useRef(null);
     const printFrameRef = useRef(null);
 
-    // Carga inicial
+    // Carga inicial y listeners de red
     useEffect(() => {
         loadLogs();
         loadVersions();
+        
+        // Verificar y sincronizar maestros si es necesario
+        checkAndSyncIfNeeded();
+        // Sincronizar registros pendientes si hay internet
+        syncPendingInbound().then(() => loadLogs());
+
+        const handleOnline = () => {
+            setOffline(false);
+            syncPendingInbound().then(() => loadLogs());
+        };
+        const handleOffline = () => setOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
     }, []);
 
     // Filter logs based on search term
@@ -99,18 +122,38 @@ const Inbound = () => {
 
     const loadLogs = async (version = '') => {
         setCurrentVersion(version);
+        let apiLogs = [];
         try {
             const url = version
                 ? `/api/get_logs?version_date=${version}`
                 : `/api/get_logs`;
             const res = await fetch(url, { credentials: 'include' });
             if (res.ok) {
-                setLogs(await res.json());
+                apiLogs = await res.json();
             } else {
                 console.error("Failed to load logs:", res.status, res.statusText);
                 if (res.status === 401) window.location.href = '/login';
             }
-        } catch (e) { console.error("Error loading logs", e); }
+        } catch (e) { console.error("Error loading logs from API", e); }
+
+        // Cargar logs pendientes de IndexedDB (solo para la versión actual)
+        let pendingLogs = [];
+        if (!version || version === '') {
+            try {
+                const db = await getDB();
+                const pending = await db.getAll('pending_sync');
+                pendingLogs = pending.map(p => ({
+                    ...p.payload,
+                    id: p.id,
+                    timestamp: p.timestamp,
+                    username: 'LOCAL (Sync)',
+                    isPending: true,
+                    itemDescription: p.payload.itemDescription || 'Cargando...'
+                }));
+            } catch (e) { console.error("Error loading pending logs", e); }
+        }
+
+        setLogs([...pendingLogs, ...apiLogs]);
     };
 
     const loadVersions = async () => {
@@ -122,15 +165,45 @@ const Inbound = () => {
 
     const handleLookupReference = async (type, value) => {
         if (!value || editId) return;
-        try {
-            const params = type === 'waybill' ? `waybill=${encodeURIComponent(value)}` : `import_ref=${encodeURIComponent(value)}`;
-            const res = await fetch(`/api/inbound/lookup_reference?${params}`, { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.waybill) setWaybill(data.waybill);
-                if (data.import_ref) setImportRef(data.import_ref);
-            }
-        } catch (e) { console.error("Error lookup", e); }
+        const normalizedValue = value.trim().toUpperCase();
+
+        let onlineDataFound = false;
+        if (navigator.onLine) {
+            try {
+                const params = type === 'waybill' ? `waybill=${encodeURIComponent(normalizedValue)}` : `import_ref=${encodeURIComponent(normalizedValue)}`;
+                const res = await fetch(`/api/inbound/lookup_reference?${params}`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if ((type === 'waybill' && data.import_ref) || (type === 'import_ref' && data.waybill)) {
+                        if (data.waybill) setWaybill(data.waybill);
+                        if (data.import_ref) setImportRef(data.import_ref);
+                        console.log(`Logix: Datos de ${type} encontrados en servidor.`);
+                        onlineDataFound = true;
+                        return;
+                    }
+                }
+            } catch (e) { console.error("Error lookup", e); }
+        }
+
+        // Modo Offline o Fallback (Si no se encontró online o estamos offline)
+        if (!onlineDataFound) {
+            try {
+                const db = await getDB();
+                const id = type === 'waybill' ? `wb_${normalizedValue}` : `ir_${normalizedValue}`;
+                const match = await db.get('po_lookup', id);
+                
+                if (match) {
+                    console.log(`Logix: Datos de ${type} encontrados en DB Local (match id: ${id})`);
+                    if (type === 'waybill' && match.import_ref) {
+                        setImportRef(match.import_ref);
+                    } else if (type === 'import_ref' && match.waybill) {
+                        setWaybill(match.waybill);
+                    }
+                } else {
+                    console.warn(`Logix: No se encontró match local para ${id}`);
+                }
+            } catch (e) { console.error("Offline lookup error", e); }
+        }
     };
 
     const findItem = async () => {
@@ -139,19 +212,54 @@ const Inbound = () => {
             return;
         }
         setLoading(true);
+        const normalizedCode = itemCode.trim().toUpperCase();
+
+        // 1. Intentar Online para obtener predicciones IA y datos frescos
+        if (navigator.onLine) {
+            try {
+                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    setItemData(data);
+                    if (!editId) setQuantity('');
+                    quantityRef.current?.focus();
+                    setLoading(false);
+                    return;
+                }
+            } catch (e) { console.log("Fallo fetch online, intentando offline..."); }
+        }
+
+        // 2. Modo Offline (Fallback)
         try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
-            const data = await res.json();
-            if (res.ok) {
+            const db = await getDB();
+            const item = await db.get('master_items', normalizedCode);
+            if (item) {
+                // Obtener GRN y Xdock de sus propias tablas
+                const grn = await db.get('grn_pending', normalizedCode);
+                const xdock = await db.get('xdock_reservations', normalizedCode);
+
+                const data = {
+                    itemCode: item.Item_Code,
+                    description: item.Item_Description,
+                    binLocation: item.Bin_1,
+                    suggestedBin: null, // IA no disponible offline
+                    is_ai_prediction: false,
+                    xdockTotal: xdock ? xdock.total : 0,
+                    xdockPending: xdock ? xdock.total : 0, // Simplificación offline
+                    weight: item.Weight_per_Unit,
+                    defaultQtyGrn: grn ? grn.total_expected : 0,
+                    itemType: item.ABC_Code_stockroom,
+                    sicCode: item.SIC_Code_stockroom
+                };
                 setItemData(data);
                 if (!editId) setQuantity('');
                 quantityRef.current?.focus();
             } else {
-                alert(data.error || "Item no encontrado");
+                alert("Item no encontrado en el maestro local.");
                 setItemData(null);
             }
         } catch (e) {
-            alert("Error de conexión");
+            alert("Error al acceder a la base de datos local");
         } finally {
             setLoading(false);
         }
@@ -165,47 +273,94 @@ const Inbound = () => {
             importReference: importRef.trim().toUpperCase(),
             waybill: waybill.trim().toUpperCase(),
             itemCode: itemData.itemCode,
+            itemDescription: itemData.description, // Guardar descripción para mostrar offline
             quantity: parseInt(quantity),
             relocatedBin: relocatedBin.trim().toUpperCase()
         };
 
-        try {
-            let res;
-            if (editId) {
-                // Endpoint para actualizar
-                res = await fetch(`/api/update_log/${editId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        importReference: payload.importReference,
-                        waybill: payload.waybill,
-                        qtyReceived: payload.quantity,
-                        relocatedBin: payload.relocatedBin
-                    })
-                });
-            } else {
-                // Endpoint para crear
-                res = await fetch(`/api/add_log`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                });
-            }
+        if (navigator.onLine) {
+            try {
+                let res;
+                if (editId) {
+                    // Si es un editId de tipo UUID (string), significa que estamos editando un registro local aún no subido
+                    // pero el API update_log espera un ID numérico de la DB.
+                    // Por simplicidad, los edits de pendientes se manejan localmente.
+                    if (typeof editId === 'string' && editId.includes('-')) {
+                        const db = await getDB();
+                        await db.put('pending_sync', {
+                            id: editId,
+                            payload,
+                            timestamp: new Date().toISOString()
+                        });
+                        loadLogs();
+                        resetForm();
+                        return;
+                    }
 
-            if (res.ok) {
-                loadLogs();
-                resetForm();
-            } else {
-                const err = await res.json();
-                alert(err.detail || err.error || "Error al guardar");
+                    res = await fetch(`/api/update_log/${editId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            importReference: payload.importReference,
+                            waybill: payload.waybill,
+                            qtyReceived: payload.quantity,
+                            relocatedBin: payload.relocatedBin
+                        })
+                    });
+                } else {
+                    res = await fetch(`/api/add_log`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (res.ok) {
+                    loadLogs();
+                    resetForm();
+                    return;
+                } else {
+                    const err = await res.json();
+                    console.error("Error API:", err);
+                }
+            } catch (e) {
+                console.error("Connection error, falling back to offline save", e);
             }
-        } catch (e) { alert("Error de conexión"); }
+        }
+
+        // Modo Offline: Guardar en IndexedDB
+        try {
+            const db = await getDB();
+            const id = editId || crypto.randomUUID();
+            await db.put('pending_sync', {
+                id,
+                payload,
+                timestamp: new Date().toISOString(),
+                editId: typeof editId === 'number' ? editId : null // Guardar el ID real si era un edit de algo existente
+            });
+            alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+            loadLogs();
+            resetForm();
+        } catch (e) {
+            alert("Error al guardar localmente");
+        }
     };
 
     const handleDelete = async (id) => {
         if (!confirm("¿Eliminar registro?")) return;
+        
+        // Si el ID es un UUID (string), es local
+        if (typeof id === 'string' && id.includes('-')) {
+            try {
+                const db = await getDB();
+                await db.delete('pending_sync', id);
+                loadLogs();
+                return;
+            } catch (e) { console.error(e); }
+        }
+
         try {
             await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
             loadLogs();
@@ -257,23 +412,11 @@ const Inbound = () => {
 
     // Helper wrapper to ensure state is fresh or passed directly
     const checkAndFind = (code) => {
-        if (!code || !importRef) return; // Silent return if missing deps
-        // Logic duplicated from findItem but accepts code arg
-        setLoading(true);
-        fetch(`/api/find_item/${encodeURIComponent(code)}/${encodeURIComponent(importRef)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                    setItemData(null);
-                } else {
-                    setItemData(data);
-                    if (!editId) setQuantity('');
-                    quantityRef.current?.focus();
-                }
-            })
-            .catch(() => alert("Error de conexión"))
-            .finally(() => setLoading(false));
+        if (!code) return;
+        // Solo necesitamos que el itemCode esté seteado y llamar a findItem
+        // findItem ahora es robusto ante fallos de red
+        setItemCode(code);
+        setTimeout(() => findItem(), 0);
     };
 
     // Cálculos para Inbound Ciego
@@ -443,8 +586,31 @@ const Inbound = () => {
                         {/* COLUMNA IZQUIERDA: FORMULARIO */}
                         <div className="lg:col-span-2 bg-white p-4 rounded shadow border border-gray-200">
                             {/* Header Form */}
-                            <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-4 -mt-4 mb-4 rounded-t border-b border-gray-200">
+                            <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-4 -mt-4 mb-4 rounded-t border-b border-gray-200 flex justify-between items-center">
                                 <h1 className="text-base font-semibold tracking-tight">Inbound - Recepción</h1>
+                                <div className="flex items-center gap-2">
+                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase ${offline ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                        <span className={`w-2 h-2 rounded-full ${offline ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+                                        {offline ? 'Modo Offline' : 'Conectado'}
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={async () => {
+                                            setIsSyncing(true);
+                                            const ok = await downloadMasterData();
+                                            if (ok) {
+                                                alert('✅ Maestro sincronizado correctamente.');
+                                            } else {
+                                                alert('❌ Error al sincronizar. Revisa la consola.');
+                                            }
+                                            setIsSyncing(false);
+                                        }}
+                                        className={`p-1.5 rounded hover:bg-gray-200 transition-colors ${isSyncing ? 'animate-spin pointer-events-none' : ''}`}
+                                        title="Forzar Sincronización de Maestro"
+                                    >
+                                        🔄
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
@@ -714,11 +880,14 @@ const Inbound = () => {
                                 {filteredLogs.length === 0 ? (
                                     <tr><td colSpan="10" className="text-center py-4 text-gray-500">No hay registros</td></tr>
                                 ) : filteredLogs.map((log, idx) => (
-                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1.5">{log.importReference}</td>
                                         <td className="px-2 py-1.5">{log.waybill}</td>
                                         <td className="px-2 py-1.5 font-mono">{log.itemCode}</td>
-                                        <td className="px-2 py-1.5 max-w-[180px] truncate" title={log.itemDescription}>{log.itemDescription}</td>
+                                        <td className="px-2 py-1.5 max-w-[180px] truncate" title={log.itemDescription}>
+                                            {log.isPending && <span className="inline-block w-2 h-2 bg-amber-500 rounded-full mr-1.5 animate-pulse" title="Pendiente de Sincronización"></span>}
+                                            {log.itemDescription}
+                                        </td>
                                         <td className="px-2 py-1.5">{log.binLocation}</td>
                                         <td className="px-2 py-1.5">{log.relocatedBin}</td>
                                         <td className="px-2 py-1.5 text-center">{log.qtyReceived}</td>

@@ -27,7 +27,7 @@ from app.routers import sessions, logs, stock, counts, auth, admin, update, pick
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
-from app.routers import integrations
+from app.routers import integrations, sync
 
 # --- Eventos de ciclo de vida (Lifespan) ---
 @asynccontextmanager
@@ -105,6 +105,7 @@ app.include_router(inbound.router)
 app.include_router(grn.router)
 app.include_router(shipment.router)
 app.include_router(integrations.router)
+app.include_router(sync.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
