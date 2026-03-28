@@ -65,12 +65,14 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
         # 3. Construir mapa IR → GRNs (fuentes: JSON + DB)
         ir_to_grns_map: dict[str, dict] = {}
+        order_to_ir_map: dict[str, dict] = {} # Mapa adicional: Order -> {ir, wb}
 
         # A. po_lookup.json
         if os.path.exists(PO_LOOKUP_JSON_PATH):
             try:
                 with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
                     po_cache = orjson.loads(f.read())
+                    # Mapeo por IR
                     for ir, data in po_cache.get("ir_to_data", {}).items():
                         grns = set(
                             g.strip().upper()
@@ -83,6 +85,15 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                             if ir_key not in ir_to_grns_map:
                                 ir_to_grns_map[ir_key] = {"grns": set(), "wb": data.get("waybill")}
                             ir_to_grns_map[ir_key]["grns"].update(grns)
+                    
+                    # Mapeo por Order Number (customer_ref) - CRUCIAL para GRNs huérfanos
+                    for order, data in po_cache.get("customer_ref_to_data", {}).items():
+                        ir = data.get("import_ref")
+                        if ir:
+                            order_to_ir_map[str(order).strip().upper()] = {
+                                "ir": ir.strip().upper(),
+                                "wb": data.get("waybill")
+                            }
             except: pass
 
         # B. grn_master_data.json
@@ -111,7 +122,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                     ir_to_grns_map[ir_key]["grns"].update(grns_set)
         except: pass
 
-        if not ir_to_grns_map:
+        if not ir_to_grns_map and not order_to_ir_map:
             print("⚠️ [RECONCILIATION] No se encontraron asociaciones IR→GRN.")
             return logs_grouped.select([
                 pl.col("importReference").alias("Import_Reference"),
@@ -139,6 +150,11 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         if grn_pl is None:
             return []
 
+        # Asegurar que Order_Number esté disponible
+        grn_cols = ["GRN_Number", "Item_Code", "Item_Description", "Quantity"]
+        if "Order_Number" in grn_pl.columns:
+            grn_cols.append("Order_Number")
+
         grn_pl = grn_pl.with_columns([
             pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
             pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
@@ -146,13 +162,37 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
         ])
 
+        if "Order_Number" in grn_pl.columns:
+            grn_pl = grn_pl.with_columns(pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase())
+
         # 6. Join: mapping + GRN (líneas individuales esperadas)
-        df_expected = df_mapping.join(
-            grn_pl.select(["GRN_Number", "Item_Code", "Item_Description", "Quantity"]),
-            left_on="grn_map",
-            right_on="GRN_Number",
-            how="inner"
+        # Preparamos mapeo dinámico basado en Order_Number
+        order_rows = [{"order_key": k, "ir_fallback": v["ir"], "wb_fallback": v["wb"]} for k, v in order_to_ir_map.items()]
+        df_order_mapping = pl.DataFrame(order_rows) if order_rows else pl.DataFrame(schema={"order_key": pl.Utf8, "ir_fallback": pl.Utf8, "wb_fallback": pl.Utf8})
+
+        # Enriquecer reporte 280 con el fallback de IR si existe
+        grn_enriched = grn_pl.select(grn_cols)
+        if not df_order_mapping.is_empty() and "Order_Number" in grn_enriched.columns:
+            grn_enriched = grn_enriched.join(df_order_mapping, left_on="Order_Number", right_on="order_key", how="left")
+        else:
+            grn_enriched = grn_enriched.with_columns([pl.lit(None).alias("ir_fallback"), pl.lit(None).alias("wb_fallback")])
+
+        # Join con el mapeo explícito de GRN
+        df_expected = grn_enriched.join(
+            df_mapping,
+            left_on="GRN_Number",
+            right_on="grn_map",
+            how="left"
         )
+
+        # Usar ir_fallback si ir_map es nulo
+        df_expected = df_expected.with_columns([
+            pl.coalesce(["ir_map", "ir_fallback"]).alias("ir_map"),
+            pl.coalesce(["wb_map", "wb_fallback"]).alias("wb_map")
+        ])
+
+        # Filtrar solo lo que tiene una IR asignada
+        df_expected = df_expected.filter(pl.col("ir_map").is_not_null())
 
         # Total esperado por IR + Item (para cálculo de diferencia global del item)
         total_exp = (
@@ -161,6 +201,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             .agg(pl.col("Quantity").sum().alias("Total_Esperado_IR"))
         )
         df_expected = df_expected.join(total_exp, on=["ir_map", "Item_Code"], how="left")
+
 
         # 7. Join final: esperado ↔ recibido
         final = df_expected.join(
