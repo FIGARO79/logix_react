@@ -1,9 +1,5 @@
-"""
-Modelos Pydantic para la aplicación.
-"""
 from typing import Optional, List
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
 
 class LogEntry(BaseModel):
     """Modelo para registros de entrada de mercancía."""
@@ -12,15 +8,13 @@ class LogEntry(BaseModel):
     itemCode: str
     quantity: int
     relocatedBin: Optional[str] = ''
-    observaciones: Optional[str] = ''
-
+    client_id: Optional[str] = None
 
 class Count(BaseModel):
     """Modelo para conteos básicos."""
     item_code: str
     quantity: int
     location: Optional[str] = 'N/A'
-
 
 class StockCount(BaseModel):
     """Modelo para conteos de inventario con sesión."""
@@ -31,12 +25,10 @@ class StockCount(BaseModel):
     description: Optional[str] = ''
     bin_location_system: Optional[str] = ''
 
-
 class CloseLocationRequest(BaseModel):
     """Modelo para cerrar una ubicación en conteo."""
     session_id: int
     location_code: str
-
 
 class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
@@ -45,7 +37,6 @@ class PickingAuditItem(BaseModel):
     order_line: Optional[str] = ''
     qty_req: int
     qty_scan: int
-
 
 class PickingAudit(BaseModel):
     """Modelo para auditoría completa de picking."""
@@ -57,9 +48,6 @@ class PickingAudit(BaseModel):
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
-
-
-from pydantic import BaseModel, Field
 
 class CountExecutionItem(BaseModel):
     item_code: str
@@ -105,7 +93,6 @@ class GRNMasterResponse(GRNMasterBase):
 
     class Config:
         from_attributes = True
-
 
 class ShipmentCreate(BaseModel):
     """Modelo para crear un envío consolidado."""

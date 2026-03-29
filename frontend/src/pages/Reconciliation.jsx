@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { getDB } from '../utils/offlineDb';
+import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -33,12 +33,7 @@ const Reconciliation = () => {
                         setData(response.data);
                         // Guardar en caché local si es la vista actual (sin filtros de fecha)
                         if (!params.archive_date && !params.snapshot_date) {
-                            const db = await getDB();
-                            await db.put('data_cache', {
-                                key: 'last_reconciliation',
-                                data: response.data,
-                                timestamp: Date.now()
-                            });
+                            await cacheData('last_reconciliation', response.data);
                         }
                     }
                     if (response.archive_versions) setArchiveVersions(response.archive_versions);
@@ -53,10 +48,9 @@ const Reconciliation = () => {
 
         // Fallback Offline
         try {
-            const db = await getDB();
-            const cached = await db.get('data_cache', 'last_reconciliation');
-            if (cached) {
-                setData(cached.data);
+            const cachedData = await getCachedData('last_reconciliation');
+            if (cachedData) {
+                setData(cachedData);
                 setIsOfflineData(true);
                 console.log("Logix: Cargada conciliación desde caché offline.");
             }

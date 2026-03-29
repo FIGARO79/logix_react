@@ -142,8 +142,10 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     
-    if log_id:
+    if log_id is not None and log_id > 0:
         return ORJSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
+    elif log_id == 0:
+        raise HTTPException(status_code=409, detail="Registro duplicado detectado (client_id).")
     else:
         raise HTTPException(status_code=500, detail="Error al guardar el registro en la base de datos.")
 

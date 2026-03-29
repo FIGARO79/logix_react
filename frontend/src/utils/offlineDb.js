@@ -46,3 +46,43 @@ export const initDB = async () => {
 };
 
 export const getDB = () => initDB();
+
+/**
+ * Guarda un registro pendiente en la cola de sincronización.
+ * @param {string} collection Nombre de la colección (opcional para logs genéricos)
+ * @param {object} payload Datos a sincronizar
+ * @param {number|string} editId ID real en BD si es una edición
+ */
+export const savePendingSync = async (collection, payload, editId = null) => {
+    const db = await getDB();
+    const id = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
+    const record = {
+        id,
+        collection,
+        payload,
+        editId: typeof editId === 'number' ? editId : null,
+        timestamp: new Date().toISOString(),
+    };
+    await db.put('pending_sync', record);
+    return id;
+};
+
+/**
+ * Guarda datos en caché genérica.
+ * @param {string} key Identificador de la caché
+ * @param {any} data Datos a guardar
+ */
+export const cacheData = async (key, data) => {
+    const db = await getDB();
+    await db.put('data_cache', { key, data, timestamp: new Date().toISOString() });
+};
+
+/**
+ * Recupera datos de la caché genérica.
+ * @param {string} key Identificador de la caché
+ */
+export const getCachedData = async (key) => {
+    const db = await getDB();
+    const result = await db.get('data_cache', key);
+    return result ? result.data : null;
+};

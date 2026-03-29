@@ -28,6 +28,7 @@ const Inbound = () => {
     const [loading, setLoading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [offline, setOffline] = useState(!navigator.onLine);
+    const [hasWarnedOffline, setHasWarnedOffline] = useState(false);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
@@ -97,6 +98,7 @@ const Inbound = () => {
 
         const handleOnline = () => {
             setOffline(false);
+            setHasWarnedOffline(false);
             runAutoSync();
             syncPendingInbound().then(() => loadLogs());
         };
@@ -302,13 +304,15 @@ const Inbound = () => {
         e.preventDefault();
         if (!itemData) return alert("Busque un item primero");
 
+        const targetClientId = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
         const payload = {
             importReference: importRef.trim().toUpperCase(),
             waybill: waybill.trim().toUpperCase(),
             itemCode: itemData.itemCode,
             itemDescription: itemData.description, // Guardar descripción para mostrar offline
             quantity: parseInt(quantity),
-            relocatedBin: relocatedBin.trim().toUpperCase()
+            relocatedBin: relocatedBin.trim().toUpperCase(),
+            client_id: targetClientId
         };
 
         if (navigator.onLine) {
@@ -366,14 +370,17 @@ const Inbound = () => {
         // Modo Offline: Guardar en IndexedDB
         try {
             const db = await getDB();
-            const id = editId || crypto.randomUUID();
+            const id = payload.client_id;
             await db.put('pending_sync', {
                 id,
                 payload,
                 timestamp: new Date().toISOString(),
                 editId: typeof editId === 'number' ? editId : null // Guardar el ID real si era un edit de algo existente
             });
-            alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+            if (!hasWarnedOffline) {
+                alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+                setHasWarnedOffline(true);
+            }
             loadLogs();
             resetForm();
         } catch (e) {

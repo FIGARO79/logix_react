@@ -52,9 +52,8 @@ class Log(Base):
     qtyGrn: Mapped[Optional[int]] = mapped_column(Integer)
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     username: Mapped[Optional[str]] = mapped_column(String(100))
-    # Nota: observaciones NO existe en tabla logs en producción (MySQL)
-    # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
-    archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
+    client_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
 class AppState(Base):
     __tablename__ = "app_state"
@@ -284,4 +283,3 @@ class AICategoryPattern(Base):
     bin_code: Mapped[str] = mapped_column(String(100))
     frequency: Mapped[int] = mapped_column(Integer, default=1)
     last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
-

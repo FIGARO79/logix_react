@@ -33,6 +33,14 @@ async def add_log(db: AsyncSession, username: str, action_type: str, message: st
 async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) -> Optional[int]:
     """Guarda una entrada de log en la base de datos."""
     try:
+        # DEDUPLICACIÓN: Verificar si ya existe un registro con este client_id
+        client_id = entry_data.get('client_id')
+        if client_id:
+            existing = await db.execute(select(Log).where(Log.client_id == client_id))
+            if existing.scalar_one_or_none():
+                print(f"Logix: Registro duplicado detectado para client_id {client_id}. Ignorando.")
+                return 0 # Indica que no se insertó pero no es un error
+        
         new_log = Log(
             timestamp=entry_data.get('timestamp'),
             importReference=entry_data.get('importReference', ''),
@@ -44,7 +52,8 @@ async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) 
             qtyReceived=entry_data.get('qtyReceived'),
             qtyGrn=entry_data.get('qtyGrn'),
             difference=entry_data.get('difference'),
-            username=entry_data.get('username')
+            username=entry_data.get('username'),
+            client_id=client_id
             # Nota: observaciones se omiite porque no existe en tabla MySQL
         )
         db.add(new_log)
@@ -115,6 +124,7 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                 "qtyGrn": log.qtyGrn,
                 "difference": log.difference,
                 "username": log.username,
+                "client_id": getattr(log, 'client_id', None),
                 "observaciones": ""  # Columna no existe en tabla MySQL
             }
             for log in logs

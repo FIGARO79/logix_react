@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
     plugins: [
-        react(), 
+        react(),
         basicSsl(),
         VitePWA({
             registerType: 'prompt',
@@ -46,8 +46,8 @@ export default defineConfig({
                 ]
             },
             manifest: {
-                name: 'Logix Warehouse Management',
-                short_name: 'Logix',
+                name: 'Logix',
+                short_name: 'WMS',
                 description: 'Sistema de Gestión de Almacén Offline-First',
                 theme_color: '#285f94',
                 background_color: '#ffffff',
@@ -55,18 +55,31 @@ export default defineConfig({
                 orientation: 'portrait',
                 scope: '/',
                 start_url: '/',
+                id: '/',
                 icons: [
                     {
-                        src: '/icon.svg',
-                        sizes: '192x192',
-                        type: 'image/svg+xml',
+                        src: '/pwa-64x64.png',
+                        sizes: '64x64',
+                        type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: '/icon.svg',
-                        sizes: '512x512',
-                        type: 'image/svg+xml',
+                        src: '/pwa-192x192.png',
+                        sizes: '192x192',
+                        type: 'image/png',
                         purpose: 'any'
+                    },
+                    {
+                        src: '/pwa-512x512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'any'
+                    },
+                    {
+                        src: '/maskable-icon-512x512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
                     }
                 ]
             }
