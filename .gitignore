@@ -45,6 +45,8 @@ mysql.txt
 *.backup
 VPS_ubuntu.md
 dev.sh
+dev.ps1
+dev.bat
 *.conf
 *.jpg
 *.png
