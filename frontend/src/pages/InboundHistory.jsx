@@ -66,7 +66,7 @@ const InboundHistory = () => {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-[98%] mx-auto px-4 py-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
                 <h1 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
@@ -87,7 +87,7 @@ const InboundHistory = () => {
                                 title="Borrar búsqueda"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                 </svg>
                             </button>
                         )}
@@ -106,7 +106,7 @@ const InboundHistory = () => {
 
             {/* Table */}
             <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-                <div className="overflow-x-auto max-h-[70vh]">
+                <div className="overflow-x-hidden overflow-y-auto max-h-[88vh]">
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>

@@ -85,7 +85,7 @@ const Inbound = () => {
     useEffect(() => {
         loadLogs();
         loadVersions();
-        
+
         // Check inicial
         runAutoSync();
         syncPendingInbound().then(() => loadLogs());
@@ -100,7 +100,7 @@ const Inbound = () => {
             runAutoSync();
             syncPendingInbound().then(() => loadLogs());
         };
-        
+
         const handleFocus = () => {
             // Al volver a la pestaña, verificar si hubo cambios en el servidor
             runAutoSync();
@@ -213,7 +213,7 @@ const Inbound = () => {
                 const db = await getDB();
                 const id = type === 'waybill' ? `wb_${normalizedValue}` : `ir_${normalizedValue}`;
                 const match = await db.get('po_lookup', id);
-                
+
                 if (match) {
                     console.log(`Logix: Datos de ${type} encontrados en DB Local (match id: ${id})`);
                     if (type === 'waybill' && match.import_ref) {
@@ -237,6 +237,7 @@ const Inbound = () => {
         const normalizedCode = itemCode.trim().toUpperCase();
 
         // 1. Intentar Online para obtener predicciones IA y datos frescos
+        let onlineFound = false;
         if (navigator.onLine) {
             try {
                 const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
@@ -246,44 +247,54 @@ const Inbound = () => {
                     if (!editId) setQuantity('');
                     quantityRef.current?.focus();
                     setLoading(false);
+                    onlineFound = true;
                     return;
                 }
-            } catch (e) { console.log("Fallo fetch online, intentando offline..."); }
+            } catch (e) { console.error("Error finding item online", e); }
         }
 
-        // 2. Modo Offline (Fallback)
-        try {
-            const db = await getDB();
-            const item = await db.get('master_items', normalizedCode);
-            if (item) {
-                // Obtener GRN y Xdock de sus propias tablas
-                const grn = await db.get('grn_pending', normalizedCode);
-                const xdock = await db.get('xdock_reservations', normalizedCode);
+        // 2. Fallback local (IndexedDB) si falla online o estamos offline
+        if (!onlineFound) {
+            try {
+                const db = await getDB();
+                // Buscar en maestro de items
+                const localItem = await db.get('master_items', normalizedCode);
 
-                const data = {
-                    itemCode: item.Item_Code,
-                    description: item.Item_Description,
-                    binLocation: item.Bin_1,
-                    suggestedBin: null, // IA no disponible offline
-                    is_ai_prediction: false,
-                    xdockTotal: xdock ? xdock.total : 0,
-                    xdockPending: xdock ? xdock.total : 0, // Simplificación offline
-                    weight: item.Weight_per_Unit,
-                    defaultQtyGrn: grn ? grn.total_expected : 0,
-                    itemType: item.ABC_Code_stockroom,
-                    sicCode: item.SIC_Code_stockroom
-                };
-                setItemData(data);
-                if (!editId) setQuantity('');
-                quantityRef.current?.focus();
-            } else {
-                alert("Item no encontrado en el maestro local.");
-                setItemData(null);
+                if (localItem) {
+                    console.log(`Logix: Item ${normalizedCode} encontrado en maestro local.`);
+
+                    // Buscar si hay GRN pendiente y Xdock
+                    const grnInfo = await db.get('grn_pending', normalizedCode);
+                    const xdockInfo = await db.get('xdock_reservations', normalizedCode);
+
+                    // MAPEO DE CAMPOS: Local DB -> UI Schema
+                    setItemData({
+                        itemCode: localItem.Item_Code,
+                        description: localItem.Item_Description,
+                        binLocation: localItem.Bin_1,
+                        weight: localItem.Weight_per_Unit,
+                        itemType: localItem.ABC_Code_stockroom,
+                        sicCode: localItem.SIC_Code_stockroom,
+                        grn_qty: grnInfo ? grnInfo.total_expected : 0,
+                        xdockTotal: xdockInfo ? xdockInfo.total : 0,
+                        xdockPending: xdockInfo ? xdockInfo.total : 0,
+                        is_offline_result: true,
+                        suggestedBin: null // IA no disponible offline
+                    });
+
+                    if (!editId) setQuantity('');
+                    quantityRef.current?.focus();
+                } else {
+                    console.error(`Logix: Item ${normalizedCode} no existe en maestro local.`);
+                    alert("Item no encontrado en el maestro local.");
+                    setItemData(null);
+                }
+            } catch (e) {
+                console.error("Local search error", e);
+                alert("Error al buscar el ítem localmente.");
+            } finally {
+                setLoading(false);
             }
-        } catch (e) {
-            alert("Error al acceder a la base de datos local");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -372,7 +383,7 @@ const Inbound = () => {
 
     const handleDelete = async (id) => {
         if (!confirm("¿Eliminar registro?")) return;
-        
+
         // Si el ID es un UUID (string), es local
         if (typeof id === 'string' && id.includes('-')) {
             try {
@@ -443,11 +454,13 @@ const Inbound = () => {
 
     // Cálculos para Inbound Ciego
     const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode);
-    const cumulativeQty = itemLogs.reduce((acc, curr) => acc + curr.qtyReceived, 0);
+    const cumulativeQty = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
     const auditCount = itemLogs.length;
-    const displayQty = (cumulativeQty + parseInt(quantity || 0));
+    const currentQtyNum = parseInt(quantity) || 0;
+    const displayQty = (cumulativeQty + currentQtyNum);
 
-    const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
+    const itemWeight = parseFloat(itemData?.weight || 0);
+    const totalWeight = isNaN(itemWeight) || isNaN(currentQtyNum) ? '0.00' : (itemWeight * (currentQtyNum || 1)).toFixed(2);
 
     const handlePrint = () => {
         const frame = printFrameRef.current;
@@ -611,12 +624,12 @@ const Inbound = () => {
                             <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-4 -mt-4 mb-4 rounded-t border-b border-gray-200 flex justify-between items-center">
                                 <h1 className="text-base font-semibold tracking-tight">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
-                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase ${offline ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                        <span className={`w-2 h-2 rounded-full ${offline ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
-                                        {offline ? 'Modo Offline' : 'Conectado'}
+                                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${offline ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${offline ? 'bg-red-600' : 'bg-emerald-600 animate-pulse'}`}></span>
+                                        {offline ? 'Offline' : 'Online'}
                                     </div>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={async () => {
                                             setIsSyncing(true);
                                             const ok = await downloadMasterData();
@@ -864,7 +877,7 @@ const Inbound = () => {
                                         title="Borrar búsqueda"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                         </svg>
                                     </button>
                                 )}

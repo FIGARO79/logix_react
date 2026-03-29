@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { getDB } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -12,26 +13,57 @@ const Reconciliation = () => {
     const [snapshotVersions, setSnapshotVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [currentSnapshot, setCurrentSnapshot] = useState('');
+    const [isOfflineData, setIsOfflineData] = useState(false);
 
     // Fetch data
-    const fetchData = (params = {}) => {
+    const fetchData = async (params = {}) => {
         setLoading(true);
-        const queryParams = new URLSearchParams();
-        if (params.archive_date) queryParams.append('archive_date', params.archive_date);
-        if (params.snapshot_date) queryParams.append('snapshot_date', params.snapshot_date);
+        setIsOfflineData(false);
 
-        fetch(`/api/views/reconciliation?${queryParams.toString()}`)
-            .then(res => res.json())
-            .then(response => {
-                if (response.data) setData(response.data);
-                if (response.archive_versions) setArchiveVersions(response.archive_versions);
-                if (response.snapshot_versions) setSnapshotVersions(response.snapshot_versions);
-                setLoading(false);
-            })
-            .catch(err => {
+        if (navigator.onLine) {
+            const queryParams = new URLSearchParams();
+            if (params.archive_date) queryParams.append('archive_date', params.archive_date);
+            if (params.snapshot_date) queryParams.append('snapshot_date', params.snapshot_date);
+
+            try {
+                const res = await fetch(`/api/views/reconciliation?${queryParams.toString()}`);
+                if (res.ok) {
+                    const response = await res.json();
+                    if (response.data) {
+                        setData(response.data);
+                        // Guardar en caché local si es la vista actual (sin filtros de fecha)
+                        if (!params.archive_date && !params.snapshot_date) {
+                            const db = await getDB();
+                            await db.put('data_cache', {
+                                key: 'last_reconciliation',
+                                data: response.data,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+                    if (response.archive_versions) setArchiveVersions(response.archive_versions);
+                    if (response.snapshot_versions) setSnapshotVersions(response.snapshot_versions);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
                 console.error("Error fetching reconciliation data:", err);
-                setLoading(false);
-            });
+            }
+        }
+
+        // Fallback Offline
+        try {
+            const db = await getDB();
+            const cached = await db.get('data_cache', 'last_reconciliation');
+            if (cached) {
+                setData(cached.data);
+                setIsOfflineData(true);
+                console.log("Logix: Cargada conciliación desde caché offline.");
+            }
+        } catch (e) {
+            console.error("Error loading cached reconciliation:", e);
+        }
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -144,7 +176,7 @@ const Reconciliation = () => {
 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-center">
                     {/* Select Logs Archived */}
-                    <select 
+                    <select
                         value={currentVersion}
                         onChange={handleVersionChange}
                         className="h-8 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
@@ -156,7 +188,7 @@ const Reconciliation = () => {
                     </select>
 
                     {/* Select Snapshots (Frozen) */}
-                    <select 
+                    <select
                         value={currentSnapshot}
                         onChange={handleSnapshotChange}
                         className="h-8 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md shadow-sm hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
@@ -184,7 +216,7 @@ const Reconciliation = () => {
                                 title="Borrar búsqueda"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                 </svg>
                             </button>
                         )}
@@ -220,7 +252,7 @@ const Reconciliation = () => {
                         Cargando datos de reconciliación...
                     </div>
                 ) : (
-                    <div className="overflow-x-auto max-h-[75vh]">
+                    <div className="overflow-x-auto max-h-[85vh]">
                         <table className="w-full text-xs border-collapse">
                             <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
                                 <tr>
@@ -243,7 +275,7 @@ const Reconciliation = () => {
                                     filteredData.map((row, idx) => {
                                         const diff = row.Diferencia;
                                         const baseClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                                        
+
                                         // Lógica de colores simplificada (Solo Azul y Rojo)
                                         let rowClass = `${baseClass} hover:bg-gray-100`;
                                         let textClass = "text-gray-600";
@@ -291,7 +323,17 @@ const Reconciliation = () => {
                 {!loading && (
                     <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex flex-col xs:flex-row items-center justify-between text-xs text-gray-500">
                         <span>Mostrando {filteredData.length} registros</span>
-                        <span>Datos en tiempo real</span>
+                        {isOfflineData ? (
+                            <span className="text-amber-600 font-bold flex items-center gap-1">
+                                <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                                Datos en Caché Offline
+                            </span>
+                        ) : (
+                            <span className="text-emerald-600 flex items-center gap-1">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                Datos en tiempo real
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
