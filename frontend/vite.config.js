@@ -46,8 +46,8 @@ export default defineConfig({
                 ]
             },
             manifest: {
-                name: 'Logix',
-                short_name: 'WMS',
+                name: 'Logix | WMS',
+                short_name: 'Logix',
                 description: 'Sistema de Gestión de Almacén Offline-First',
                 theme_color: '#285f94',
                 background_color: '#ffffff',
