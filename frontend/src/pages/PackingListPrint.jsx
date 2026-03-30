@@ -41,9 +41,10 @@ const PackingListPrint = () => {
     }, [id]);
 
     const handlePrint = () => {
-        // Simple, robust fallback to native printing
-        // The CSS has 'print:hidden' for non-printable areas
-        window.print();
+        // Timeout para dar tiempo al navegador a aplicar el reset de estilos global y asentar el DOM
+        setTimeout(() => {
+            window.print();
+        }, 500);
     };
 
     if (loading) return <div className="p-8">Generando Packing List...</div>;
@@ -128,7 +129,7 @@ const PackingListPrint = () => {
     );
 
     return (
-        <div className="bg-white min-h-screen text-black p-8 font-sans print:p-0">
+        <div className="bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {

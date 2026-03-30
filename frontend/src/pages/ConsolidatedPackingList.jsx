@@ -28,7 +28,12 @@ const ConsolidatedPackingList = () => {
         return () => { if (sapLink) sapLink.disabled = false; };
     }, [id]);
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        // Timeout para dar tiempo al navegador a aplicar el reset de estilos global y asentar el DOM
+        setTimeout(() => {
+            window.print();
+        }, 500);
+    };
 
     if (loading) return <div className="p-8">Generando Packing List Consolidado...</div>;
     if (error) return <div className="p-8 text-red-600">Error: {error}</div>;
@@ -138,7 +143,7 @@ const ConsolidatedPackingList = () => {
     const totalPages = data.orders.length;
 
     return (
-        <div className="bg-white min-h-screen text-black p-4 font-sans print:p-0">
+        <div className="bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
