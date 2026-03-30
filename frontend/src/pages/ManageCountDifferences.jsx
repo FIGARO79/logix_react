@@ -114,7 +114,8 @@ const ManageCountDifferences = () => {
 
     // Exportar a Excel (reutiliza endpoint backend)
     const handleExport = () => {
-        window.location.href = '/api/export_counts';
+        const params = new URLSearchParams();
+        window.location.href = `/api/export_counts?${params.toString()}`;
     };
 
     return (

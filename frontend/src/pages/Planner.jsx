@@ -231,8 +231,16 @@ const Planner = () => {
                         <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74] border border-[#1e4a74]">
                             {loading ? 'Calculando...' : 'Actualizar Planificación'}
                         </button>
-                        <button onClick={() => window.location.href = `/api/planner/generate_plan?start_date=${config.start_date}&end_date=${config.end_date}`}
-                            className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74]">
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    start_date: config.start_date,
+                                    end_date: config.end_date
+                                });
+                                window.location.href = `/api/planner/generate_plan?${params.toString()}`;
+                            }}
+                            className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74]"
+                        >
                             Generar Excel
                         </button>
                     </div>

@@ -16,8 +16,8 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
                 cleanupOutdatedCaches: true,
-                // Evitar que el SW intercepte las peticiones de Vite Dev Server
-                navigateFallbackDenylist: [/^\/@vite\/client/, /^\/node_modules/],
+                // Evitar que el SW intercepte las peticiones de Backend, Docs y Vite Dev Server
+                navigateFallbackDenylist: [/^\/api/, /^\/static/, /^\/docs/, /^\/openapi.json/, /^\/@vite\/client/, /^\/node_modules/],
                 runtimeCaching: [
                     {
                         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

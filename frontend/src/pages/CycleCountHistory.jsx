@@ -69,7 +69,8 @@ const CycleCountHistory = () => {
     };
 
     const handleExport = () => {
-        window.location.href = '/api/counts/export_recordings';
+        const params = new URLSearchParams();
+        window.location.href = `/api/counts/export_recordings?${params.toString()}`;
     };
 
     const filteredRecordings = recordings.filter(rec =>
