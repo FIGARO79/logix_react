@@ -6,7 +6,7 @@ import ScannerModal from '../components/ScannerModal';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Logix - Conteo de Inventario"); }, [setTitle]);
+    useEffect(() => { setTitle("Conteos Cíclicos"); }, [setTitle]);
 
     // Session State
     const [activeSession, setActiveSession] = useState(null);

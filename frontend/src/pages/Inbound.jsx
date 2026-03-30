@@ -8,7 +8,7 @@ import '../styles/Label.css';
 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Logix - Inbound"); }, [setTitle]);
+    useEffect(() => { setTitle("Recepción"); }, [setTitle]);
     // ... (rest of states)
     // --- Estados del Formulario ---
     const [importRef, setImportRef] = useState('');

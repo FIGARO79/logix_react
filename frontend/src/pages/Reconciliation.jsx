@@ -4,7 +4,7 @@ import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Logix - Conciliación de Inbound"); }, [setTitle]);
+    useEffect(() => { setTitle("Recepción"); }, [setTitle]);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterText, setFilterText] = useState('');

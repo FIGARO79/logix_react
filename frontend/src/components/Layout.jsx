@@ -50,7 +50,11 @@ const WrenchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" vie
 
 const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [title, setTitle] = useState('Logix - Inicio');
+    const [title, setTitle] = useState('Inicio');
+
+    React.useEffect(() => {
+        document.title = title;
+    }, [title]);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
