@@ -373,7 +373,7 @@ const PickingAuditHistory = () => {
                                             <td className="px-3 py-2 text-xs text-gray-600">{audit.despatch_number}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[200px]">
                                                 {audit.customer_code && (
-                                                    <span className="font-bold text-[#285f94] mr-1">[{audit.customer_code}]</span>
+                                                    <span className="font-bold text-[#285f94] mr-1">{audit.customer_code}</span>
                                                 )}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
@@ -470,7 +470,7 @@ const PickingAuditHistory = () => {
                                     </div>
                                     <div className="text-sm font-medium mb-1">
                                         {audit.customer_code && (
-                                            <span className="font-bold text-[#285f94] mr-2">[{audit.customer_code}]</span>
+                                            <span className="font-bold text-[#285f94] mr-2">{audit.customer_code}</span>
                                         )}
                                         {audit.customer_name}
                                     </div>
@@ -541,8 +541,20 @@ const PickingAuditHistory = () => {
             {isEditModalOpen && editingAudit && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center mb-4 border-b pb-2">
-                            <h3 className="text-xl font-bold">Editar Auditoría #{editingAudit.id}</h3>
+                        <div className="flex justify-between items-start mb-4 border-b pb-2">
+                            <div className="flex flex-col">
+                                <h3 className="text-xl font-bold text-gray-800">Editar Auditoría #{editingAudit.id}</h3>
+                                <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
+                                    <span>Orden: <span className="font-bold text-black">{editingAudit.order_number} / {editingAudit.despatch_number}</span></span>
+                                    <span className="text-gray-300">|</span>
+                                    <span>Cliente: 
+                                        {editingAudit.customer_code && (
+                                            <span className="font-bold text-[#285f94] ml-1">{editingAudit.customer_code}</span>
+                                        )}
+                                        <span className="font-bold text-black ml-1 uppercase">{editingAudit.customer_name}</span>
+                                    </span>
+                                </div>
+                            </div>
                             <div className="flex items-center gap-3">
                                 <div className="bg-gray-50 px-3 py-1 rounded-lg border flex items-center gap-4 mr-2">
                                     <span className="text-sm font-bold text-gray-600">BULTOS: {editingAudit.packages || 0}</span>

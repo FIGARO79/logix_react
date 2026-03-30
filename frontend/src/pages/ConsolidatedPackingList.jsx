@@ -76,7 +76,12 @@ const ConsolidatedPackingList = () => {
         <div className="grid grid-cols-2 gap-4 mb-3 text-sm print:gap-2 print:mb-2">
             <div className="pb-1 border-b border-gray-100">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
-                <span className="text-lg text-black leading-tight">{order.customer_name || 'N/A'}</span>
+                <span className="text-lg text-black leading-tight">
+                    {order.customer_code && (
+                        <span className="font-bold bg-gray-100 px-1 rounded mr-2">{order.customer_code}</span>
+                    )}
+                    {order.customer_name || 'N/A'}
+                </span>
             </div>
             <div className="text-right pb-1 border-b border-gray-100">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
@@ -185,7 +190,7 @@ const ConsolidatedPackingList = () => {
                                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
                                 <span className="text-lg font-bold text-black uppercase">
                                     {data.orders[0]?.customer_code && (
-                                        <span className="font-bold bg-gray-100 px-1 rounded mr-2">[{data.orders[0]?.customer_code}]</span>
+                                        <span className="font-bold bg-gray-100 px-1 rounded mr-2">{data.orders[0]?.customer_code}</span>
                                     )}
                                     {data.orders[0]?.customer_name || 'N/A'}
                                 </span>

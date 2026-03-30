@@ -72,7 +72,7 @@ const PackingListPrint = () => {
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Cliente:</span>
                     <div className="text-sm text-black leading-tight">
                         {data.customer_code && (
-                            <span className="font-bold bg-gray-100 px-1 rounded mr-1">[{data.customer_code}]</span>
+                            <span className="font-bold bg-gray-100 px-1 rounded mr-1">{data.customer_code}</span>
                         )}
                         <span className="font-bold">{data.customer_name || 'N/A'}</span>
                     </div>
