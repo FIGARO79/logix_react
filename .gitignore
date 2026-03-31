@@ -49,9 +49,8 @@ dev.ps1
 dev.bat
 *.conf
 *.jpg
-*.png
 *.jpeg
-
+*.png
 
 
 # Mantener archivos importantes aunque sean txt o md

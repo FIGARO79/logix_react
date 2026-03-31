@@ -280,6 +280,7 @@ const Inbound = () => {
                         grn_qty: grnInfo ? grnInfo.total_expected : 0,
                         xdockTotal: xdockInfo ? xdockInfo.total : 0,
                         xdockPending: xdockInfo ? xdockInfo.total : 0,
+                        xdockCustomers: xdockInfo ? xdockInfo.customers : [],
                         is_offline_result: true,
                         suggestedBin: null // IA no disponible offline
                     });
@@ -621,14 +622,14 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 py-4">
+            <div className="container-wrapper px-4 pt-2 pb-4">
                 <form onSubmit={handleSaveLog}>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
 
                         {/* COLUMNA IZQUIERDA: FORMULARIO */}
-                        <div className="lg:col-span-2 bg-white p-4 rounded shadow border border-gray-200">
+                        <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
                             {/* Header Form */}
-                            <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-4 -mt-4 mb-4 rounded-t border-b border-gray-200 flex justify-between items-center">
+                            <div className="bg-white text-gray-900 px-2 py-3 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-semibold tracking-tight">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${offline ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
@@ -702,24 +703,6 @@ const Inbound = () => {
                                     <label className="form-label">Qty Received</label>
                                     <input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" />
 
-                                    {/* Sugerencia de Cross-Docking (Xdock) - Solo se muestra si hay saldo pendiente */}
-                                    {itemData?.xdockPending > 0 && (
-                                        <div className="mt-2 bg-red-50 border border-red-200 rounded p-2 shadow-sm">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-bold uppercase text-red-700 tracking-tight">Cross-Docking (Xdock)</span>
-                                            </div>
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-gray-500">
-                                                    <span>Total Reservado:</span>
-                                                    <span className="font-mono text-gray-700">{itemData.xdockTotal}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold">
-                                                    <span className="text-red-600">Pendiente Separar:</span>
-                                                    <span className="font-mono text-sm text-red-800">{itemData.xdockPending} UNIDADES</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                                 <div>
                                     <label className="form-label">Bin (Original)</label>
@@ -753,6 +736,56 @@ const Inbound = () => {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Fila de Cross-Docking (Xdock) - Ahora correctamente posicionada después de la primera fila de inputs */}
+                                {itemData?.xdockPending > 0 && (
+                                    <>
+                                        <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2 mb-2">
+                                            {/* Panel 1: Resumen */}
+                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
+                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
+                                                    CROSS-DOCKING (XDOCK)
+                                                </h4>
+                                                <div className="flex flex-col gap-1.5 text-black">
+                                                    <div className="flex justify-between items-center text-[10px] uppercase font-normal text-black">
+                                                        <span>Total Reservado:</span>
+                                                        <span className="font-mono text-black text-sm font-normal">{itemData.xdockTotal}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px] uppercase font-normal text-red-600">
+                                                        <span>Pendiente Separar:</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="font-mono text-base font-normal">{itemData.xdockPending}</span>
+                                                            <span className="text-[9px]">UNIDADES</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Panel 2: Detalles de Clientes */}
+                                            {itemData?.xdockCustomers?.length > 0 && (
+                                                <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
+                                                    <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
+                                                        RESERVADO PARA:
+                                                    </h4>
+                                                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                                        {itemData.xdockCustomers.map((c, idx) => (
+                                                            <div key={idx} className="flex justify-between items-start text-[10px] leading-tight border-b border-red-100 pb-1 last:border-0 last:pb-0">
+                                                                <div className="pr-2 flex flex-wrap items-baseline gap-1">
+                                                                    <span className="text-black font-normal uppercase text-[9.5px]">{c?.name || 'SIN NOMBRE'}</span>
+                                                                    <span className="text-black text-[8.5px]">({c?.code || 'N/A'})</span>
+                                                                </div>
+                                                                <span className="font-mono font-normal text-red-600 whitespace-nowrap text-[11px] pt-1">
+                                                                    {c?.qty || 0} UN
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="hidden sm:block"></div> {/* Espaciador para la tercera columna */}
+                                    </>
+                                )}
                                 <div>
                                     <label className="form-label">Aditional Bins</label>
                                     <div className="data-field text-xs">{itemData?.aditionalBins || ''}</div>

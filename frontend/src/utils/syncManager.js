@@ -34,9 +34,13 @@ export const downloadMasterData = async () => {
         // Cargar Xdock
         const xdockStore = tx.objectStore('xdock_reservations');
         await xdockStore.clear();
-        for (const [code, qty] of Object.entries(data.xdock_reservations)) {
+        for (const [code, info] of Object.entries(data.xdock_reservations)) {
             if (code && code !== 'null' && code !== 'undefined') {
-                xdockStore.put({ Item_Code: code, total: qty });
+                if (typeof info === 'object') {
+                    xdockStore.put({ Item_Code: code, total: info.total, customers: info.customers });
+                } else {
+                    xdockStore.put({ Item_Code: code, total: info, customers: [] });
+                }
             }
         }
         
