@@ -720,20 +720,20 @@ const Inbound = () => {
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {/* Col 1: XDOCK Summary */}
                                         {itemData?.xdockPending > 0 ? (
-                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
+                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2 shadow-sm min-w-0">
+                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 tracking-tight border-b border-red-100 pb-0.5">
                                                     CROSS-DOCKING (XDOCK)
                                                 </h4>
-                                                <div className="flex flex-col gap-1.5 text-black">
-                                                    <div className="flex justify-between items-center text-[10px] uppercase font-normal text-black">
+                                                <div className="flex flex-col gap-0.5 text-black">
+                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-black">
                                                         <span>Total Reservado:</span>
-                                                        <span className="font-mono text-black text-sm font-normal">{itemData.xdockTotal}</span>
+                                                        <span className="font-normal text-black text-xs font-normal">{itemData.xdockTotal}</span>
                                                     </div>
-                                                    <div className="flex justify-between items-center text-[10px] uppercase font-normal text-red-600">
+                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-red-600">
                                                         <span>Pendiente Separar:</span>
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className="font-mono text-base font-normal">{itemData.xdockPending}</span>
-                                                            <span className="text-[9px]">UNIDADES</span>
+                                                            <span className="font-normal text-sm font-normal">{itemData.xdockPending}</span>
+                                                            <span className="text-[8px]">UNIDADES</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -742,45 +742,45 @@ const Inbound = () => {
 
                                         {/* Col 2: Details Customers (Reserved For) */}
                                         {itemData?.xdockCustomers?.length > 0 ? (
-                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
+                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2 shadow-sm min-w-0">
+                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 tracking-tight border-b border-red-100 pb-0.5">
                                                     RESERVADO PARA:
                                                 </h4>
-                                                <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                                <div className="max-h-32 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                                                     {itemData.xdockCustomers.map((c, idx) => (
-                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] leading-tight border-b border-red-100 pb-1 last:border-0 last:pb-0">
+                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] leading-tight border-b border-red-50 last:border-0 pb-0.5 mb-0.5">
                                                             <div className="pr-2 text-black font-normal uppercase">
-                                                                <span className="text-[9.5px]">{c?.name || 'SIN NOMBRE'}</span>
-                                                                <span className="text-[8.5px] ml-1">({c?.code || 'N/A'})</span>
+                                                                <span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span>
+                                                                <span className="text-[8px] ml-1">({c?.code || 'N/A'})</span>
                                                             </div>
-                                                            <span className="font-mono font-normal text-red-600 whitespace-nowrap text-[11px]">
+                                                            <span className="font-normal text-red-600 whitespace-nowrap text-[10px]">
                                                                 {c?.qty || 0} UN
                                                             </span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : (itemData?.xdockPending > 0 ? <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 opacity-50 flex items-center justify-center text-[10px] text-gray-400 italic">Sin detalles de reserva</div> : <div className="hidden sm:block"></div>)}
+                                        ) : (itemData?.xdockPending > 0 ? <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2 opacity-50 flex items-center justify-center text-[10px] text-gray-400 italic">Sin detalles de reserva</div> : <div className="hidden sm:block"></div>)}
 
                                         {/* Col 3: Slotting Suggestion */}
                                         {itemData?.suggestedBin ? (
                                             <div
-                                                className="bg-emerald-50 border border-emerald-200 rounded p-2.5 shadow-sm cursor-pointer hover:bg-emerald-100 transition-colors"
+                                                className="bg-emerald-50 border border-emerald-200 rounded p-2 shadow-sm cursor-pointer hover:bg-emerald-100 transition-colors"
                                                 onClick={() => setRelocatedBin(itemData.suggestedBin)}
                                                 title="Haz clic para usar esta ubicación"
                                             >
-                                                <div className="flex items-center justify-between border-b border-emerald-100 pb-1 mb-2">
-                                                    <span className={`text-[10px] font-bold uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
+                                                <div className="flex items-center justify-between border-b border-emerald-100 pb-0.5 mb-1">
+                                                    <span className={`text-[10px] font-normal uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
                                                         {itemData?.is_ai_prediction ? 'Predicción IA' : 'Sugerencia Slotting'}
                                                     </span>
                                                     <span className="text-[8px] italic text-gray-500">Tap para usar</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     </svg>
-                                                    <span className="text-base font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
+                                                    <span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
