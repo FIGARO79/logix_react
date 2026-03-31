@@ -712,36 +712,14 @@ const Inbound = () => {
                                     <label className="form-label">Relocate (New)</label>
                                     <div className="flex flex-col gap-2">
                                         <input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" />
-
-                                        {itemData?.suggestedBin && (
-                                            <div
-                                                className="bg-emerald-50 border border-emerald-200 rounded p-2 cursor-pointer hover:bg-emerald-100 transition-colors"
-                                                onClick={() => setRelocatedBin(itemData.suggestedBin)}
-                                                title="Haz clic para usar esta ubicación"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-bold uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
-                                                        {itemData?.is_ai_prediction ? 'Predicción IA' : 'Sugerencia Slotting'}
-                                                    </span>
-                                                    <span className="text-[8px] italic text-gray-500">Tap para usar</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    </svg>
-                                                    <span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
-                                {/* Fila de Cross-Docking (Xdock) - Ahora correctamente posicionada después de la primera fila de inputs */}
-                                {itemData?.xdockPending > 0 && (
-                                    <>
-                                        <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2 mb-2">
-                                            {/* Panel 1: Resumen */}
+                                {/* Info Row: XDOCK Summary | XDOCK Customers | Slotting Suggestion */}
+                                {(itemData?.xdockPending > 0 || itemData?.suggestedBin) && (
+                                    <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                                        {/* Col 1: XDOCK Summary */}
+                                        {itemData?.xdockPending > 0 ? (
                                             <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
                                                 <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
                                                     CROSS-DOCKING (XDOCK)
@@ -760,31 +738,53 @@ const Inbound = () => {
                                                     </div>
                                                 </div>
                                             </div>
+                                        ) : <div className="hidden sm:block"></div>}
 
-                                            {/* Panel 2: Detalles de Clientes */}
-                                            {itemData?.xdockCustomers?.length > 0 && (
-                                                <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
-                                                    <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
-                                                        RESERVADO PARA:
-                                                    </h4>
-                                                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                                                        {itemData.xdockCustomers.map((c, idx) => (
-                                                            <div key={idx} className="flex justify-between items-start text-[10px] leading-tight border-b border-red-100 pb-1 last:border-0 last:pb-0">
-                                                                <div className="pr-2 flex flex-wrap items-baseline gap-1">
-                                                                    <span className="text-black font-normal uppercase text-[9.5px]">{c?.name || 'SIN NOMBRE'}</span>
-                                                                    <span className="text-black text-[8.5px]">({c?.code || 'N/A'})</span>
-                                                                </div>
-                                                                <span className="font-mono font-normal text-red-600 whitespace-nowrap text-[11px] pt-1">
-                                                                    {c?.qty || 0} UN
-                                                                </span>
+                                        {/* Col 2: Details Customers (Reserved For) */}
+                                        {itemData?.xdockCustomers?.length > 0 ? (
+                                            <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 shadow-sm min-w-0">
+                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-2 tracking-tight border-b border-red-100 pb-1">
+                                                    RESERVADO PARA:
+                                                </h4>
+                                                <div className="max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                                    {itemData.xdockCustomers.map((c, idx) => (
+                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] leading-tight border-b border-red-100 pb-1 last:border-0 last:pb-0">
+                                                            <div className="pr-2 text-black font-normal uppercase">
+                                                                <span className="text-[9.5px]">{c?.name || 'SIN NOMBRE'}</span>
+                                                                <span className="text-[8.5px] ml-1">({c?.code || 'N/A'})</span>
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                            <span className="font-mono font-normal text-red-600 whitespace-nowrap text-[11px]">
+                                                                {c?.qty || 0} UN
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="hidden sm:block"></div> {/* Espaciador para la tercera columna */}
-                                    </>
+                                            </div>
+                                        ) : (itemData?.xdockPending > 0 ? <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2.5 opacity-50 flex items-center justify-center text-[10px] text-gray-400 italic">Sin detalles de reserva</div> : <div className="hidden sm:block"></div>)}
+
+                                        {/* Col 3: Slotting Suggestion */}
+                                        {itemData?.suggestedBin ? (
+                                            <div
+                                                className="bg-emerald-50 border border-emerald-200 rounded p-2.5 shadow-sm cursor-pointer hover:bg-emerald-100 transition-colors"
+                                                onClick={() => setRelocatedBin(itemData.suggestedBin)}
+                                                title="Haz clic para usar esta ubicación"
+                                            >
+                                                <div className="flex items-center justify-between border-b border-emerald-100 pb-1 mb-2">
+                                                    <span className={`text-[10px] font-bold uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
+                                                        {itemData?.is_ai_prediction ? 'Predicción IA' : 'Sugerencia Slotting'}
+                                                    </span>
+                                                    <span className="text-[8px] italic text-gray-500">Tap para usar</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="text-base font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
+                                                </div>
+                                            </div>
+                                        ) : <div className="hidden sm:block"></div>}
+                                    </div>
                                 )}
                                 <div>
                                     <label className="form-label">Aditional Bins</label>
