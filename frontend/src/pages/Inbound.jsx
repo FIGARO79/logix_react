@@ -630,7 +630,7 @@ const Inbound = () => {
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
                             {/* Header Form */}
                             <div className="bg-white text-gray-900 px-2 py-3 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-semibold tracking-tight">Inbound - Recepción</h1>
+                                <h1 className="text-base font-normal tracking-tight">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${offline ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${offline ? 'bg-red-600' : 'bg-emerald-600 animate-pulse'}`}></span>
@@ -744,7 +744,7 @@ const Inbound = () => {
                                         {itemData?.xdockCustomers?.length > 0 ? (
                                             <div className="flex-1 bg-gray-50 border border-red-200 rounded p-2 shadow-sm min-w-0">
                                                 <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 tracking-tight border-b border-red-100 pb-0.5">
-                                                    RESERVADO PARA:
+                                                    RESERVAS:
                                                 </h4>
                                                 <div className="max-h-32 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                                                     {itemData.xdockCustomers.map((c, idx) => (
@@ -771,7 +771,7 @@ const Inbound = () => {
                                             >
                                                 <div className="flex items-center justify-between border-b border-emerald-100 pb-0.5 mb-1">
                                                     <span className={`text-[10px] font-normal uppercase ${itemData?.is_ai_prediction ? 'text-blue-700' : 'text-emerald-700'}`}>
-                                                        {itemData?.is_ai_prediction ? 'Predicción IA' : 'Sugerencia Slotting'}
+                                                        {itemData?.is_ai_prediction ? 'Predicción IA' : 'Ubicación Sugerida'}
                                                     </span>
                                                     <span className="text-[8px] italic text-gray-500">Tap para usar</span>
                                                 </div>
@@ -802,7 +802,7 @@ const Inbound = () => {
 
                             {/* Resumen Cantidades (Proceso Ciego) */}
                             <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
-                                <h3 className="text-xs font-bold uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen de Cantidades</h3>
+                                <h3 className="text-xs font-medium uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen de Cantidades</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="form-label">Qty Received (Total)</label>
@@ -899,7 +899,7 @@ const Inbound = () => {
                 {/* TABLA DE REGISTROS */}
                 <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
                     <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center">
-                        <h2 className="text-base font-semibold tracking-tight whitespace-nowrap mb-2 md:mb-0">Registros de Inbound</h2>
+                        <h2 className="text-base font-normal tracking-tight whitespace-nowrap mb-2 md:mb-0">Registros de Inbound</h2>
                         <div className="flex gap-2 items-center flex-wrap md:flex-nowrap justify-center md:justify-end">
                             <div className="relative w-full sm:w-72 flex-shrink-0">
                                 <input

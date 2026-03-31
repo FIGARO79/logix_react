@@ -17,8 +17,8 @@
     --sap-bg: #f7f7f7;
     /* Quartz Light Background */
     --sap-surface: #ffffff;
-    --sap-text: #32363a;
-    --sap-text-light: #6a6d70;
+    --sap-text: #000000;
+    --sap-text-light: #000000;
     --sap-border: #d9d9d9;
     --sap-input-border: #89919a;
 
@@ -148,7 +148,7 @@ h6 {
     /* 12px */
     color: var(--sap-text-light);
     margin-bottom: 0.25rem;
-    font-weight: 600;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
