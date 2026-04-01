@@ -69,14 +69,15 @@ const PackingListPrint = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] print:gap-1 print:mb-1">
-                <div className="pb-0.5 border-b border-gray-100">
-                    <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Cliente:</span>
-                    <div className="text-sm text-black leading-tight">
-                        {data.customer_code && (
-                            <span className="font-bold bg-gray-100 px-1 rounded mr-1">{data.customer_code}</span>
+                <div className="pb-0.5 border-b border-gray-100 flex items-center gap-2">
+                    <span className="text-gray-500 uppercase text-[8px] print:text-black">Cliente:</span>
+                    <span className="text-sm font-bold text-black flex flex-wrap items-center gap-1 leading-tight">
+                        {data.customer_code ? (
+                            <span>{data.customer_code} - {data.customer_name || 'N/A'}</span>
+                        ) : (
+                            <span>{data.customer_name || 'N/A'}</span>
                         )}
-                        <span className="font-bold">{data.customer_name || 'N/A'}</span>
-                    </div>
+                    </span>
                 </div>
                 <div className="text-right pb-0.5 border-b border-gray-100">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Total Bultos:</span>

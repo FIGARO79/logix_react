@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const AdminUsers = () => {
     const navigate = useNavigate();
+    const { setTitle } = useOutletContext();
     const [users, setUsers] = useState([]);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
@@ -25,7 +26,8 @@ const AdminUsers = () => {
 
     useEffect(() => {
         fetchUsers();
-    }, []);
+        if (setTitle) setTitle("Gestión de Usuarios");
+    }, [setTitle]);
 
     const handleApprove = async (id) => {
         if (!window.confirm("¿Aprobar este usuario?")) return;

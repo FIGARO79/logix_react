@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import * as Icons from '../components/Icons';
 
 const SlottingConfig = () => {
     const navigate = useNavigate();
+    const { setTitle } = useOutletContext();
     const [activeTab, setActiveTab] = useState('storage');
     const [config, setConfig] = useState({ turnover: {}, storage: {} });
     const [summary, setSummary] = useState(null);
@@ -68,7 +69,8 @@ const SlottingConfig = () => {
 
     useEffect(() => {
         fetchConfig();
-    }, [fetchConfig]);
+        if (setTitle) setTitle("Config. Slotting");
+    }, [fetchConfig, setTitle]);
 
     const handleSave = async (updatedConfig = config) => {
         setSaving(true);

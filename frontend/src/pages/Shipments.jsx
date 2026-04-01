@@ -95,6 +95,7 @@ const Shipments = () => {
                                     <th className="px-3 py-2 text-center w-8"></th>
                                     <th className="px-3 py-2">ID</th>
                                     <th className="px-3 py-2">Fecha</th>
+                                    <th className="px-3 py-2">Cliente</th>
                                     <th className="px-3 py-2">Usuario</th>
                                     <th className="px-3 py-2">Transportadora</th>
                                     <th className="px-3 py-2 text-center">Pedidos</th>
@@ -121,6 +122,15 @@ const Shipments = () => {
                                             </td>
                                             <td className="px-3 py-2 text-xs font-bold text-[#285f94]">#{s.id}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{formatDate(s.created_at)}</td>
+                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[200px]">
+                                                {s.audits.length > 0 && (
+                                                    <>
+                                                        <span className="font-bold text-[#285f94] mr-1">{s.audits[0].customer_code}</span>
+                                                        <span className="uppercase">{s.audits[0].customer_name}</span>
+                                                        {s.audits.length > 1 && <span className="text-[10px] text-gray-400 ml-1">(+{s.audits.length - 1})</span>}
+                                                    </>
+                                                )}
+                                            </td>
                                             <td className="px-3 py-2 text-xs text-gray-600">{s.username}</td>
                                             <td className="px-3 py-2 text-xs text-gray-600 uppercase">{s.carrier || '—'}</td>
                                             <td className="px-3 py-2 text-center">
@@ -224,6 +234,14 @@ const Shipments = () => {
                                         <span>{formatDate(s.created_at)}</span>
                                         <span className="uppercase">{s.carrier || ''}</span>
                                     </div>
+
+                                    {s.audits.length > 0 && (
+                                        <div className="text-xs font-medium text-gray-700 mb-2 truncate">
+                                            <span className="font-bold text-[#285f94] mr-2">{s.audits[0].customer_code}</span>
+                                            <span className="uppercase">{s.audits[0].customer_name}</span>
+                                            {s.audits.length > 1 && <span className="text-[10px] text-gray-400 ml-1">(+{s.audits.length - 1} más)</span>}
+                                        </div>
+                                    )}
 
                                     {s.status === 'active' && (
                                         <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>

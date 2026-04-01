@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const AdminInventory = () => {
     const navigate = useNavigate();
+    const { setTitle } = useOutletContext();
     const [activeTab, setActiveTab] = useState('cycle');
 
     // --- Cycle Control State ---
@@ -46,7 +47,8 @@ const AdminInventory = () => {
 
     useEffect(() => {
         fetchStats();
-    }, []);
+        if (setTitle) setTitle("Admin Inventario");
+    }, [setTitle]);
 
     const handleAction = async (actionUrl, confirmText) => {
         if (!window.confirm(confirmText)) return;
