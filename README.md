@@ -7,8 +7,8 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 ## 🚀 Technology Stack
 
 ### Backend (`/home/debian/logix`)
-- **Framework**: FastAPI (Python 3.12+)
-- **Server**: Granian (ASGI)
+- **Framework**: FastAPI (Python 3.12+) con **orjson** (Deep JSON optimization)
+- **Server**: Granian (ASGI) impulsado por **uvloop** (Extreme performance)
 - **Database**:
     - **Production**: MySQL / MariaDB (via `aiomysql`)
     - **Development**: SQLite (via `aiosqlite`)
@@ -94,7 +94,9 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - `databases/`: CSV data imports storage
 - `instance/`: SQLite database storage (Development)
 - `alembic/`: Database migration scripts
+- `backups/`: SQL database automated backups
 - `clear_ram_cache.sh`: Utility to clear system and application RAM.
+- `apply_changes.sh`: Unified build and deployment script.
 
 ## ✨ Key Features
 
@@ -113,6 +115,10 @@ A comprehensive Warehouse Management System featuring a high-performance **Headl
 - **Picking Audit**: Auditoría de picking con escaneo QR
 - **Packing List**: Generación e impresión de listas de empaque
 - **Label Printing**: Impresión de etiquetas con códigos QR
+
+### 🚚 Logistics & Operations
+- **Xdock (Cross-docking)**: Flujo de trabajo optimizado para sugerencias y avisos de mercancía en tiempo real.
+- **PWA Capabilities**: Soporte completo para trabajo offline con sincronización diferida y web manifest optimizado.
 
 ### 📊 Planning & Analytics
 - **Planner Execution**: Ejecución diaria de conteos planificados
@@ -163,6 +169,14 @@ SECRET_KEY=your_secret_key
   ```
 
 ## 🔄 Recent Updates
+
+### v2.5.0 (2026-04-01)
+- ✅ **Soporte PWA Avanzado**: Implementación de caché offline para la vista de conciliación y sincronización de datos con deduplicación.
+- ✅ **Gestión de Xdock**: Interfaz simplificada para operaciones de cross-docking con avisos instantáneos.
+- ✅ **Estandarización UI**: Títulos de ventana y navegador consistentes en todo el panel de administración.
+- ✅ **Robustez de Exportación**: Solución de errores 404 en descargas Excel/CSV mediante bypass del Service Worker.
+- ✅ **Auditoría Mejorada**: Trazabilidad extendida de logs con `client_id` para dispositivos/sesiones.
+- ✅ **Backups Automatizados**: Nuevo sistema de respaldo programado de la base de datos SQL.
 
 ### v2.4.0 (2026-03-22)
 - ✅ **Migración a Polars**: Sustitución de Pandas por Polars para un procesamiento de datos significativamente más rápido.
