@@ -22,5 +22,5 @@ else
     echo "[$TIMESTAMP] Error creating backup." >> "$BACKUP_DIR/backup.log"
 fi
 
-# Optional cleanup: keep only last 3 days of backups
-find "$BACKUP_DIR" -type f -name "*.sql" -mtime +3 -delete
+# Optional cleanup: keep only last 7 days of backups
+find "$BACKUP_DIR" -type f -name "*.sql" -mtime +7 -delete
