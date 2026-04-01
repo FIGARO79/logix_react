@@ -1,137 +1,137 @@
-# Logix WMS (Warehouse Management System)
+# Logix WMS (Sistema de Gestión de Almacén)
 
-A comprehensive Warehouse Management System featuring a high-performance **Headless FastAPI backend** and a modern **React SPA frontend**. Specialized in inventory control, logistics operations, and stock management.
+Un Sistema de Gestión de Almacén (WMS) integral que presenta un **backend Headless FastAPI** de alto rendimiento y un frontend moderno **React SPA**. Especializado en control de inventarios, operaciones logísticas y gestión de existencias.
 
-> **Architecture Note**: This project uses a decoupled architecture. The Backend serves a JSON API (no HTML rendering), and the Frontend is a single-page application built with React/Vite.
+> **Nota de Arquitectura**: Este proyecto utiliza una arquitectura desacoplada. El Backend sirve una API JSON (sin renderizado HTML) y el Frontend es una aplicación de una sola página (SPA) construida con React/Vite.
 
-## 🚀 Technology Stack
+## 🚀 Stack Tecnológico
 
 ### Backend (`/home/debian/logix`)
-- **Framework**: FastAPI (Python 3.12+) con **orjson** (Deep JSON optimization)
-- **Server**: Granian (ASGI) impulsado por **uvloop** (Extreme performance)
-- **Database**:
-    - **Production**: MySQL / MariaDB (via `aiomysql`)
-    - **Development**: SQLite (via `aiosqlite`)
-- **Data Engine**: Polars (High-performance DataFrames)
-- **ORM**: SQLAlchemy (Async)
-- **Migrations**: Alembic
-- **Deployment**: Systemd + Nginx
+- **Framework**: FastAPI (Python 3.12+) con **orjson** (Optimización profunda de JSON para respuestas < 1ms)
+- **Servidor**: Granian (ASGI) impulsado por **uvloop** (Bucle de eventos escrito en C/Cython)
+- **Base de Datos**:
+    - **Producción**: MySQL / MariaDB (vía `aiomysql`)
+    - **Desarrollo**: SQLite (vía `aiosqlite`)
+- **Motor de Datos**: Polars (DataFrames de alto rendimiento)
+- **ORM**: SQLAlchemy (Asíncrono)
+- **Migraciones**: Alembic
+- **Despliegue**: Systemd + Nginx
 
 ### Frontend (`/home/debian/logix/frontend`)
 - **Framework**: React 18
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **Routing**: React Router DOM
-- **Features**: QR Code Scanning/Generation, Printable Views, Toast Notifications
+- **Herramienta de Construcción**: Vite
+- **Estilos**: Tailwind CSS
+- **Enrutamiento**: React Router DOM
+- **Funcionalidades**: Escaneo/Generación de códigos QR, Vistas imprimibles, Notificaciones Toast
 
-## 🛠️ Installation & Setup
+## 🛠️ Instalación y Configuración
 
-### 1. Backend Setup
+### 1. Configuración del Backend
 
-1.  **Clone the repository:**
+1.  **Clonar el repositorio:**
     ```bash
     git clone https://github.com/FIGARO79/logix_react.git /home/debian/logix
     cd /home/debian/logix
     ```
 
-2.  **Create virtual environment:**
+2.  **Crear el entorno virtual:**
     ```bash
     python3 -m venv venv
     source venv/bin/activate  # Linux/Mac
     ```
 
-3.  **Install dependencies:**
+3.  **Instalar dependencias:**
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Configure Environment:**
-    Copy `.env.example` to `.env` and configure your database settings.
+4.  **Configurar el Entorno:**
+    Copie `.env.example` a `.env` y configure los ajustes de su base de datos.
 
-5.  **Run Database Migrations:**
+5.  **Ejecutar Migraciones de BD:**
     ```bash
     alembic upgrade head
     ```
 
-6.  **Run Server:**
+6.  **Iniciar Servidor:**
     ```bash
-    # Production (with Granian)
+    # Producción (con Granian)
     /home/debian/logix/venv/bin/granian --interface asgi main:app --host 0.0.0.0 --port 8000 --workers 2
     ```
 
-### 2. Frontend Setup
+### 2. Configuración del Frontend
 
-1.  **Navigate to frontend:**
+1.  **Navegar al frontend:**
     ```bash
     cd /home/debian/logix/frontend
     ```
 
-2.  **Install dependencies:**
+2.  **Instalar dependencias:**
     ```bash
     npm install
     ```
 
-3.  **Run Development Server:**
+3.  **Iniciar Servidor de Desarrollo:**
     ```bash
     npm run dev
     ```
 
-4.  **Build for Production:**
+4.  **Construir para Producción:**
     ```bash
     npm run build
     ```
 
-## 📂 Project Structure
+## 📂 Estructura del Proyecto
 
-- `app/`: FastAPI Backend source code
-    - `core/`: Config & DB logic
-    - `routers/`: API Endpoints
-    - `models/`: Database schemas (SQLAlchemy & Pydantic)
-    - `services/`: Business logic layer
-    - `utils/`: Authentication & helpers
-- `frontend/`: React Frontend application
-- `vm_setup/`: Deployment configurations (Nginx, Systemd)
-- `databases/`: CSV data imports storage
-- `instance/`: SQLite database storage (Development)
-- `alembic/`: Database migration scripts
-- `backups/`: SQL database automated backups
-- `clear_ram_cache.sh`: Utility to clear system and application RAM.
-- `apply_changes.sh`: Unified build and deployment script.
+- `app/`: Código fuente del Backend FastAPI
+    - `core/`: Lógica de configuración y base de datos
+    - `routers/`: Endpoints de la API
+    - `models/`: Esquemas de BD (SQLAlchemy y Pydantic)
+    - `services/`: Capa de lógica de negocio
+    - `utils/`: Autenticación y helpers
+- `frontend/`: Aplicación Frontend de React
+- `vm_setup/`: Configuraciones de despliegue (Nginx, Systemd)
+- `databases/`: Almacenamiento de importaciones de datos CSV
+- `instance/`: Almacenamiento de base de datos SQLite (Desarrollo)
+- `alembic/`: Scripts de migración de base de datos
+- `backups/`: Respaldos automáticos de la base de datos SQL
+- `clear_ram_cache.sh`: Utilidad para limpiar la RAM del sistema y la aplicación.
+- `apply_changes.sh`: Script unificado para compilación y despliegue.
 
-## ✨ Key Features
+## ✨ Funcionalidades Clave
 
-### 📦 Inventory Management
+### 📦 Gestión de Inventario
 - **Cycle Counts**: Planificación y ejecución de conteos cíclicos con clasificación ABC
 - **Stock Search**: Búsqueda en tiempo real de inventario con ubicaciones
 - **Recount System**: Sistema inteligente de reconteo para items con diferencias
 
-### 📥 Inbound Operations
+### 📥 Operaciones de Entrada
 - **Blind Receiving**: Recepción ciega de mercancía sin cantidades esperadas
 - **GRN Master**: Gestión persistente de registros GRN (Goods Received Note)
 - **Auto-Snapshot**: Generación automática de instantáneas de conciliación antes de actualizar registros GRN.
 - **PO Extractor**: Extracción avanzada de órdenes de compra con soporte para Referencia de Cliente opcional.
 
-### 📤 Outbound Operations
+### 📤 Operaciones de Salida
 - **Picking Audit**: Auditoría de picking con escaneo QR
 - **Packing List**: Generación e impresión de listas de empaque
 - **Label Printing**: Impresión de etiquetas con códigos QR
 
-### 🚚 Logistics & Operations
+### 🚚 Logística y Operaciones
 - **Xdock (Cross-docking)**: Flujo de trabajo optimizado para sugerencias y avisos de mercancía en tiempo real.
 - **PWA Capabilities**: Soporte completo para trabajo offline con sincronización diferida y web manifest optimizado.
 
-### 📊 Planning & Analytics
+### 📊 Planificación y Análisis
 - **Planner Execution**: Ejecución diaria de conteos planificados
 - **Reconciliation Snapshot**: Sistema de historial de conciliaciones para auditoría.
 
-### 🔐 Security & Authentication
-- **Role-Based Access Control (RBAC)**
-- **Session Management**
-- **Permission-based endpoints**
+### 🔐 Seguridad y Autenticación
+- **Control de Acceso Basado en Roles (RBAC)**
+- **Gestión de Sesiones**
+- **Endpoints basados en permisos**
 
-## ⚙️ Configuration
+## ⚙️ Configuración
 
-The application uses `.env` for backend configuration. Key variables:
+La aplicación utiliza el archivo `.env` para la configuración del backend. Variables clave:
 
 ```env
 DB_TYPE=mysql
@@ -142,33 +142,47 @@ DB_PASSWORD=your_password
 SECRET_KEY=your_secret_key
 ```
 
-## 🏃‍♂️ Deployment
+## ⚡ Arquitectura de Alto Rendimiento
 
-### Production Deployment
+Logix WMS está diseñado para ofrecer una latencia mínima y una alta capacidad de respuesta incluso con grandes volúmenes de datos.
 
-1. **Backend**: Runs as a systemd service with Granian ASGI server
+### 🚀 Stack de Rendimiento Avanzado
+- **Granian & uvloop**: El servidor ASGI utiliza `uvloop`, reemplazando el bucle de eventos estándar de Python por uno basado en `libuv` (mismo motor que NodeJS), lo que permite manejar una concurrencia masiva de forma eficiente.
+- **orjson Serialization**: Implementamos `orjson` para la serialización y deserialización de JSON, proporcionando un rendimiento hasta 10 veces mayor que el módulo nativo de Python en cargas de trabajo de API.
+- **Polars Data Engine (Rust-Powered)**: Utilizamos `Polars` para el procesamiento masivo de datos CSV y Excel. Polars es una librería escrita en Rust que aprovecha el paralelismo extremo de la CPU.
+
+### 🧠 Estrategia de Caché "Caliente" (In-Memory)
+El sistema mantiene los datos críticos en memoria RAM utilizando estructuras de Polars altamente optimizadas para evitar costosas operaciones de entrada/salida de disco (I/O).
+- **CSVCacheReloadMiddleware**: Detecta automáticamente cambios en los archivos fuente (CSV) y refresca la memoria RAM de forma inteligente cada 60 segundos si los archivos han sido modificados.
+- **Non-blocking DB operations**: Toda la comunicación con SQL (MySQL/MariaDB) es puramente asíncrona mediante `SQLAlchemy 2.0` con el driver `aiomysql`.
+
+## 🏃‍♂️ Despliegue
+
+### Despliegue en Producción
+
+1. **Backend**: Se ejecuta como un servicio de systemd con el servidor Granian ASGI
    ```bash
    sudo systemctl start logix
    ```
 
-2. **Frontend**: Static files served by Nginx
+2. **Frontend**: Archivos estáticos servidos por Nginx
 
-3. **Nginx Configuration**: See `vm_setup/nginx_logix.conf` for reverse proxy setup
+3. **Configuración de Nginx**: Consulte `vm_setup/nginx_logix.conf` para la configuración del proxy inverso
 
-### Utility Scripts
+### Scripts Útiles
 
-- **Apply Changes**: Automatically updates backend, rebuilds frontend, and restarts services.
+- **Apply Changes**: Actualiza automáticamente el backend, reconstruye el frontend y reinicia los servicios.
   ```bash
   cd /home/debian/logix
   ./apply_changes.sh
   ```
-- **Clear RAM Cache**: Clears system PageCache and restarts Logix services.
+- **Clear RAM Cache**: Limpia la caché de páginas del sistema y reinicia los servicios de Logix.
   ```bash
   cd /home/debian/logix
   ./clear_ram_cache.sh
   ```
 
-## 🔄 Recent Updates
+## 🔄 Actualizaciones Recientes
 
 ### v2.5.0 (2026-04-01)
 - ✅ **Soporte PWA Avanzado**: Implementación de caché offline para la vista de conciliación y sincronización de datos con deduplicación.
@@ -194,24 +208,24 @@ SECRET_KEY=your_secret_key
 - ✅ **GRN Lazy Loading**: Implementado scroll infinito con paginación optimizada
 - ✅ **Planner Recount System**: Sistema de reconteo inteligente para items con diferencias
 
-## 📝 API Documentation
+## 📝 Documentación de la API
 
-Once the backend is running, visit:
+Una vez que el backend esté en ejecución, visite:
 - **Swagger UI**: `https://logixapp.dev/docs`
 
-## 🤝 Contributing
+## 🤝 Contribuciones
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+1. Realice un Fork del repositorio
+2. Cree una rama para su funcionalidad (*feature branch*)
+3. Realice el Commit de sus cambios
+4. Envíe sus cambios a la rama (*push*)
+5. Abra un Pull Request
 
-## 📄 License
+## 📄 Licencia
 
-This project is proprietary software developed for internal warehouse management operations.
+Este proyecto es software propietario desarrollado para operaciones internas de gestión de almacenes.
 
-## 👥 Contact
+## 👥 Contacto
 
-Project Maintainer: FIGARO79
-Repository: [https://github.com/FIGARO79/logix_react](https://github.com/FIGARO79/logix_react)
+Mantenimiento del Proyecto: FIGARO79
+Repositorio: [https://github.com/FIGARO79/logix_react](https://github.com/FIGARO79/logix_react)
