@@ -43,22 +43,29 @@ async def register_api(request: Request, username: str = Form(...), password: st
 @limiter.limit("5/minute")
 async def login_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Procesa el login de un usuario y retorna JSON."""
-    valid, status_msg = await verify_user(db, username, password)
-    
-    if status_msg == "approved":
-        # Prevenir Session Fixation: Limpiar sesión previa
-        request.session.clear()
-        request.session['user'] = username
-        # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
-        result = await db.execute(select(User).where(User.username == username))
-        user_obj = result.scalar_one_or_none()
-        user_data = user_obj.to_dict() if user_obj else {"username": username, "permissions": ""}
+    try:
+        valid, status_msg = await verify_user(db, username, password)
         
-        return ORJSONResponse(content={"message": "Login successful", "user": user_data})
-    elif status_msg == "pending":
-        return ORJSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
-    else:
-        return ORJSONResponse(status_code=401, content={"error": "Nombre de usuario o contraseña incorrectos."})
+        if status_msg == "approved":
+            # Prevenir Session Fixation: Limpiar sesión previa
+            request.session.clear()
+            request.session['user'] = username
+            # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
+            result = await db.execute(select(User).where(User.username == username))
+            user_obj = result.scalar_one_or_none()
+            user_data = user_obj.to_dict() if user_obj else {"username": username, "permissions": ""}
+            
+            return ORJSONResponse(content={"message": "Login successful", "user": user_data})
+        elif status_msg == "pending":
+            return ORJSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
+        else:
+            return ORJSONResponse(status_code=401, content={"error": "Nombre de usuario o contraseña incorrectos."})
+    except Exception as e:
+        import traceback
+        error_msg = f"Error interno en login_api: {str(e)}"
+        print(f"ERROR: {error_msg}")
+        print(traceback.format_exc())
+        return ORJSONResponse(status_code=500, content={"error": error_msg, "traceback": traceback.format_exc()})
 
 
 @router.post('/api/logout')
