@@ -7,7 +7,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update
@@ -30,7 +30,7 @@ async def get_dashboard_stats(username: str = Depends(permission_required("inven
         recordings = result.scalars().all()
         
         if not recordings:
-            return ORJSONResponse(content={"empty": True})
+            return JSONResponse(content={"empty": True})
 
         # Convertir recordings a Polars DataFrame
         rec_list = []
@@ -112,7 +112,7 @@ async def get_dashboard_stats(username: str = Depends(permission_required("inven
             pl.col("abs_val_diff")
         ]).to_dicts()
 
-        return ORJSONResponse(content={
+        return JSONResponse(content={
             "eri": eri_final,
             "adjustments": {
                 "units": {"net": int(adj_stats["net_units"]), "gross": int(adj_stats["gross_units"])},
@@ -271,7 +271,7 @@ async def export_all_counts(tz: Optional[str] = 'UTC', username: str = Depends(p
         # 1. Obtener datos enriquecidos (reutilizamos la lógica de get_all_counts)
         counts = await get_all_counts(username, db)
         if not counts:
-            return ORJSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
+            return JSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
         
         # 2. Convertir a Polars para formateo rápido
         df = pl.from_dicts(counts)
@@ -324,7 +324,7 @@ async def export_recordings(username: str = Depends(permission_required("invento
     """Exporta los registros de conteo a Excel."""
     data = await get_cycle_count_recordings(username, db)
     if not data:
-        return ORJSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
+        return JSONResponse(content={"error": "No hay datos para exportar"}, status_code=400)
     
     df = pl.DataFrame(data)
     wb = openpyxl.Workbook()

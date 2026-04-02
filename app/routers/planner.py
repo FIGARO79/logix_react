@@ -216,7 +216,7 @@ async def get_planner_config(username: str = Depends(permission_required("planne
 async def update_planner_config(config: PlannerConfigModel, username: str = Depends(permission_required("planner"))):
     try:
         global PLANNER_CONFIG
-        PLANNER_CONFIG = config.dict()
+        PLANNER_CONFIG = config.model_dump()
         save_config(PLANNER_CONFIG)
         return {"message": "Configuración guardada", "config": PLANNER_CONFIG}
     except Exception as e:

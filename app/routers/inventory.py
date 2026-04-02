@@ -10,7 +10,7 @@ import numpy as np
 from openpyxl.utils import get_column_letter
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, ORJSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
 
@@ -425,7 +425,7 @@ async def get_inventory_summary_api(user: str = Depends(permission_required("inv
     stage_state = result.scalar_one_or_none()
     current_stage = int(stage_state.value) if stage_state else 0
     
-    return ORJSONResponse(content={
+    return JSONResponse(content={
         "stage": current_stage,
         "stats": stats
     })
@@ -449,7 +449,7 @@ async def start_inventory_stage_1_api(user: str = Depends(permission_required("i
     await db.execute(delete(RecountList))
     
     await db.commit()
-    return ORJSONResponse(content={"message": "Inventario Etapa 1 iniciado correctamente", "stage": 1})
+    return JSONResponse(content={"message": "Inventario Etapa 1 iniciado correctamente", "stage": 1})
 
 @router.post('/api/admin/inventory/advance_stage/{next_stage}')
 async def advance_inventory_stage_api(next_stage: int, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
@@ -491,7 +491,7 @@ async def advance_inventory_stage_api(next_stage: int, user: str = Depends(permi
     
     stage_state.value = str(next_stage)
     await db.commit()
-    return ORJSONResponse(content={"message": f"Avanzado a Etapa {next_stage}", "stage": next_stage})
+    return JSONResponse(content={"message": f"Avanzado a Etapa {next_stage}", "stage": next_stage})
 
 @router.post('/api/admin/inventory/finalize')
 async def finalize_inventory_api(user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
@@ -501,7 +501,7 @@ async def finalize_inventory_api(user: str = Depends(permission_required("invent
     if stage_state:
         stage_state.value = '0' 
         await db.commit()
-    return ORJSONResponse(content={"message": "Inventario finalizado correctamente", "stage": 0})
+    return JSONResponse(content={"message": "Inventario finalizado correctamente", "stage": 0})
 
 
 # ===== RUTAS DE MANAGE COUNTS =====

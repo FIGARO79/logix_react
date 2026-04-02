@@ -25,7 +25,7 @@ from app.core.config import (
     ADMIN_PASSWORD
 )
 from app.services.csv_handler import load_csv_data
-from app.utils.auth import login_required
+from app.utils.auth import login_required, api_login_required
 from app.core.templates import templates
 
 def np_encoder(obj):
@@ -190,14 +190,11 @@ po_robot_status = {
 async def run_po_robot_api(
     payload: PORobotRequest,
     background_tasks: BackgroundTasks,
-    username: str = Depends(login_required)
+    username: str = Depends(api_login_required)
 ):
     """
     Dispara el robot de descarga de Purchase Order y luego procesa el archivo.
     """
-    if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
-
     async def execute_robot_task():
         global po_robot_status
         po_robot_status["status"] = "running"
@@ -233,9 +230,7 @@ async def run_po_robot_api(
     return ORJSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
 
 @router.get('/api/po_robot_status')
-async def get_po_robot_status(username: str = Depends(login_required)):
-    if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+async def get_po_robot_status(username: str = Depends(api_login_required)):
     # Log para depuración
     print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
     return ORJSONResponse(content=po_robot_status)
@@ -254,10 +249,8 @@ async def update_files_post(
     update_option_280: str = Form(None),
     selected_grns_280: str = Form(None),
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(api_login_required)
 ):
-    if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
     files_uploaded = False
     message = ""
@@ -366,7 +359,7 @@ async def update_files_post(
 
 
 @router.post('/api/reload_cache', response_class=ORJSONResponse)
-async def reload_cache_api(username: str = Depends(login_required)):
+async def reload_cache_api(username: str = Depends(api_login_required)):
     """Fuerza la recarga de los datos CSV en la memoria RAM."""
     try:
         await load_csv_data()
@@ -376,7 +369,7 @@ async def reload_cache_api(username: str = Depends(login_required)):
 
 # --- Endpoint para previsualizar las GRNs de un archivo ---
 @router.post("/api/preview_grn_file")
-async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(login_required)):
+async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(api_login_required)):
     try:
         contents = await file.read()
         df = pl.read_csv(contents, infer_schema_length=0)
@@ -389,7 +382,7 @@ async def preview_grn_file(file: UploadFile = File(...), username: str = Depends
 
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
 @router.post('/api/clear_database')
-async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db), username: str = Depends(api_login_required)):
     if password != ADMIN_PASSWORD:
         return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     await db.execute(delete(Log))
@@ -406,7 +399,7 @@ async def clear_database(request: Request, password: str = Form(...), db: AsyncS
     return RedirectResponse(url=f"{redirect_url}?message=Base+de+datos+limpiada", status_code=302)
 
 @router.post('/api/export_all_log')
-async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db), username: str = Depends(api_login_required)):
     if password != ADMIN_PASSWORD:
          return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     try:
@@ -415,7 +408,7 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
         import openpyxl
         
         logs_data = await db_logs.load_all_logs_db_async(db)
-        if not logs_data: return ORJSONResponse(status_code=404, content={"error": "No hay datos"})
+        if not logs_data: return JSONResponse(status_code=404, content={"error": "No hay datos"})
         
         df = pl.DataFrame(logs_data)
         col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}

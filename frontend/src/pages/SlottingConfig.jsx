@@ -127,6 +127,7 @@ const SlottingConfig = () => {
     };
 
     const filteredBins = useMemo(() => {
+        if (!config || !config.storage) return [];
         return Object.entries(config.storage)
             .filter(([code]) => code.toLowerCase().includes(searchTerm.toLowerCase()))
             .slice(0, 150);
@@ -277,7 +278,7 @@ const SlottingConfig = () => {
                                             <tr key={code} className="hover:bg-[#f5f5f5] transition-colors leading-none">
                                                 <td className="px-3 py-0.5 font-mono text-[12px] font-semibold text-[#285f94]">{code}</td>
                                                 <td className="px-3 py-0.5">
-                                                    <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[11px] font-medium focus:ring-0 p-0 h-6 w-full cursor-pointer">
+                                                    <select value={info?.zone || 'Rack'} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[11px] font-medium focus:ring-0 p-0 h-6 w-full cursor-pointer">
                                                         <option value="Rack">Rack</option>
                                                         <option value="Minuteria">Minutería</option>
                                                         <option value="Cantilever">Cantilever</option>
@@ -285,13 +286,13 @@ const SlottingConfig = () => {
                                                     </select>
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center w-20">
-                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
+                                                    <input type="text" value={info?.aisle || ''} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center w-20">
-                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
+                                                    <input type="number" value={info?.level || 0} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0" />
                                                 </td>
                                                 <td className="px-3 py-0.5 text-center leading-none">
-                                                    <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-full ${getSpotColor(info.spot)}`}>
+                                                    <select value={info?.spot || 'Cold'} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-full ${getSpotColor(info?.spot)}`}>
                                                         <option value="Hot" className="text-gray-800">Hot</option>
                                                         <option value="Warm" className="text-gray-800">Warm</option>
                                                         <option value="Cold" className="text-gray-800">Cold</option>
@@ -300,12 +301,12 @@ const SlottingConfig = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        Object.entries(config.turnover).map(([sic, info]) => (
+                                        Object.entries(config.turnover || {}).map(([sic, info]) => (
                                             <tr key={sic} className="hover:bg-[#f5f5f5] transition-colors leading-none">
                                                 <td className="px-3 py-1 font-bold text-gray-700 text-[12px]">{sic}</td>
-                                                <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info.range}</td>
+                                                <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info?.range || 'N/A'}</td>
                                                 <td className="px-3 py-1 text-center">
-                                                    <select value={info.spot} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-24 ${getSpotColor(info.spot)}`}>
+                                                    <select value={info?.spot || 'cold'} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-24 ${getSpotColor(info?.spot)}`}>
                                                         <option value="hot" className="text-gray-800">Hot</option>
                                                         <option value="warm" className="text-gray-800">Warm</option>
                                                         <option value="cold" className="text-gray-800">Cold</option>

@@ -3,7 +3,7 @@ Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitec
 """
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,7 +27,7 @@ from app.routers import sessions, logs, stock, counts, auth, admin, update, pick
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
-from app.routers import integrations
+from app.routers import integrations, sync
 
 # --- Eventos de ciclo de vida (Lifespan) ---
 @asynccontextmanager
@@ -82,8 +82,8 @@ app.add_middleware(
     secret_key=SECRET_KEY, 
     session_cookie="logix_chile_session",
     max_age=None,
-    https_only=True, # Obligatorio para HTTPS
-    same_site="none" # Necesario para comunicación entre puertos (5173 -> 8000)
+    https_only=False,
+    same_site="lax"
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
@@ -107,6 +107,7 @@ app.include_router(inbound.router)
 app.include_router(grn.router)
 app.include_router(shipment.router)
 app.include_router(integrations.router)
+app.include_router(sync.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
@@ -129,4 +130,4 @@ async def root():
 if __name__ == "__main__":
     import granian
     # loop="uvloop" asegura el uso del bucle de eventos de alto rendimiento
-    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, loop="uvloop").serve()
+    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, loop="uvloop", reload_ignore_dirs=["instance"]).serve()

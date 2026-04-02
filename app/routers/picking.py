@@ -5,7 +5,7 @@ import os
 import datetime
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
@@ -62,7 +62,7 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
         order_data = order_data.fill_null("")
         
-        return ORJSONResponse(content=order_data.to_dicts())
+        return JSONResponse(content=order_data.to_dicts())
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -168,7 +168,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
                 "is_audited": (order_num, despatch_num) in audited_pairs
             })
         
-        return ORJSONResponse(content=tracking_data)
+        return JSONResponse(content=tracking_data)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -231,7 +231,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
             "total_packages": total_packages,
             "packages": packages
         }
-        return ORJSONResponse(content=response)
+        return JSONResponse(content=response)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
@@ -276,7 +276,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             ]
         }
         
-        return ORJSONResponse(content=response)
+        return JSONResponse(content=response)
         
     except Exception as e:
         print(f"Database error in get_picking_audit_for_print: {e}")
@@ -353,7 +353,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             ]
         }
         
-        return ORJSONResponse(content=response)
+        return JSONResponse(content=response)
         
     except Exception as e:
         print(f"Database error in get_picking_audit: {e}")
@@ -463,7 +463,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
         
         await db.commit()
         
-        return ORJSONResponse(content={
+        return JSONResponse(content={
             "message": "Auditoría actualizada con éxito",
             "audit_id": audit_id,
             "status": new_status
@@ -540,7 +540,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
 
         await db.commit()
         
-        return ORJSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
+        return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
 
     except Exception as e:
         await db.rollback()

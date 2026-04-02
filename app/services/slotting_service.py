@@ -108,7 +108,7 @@ class SlottingService:
                     occupancy[code] = occupancy.get(code, 0) + count
 
             # 2. Logs Activos (Reubicaciones pendientes)
-            logs_stmt = select(Log.relocatedBin, func.count(func.distinct(Log.itemCode))).where(and_(Log.archived_at == None, Log.relocatedBin != '', Log.relocatedBin != None)).group_by(Log.relocatedBin)
+            logs_stmt = select(Log.relocatedBin, func.count(func.distinct(Log.itemCode))).where(and_(Log.archived_at.is_(None), Log.relocatedBin != '', Log.relocatedBin.is_not(None))).group_by(Log.relocatedBin)
             logs_res = await db.execute(logs_stmt)
             for bin_code, count in logs_res.all():
                 if bin_code:

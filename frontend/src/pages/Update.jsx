@@ -307,11 +307,17 @@ const Update = () => {
             const data = await res.json();
 
             if (!res.ok) {
-                setMessages({ success: '', error: data.error || "Error al activar el robot", info: '' });
+                console.error("❌ Robot Activation Error:", data);
+                setMessages({ 
+                    success: '', 
+                    error: data.detail || data.error || "Error al activar el robot (500)", 
+                    info: '' 
+                });
                 setIsRobotRunning(false);
             }
             // Si res.ok es true, no seteamos success de inmediato porque el polling tomará el control
         } catch (err) {
+            console.error("❌ Connection Error (Robot):", err);
             setMessages({ success: '', error: "Error de conexión con el servidor al activar el robot", info: '' });
             setIsRobotRunning(false);
         }

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+import orjson
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text, select, desc, distinct, func
 from sqlalchemy.orm import selectinload
@@ -115,22 +116,28 @@ async def get_reconciliation_data(
                 "Diferencia": r.difference
             } for r in rows]
 
-            return {
-                "data": result_data,
-                "archive_versions": archive_versions,
-                "snapshot_versions": snapshot_versions,
-                "current_snapshot_date": snapshot_date
-            }
+            return Response(
+                content=orjson.dumps({
+                    "data": result_data,
+                    "archive_versions": archive_versions,
+                    "snapshot_versions": snapshot_versions,
+                    "current_snapshot_date": snapshot_date
+                }),
+                media_type="application/json"
+            )
 
         # 2. Lógica de cálculo (Tiempo real o logs archivados) usando el servicio
         result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
         
-        return {
-            "data": result_data,
-            "archive_versions": archive_versions,
-            "snapshot_versions": snapshot_versions,
-            "current_archive_date": archive_date
-        }
+        return Response(
+            content=orjson.dumps({
+                "data": result_data,
+                "archive_versions": archive_versions,
+                "snapshot_versions": snapshot_versions,
+                "current_archive_date": archive_date
+            }),
+            media_type="application/json"
+        )
 
     except Exception as e:
         import traceback
@@ -400,7 +407,10 @@ async def get_inbound_logs(
              "quantity": int(log.get('Quantity')) if str(log.get('Quantity')).isdigit() else 0, # Case insensitive fix
         })
         
-    return cleaned_logs
+    return Response(
+        content=orjson.dumps(cleaned_logs),
+        media_type="application/json"
+    )
 
 
 @router.get('/packing_list/{audit_id}', response_model=PackingListResponse)

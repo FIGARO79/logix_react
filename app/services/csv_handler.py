@@ -28,7 +28,7 @@ _mtime_master = 0
 _mtime_grn = 0
 
 async def generate_reservation_cache():
-    """Lee el CSV de reservas y genera el caché de Xdock con limpieza de comas."""
+    """Lee el CSV de reservas y genera el caché de Xdock con limpieza de comas y detalles de clientes."""
     global reservation_qty_map
     if not os.path.exists(RESERVATION_CSV_PATH):
         if os.path.exists(RESERVATION_JSON_PATH):
@@ -39,23 +39,51 @@ async def generate_reservation_cache():
         return
     
     try:
-        # Leer como Utf8 para limpiar comas de miles
+        # Leer columnas necesarias incluyendo información del cliente
         df = pl.read_csv(RESERVATION_CSV_PATH, infer_schema_length=0, null_values=['', 'nan', 'NaN'], 
-                         columns=["Item_Code", "Quantity_reserved", "SO_Number"], ignore_errors=True)
+                         columns=["Item_Code", "Quantity_reserved", "SO_Number", "Customer_Code", "Customer_Name"], 
+                         ignore_errors=True)
         
-        summary = (
+        # Limpiar y preparar datos
+        processed_df = (
             df.filter((pl.col("SO_Number").is_not_null()) & (pl.col("SO_Number").cast(pl.Utf8).str.strip_chars() != ""))
             .with_columns([
-                pl.col("Quantity_reserved").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                pl.col("Quantity_reserved").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+                pl.col("Customer_Name").fill_null("SIN NOMBRE"),
+                pl.col("Customer_Code").fill_null("N/A")
             ])
-            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase())
-            .agg(pl.col("Quantity_reserved").sum().alias("total"))
         )
-        reservation_qty_map = {row["Item_Code"]: int(row["total"]) for row in summary.to_dicts()}
+
+        # Agrupar por Item_Code para obtener el total y la lista de clientes
+        # Primero agrupamos por item y cliente para sumar cantidades de un mismo cliente
+        customer_summary = (
+            processed_df.group_by(["Item_Code", "Customer_Code", "Customer_Name"])
+            .agg(pl.col("Quantity_reserved").sum().alias("customer_qty"))
+            .filter(pl.col("customer_qty") > 0)
+        )
+
+        # Ahora consolidamos por Item_Code
+        final_map = {}
+        for row in customer_summary.to_dicts():
+            item = row["Item_Code"]
+            if item not in final_map:
+                final_map[item] = {"total": 0, "customers": []}
+            
+            final_map[item]["total"] += int(row["customer_qty"])
+            final_map[item]["customers"].append({
+                "code": row["Customer_Code"],
+                "name": row["Customer_Name"],
+                "qty": int(row["customer_qty"])
+            })
+
+        reservation_qty_map = final_map
+
         with open(RESERVATION_JSON_PATH, 'wb') as f:
             f.write(orjson.dumps(reservation_qty_map))
     except Exception as e:
         print(f"❌ Error Xdock Cache: {e}")
+        print(traceback.format_exc())
 
 async def load_csv_data():
     """Carga y sincroniza todos los archivos maestros en memoria RAM con Polars."""

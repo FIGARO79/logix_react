@@ -2,7 +2,7 @@
 Router para endpoints administrativos simplificado y unificado.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, ORJSONResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -169,33 +169,33 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
 async def verify_admin_session(request: Request):
     """API: Verifica si hay una sesión activa de administrador."""
     if request.session.get("admin_logged_in"):
-        return ORJSONResponse({"success": True})
+        return JSONResponse({"success": True})
     raise HTTPException(status_code=401, detail="No autorizado")
 
 @router.get('/users')
 async def get_admin_users_api(db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     users = await get_all_users(db)
-    return ORJSONResponse(content=users)
+    return JSONResponse(content=users)
 
 @router.post('/login')
 async def admin_login_api(request: Request, data: dict):
     if data.get('password') == ADMIN_PASSWORD:
         request.session['admin_logged_in'] = True
-        return ORJSONResponse(content={"success": True})
-    return ORJSONResponse(content={"success": False}, status_code=401)
+        return JSONResponse(content={"success": True})
+    return JSONResponse(content={"success": False}, status_code=401)
 
 @router.post('/approve/{user_id}')
 async def approve_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await approve_user_by_id(db, user_id)
     if success:
-        return ORJSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} aprobado"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/delete/{user_id}')
 async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
     success = await delete_user_by_id(db, user_id)
     if success:
-        return ORJSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
+        return JSONResponse(content={"success": True, "message": f"Usuario {user_id} eliminado"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @router.post('/reset_password/{user_id}')
@@ -203,7 +203,7 @@ async def admin_reset_password_api(user_id: int, new_password: str = Form(...), 
     # Reutilizar validación lógica de auth.py si es necesario, o usar la de reset_user_password
     success = await reset_user_password(db, user_id, new_password)
     if success:
-        return ORJSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
+        return JSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
     raise HTTPException(status_code=400, detail="Error al restablecer contraseña o contraseña no cumple requisitos")
 
 @router.post('/permissions/{user_id}')
@@ -216,7 +216,7 @@ async def update_user_permissions_api(user_id: int, data: dict = Body(...), db: 
     await db.commit()
     
     if result.rowcount > 0:
-        return ORJSONResponse(content={"success": True, "message": "Permisos actualizados"})
+        return JSONResponse(content={"success": True, "message": "Permisos actualizados"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 # Creamos un router vacío para compatibilidad con main.py si fuera necesario

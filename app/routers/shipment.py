@@ -5,7 +5,7 @@ Permite agrupar múltiples auditorías de picking en un solo envío.
 import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -227,7 +227,7 @@ async def get_consolidated_packing_list(
             "packages": packages
         })
 
-    return ORJSONResponse(content={
+    return JSONResponse(content={
         "shipment_id": shipment.id,
         "created_at": shipment.created_at,
         "carrier": shipment.carrier or "",

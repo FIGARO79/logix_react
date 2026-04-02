@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import CloseLocationRequest
@@ -23,7 +23,7 @@ async def get_active_session(username: str = Depends(login_required), db: AsyncS
     session = await db_counts.get_active_session_for_user(db, username)
     if session:
         return session
-    return ORJSONResponse(content={"message": "No hay sesión de conteo activa."}, status_code=404)
+    return JSONResponse(content={"message": "No hay sesión de conteo activa."}, status_code=404)
 
 
 @router.post("/sessions/{session_id}/close")

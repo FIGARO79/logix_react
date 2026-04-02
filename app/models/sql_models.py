@@ -52,6 +52,7 @@ class Log(Base):
     qtyGrn: Mapped[Optional[int]] = mapped_column(Integer)
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     username: Mapped[Optional[str]] = mapped_column(String(100))
+    client_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
     # Nota: observaciones NO existe en tabla logs en producción (MySQL)
     # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
     archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
