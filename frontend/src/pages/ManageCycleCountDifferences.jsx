@@ -30,7 +30,7 @@ const ManageCycleCountDifferences = () => {
             if (month) params.month = month;
 
             const queryParams = new URLSearchParams(params);
-            const res = await fetch(`/api/planner/cycle_count_differences?${queryParams}`);
+            const res = await fetch(`/api/planner/cycle_count_differences?${queryParams}`, { credentials: 'include' });
             if (!res.ok) throw new Error("Error cargando datos");
             const result = await res.json();
             setData(result);
@@ -58,6 +58,7 @@ const ManageCycleCountDifferences = () => {
             const res = await fetch(`/api/planner/cycle_count_differences/${editingItem.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ physical_qty: parseInt(newPhysicalQty) })
             });
 

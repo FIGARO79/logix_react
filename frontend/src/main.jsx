@@ -4,10 +4,19 @@ import App from './App.jsx'
 import './index.css'
 import './styles/Global.css'
 
-// Interceptor global de fetch para manejar sesiones expiradas (Errores 401)
+// Interceptor global de fetch para manejar sesiones y credenciales
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
-    const response = await originalFetch(...args);
+    let [resource, config] = args;
+    
+    // Si es una petición a nuestra API, asegurar que enviamos cookies
+    if (typeof resource === 'string' && resource.startsWith('/api/')) {
+        config = config || {};
+        config.credentials = 'include';
+    }
+    
+    const response = await originalFetch(resource, config);
+    
     if (response.status === 401) {
         if (!window.location.pathname.includes('/login')) {
             window.location.href = '/login';

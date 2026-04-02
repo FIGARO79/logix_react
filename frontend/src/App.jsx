@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 
@@ -51,34 +51,25 @@ const LoadingFallback = () => (
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredPermission }) => {
-    // Basic auth check
     const userJson = localStorage.getItem('user');
-    const isAuthenticated = !!userJson;
+    if (!userJson) return <Navigate to="/login" replace />;
 
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
-
-    // Permission check
     if (requiredPermission) {
         try {
             const user = JSON.parse(userJson);
-            // If admin, allow everything
             if (user.username === 'admin') return children;
 
-            const perms = user.permissions ? user.permissions.split(',') : [];
+            const perms = user.permissions ? user.permissions.split(',').map(p => p.trim()) : [];
             const hasPermission = Array.isArray(requiredPermission)
                 ? requiredPermission.some(p => perms.includes(p))
                 : perms.includes(requiredPermission);
 
-            if (!hasPermission) {
-                // Determine where to redirect if unauthorized
-                return <Navigate to="/dashboard" replace />; // Or an Unauthorized page
-            }
+            if (!hasPermission) return <Navigate to="/dashboard" replace />;
         } catch (e) {
-            console.error("Error parsing user data", e);
+            localStorage.removeItem('user');
             return <Navigate to="/login" replace />;
         }
     }
-
     return children;
 };
 
@@ -101,6 +92,16 @@ const AdminProtectedRoute = ({ children }) => {
 };
 
 function App() {
+    // Forzar un cierre de sesión único tras la actualización de permisos
+    useEffect(() => {
+        const hasReset = localStorage.getItem('session_reset_v2');
+        if (!hasReset) {
+            localStorage.clear();
+            localStorage.setItem('session_reset_v2', 'true');
+            window.location.href = '/login';
+        }
+    }, []);
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Suspense fallback={<LoadingFallback />}>
@@ -113,20 +114,22 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/set_password" element={<SetPassword />} />
 
-                    {/* Protected Routes wrapped in Layout */}
-                    {/* Protected Routes wrapped in Layout */}
+                    {/* Rutas protegidas que comparten el Layout */}
                     <Route element={
                         <ProtectedRoute>
                             <Layout />
                         </ProtectedRoute>
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        
                         <Route path="/inbound" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <Inbound />
                             </ProtectedRoute>
                         } />
+                        
                         <Route path="/label" element={<LabelPrinting />} />
+                        
                         <Route path="/stock" element={
                             <ProtectedRoute requiredPermission={['stock', 'inbound']}>
                                 <StockSearch />

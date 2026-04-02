@@ -35,7 +35,7 @@ const Planner = () => {
         const loadInitialData = async () => {
             try {
                 // 1. Configuración
-                const resConfig = await fetch('/api/planner/config');
+                const resConfig = await fetch('/api/planner/config', { credentials: 'include' });
                 if (resConfig.ok) {
                     const data = await resConfig.json();
                     setConfig(data);
@@ -43,7 +43,7 @@ const Planner = () => {
                 }
 
                 // 2. Plan Actual (Items planos)
-                const resPlan = await fetch('/api/planner/current_plan');
+                const resPlan = await fetch('/api/planner/current_plan', { credentials: 'include' });
                 if (resPlan.ok) {
                     const data = await resPlan.json();
                     // El endpoint devuelve objeto {details: []} usualmente si se guardó
@@ -52,7 +52,7 @@ const Planner = () => {
                 }
 
                 // 3. Ejecución (Stats)
-                const resStats = await fetch('/api/planner/execution/stats');
+                const resStats = await fetch('/api/planner/execution/stats', { credentials: 'include' });
                 if (resStats.ok) {
                     const data = await resStats.json();
                     setStats(data);
@@ -148,7 +148,7 @@ const Planner = () => {
         setLoading(true);
         try {
             const query = new URLSearchParams({ start_date: config.start_date, end_date: config.end_date }).toString();
-            const res = await fetch(`/api/planner/update_plan?${query}`, { method: 'POST' });
+            const res = await fetch(`/api/planner/update_plan?${query}`, { method: 'POST', credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 setPlanDetails(data.details || []); // FIX: data.details
@@ -171,6 +171,7 @@ const Planner = () => {
             const res = await fetch('/api/planner/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(newConfig)
             });
             if (res.ok) {

@@ -72,7 +72,7 @@ const PlannerExecution = () => {
         setIsRecountMode(false);
 
         try {
-            const response = await fetch(`/api/planner/execution/daily_items?date=${date}`);
+            const response = await fetch(`/api/planner/execution/daily_items?date=${date}`, { credentials: 'include' });
             if (!response.ok) throw new Error('Error al cargar ítems planificados');
 
             const data = await response.json();
@@ -125,7 +125,7 @@ const PlannerExecution = () => {
         setError(null);
 
         try {
-            const response = await fetch(`/api/planner/execution/items_with_differences?date=${selectedDate}`);
+            const response = await fetch(`/api/planner/execution/items_with_differences?date=${selectedDate}`, { credentials: 'include' });
             if (!response.ok) throw new Error('Error al cargar items con diferencias');
 
             const data = await response.json();
@@ -237,6 +237,7 @@ const PlannerExecution = () => {
             const response = await fetch('/api/planner/execution/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(payload)
             });
 

@@ -171,6 +171,12 @@ def api_login_required(request: Request) -> str:
     """
     username = get_current_user(request)
     if not username:
+        print(f"======================")
+        print(f"AUTH FAILED FOR: {request.url.path}")
+        print(f"COOKIES: {request.cookies}")
+        print(f"SESSION: {request.session}")
+        print(f"HEADERS: {request.headers}")
+        print(f"======================")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No autenticado"

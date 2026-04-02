@@ -80,8 +80,10 @@ app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
+    session_cookie="logix_chile_session",
     max_age=None,
-    https_only=False # Cambiado a False para permitir testing local en HTTP y evitar bucle de login
+    https_only=True, # Obligatorio para HTTPS
+    same_site="none" # Necesario para comunicación entre puertos (5173 -> 8000)
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
