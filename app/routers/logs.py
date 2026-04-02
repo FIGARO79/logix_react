@@ -85,7 +85,9 @@ async def find_item(
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
     
     # El saldo de Xdock es lo reservado menos lo que ya entró en esta sesión
-    xdock_pending = max(0, total_reserved - already_received)
+    # total_reserved puede ser un dict {'total': int, 'customers': list} o 0
+    total_val = total_reserved.get('total', 0) if isinstance(total_reserved, dict) else total_reserved
+    xdock_pending = max(0, total_val - already_received)
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
@@ -93,8 +95,9 @@ async def find_item(
         "binLocation": effective_bin_location,
         "suggestedBin": final_suggested_bin,
         "is_ai_prediction": is_ai_prediction,
-        "xdockTotal": total_reserved,
+        "xdockTotal": total_val,
         "xdockPending": xdock_pending,
+        "xdockCustomers": total_reserved.get('customers', []) if isinstance(total_reserved, dict) else [],
         "aditionalBins": item_details.get('Aditional_Bin_Location', 'N/A'),
         "physicalQty": str(item_details.get('Physical_Qty', '0')).replace(',', ''),
         "weight": item_details.get('Weight_per_Unit', 'N/A'),
