@@ -11,7 +11,7 @@ const Planner = () => {
     const [holidaysText, setHolidaysText] = useState('');
 
     useEffect(() => {
-        setTitle("Logix - Planeación de Conteos");
+        setTitle("Planeación de Conteos");
     }, [setTitle]);
 
     // Estado calculado para el Dashboard

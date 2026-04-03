@@ -4,11 +4,14 @@ import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
 import { getDB } from '../utils/offlineDb';
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
+import { useOffline } from '../hooks/useOffline';
 import '../styles/Label.css';
 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Logix - Inbound"); }, [setTitle]);
+    const { isOnline, pendingCount, syncPendingData } = useOffline();
+    
+    useEffect(() => { setTitle("Inbound"); }, [setTitle]);
 
     // --- Estados del Formulario ---
     const [importRef, setImportRef] = useState('');
@@ -27,7 +30,6 @@ const Inbound = () => {
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [offline, setOffline] = useState(!navigator.onLine);
     const [hasWarnedOffline, setHasWarnedOffline] = useState(false);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
@@ -82,7 +84,6 @@ const Inbound = () => {
         setIsSyncing(false);
     };
 
-    // Carga inicial y listeners de red/foco
     useEffect(() => {
         loadLogs();
         loadVersions();
@@ -96,24 +97,11 @@ const Inbound = () => {
             runAutoSync();
         }, 600000);
 
-        const handleOnline = () => {
-            setOffline(false);
-            setHasWarnedOffline(false);
-            runAutoSync();
-            syncPendingInbound().then(() => loadLogs());
-        };
-
-        const handleOffline = () => setOffline(true);
         const handleFocus = () => runAutoSync();
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
         window.addEventListener('focus', handleFocus);
 
         return () => {
             clearInterval(syncInterval);
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
@@ -280,6 +268,25 @@ const Inbound = () => {
                     const grnInfo = await db.get('grn_pending', normalizedCode);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
+                    // Buscar si ya hay reubicaciones de este ítem en la cola local
+                    const pendingLogs = await db.getAll('pending_sync');
+                    const recentRelocation = pendingLogs
+                        .filter(l => l.payload.itemCode === normalizedCode && l.payload.relocatedBin)
+                        .pop();
+
+                    // Calcular remanente XDOCK localmente 
+                    const itemLogs = logs.filter(l => l.itemCode === normalizedCode);
+                    const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
+                    const totalRes = xdockInfo ? xdockInfo.total : 0;
+                    const xdockRemanente = Math.max(0, totalRes - localCumulative);
+
+                    let offlineSuggestedBin = null;
+                    if (xdockRemanente > 0) {
+                        offlineSuggestedBin = 'XDOCK';
+                    } else if (recentRelocation) {
+                        offlineSuggestedBin = recentRelocation.payload.relocatedBin;
+                    }
+
                     setItemData({
                         itemCode: localItem.Item_Code,
                         description: localItem.Item_Description,
@@ -288,11 +295,11 @@ const Inbound = () => {
                         itemType: localItem.ABC_Code_stockroom,
                         sicCode: localItem.SIC_Code_stockroom,
                         defaultQtyGrn: grnInfo ? grnInfo.total_expected : 0,
-                        xdockTotal: xdockInfo ? xdockInfo.total : 0,
-                        xdockPending: xdockInfo ? xdockInfo.total : 0,
+                        xdockTotal: totalRes,
+                        xdockPending: xdockRemanente,
                         xdockCustomers: xdockInfo ? xdockInfo.customers : [],
                         is_offline_result: true,
-                        suggestedBin: null
+                        suggestedBin: offlineSuggestedBin
                     });
                     if (!editId) setQuantity('');
                     quantityRef.current?.focus();
@@ -300,7 +307,10 @@ const Inbound = () => {
                     alert("Item no encontrado en el maestro local.");
                     setItemData(null);
                 }
-            } catch (e) { alert("Error al buscar el ítem localmente."); }
+            } catch (e) {
+                console.error("Offline lookup error", e);
+                alert("Error al buscar el ítem localmente.");
+            }
             finally { setLoading(false); }
         }
     };
@@ -578,10 +588,12 @@ const Inbound = () => {
                             <div className="bg-white text-gray-900 px-2 py-3 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-normal tracking-tight">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
-                                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${offline ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${offline ? 'bg-red-600' : 'bg-emerald-600 animate-pulse'}`}></span>
-                                        {offline ? 'Offline' : 'Online'}
-                                    </div>
+                                    {pendingCount > 0 && (
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                            {pendingCount} Pendientes
+                                        </div>
+                                    )}
                                     <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? '✅ Maestro sincronizado.' : '❌ Error.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
                                         <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                     </button>
@@ -744,7 +756,7 @@ const Inbound = () => {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-center">Esperado</th><th className="px-2 py-1.5 text-center">Diferencia</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
+                            <thead className="bg-slate-700 text-white"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-center">Esp.</th><th className="px-2 py-1.5 text-center">Dif.</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>

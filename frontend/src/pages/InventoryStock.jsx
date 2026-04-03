@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import ScannerModal from '../components/ScannerModal';
+import { useOffline } from '../hooks/useOffline';
+import { getDB } from '../utils/offlineDb';
 
 // Sonidos sintetizados (para no depender de archivos externos)
 const playSound = (type) => {
@@ -33,6 +34,7 @@ const InventoryStock = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [scannerOpen, setScannerOpen] = useState(false);
+    const { isOnline } = useOffline();
 
     // Campos mapeados exactamente como en stock.html
     const fields = [
@@ -49,31 +51,57 @@ const InventoryStock = () => {
 
     const handleSearch = async (e, term = null) => {
         if (e?.preventDefault) e.preventDefault();
-        const searchValue = term || searchTerm;
-        if (!searchValue.trim()) return;
+        const searchValue = (term || searchTerm).trim().toUpperCase();
+        if (!searchValue) return;
 
         setLoading(true);
         setError(null);
         setItemData(null);
 
-        try {
-            // Usamos el endpoint específico de item en lugar de traer todo el stock
-            const response = await fetch(`/api/stock_item/${encodeURIComponent(searchValue.toUpperCase())}`);
-            const data = await response.json();
+        let onlineFound = false;
+        if (isOnline) {
+            try {
+                const response = await fetch(`/api/stock_item/${encodeURIComponent(searchValue)}`);
+                const data = await response.json();
 
-            if (response.ok && !data.error) {
-                setItemData(data);
-                playSound('success');
-            } else {
-                setError(data.error || "Artículo no encontrado");
+                if (response.ok && !data.error) {
+                    setItemData(data);
+                    playSound('success');
+                    onlineFound = true;
+                }
+            } catch (err) {
+                console.error("Error searching online, falling back to offline", err);
+            }
+        }
+
+        if (!onlineFound) {
+            try {
+                const db = await getDB();
+                const localItem = await db.get('master_items', searchValue);
+                if (localItem) {
+                    setItemData({
+                        Item_Code: localItem.Item_Code,
+                        Item_Description: localItem.Item_Description,
+                        Physical_Qty: localItem.Physical_Qty || '-',
+                        Frozen_Qty: localItem.Frozen_Qty || '-',
+                        Bin_1: localItem.Bin_1,
+                        Aditional_Bin_Location: localItem.Aditional_Bin_Location || '-',
+                        ABC_Code_stockroom: localItem.ABC_Code_stockroom,
+                        Weight_per_Unit: localItem.Weight_per_Unit,
+                        SupersededBy: localItem.SupersededBy || '-',
+                        is_offline: true
+                    });
+                    playSound('success');
+                } else {
+                    setError("Artículo no encontrado en el maestro local (Modo Offline)");
+                    playSound('error');
+                }
+            } catch (err) {
+                setError("Error al buscar en la base de datos local");
                 playSound('error');
             }
-        } catch (err) {
-            setError("Error de conexión al buscar el artículo");
-            playSound('error');
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     // Función para ejecutar búsqueda directamente (usada por el scanner)
@@ -111,7 +139,7 @@ const InventoryStock = () => {
     };
 
     return (
-        <Layout title="Logix - Consultar Inventario">
+        <Layout title="Consultar Inventario">
             <div className="max-w-[800px] mx-auto px-4 py-3">
                 <div className="bg-white p-6 rounded-md shadow-md border border-[#d9d9d9]">
                     {/* Header estilo SAP */}
@@ -120,47 +148,50 @@ const InventoryStock = () => {
                     </div>
 
                     {/* Controles de Búsqueda */}
-                    <form onSubmit={handleSearch} className="flex items-end gap-2 mb-4">
-                        <div className="flex-grow">
-                            <label className="block font-semibold mb-1 text-xs text-[#32363a] uppercase tracking-wide">
+                    <form onSubmit={handleSearch} className="flex flex-col gap-3 mb-6">
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="block font-semibold text-xs text-[#32363a] uppercase tracking-wide">
                                 Ingrese el código del artículo
                             </label>
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
-                                placeholder="Buscar por Item Code..."
-                                className="w-full border border-[#89919a] p-2 rounded-[3px] text-[13px] bg-white focus:outline-none focus:border-[#285f94] focus:ring-2 focus:ring-[#285f94]/10 transition-all"
-                                autoFocus
-                            />
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setScannerOpen(true)}
-                            className="h-[38px] px-3 bg-[#285f94] hover:bg-[#1e4a74] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
-                            title="Escanear código"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
-                                <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
-                                <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
-                                <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
-                                <path d="M12 9h2V8h-2z" />
-                            </svg>
-                        </button>
-                        <button
-                            type="submit"
-                            className="h-[38px] px-3 bg-[#285f94] hover:bg-[#1e4a74] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                        <div className="flex gap-2">
+                            <div className="relative flex-grow">
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
+                                    placeholder="Buscar por Item Code..."
+                                    className="w-full border border-[#89919a] p-2.5 rounded-[3px] text-[14px] bg-white focus:outline-none focus:border-[#285f94] focus:ring-2 focus:ring-[#285f94]/10 transition-all font-mono"
+                                    autoFocus
+                                />
+                                {loading && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <div className="w-4 h-4 border-2 border-[#285f94] border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setScannerOpen(true)}
+                                className="h-[42px] px-4 bg-[#f2f2f2] hover:bg-[#e6e6e6] text-[#32363a] border border-[#d9d9d9] rounded-[3px] shadow-sm flex items-center justify-center transition-all"
+                                title="Escanear código"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
+                                    <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
+                                    <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
+                                    <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
+                                    <path d="M12 9h2V8h-2z" />
                                 </svg>
-                            )}
-                        </button>
+                            </button>
+                            <button
+                                type="submit"
+                                className="h-[42px] px-6 bg-[#285f94] hover:bg-[#1e4a74] text-white rounded-[3px] shadow-sm flex items-center justify-center transition-all font-semibold"
+                                disabled={loading}
+                            >
+                                BUSCAR
+                            </button>
+                        </div>
                     </form>
 
                     {/* Mensaje de Error */}

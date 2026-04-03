@@ -65,7 +65,7 @@ const PickingAudit = () => {
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
 
     useEffect(() => {
-        setTitle("Logix - Chequeo de Picking");
+        setTitle("Chequeo de Picking");
         loadTrackingData();
     }, [setTitle]);
 

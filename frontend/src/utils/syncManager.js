@@ -89,9 +89,9 @@ export const downloadMasterData = async () => {
 };
 
 /**
- * Sincroniza los registros de Inbound pendientes hacia el servidor.
+ * Sincroniza los registros pendientes hacia el servidor (Inbound, Planner, etc).
  */
-export const syncPendingInbound = async () => {
+export const syncPendingData = async () => {
     if (!navigator.onLine) return;
     
     const db = await getDB();
@@ -103,22 +103,34 @@ export const syncPendingInbound = async () => {
     
     for (const record of allPending) {
         try {
-            // El record ya tiene el formato que espera /api/add_log o /api/update_log
-            // Incluimos el id original del cliente (UUID) como client_id para deduplicación
+            // Determinar endpoint según la colección
+            let url = '';
+            let method = '';
+            
+            if (record.collection === 'inbound') {
+                url = record.editId ? `/api/update_log/${record.editId}` : '/api/add_log';
+                method = record.editId ? 'PUT' : 'POST';
+            } else if (record.collection === 'planner') {
+                url = '/api/planner/execution/save';
+                method = 'POST';
+            } else {
+                continue; // Desconocido
+            }
+
             const payload = {
                 ...record.payload,
                 client_id: record.id
             };
 
-            const res = await fetch(record.editId ? `/api/update_log/${record.editId}` : '/api/add_log', {
-                method: record.editId ? 'PUT' : 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             
             if (res.ok) {
                 await db.delete('pending_sync', record.id);
-                console.log(`Registro ${record.id} sincronizado.`);
+                console.log(`Registro ${record.id} (${record.collection}) sincronizado.`);
             } else if (res.status === 409) {
                 // Conflicto: borrar localmente y dejar que el servidor gane
                 await db.delete('pending_sync', record.id);
@@ -129,6 +141,9 @@ export const syncPendingInbound = async () => {
         }
     }
 };
+
+// Mantener compatibilidad con el nombre anterior
+export const syncPendingInbound = syncPendingData;
 
 /**
  * Verifica si el maestro local está desactualizado comparando timestamps con el servidor.
@@ -157,5 +172,47 @@ export const checkAndSyncIfNeeded = async () => {
         }
     } catch (e) {
         console.error('Error en checkAndSyncIfNeeded:', e);
+    }
+};
+
+/**
+ * Descarga y cachea los items planificados para una fecha específica.
+ */
+export const downloadDailyPlannerItems = async (date) => {
+    if (!navigator.onLine) return null;
+    
+    try {
+        const response = await fetch(`/api/planner/execution/daily_items?date=${date}`, { credentials: 'include' });
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        const db = await getDB();
+        
+        // Guardar items individuales para acceso offline rápido
+        const tx = db.transaction('planner_daily_items', 'readwrite');
+        const store = tx.objectStore('planner_daily_items');
+        
+        // Opcional: limpiar items viejos de la misma fecha
+        // Por ahora solo guardamos/actualizamos
+        for (const item of (data.items || [])) {
+            await store.put({
+                id: `${date}_${item.item_code}`,
+                date,
+                ...item
+            });
+        }
+        await tx.done;
+        
+        // También guardar el objeto completo en caché genérica para la vista de lista
+        await db.put('data_cache', { 
+            key: `planner_items_${date}`, 
+            data, 
+            timestamp: new Date().toISOString() 
+        });
+        
+        return data;
+    } catch (e) {
+        console.error('Error en downloadDailyPlannerItems:', e);
+        return null;
     }
 };

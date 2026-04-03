@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useOffline } from '../hooks/useOffline';
+import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';
 
 // Check if user is on specific path for active styling
@@ -48,10 +50,13 @@ const WrenchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" vie
 
 const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [title, setTitle] = useState('Logix - Inicio');
+    const [title, setTitle] = useState('Inicio');
+    const { isOnline, pendingCount, syncPendingData } = useOffline();
 
-    React.useEffect(() => {
+    useEffect(() => {
         document.title = title;
+        // Sync master data if needed when app loads
+        checkAndSyncIfNeeded();
     }, [title]);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -78,7 +83,21 @@ const Layout = () => {
                     </svg>
                 </button>
                 <h1 className="header-title flex-grow tracking-wide">{title}</h1>
-                <div className="header-actions flex gap-2">
+                <div className="header-actions flex items-center gap-3">
+                    {pendingCount > 0 && (
+                        <div 
+                            className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-amber-500/20 text-amber-200 border border-amber-500/30 rounded text-[10px] font-bold cursor-pointer hover:bg-amber-500/30 transition-all"
+                            onClick={syncPendingData}
+                            title="Sincronizar datos pendientes"
+                        >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            {pendingCount}
+                        </div>
+                    )}
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 text-red-200 border-red-500/30' : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'}`}>
+                        <span className={`w-1 h-1 rounded-full ${!isOnline ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+                        {!isOnline ? 'Offline' : 'Online'}
+                    </div>
                     <Link to="/admin/login" className="text-sm font-medium px-3 py-1 hover:bg-white/15 rounded transition-all">Admin</Link>
                 </div>
             </header>

@@ -7,7 +7,7 @@ import '../styles/Label.css';
 
 const LabelPrinting = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Logix - Etiquetado"); }, [setTitle]);
+    useEffect(() => { setTitle("Etiquetado"); }, [setTitle]);
 
     // States
     const [itemCode, setItemCode] = useState('');

@@ -85,9 +85,13 @@ async def find_item(
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
     
     # El saldo de Xdock es lo reservado menos lo que ya entró en esta sesión
-    # total_reserved puede ser un dict {'total': int, 'customers': list} o 0
     total_val = total_reserved.get('total', 0) if isinstance(total_reserved, dict) else total_reserved
     xdock_pending = max(0, total_val - already_received)
+
+    # Si hay Xdock pendiente y no tenemos sugerencia previa (o es la misma que la ubicación actual), 
+    # sugerimos XDOCK para alertar al operario.
+    if xdock_pending > 0 and not final_suggested_bin:
+        final_suggested_bin = "XDOCK"
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),

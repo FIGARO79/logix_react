@@ -44,7 +44,7 @@ const CycleCountHistory = () => {
     const observerTarget = useRef(null);
 
     useEffect(() => {
-        setTitle("Logix - Registro de Conteos");
+        setTitle("Registro de Conteos");
     }, [setTitle]);
 
     useEffect(() => {

@@ -1,11 +1,11 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion) {
             // Tabla para registros de Inbound que aún no se han subido
             if (!db.objectStoreNames.contains('pending_sync')) {
                 db.createObjectStore('pending_sync', { keyPath: 'id' });
@@ -40,6 +40,11 @@ export const initDB = async () => {
             // Tabla para Xdock
             if (!db.objectStoreNames.contains('xdock_reservations')) {
                 db.createObjectStore('xdock_reservations', { keyPath: 'Item_Code' });
+            }
+
+            // --- Nuevas tablas Versión 3 ---
+            if (!db.objectStoreNames.contains('planner_daily_items')) {
+                db.createObjectStore('planner_daily_items', { keyPath: 'id' }); // id será date_itemcode
             }
         },
     });

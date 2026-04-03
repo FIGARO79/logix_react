@@ -13,7 +13,7 @@ const StockSearch = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
 
     React.useEffect(() => {
-        setTitle('Logix - Consultar Stock');
+        setTitle('Consultar Stock');
     }, [setTitle]);
 
     // Audio Beep Function
