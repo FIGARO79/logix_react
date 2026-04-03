@@ -10,7 +10,7 @@ Logix es un sistema de gestión de inventario y API Router desarrollado con una 
 
 *   **Backend:** Python 3.12+, FastAPI, Granian (ASGI).
 *   **Base de Datos:** SQLAlchemy (Async). Soporte para MySQL/MariaDB (Producción) y SQLite (Desarrollo). Migraciones con Alembic.
-*   **Procesamiento:** Pandas y NumPy para manejo de grandes volúmenes de datos (CSVs).
+*   **Procesamiento:** Polars y NumPy para manejo de grandes volúmenes de datos (CSVs) a alta velocidad.
 *   **Frontend:** React 18 + Vite + Tailwind CSS.
 *   **Servidor:** Nginx como Proxy Inverso y servidor de estáticos.
 
@@ -50,9 +50,9 @@ INTEGRATION_API_KEY=sandvik-power-automate-2024
 ## 🚀 3. Despliegue y Gestión de Servicios
 
 ### Despliegue en VPS (Linux)
-1. **Ruta Unificada**: El proyecto debe residir en `/home/debian/logix`.
+1. **Ruta Unificada**: El proyecto debe residir en `/home/debian/logix_cl`.
 2. **Servicio Backend**: Gestionado por Systemd (`/etc/systemd/system/logix.service`).
-3. **Frontend**: Los archivos compilados van en `/home/debian/logix/frontend/dist`.
+3. **Frontend**: Los archivos compilados van en `/home/debian/logix_cl/frontend/dist`.
 4. **Proxy Inverso**: Nginx redirige el tráfico HTTPS al puerto 8000.
 
 ### Comandos de Utilidad
@@ -113,5 +113,5 @@ El sistema distribuye los conteos pendientes automáticamente en días hábiles.
 
 ---
 
-**Última actualización**: Marzo 2026
-**Versión**: 2.3.0
+**Última actualización**: Abril 2026
+**Versión**: 2.6.0 (SQL Migration & Native JSON)
