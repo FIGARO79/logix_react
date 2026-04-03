@@ -4,7 +4,6 @@ Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitec
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -47,8 +46,7 @@ app = FastAPI(
     title="Logix API V2",
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
-    lifespan=lifespan,
-    default_response_class=ORJSONResponse
+    lifespan=lifespan
 )
 # Forzar recarga completa de rutas para instantáneas de conciliación
 app.state.limiter = limiter

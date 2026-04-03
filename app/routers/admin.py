@@ -105,8 +105,18 @@ async def get_slotting_config(admin: str = Depends(permission_required("inventor
         except: pass
 
     # 2. Si el JSON está vacío, reconstruir desde SQL
-    if not config.get("storage"):
-        print("⚡ [SLOTTING] Reconstruyendo configuración desde SQL...")
+    if not config.get("storage") or not config.get("turnover"):
+        print("⚡ [SLOTTING] Reconstruyendo configuración desde SQL y JSON Maestro...")
+        
+        # Cargar descripciones maestras de SIC codes (si existen)
+        sic_descriptions = {}
+        sic_json_path = os.path.join(PROJECT_ROOT, "static", "json", "sic_code.json")
+        if os.path.exists(sic_json_path):
+            try:
+                with open(sic_json_path, 'rb') as f:
+                    sic_descriptions = orjson.loads(f.read())
+            except: pass
+
         res_bins = await db.execute(select(BinLocation))
         for b in res_bins.scalars().all():
             config["storage"][b.bin_code] = {
@@ -116,11 +126,13 @@ async def get_slotting_config(admin: str = Depends(permission_required("inventor
         res_rules = await db.execute(select(SlottingRule))
         for r in res_rules.scalars().all():
             config["turnover"][r.sic_code] = {
-                "range": r.range_desc, "spot": r.ideal_spot
+                "range": sic_descriptions.get(r.sic_code, r.description), 
+                "spot": r.ideal_spot
             }
             
-        # Opcional: Guardar el JSON inicial para futuras cargas rápidas
-        with open(SLOTTING_PARAMS_PATH, 'wb') as f: f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
+        # Forzar guardado para persistir las nuevas descripciones
+        with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
+            f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
     
     return config
 
@@ -149,7 +161,7 @@ async def update_slotting_config(data: dict = Body(...), admin: str = Depends(pe
     if turnover:
         for sic, info in turnover.items():
             stmt = update(SlottingRule).where(SlottingRule.sic_code == sic).values(
-                range_desc=info.get("range", ""),
+                description=info.get("range", ""),
                 ideal_spot=info.get("spot", "cold")
             )
             await db.execute(stmt)

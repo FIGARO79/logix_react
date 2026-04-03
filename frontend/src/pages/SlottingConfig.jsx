@@ -301,19 +301,24 @@ const SlottingConfig = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        Object.entries(config.turnover || {}).map(([sic, info]) => (
-                                            <tr key={sic} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                <td className="px-3 py-1 font-bold text-gray-700 text-[12px]">{sic}</td>
-                                                <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info?.range || 'N/A'}</td>
-                                                <td className="px-3 py-1 text-center">
-                                                    <select value={info?.spot || 'cold'} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-24 ${getSpotColor(info?.spot)}`}>
-                                                        <option value="hot" className="text-gray-800">Hot</option>
-                                                        <option value="warm" className="text-gray-800">Warm</option>
-                                                        <option value="cold" className="text-gray-800">Cold</option>
-                                                    </select>
-                                                </td>
-                                            </tr>
-                                        ))
+                                        Object.entries(config.turnover || {})
+                                            .sort(([a], [b]) => {
+                                                const order = ['W', 'X', 'Y', 'K', 'L', 'Z', '0'];
+                                                return order.indexOf(a) - order.indexOf(b);
+                                            })
+                                            .map(([sic, info]) => (
+                                                <tr key={sic} className="hover:bg-[#f5f5f5] transition-colors leading-none">
+                                                    <td className="px-3 py-1 font-bold text-gray-700 text-[12px]">{sic}</td>
+                                                    <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info?.range || 'N/A'}</td>
+                                                    <td className="px-3 py-1 text-center">
+                                                        <select value={info?.spot || 'cold'} onChange={e => { const n = {...config}; n.turnover[sic].spot = e.target.value; setConfig(n); }} className={`text-[9px] bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-24 ${getSpotColor(info?.spot)}`}>
+                                                            <option value="hot" className="text-gray-800">Hot</option>
+                                                            <option value="warm" className="text-gray-800">Warm</option>
+                                                            <option value="cold" className="text-gray-800">Cold</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            ))
                                     )}
                                 </tbody>
                             </table>
