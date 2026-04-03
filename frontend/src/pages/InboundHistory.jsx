@@ -48,7 +48,26 @@ const InboundHistory = () => {
                 const res = await fetch('/api/get_logs');
                 if (!res.ok) throw new Error("Error loading logs");
                 const data = await res.json();
-                setLogs(data);
+                
+                // Calcular total recibido por ítem para la diferencia total (igual que en Inbound.jsx)
+                const totalsMap = {};
+                data.forEach(log => {
+                    const code = log.itemCode;
+                    totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+                });
+
+                // Enriquecer logs con la diferencia acumulada
+                const enrichedLogs = data.map(log => {
+                    const totalReceived = totalsMap[log.itemCode] || 0;
+                    const expected = parseInt(log.qtyGrn) || 0;
+                    return {
+                        ...log,
+                        totalReceived, // Opcional por si se quiere mostrar
+                        calculatedDifference: totalReceived - expected
+                    };
+                });
+
+                setLogs(enrichedLogs);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -66,7 +85,7 @@ const InboundHistory = () => {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="w-full px-4 py-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
                 <h1 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
@@ -135,13 +154,13 @@ const InboundHistory = () => {
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 truncate max-w-xs" title={log.itemDescription}>{log.itemDescription}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.binLocation}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{log.qtyReceived}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.qtyGrn}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.difference < 0 ? 'text-red-600' : log.difference > 0 ? 'text-[#285f94]' : 'text-gray-600'}`}>
-                                        {log.difference > 0 ? `+${log.difference}` : log.difference}
+                                    <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+                                        {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
                                 </tr>
                             ))}
