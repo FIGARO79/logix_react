@@ -1,8 +1,11 @@
 import datetime
+import os
+import orjson
 from typing import Dict, Any, Optional, List
 from sqlalchemy import select, update, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.sql_models import AIItemPattern, AICategoryPattern
+from app.core.config import PROJECT_ROOT
 
 class AISlottingService:
     def __init__(self):
@@ -16,14 +19,17 @@ class AISlottingService:
         if self._initialized:
             return
 
-        # Cargar patrones de ítems
+        # 1. Intentar migrar desde JSON legacy si la DB está vacía
+        await self._migrate_from_json_if_needed(db)
+
+        # 2. Cargar patrones de ítems
         result_items = await db.execute(select(AIItemPattern))
         for p in result_items.scalars().all():
             if p.item_code not in self._item_cache:
                 self._item_cache[p.item_code] = {}
             self._item_cache[p.item_code][p.bin_code] = p.frequency
 
-        # Cargar patrones de categorías
+        # 3. Cargar patrones de categorías
         result_cats = await db.execute(select(AICategoryPattern))
         for p in result_cats.scalars().all():
             if p.sic_code not in self._category_cache:
@@ -32,6 +38,40 @@ class AISlottingService:
 
         self._initialized = True
         print(f"🧠 IA Slotting: Memoria cargada ({len(self._item_cache)} ítems, {len(self._category_cache)} categorías)")
+
+    async def _migrate_from_json_if_needed(self, db: AsyncSession):
+        """Migra la memoria de IA desde el archivo JSON legacy a la base de datos SQL."""
+        # Verificar si ya hay datos
+        res = await db.execute(select(AIItemPattern).limit(1))
+        if res.scalar_one_or_none():
+            return
+
+        json_path = os.path.join(PROJECT_ROOT, "static", "json", "ai_slotting_memory.json")
+        if not os.path.exists(json_path):
+            return
+
+        print("🚚 [IA] Migrando memoria JSON legacy a SQL...")
+        try:
+            with open(json_path, 'rb') as f:
+                memory = orjson.loads(f.read())
+            
+            # Migrar ítems
+            items = memory.get("items", {})
+            for code, bins in items.items():
+                for bin_code, freq in bins.items():
+                    db.add(AIItemPattern(item_code=code.upper(), bin_code=bin_code.upper(), frequency=freq))
+            
+            # Migrar categorías
+            cats = memory.get("categories", {})
+            for sic, bins in cats.items():
+                for bin_code, freq in bins.items():
+                    db.add(AICategoryPattern(sic_code=sic.upper(), bin_code=bin_code.upper(), frequency=freq))
+            
+            await db.commit()
+            print("✅ [IA] Migración completada con éxito.")
+        except Exception as e:
+            print(f"⚠️ [IA] Error en migración JSON -> SQL: {e}")
+            await db.rollback()
 
     async def learn_from_decision(self, db: AsyncSession, item_code: str, final_bin: str, sic_code: str):
         """
@@ -53,7 +93,6 @@ class AISlottingService:
         
         self._item_cache[item_code][final_bin] = self._item_cache[item_code].get(final_bin, 0) + 1
         
-        # Actualizar DB para Item
         stmt_item = select(AIItemPattern).where(AIItemPattern.item_code == item_code, AIItemPattern.bin_code == final_bin)
         res_item = await db.execute(stmt_item)
         existing_item = res_item.scalar_one_or_none()
@@ -62,7 +101,7 @@ class AISlottingService:
             existing_item.frequency += 1
             existing_item.last_updated = now
         else:
-            db.add(AIItemPattern(item_code=item_code, bin_code=final_bin, frequency=1))
+            db.add(AIItemPattern(item_code=item_code, bin_code=final_bin, frequency=1, last_updated=now))
 
         # 2. Aprender por Categoría (DB + Cache)
         if sic_code not in self._category_cache:
@@ -70,7 +109,6 @@ class AISlottingService:
         
         self._category_cache[sic_code][final_bin] = self._category_cache[sic_code].get(final_bin, 0) + 1
         
-        # Actualizar DB para Categoría
         stmt_cat = select(AICategoryPattern).where(AICategoryPattern.sic_code == sic_code, AICategoryPattern.bin_code == final_bin)
         res_cat = await db.execute(stmt_cat)
         existing_cat = res_cat.scalar_one_or_none()
@@ -79,9 +117,8 @@ class AISlottingService:
             existing_cat.frequency += 1
             existing_cat.last_updated = now
         else:
-            db.add(AICategoryPattern(sic_code=sic_code, bin_code=final_bin, frequency=1))
+            db.add(AICategoryPattern(sic_code=sic_code, bin_code=final_bin, frequency=1, last_updated=now))
 
-        # El commit se suele manejar en el router, pero lo hacemos aquí para asegurar persistencia de IA
         await db.commit()
 
     async def predict_best_bin(self, db: AsyncSession, item_code: str, sic_code: str, fallback_bin: Optional[str] = None) -> Optional[str]:

@@ -42,7 +42,8 @@ async def find_item(
     db: AsyncSession = Depends(get_db)
 ):
     """Busca un item en el maestro y calcula cantidades con sugerencia IA."""
-    item_details = await csv_handler.get_item_details_from_master_csv(item_code)
+    # Uso de db=db para búsqueda rápida en SQL
+    item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
@@ -52,7 +53,6 @@ async def find_item(
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
     # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
-    # Este algoritmo ya filtra por capacidad y zona.
     traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
 
     # 2. Sugerencia de IA (Aprendizaje Histórico)
@@ -64,14 +64,12 @@ async def find_item(
     )
 
     # 3. VALIDACIÓN DE CAPACIDAD PARA LA IA
-    # Si la IA sugiere algo distinto al tradicional, verificamos que no estemos sobrepoblando el bin
     final_suggested_bin = ai_predicted_bin
     is_ai_prediction = ai_predicted_bin != traditional_suggested_bin
 
     if is_ai_prediction:
         occupancy = await slotting_service._get_bins_occupancy(db)
         current_skus = occupancy.get(ai_predicted_bin.upper(), 0)
-        # Si el bin tiene 4 o más SKUs, ignoramos la IA y volvemos al tradicional por espacio
         if current_skus >= 4:
             final_suggested_bin = traditional_suggested_bin
             is_ai_prediction = False
@@ -80,19 +78,18 @@ async def find_item(
         final_suggested_bin = None
         is_ai_prediction = False
 
-    # 4. Información de Cross-Docking (Xdock)
+    # 4. Información de Cross-Docking (Xdock) - Ahora con estructura detallada
     xdock_data = await csv_handler.get_xdock_info(item_code)
-    if isinstance(xdock_data, dict):
-        total_reserved = xdock_data.get("total", 0)
-        xdock_customers = xdock_data.get("customers", [])
-    else:
-        total_reserved = xdock_data
-        xdock_customers = []
+    total_reserved = xdock_data.get("total", 0)
+    xdock_customers = xdock_data.get("customers", [])
 
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
-    
-    # El saldo de Xdock es lo reservado menos lo que ya entró en esta sesión
     xdock_pending = max(0, total_reserved - already_received)
+
+    # 5. PRIORIDAD XDOCK: Si hay saldo pendiente, la sugerencia es XDOCK
+    if xdock_pending > 0:
+        final_suggested_bin = "XDOCK"
+        is_ai_prediction = True
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),
@@ -119,8 +116,8 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     """Añade un registro de log (entrada de mercancía)."""
     item_code_form = data.itemCode.strip().upper()
     
-    # Validar que el item existe
-    item_details = await csv_handler.get_item_details_from_master_csv(item_code_form)
+    # Validar que el item existe usando SQL prioritariamente
+    item_details = await csv_handler.get_item_details_from_master_csv(item_code_form, db=db)
     if not item_details:
         raise HTTPException(status_code=404, detail="El código de ítem no existe en el maestro.")
 
@@ -139,7 +136,6 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     entry_data['itemDescription'] = item_details.get('Item_Description', '')
     entry_data['binLocation'] = effective_bin_location
 
-    # APRENDIZAJE: Si el operario eligió una ubicación de reubicación, alimentamos la IA
     if data.relocatedBin:
         await ai_slotting.learn_from_decision(
             db=db,
@@ -205,7 +201,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
 
 @router.get('/export_log')
 async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
-    """Exporta los registros de log a Excel."""
+    """Exporta los registros de log a Excel con lógica de diferencia idéntica al frontend."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
     else:
@@ -215,36 +211,104 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
     import polars as pl
+    
+    # Mapeo de columnas a español (coincidiendo con el frontend)
     col_map = {
-        'importReference': 'Import Reference', 'waybill': 'Waybill',
-        'itemCode': 'Item Code', 'itemDescription': 'Description',
-        'binLocation': 'Bin Location', 'relocatedBin': 'Relocated Bin',
-        'qtyReceived': 'Qty Received', 'qtyGrn': 'Qty GRN',
-        'difference': 'Difference', 'timestamp': 'Date',
+        'id': 'ID',
+        'timestamp': 'Fecha/Hora',
+        'username': 'Usuario',
+        'importReference': 'I.R.',
+        'waybill': 'Waybill',
+        'itemCode': 'Item Code',
+        'itemDescription': 'Descripción',
+        'binLocation': 'Ubicación',
+        'relocatedBin': 'Reubicación',
+        'qtyReceived': 'Cant. Recibida',
+        'qtyGrn': 'Cant. GRN',
+        'difference': 'Diferencia'
     }
-    cols_out = ['Date', 'Import Reference', 'Waybill', 'Item Code', 'Description',
-                'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
+    
+    cols_out = ['ID', 'Fecha/Hora', 'Usuario', 'I.R.', 'Waybill', 'Item Code', 'Descripción',
+                'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. GRN', 'Diferencia']
 
-    df_pl = pl.DataFrame(logs)
-    available = {k: v for k, v in col_map.items() if k in df_pl.columns}
-    df_export = df_pl.rename(available).select([c for c in cols_out if c in df_pl.rename(available).columns])
+    # ── LÓGICA IDÉNTICA AL FRONTEND ──────────────────────────────────────────
+    # 1. Obtener cantidad esperada del GRN CSV para cada itemCode único
+    unique_items = list({log['itemCode'] for log in logs if log.get('itemCode')})
+    expected_map = {}
+    for item in unique_items:
+        expected_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
+
+    # 2. Calcular total recibido por itemCode y encontrar el log más reciente
+    totals_map = {}
+    latest_map = {}  # itemCode -> {'id': ..., 'ts': ...}
+    for log in logs:
+        code = log.get('itemCode')
+        if not code:
+            continue
+        totals_map[code] = totals_map.get(code, 0) + int(log.get('qtyReceived') or 0)
+        ts_str = str(log.get('timestamp') or '')
+        log_id = log.get('id') or 0
+        if code not in latest_map:
+            latest_map[code] = {'id': log_id, 'ts': ts_str}
+        else:
+            prev = latest_map[code]
+            if ts_str > prev['ts'] or (ts_str == prev['ts'] and log_id > prev['id']):
+                latest_map[code] = {'id': log_id, 'ts': ts_str}
+
+    # 3. Enriquecer logs con qtyGrn y diferencia calculados desde el CSV
+    enriched = []
+    for log in logs:
+        code = log.get('itemCode')
+        expected = expected_map.get(code, 0)
+        total_received = totals_map.get(code, 0)
+        is_latest = latest_map.get(code, {}).get('id') == log.get('id')
+        enriched.append({
+            **log,
+            'qtyGrn': expected,
+            'difference': (total_received - expected) if is_latest else 0
+        })
+    # ─────────────────────────────────────────────────────────────────────────
+
+    df_pl = pl.DataFrame(enriched)
+
+    # Renombrar y seleccionar columnas
+    available_cols = {k: v for k, v in col_map.items() if k in df_pl.columns}
+    df_export = df_pl.rename(available_cols)
+    
+    # Seleccionar solo las columnas que existan en el mapeo y en el orden deseado
+    final_cols = [c for c in cols_out if c in df_export.columns]
+    df_export = df_export.select(final_cols)
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'InboundLogs'
+    
+    # Cabeceras
     ws.append(df_export.columns)
+    
+    # Filas
     for row in df_export.iter_rows():
         ws.append(list(row))
+        
+    # Auto-ajustar ancho de columnas
     for i, col_name in enumerate(df_export.columns, start=1):
+        col_letter = get_column_letter(i)
         col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
-        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+        max_data = col_data.str.len_chars().max() or 0
+        ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-    filename = f"inbound_logs_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+    
+    suffix = f"_{version_date}" if version_date else ""
+    filename = f"inbound_logs{suffix}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return Response(
+        content=output.getvalue(), 
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.get('/export_reconciliation')
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, snapshot_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
@@ -348,5 +412,3 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error interno al generar el archivo de conciliación: {e}")
-
-

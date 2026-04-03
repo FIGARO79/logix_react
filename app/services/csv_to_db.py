@@ -76,16 +76,14 @@ async def sync_master_csv_to_db(db: AsyncSession):
             insert_data = []
 
             for row in chunk_df.to_dicts():
-                # Preparar diccionario mapeado
                 item_data = {col_map[k]: v for k, v in row.items() if k in col_map}
                 
-                # Truncado de strings por seguridad (limites de DB)
+                # Truncado de strings por seguridad
                 if item_data.get('description'): item_data['description'] = str(item_data['description'])[:255]
                 if item_data.get('abc_code'): item_data['abc_code'] = str(item_data['abc_code'])[:10]
                 if item_data.get('bin_1'): item_data['bin_1'] = str(item_data['bin_1'])[:100]
                 if item_data.get('additional_bin'): item_data['additional_bin'] = str(item_data['additional_bin'])[:100]
                 
-                # Limite de costo para evitar desbordamiento float(10,2) o similar
                 if item_data.get('cost_per_unit') and item_data['cost_per_unit'] > 99999999.99:
                     item_data['cost_per_unit'] = 99999999.99
                 
@@ -97,7 +95,6 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     for item in insert_data:
                         await db.merge(MasterItem(**item))
                 else:
-                    # MySQL: Upsert eficiente
                     stmt = insert(MasterItem).values(insert_data)
                     update_dict = {k: getattr(stmt.inserted, k) for k in item_data.keys() if k != 'item_code'}
                     on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 
@@ -100,108 +100,12 @@ const AdminProtectedRoute = ({ children }) => {
     return children;
 };
 
-import { getDB } from './utils/offlineDb';
-import { syncPendingInbound } from './utils/syncManager';
 import ReloadPrompt from './components/ReloadPrompt';
-
-// Componente de indicador de sincronización
-const SyncStatus = () => {
-    const [pendingCount, setPendingCount] = React.useState(0);
-    const [isSyncing, setIsSyncing] = React.useState(false);
-    const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-
-    const updateCount = React.useCallback(async () => {
-        try {
-            const db = await getDB();
-            const pending = await db.getAll('pending_sync');
-            setPendingCount(pending.length);
-        } catch (e) { console.error(e); }
-    }, []);
-
-    const runSync = React.useCallback(async () => {
-        if (!navigator.onLine || isSyncing) return;
-        setIsSyncing(true);
-        await syncPendingInbound();
-        await updateCount();
-        setIsSyncing(false);
-    }, [isSyncing, updateCount]);
-
-    React.useEffect(() => {
-        updateCount();
-        const interval = setInterval(updateCount, 5000);
-        
-        const handleOnline = () => {
-            setIsOnline(true);
-            runSync();
-            // Recargar la página automáticamente para asegurar datos frescos
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
-        };
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, [runSync, updateCount]);
-
-    if (pendingCount === 0 && isOnline) return null;
-
-    return (
-        <div 
-            style={{
-                position: 'fixed',
-                bottom: '24px',
-                right: '24px',
-                zIndex: 9999,
-                padding: '8px 16px',
-                borderRadius: '12px',
-                backgroundColor: isOnline ? 'rgba(40, 95, 148, 0.95)' : 'rgba(153, 27, 27, 0.95)',
-                backdropFilter: 'blur(8px)',
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.8rem',
-                fontWeight: '500',
-                letterSpacing: '0.025em',
-                cursor: isOnline && pendingCount > 0 ? 'pointer' : 'default',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }} 
-            onClick={() => isOnline && pendingCount > 0 && runSync()}
-        >
-            {!isOnline && (
-                <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.828-2.828.002-.002M9.172 9.172L3 3m5.657 5.657l-2.828-2.828m2.828 2.828A4 4 0 1111 11.314L9.172 9.172z" />
-                    </svg>
-                    <span>OFFLINE</span>
-                </>
-            )}
-            {isOnline && pendingCount > 0 && (
-                <>
-                    <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{isSyncing ? 'SINC...' : `${pendingCount} PENDIENTES`}</span>
-                </>
-            )}
-        </div>
-    );
-};
 
 function App() {
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ReloadPrompt />
-            <SyncStatus />
             <Routes>
                 {/* Redirigir raíz a login */}
                     <Route path="/" element={<Navigate to="/login" replace />} />
@@ -211,7 +115,6 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/set_password" element={<SetPassword />} />
 
-                    {/* Protected Routes wrapped in Layout */}
                     {/* Protected Routes wrapped in Layout */}
                     <Route element={
                         <ProtectedRoute>

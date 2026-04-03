@@ -247,6 +247,18 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("relocatedBin").fill_null(""),
         ])
 
+        # 9.5. Ordenar para establecer qué fila es la "última" de cada grupo (ir + item)
+        #       y mostrar Diferencia solo en esa fila (evitar que se repita en líneas múltiples de GRN)
+        final = final.sort(["ir_map", "Item_Code", "GRN_Number"])
+        final = final.with_columns([
+            pl.col("GRN_Number").cum_count().over(["ir_map", "Item_Code"]).alias("_row_num"),
+            pl.col("GRN_Number").count().over(["ir_map", "Item_Code"]).alias("_group_size"),
+        ]).with_columns(
+            Diferencia=pl.when(pl.col("_row_num") == pl.col("_group_size"))
+                .then(pl.col("Diferencia").cast(pl.Int64))
+                .otherwise(pl.lit(0, dtype=pl.Int64))
+        ).drop(["_row_num", "_group_size"])
+
         # 10. Seleccionar y renombrar para el frontend (Sin .unique() para mantener todas las líneas)
         result = final.select([
             pl.col("ir_map").alias("Import_Reference"),
@@ -256,9 +268,9 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("Item_Description").alias("Descripcion"),
             pl.col("binLocation").alias("Ubicacion"),
             pl.col("relocatedBin").alias("Reubicado"),
-            pl.col("Cant_Linea").alias("Cant_Esperada"), # Mostramos la cantidad de la línea individual
-            pl.col("Cant_Recibida"),                     # Mostramos el total recibido (repetido en las líneas del item)
-            pl.col("Diferencia")                        # Mostramos la diferencia total (repetida en las líneas del item)
+            pl.col("Cant_Linea").alias("Cant_Esperada"),  # Cantidad de esta línea GRN individual
+            pl.col("Cant_Recibida"),                      # Total recibido (mismo para todas las líneas del item)
+            pl.col("Diferencia")                          # Solo en la última línea GRN del item
         ]).sort(["Import_Reference", "GRN"]).to_dicts()
 
         return result

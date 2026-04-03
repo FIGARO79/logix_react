@@ -6,14 +6,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse, ORJSONResponse, Re
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, select, delete
 from app.core.db import get_db
 from app.utils.auth import (
     get_all_users, approve_user_by_id, delete_user_by_id, 
     reset_user_password, get_user_by_id, admin_login_required,
     permission_required
 )
-from app.models.sql_models import User
+from app.models.sql_models import User, BinLocation, SlottingRule
 from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT, SLOTTING_PARAMS_PATH
 from app.core.templates import templates
@@ -34,15 +34,24 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 async def get_slotting_summary(admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     """Genera estadísticas reales cruzando el JSON con la DB."""
     try:
-        if not os.path.exists(SLOTTING_PARAMS_PATH):
-            return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
-            
-        with open(SLOTTING_PARAMS_PATH, 'rb') as f:
-            config = orjson.loads(f.read())
+        # 1. Obtener layout desde JSON (caché rápido)
+        config = {"storage": {}}
+        if os.path.exists(SLOTTING_PARAMS_PATH):
+            with open(SLOTTING_PARAMS_PATH, 'rb') as f:
+                config = orjson.loads(f.read())
         
         storage = config.get("storage", {})
-        total_locations = len(storage)
         
+        # 2. Si el JSON está vacío, intentar obtener de SQL
+        if not storage:
+            res_bins = await db.execute(select(BinLocation))
+            bins_sql = res_bins.scalars().all()
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+            
+        total_locations = len(storage)
+        if total_locations == 0:
+            return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
+
         # Desglose por zona
         zones = {}
         for info in storage.values():
@@ -62,7 +71,7 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
         total_items_in_bins = sum(matched_bins.values())
         avg_items_per_bin = round(total_items_in_bins / in_use_count, 1) if in_use_count > 0 else 0
 
-        # Saturación por zona y pasillo (contando ítems, no bins)
+        # Saturación por zona y pasillo
         zone_items = {}
         aisle_items = {}
         for bin_code, item_count in matched_bins.items():
@@ -73,11 +82,6 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
             if a and a != "nan":
                 aisle_items[a] = aisle_items.get(a, 0) + item_count
 
-        # Top 5 pasillos más saturados
-        top_aisles = sorted(aisle_items.items(), key=lambda x: x[1], reverse=True)[:5]
-        # Zonas ordenadas por saturación
-        zones_by_items = sorted(zone_items.items(), key=lambda x: x[1], reverse=True)
-
         return {
             "total": total_locations,
             "in_use": in_use_count,
@@ -86,35 +90,124 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
             "by_zone": zones,
             "avg_items_per_bin": avg_items_per_bin,
             "total_items_in_bins": total_items_in_bins,
-            "zones_by_items": dict(zones_by_items),
-            "top_aisles": dict(top_aisles)
+            "zones_by_items": dict(sorted(zone_items.items(), key=lambda x: x[1], reverse=True)),
+            "top_aisles": dict(sorted(aisle_items.items(), key=lambda x: x[1], reverse=True)[:5])
         }
     except Exception as e:
         print(f"ERROR SUMMARY: {e}")
         return {"total": 0, "in_use": 0, "free": 0, "occupancy_pct": 0, "by_zone": {}}
 
 @router.get("/slotting-config")
-async def get_slotting_config(admin: str = Depends(permission_required("inventory"))):
-    if not os.path.exists(SLOTTING_PARAMS_PATH): return {"turnover": {}, "storage": {}}
-    with open(SLOTTING_PARAMS_PATH, 'rb') as f: return orjson.loads(f.read())
+async def get_slotting_config(admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
+    """Retorna la configuración actual desde el JSON o reconstruye desde la DB si es necesario."""
+    config = {"turnover": {}, "storage": {}}
+    
+    # 1. Intentar cargar desde JSON
+    if os.path.exists(SLOTTING_PARAMS_PATH):
+        try:
+            with open(SLOTTING_PARAMS_PATH, 'rb') as f: 
+                config = orjson.loads(f.read())
+        except: pass
+
+    # 2. Si el JSON está vacío o incompleto, reconstruir desde SQL
+    if not config.get("storage") or not config.get("turnover"):
+        print("⚡ [SLOTTING] Reconstruyendo configuración desde SQL...")
+        
+        res_bins = await db.execute(select(BinLocation))
+        for b in res_bins.scalars().all():
+            config["storage"][b.bin_code] = {
+                "zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot
+            }
+            
+        res_rules = await db.execute(select(SlottingRule))
+        for r in res_rules.scalars().all():
+            config["turnover"][r.sic_code] = {
+                "range": r.description or "", 
+                "spot": r.ideal_spot
+            }
+            
+        # Guardar en JSON para sincronizar cachés
+        if config["storage"] or config["turnover"]:
+            with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
+                f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
+    
+    return config
 
 @router.post("/slotting-config")
-async def update_slotting_config(data: dict = Body(...), admin: str = Depends(permission_required("inventory"))):
-    with open(SLOTTING_PARAMS_PATH, 'wb') as f: f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
-    return {"message": "Guardado"}
+async def update_slotting_config(data: dict = Body(...), admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
+    """Guarda en JSON y sincroniza con la DB SQL."""
+    # 1. Guardar JSON
+    with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+    
+    # 2. Sincronizar con SQL (Ubicaciones)
+    storage = data.get("storage", {})
+    if storage:
+        # Enfoque conservador: Borrar y reinsertar es más simple para sincronización total
+        # pero para rendimiento usaremos merges individuales si el set es pequeño.
+        # Aquí asumimos actualización masiva desde panel.
+        for code, info in storage.items():
+            bin_code = code.strip().upper()
+            stmt = select(BinLocation).where(BinLocation.bin_code == bin_code)
+            res = await db.execute(stmt)
+            existing = res.scalar_one_or_none()
+            
+            if existing:
+                existing.zone = info.get("zone", "General")
+                existing.aisle = info.get("aisle", "")
+                existing.level = int(info.get("level", 0))
+                existing.spot = info.get("spot", "Cold")
+            else:
+                db.add(BinLocation(
+                    bin_code=bin_code,
+                    zone=info.get("zone", "General"),
+                    aisle=info.get("aisle", ""),
+                    level=int(info.get("level", 0)),
+                    spot=info.get("spot", "Cold")
+                ))
+
+    # 3. Sincronizar con SQL (Reglas de Rotación)
+    turnover = data.get("turnover", {})
+    if turnover:
+        for sic, info in turnover.items():
+            sic_code = sic.strip().upper()
+            stmt = select(SlottingRule).where(SlottingRule.sic_code == sic_code)
+            res = await db.execute(stmt)
+            existing = res.scalar_one_or_none()
+            
+            if existing:
+                existing.ideal_spot = info.get("spot", "cold")
+                existing.description = info.get("range", "")
+            else:
+                db.add(SlottingRule(
+                    sic_code=sic_code,
+                    ideal_spot=info.get("spot", "cold"),
+                    description=info.get("range", "")
+                ))
+
+    await db.commit()
+    return {"message": "Configuración guardada y sincronizada con base de datos"}
 
 @router.get("/slotting-template")
 async def get_slotting_template(admin: str = Depends(permission_required("inventory"))):
     data_list = []
     try:
-        with open(SLOTTING_PARAMS_PATH, 'rb') as f:
-            storage = orjson.loads(f.read()).get('storage', {})
-            for b, i in storage.items():
-                data_list.append({"BIN": b, "ZONA": i.get('zone',''), "PASILLO": i.get('aisle',''), "NIVEL": i.get('level',0), "SPOT": i.get('spot','')})
+        if os.path.exists(SLOTTING_PARAMS_PATH):
+            with open(SLOTTING_PARAMS_PATH, 'rb') as f:
+                storage = orjson.loads(f.read()).get('storage', {})
+                for b, i in storage.items():
+                    data_list.append({
+                        "BIN": b, 
+                        "ZONA": i.get('zone',''), 
+                        "PASILLO": i.get('aisle',''), 
+                        "NIVEL": i.get('level',0), 
+                        "SPOT": i.get('spot','')
+                    })
     except: pass
+    
     import polars as pl
     import openpyxl
-    df = pl.DataFrame(data_list if data_list else [{"BIN":"EJM", "ZONA":"", "PASILLO":"", "NIVEL":0, "SPOT":""}])
+    df = pl.DataFrame(data_list if data_list else [{"BIN":"EJM-01-01", "ZONA":"ALMACEN", "PASILLO":"01", "NIVEL":1, "SPOT":"Hot"}])
     df = df.sort("BIN")
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -124,15 +217,19 @@ async def get_slotting_template(admin: str = Depends(permission_required("invent
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-    return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=layout.xlsx"})
+    return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=layout_almacen.xlsx"})
 
 @router.post("/slotting-upload")
-async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depends(permission_required("inventory"))):
+async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
     try:
         import polars as pl
         file_bytes = await file.read()
         df = pl.read_excel(file_bytes)
         new_storage = {}
+        
+        # Limpiar tabla SQL antes de carga masiva
+        await db.execute(delete(BinLocation))
+        
         for r in df.iter_rows(named=True):
             b = str(r.get("BIN", "") or "").strip().upper()
             if b and b.lower() != "nan" and b.lower() != "none" and b != "":
@@ -141,25 +238,38 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
                     nivel = int(val_nivel) if val_nivel is not None else 0
                 except:
                     nivel = 0
-                new_storage[b] = {
-                    "zone": str(r.get("ZONA", "") or ""), 
+                
+                info = {
+                    "zone": str(r.get("ZONA", "") or "General"), 
                     "aisle": str(r.get("PASILLO", "") or ""), 
                     "level": nivel, 
-                    "spot": str(r.get("SPOT", "") or "")
+                    "spot": str(r.get("SPOT", "") or "Cold")
                 }
+                new_storage[b] = info
+                
+                # Insertar en SQL
+                db.add(BinLocation(
+                    bin_code=b,
+                    zone=info["zone"],
+                    aisle=info["aisle"],
+                    level=info["level"],
+                    spot=info["spot"]
+                ))
         
+        # Sincronizar archivo JSON
+        config = {"turnover": {}, "storage": new_storage}
         if os.path.exists(SLOTTING_PARAMS_PATH):
             with open(SLOTTING_PARAMS_PATH, 'rb') as f: 
-                config = orjson.loads(f.read())
-        else:
-            config = {}
+                old_config = orjson.loads(f.read())
+                config["turnover"] = old_config.get("turnover", {})
             
-        config["storage"] = new_storage
         with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
             f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
             
-        return {"message": "Cargado correctamente"}
+        await db.commit()
+        return {"message": f"Cargadas {len(new_storage)} ubicaciones correctamente"}
     except Exception as e:
+        await db.rollback()
         print(f"Error uploading slotting config: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
@@ -200,7 +310,6 @@ async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db), admi
 
 @router.post('/reset_password/{user_id}')
 async def admin_reset_password_api(user_id: int, new_password: str = Form(...), db: AsyncSession = Depends(get_db), admin: bool = Depends(admin_login_required)):
-    # Reutilizar validación lógica de auth.py si es necesario, o usar la de reset_user_password
     success = await reset_user_password(db, user_id, new_password)
     if success:
         return ORJSONResponse(content={"success": True, "message": f"Contraseña restablecida para usuario {user_id}"})
