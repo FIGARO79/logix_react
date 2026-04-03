@@ -1,3 +1,4 @@
+11
 """
 Router para endpoints de logs (inbound).
 """
@@ -202,7 +203,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
 
 @router.get('/export_log')
 async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
-    """Exporta los registros de log a Excel."""
+    """Exporta los registros de log a Excel con lógica de diferencia idéntica al frontend."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
     else:
@@ -212,36 +213,104 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         raise HTTPException(status_code=404, detail="No hay registros para exportar")
 
     import polars as pl
+    
+    # Mapeo de columnas a español (coincidiendo con el frontend)
     col_map = {
-        'importReference': 'Import Reference', 'waybill': 'Waybill',
-        'itemCode': 'Item Code', 'itemDescription': 'Description',
-        'binLocation': 'Bin Location', 'relocatedBin': 'Relocated Bin',
-        'qtyReceived': 'Qty Received', 'qtyGrn': 'Qty GRN',
-        'difference': 'Difference', 'timestamp': 'Date',
+        'id': 'ID',
+        'timestamp': 'Fecha/Hora',
+        'username': 'Usuario',
+        'importReference': 'I.R.',
+        'waybill': 'Waybill',
+        'itemCode': 'Item Code',
+        'itemDescription': 'Descripción',
+        'binLocation': 'Ubicación',
+        'relocatedBin': 'Reubicación',
+        'qtyReceived': 'Cant. Recibida',
+        'qtyGrn': 'Cant. GRN',
+        'difference': 'Diferencia'
     }
-    cols_out = ['Date', 'Import Reference', 'Waybill', 'Item Code', 'Description',
-                'Bin Location', 'Relocated Bin', 'Qty Received', 'Qty GRN', 'Difference']
+    
+    cols_out = ['ID', 'Fecha/Hora', 'Usuario', 'I.R.', 'Waybill', 'Item Code', 'Descripción',
+                'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. GRN', 'Diferencia']
 
-    df_pl = pl.DataFrame(logs)
-    available = {k: v for k, v in col_map.items() if k in df_pl.columns}
-    df_export = df_pl.rename(available).select([c for c in cols_out if c in df_pl.rename(available).columns])
+    # ── LÓGICA IDÉNTICA AL FRONTEND ──────────────────────────────────────────
+    # 1. Obtener cantidad esperada del GRN CSV para cada itemCode único
+    unique_items = list({log['itemCode'] for log in logs if log.get('itemCode')})
+    expected_map = {}
+    for item in unique_items:
+        expected_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
+
+    # 2. Calcular total recibido por itemCode y encontrar el log más reciente
+    totals_map = {}
+    latest_map = {}  # itemCode -> {'id': ..., 'ts': ...}
+    for log in logs:
+        code = log.get('itemCode')
+        if not code:
+            continue
+        totals_map[code] = totals_map.get(code, 0) + int(log.get('qtyReceived') or 0)
+        ts_str = str(log.get('timestamp') or '')
+        log_id = log.get('id') or 0
+        if code not in latest_map:
+            latest_map[code] = {'id': log_id, 'ts': ts_str}
+        else:
+            prev = latest_map[code]
+            if ts_str > prev['ts'] or (ts_str == prev['ts'] and log_id > prev['id']):
+                latest_map[code] = {'id': log_id, 'ts': ts_str}
+
+    # 3. Enriquecer logs con qtyGrn y diferencia calculados desde el CSV
+    enriched = []
+    for log in logs:
+        code = log.get('itemCode')
+        expected = expected_map.get(code, 0)
+        total_received = totals_map.get(code, 0)
+        is_latest = latest_map.get(code, {}).get('id') == log.get('id')
+        enriched.append({
+            **log,
+            'qtyGrn': expected,
+            'difference': (total_received - expected) if is_latest else 0
+        })
+    # ─────────────────────────────────────────────────────────────────────────
+
+    df_pl = pl.DataFrame(enriched)
+
+    # Renombrar y seleccionar columnas
+    available_cols = {k: v for k, v in col_map.items() if k in df_pl.columns}
+    df_export = df_pl.rename(available_cols)
+    
+    # Seleccionar solo las columnas que existan en el mapeo y en el orden deseado
+    final_cols = [c for c in cols_out if c in df_export.columns]
+    df_export = df_export.select(final_cols)
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'InboundLogs'
+    
+    # Cabeceras
     ws.append(df_export.columns)
+    
+    # Filas
     for row in df_export.iter_rows():
         ws.append(list(row))
+        
+    # Auto-ajustar ancho de columnas
     for i, col_name in enumerate(df_export.columns, start=1):
+        col_letter = get_column_letter(i)
         col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
-        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+        max_data = col_data.str.len_chars().max() or 0
+        ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-    filename = f"inbound_logs_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename={filename}"})
+    
+    suffix = f"_{version_date}" if version_date else ""
+    filename = f"inbound_logs{suffix}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return Response(
+        content=output.getvalue(), 
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.get('/export_reconciliation')
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, snapshot_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
@@ -293,7 +362,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Reubicado":          getattr(r, 'relocated_bin', '') or '',
                 "Cant. Esperada":     int(r.qty_expected or 0),
                 "Cant. Recibida":     int(r.qty_received or 0),
-                "Diferencia Total I.R.": int(r.difference or 0),
+                "Diferencia":         int(r.difference or 0),
             } for r in rows])
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
@@ -325,7 +394,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 pl.col("Reubicado").alias("Reubicado"),
                 pl.col("Cant_Esperada").alias("Cant. Esperada"),
                 pl.col("Cant_Recibida").alias("Cant. Recibida"),
-                pl.col("Diferencia").alias("Diferencia Total I.R."),
+                pl.col("Diferencia").alias("Diferencia"),
             ])
 
             utc_now = datetime.datetime.now(datetime.timezone.utc)
