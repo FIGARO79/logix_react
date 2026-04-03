@@ -421,7 +421,7 @@ const Inbound = () => {
     const displayQty = (cumulativeQty + currentQtyNum);
     const itemWeight = parseFloat(itemData?.weight || 0);
     const totalWeight = isNaN(itemWeight) || isNaN(currentQtyNum) ? '0.00' : (itemWeight * (currentQtyNum || 1)).toFixed(2);
-    
+
     // Cálculo dinámico de Xdock pendiente basado en lo que ya se ha registrado en la tabla
     const effectiveXdockPending = Math.max(0, (itemData?.xdockTotal || 0) - cumulativeQty);
 
@@ -472,7 +472,7 @@ const Inbound = () => {
                         line-height: 1.2; 
                         color: #000;
                         word-break: break-word;
-                        flex-grow: 1;
+                        margin-bottom: 2mm;
                     }
                     
                     /* Grid Data Table */
@@ -500,6 +500,7 @@ const Inbound = () => {
                         justify-content: space-between;
                         margin-top: 2mm;
                         flex-shrink: 0;
+                        flex-grow: 1;
                     }
                     
                     .label-disclaimer { 
@@ -530,6 +531,7 @@ const Inbound = () => {
                     <div class="label-item-code">${itemData?.itemCode || ''}</div>
                     <div class="label-item-description">${itemData?.description || ''}</div>
 
+                    <div style="flex-grow: 1;"></div>
                     <!-- Data Grid -->
                     <div class="label-data-table">
                         <div class="label-row">
@@ -617,7 +619,7 @@ const Inbound = () => {
                                 <div><label className="form-label">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" /></div>
                                 <div><label className="form-label">Bin (Original)</label><div className="data-field">{itemData?.binLocation || ''}</div></div>
                                 <div><label className="form-label">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" /></div>
-                                
+
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
@@ -662,10 +664,9 @@ const Inbound = () => {
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
                                     <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${
-                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' : 
-                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
-                                    }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
+                                    <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' :
+                                            (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                        }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
                             <div className="flex gap-3"><button type="submit" className="btn-sap btn-primary w-60 h-10">{editId ? 'Guardar Cambios' : 'Añadir Registro'}</button> {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}</div>
@@ -691,7 +692,9 @@ const Inbound = () => {
 
                                     {/* Header */}
                                     <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', color: '#000' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', flexGrow: 1, marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
+                                    <div style={{ fontSize: '11pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
+
+                                    <div style={{ flexGrow: 1 }}></div>
 
                                     {/* Data Table */}
                                     <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0, color: '#000' }}>
@@ -714,7 +717,7 @@ const Inbound = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0, flexGrow: 1 }}>
                                         <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
                                             All trademarks and logotypes appearing on this label are owned by Sandvik Group
                                         </p>
@@ -745,10 +748,9 @@ const Inbound = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.isPending && '⏳ '}{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${
-                                            (log.difference || 0) > 0 ? 'text-blue-600' : 
-                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
-                                        }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
+                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.isPending && '⏳ '}{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
+                                                (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
+                                            }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
                                     </tr>
                                 ))}
                             </tbody>

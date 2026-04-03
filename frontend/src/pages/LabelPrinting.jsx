@@ -112,13 +112,12 @@ const LabelPrinting = () => {
                     }
                     .label-item-description { 
                         font-family: Arial, sans-serif;
-                        font-size: 12pt; 
+                        font-size: 11pt; 
                         font-weight: bold; 
                         margin: 0 0 2mm 0;
-                        line-height: 1.2; 
+                        line-height: 1.1; 
                         color: #000;
                         word-break: break-word;
-                        flex-grow: 1;
                     }
                     
                     /* Grid Data Table */
@@ -146,6 +145,7 @@ const LabelPrinting = () => {
                         justify-content: space-between;
                         margin-top: 2mm;
                         flex-shrink: 0;
+                        flex-grow: 1;
                     }
                     
                     .label-disclaimer { 
@@ -176,6 +176,7 @@ const LabelPrinting = () => {
                     <div class="label-item-code">${itemData?.itemCode || ''}</div>
                     <div class="label-item-description">${itemData?.description || ''}</div>
 
+                    <div style="flex-grow: 1;"></div>
                     <!-- Data Grid -->
                     <div class="label-data-table">
                         <div class="label-row">
@@ -309,10 +310,12 @@ const LabelPrinting = () => {
 
                             {/* Header */}
                             <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                            <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', flexGrow: 1, marginBottom: '2mm' }}>{itemData?.description || 'Description'}</div>
+                            <div style={{ fontSize: '11pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
+
+                            <div style={{ flexGrow: 1 }}></div>
 
                             {/* Data Table */}
-                            <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0 }}>
+                            <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0, color: '#000' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                                     <div>Quantity/pack</div>
                                     <div>{quantity} EA</div>
@@ -332,7 +335,7 @@ const LabelPrinting = () => {
                             </div>
 
                             {/* Footer */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0, flexGrow: 1 }}>
                                 <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
                                     All trademarks and logotypes appearing on this label are owned by Sandvik Group
                                 </p>

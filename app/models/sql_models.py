@@ -286,3 +286,27 @@ class AICategoryPattern(Base):
     frequency: Mapped[int] = mapped_column(Integer, default=1)
     last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
+# --- Modelos de Configuración y Logística (Migración JSON) ---
+
+class BinLocation(Base):
+    """Configuración física de las ubicaciones del almacén."""
+    __tablename__ = "bin_locations"
+    bin_code: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
+    zone: Mapped[str] = mapped_column(String(100), index=True)
+    level: Mapped[int] = mapped_column(Integer, default=0)
+    aisle: Mapped[Optional[str]] = mapped_column(String(50))
+    spot: Mapped[str] = mapped_column(String(50), default="Cold") # Hot, Cold, etc.
+
+class SlottingRule(Base):
+    """Reglas de rotación y afinidad (Turnover mapping)."""
+    __tablename__ = "slotting_rules"
+    sic_code: Mapped[str] = mapped_column(String(50), primary_key=True, index=True)
+    ideal_spot: Mapped[str] = mapped_column(String(50), default="cold")
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+
+class PlannerHoliday(Base):
+    """Días feriados para el planificador."""
+    __tablename__ = "planner_holidays"
+    date: Mapped[str] = mapped_column(String(50), primary_key=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+
