@@ -49,21 +49,30 @@ const InboundHistory = () => {
                 if (!res.ok) throw new Error("Error loading logs");
                 const data = await res.json();
                 
-                // Calcular total recibido por ítem para la diferencia total (igual que en Inbound.jsx)
+                // Calcular total recibido por ítem y encontrar el log más reciente por cada uno
                 const totalsMap = {};
+                const latestLogMap = {}; // Guarda {id, ts} por cada itemCode
+
                 data.forEach(log => {
                     const code = log.itemCode;
                     totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+
+                    const ts = new Date(log.timestamp).getTime();
+                    if (!latestLogMap[code] || ts > latestLogMap[code].ts) {
+                        latestLogMap[code] = { id: log.id, ts };
+                    }
                 });
 
-                // Enriquecer logs con la diferencia acumulada
+                // Enriquecer logs con la diferencia, solo en la entrada más reciente
                 const enrichedLogs = data.map(log => {
                     const totalReceived = totalsMap[log.itemCode] || 0;
                     const expected = parseInt(log.qtyGrn) || 0;
+                    const isLatest = latestLogMap[log.itemCode]?.id === log.id;
+
                     return {
                         ...log,
-                        totalReceived, // Opcional por si se quiere mostrar
-                        calculatedDifference: totalReceived - expected
+                        totalReceived,
+                        calculatedDifference: isLatest ? (totalReceived - expected) : 0
                     };
                 });
 

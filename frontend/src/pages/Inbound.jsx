@@ -174,21 +174,31 @@ const Inbound = () => {
             }
         } catch (e) { console.error("Error loading GRN info", e); }
 
-        // Calcular total recibido por ítem para la diferencia total
+        // Calcular total recibido por ítem y encontrar la última entrada (por timestamp) para cada uno
         const totalsMap = {};
+        const latestEntryMap = {}; // Guarda {id, ts} por cada itemCode
+
         allLogs.forEach(log => {
             const code = log.itemCode;
             totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+
+            const ts = new Date(log.timestamp).getTime();
+            // Identificamos el log más reciente basándonos en el timestamp
+            if (!latestEntryMap[code] || ts > latestEntryMap[code].ts) {
+                latestEntryMap[code] = { id: log.id, ts: ts };
+            }
         });
 
-        // Agregar información de esperado y diferencia a cada log
+        // Agregar información de esperado y diferencia (solo en la última entrada)
         const logsWithGRN = allLogs.map(log => {
             const expected = grnMap[log.itemCode] || 0;
             const totalReceived = totalsMap[log.itemCode] || 0;
+            const isLatest = latestEntryMap[log.itemCode]?.id === log.id;
+
             return {
                 ...log,
                 expected_qty: expected,
-                difference: totalReceived - expected
+                difference: isLatest ? (totalReceived - expected) : 0
             };
         });
 
