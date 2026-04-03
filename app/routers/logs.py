@@ -46,7 +46,7 @@ async def find_item(
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
-    expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
+    expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code, import_reference)
     original_bin = item_details.get('Bin_1', 'N/A')
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
     effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin

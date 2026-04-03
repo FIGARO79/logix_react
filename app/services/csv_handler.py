@@ -174,18 +174,32 @@ async def get_item_details_from_master_csv(item_code: str):
         return res.to_dicts()[0]
     return None
 
-async def get_total_expected_quantity_for_item(item_code: str):
-    """Suma la cantidad pendiente en el GRN para un item."""
+async def get_total_expected_quantity_for_item(item_code: str, import_reference: str = "NA"):
+    """Suma la cantidad pendiente en el GRN para un item, opcionalmente filtrando por referencia."""
     global df_grn_cache
     await reload_cache_if_needed()
     if df_grn_cache is None: return 0
-    
-    item_code = item_code.upper().strip()
-    res = df_grn_cache.filter(pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
-    if res.height > 0:
-        return int(res.select(pl.col("Quantity").sum())[0,0] or 0)
-    return 0
 
+    item_code = item_code.upper().strip()
+    # Filtrar por item primero
+    res = df_grn_cache.filter(pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
+
+    if res.height == 0: return 0
+
+    # Si se proporciona una referencia válida, intentar filtrar por ella (Order_Number o GRN_Number)
+    if import_reference and import_reference.upper() != "NA":
+        ref = import_reference.upper().strip()
+        # Intentar filtrar por Order_Number o por GRN_Number
+        # Nota: GRN_Number puede ser interpretado como Utf8 por Polars
+        ref_filtered = res.filter(
+            (pl.col("Order_Number").str.to_uppercase() == ref) | 
+            (pl.col("GRN_Number").cast(pl.Utf8).str.to_uppercase() == ref)
+        )
+        if ref_filtered.height > 0:
+            return int(ref_filtered.select(pl.col("Quantity").sum())[0,0] or 0)
+
+    # Fallback: Suma total para el item si no hay referencia o no hubo coincidencia
+    return int(res.select(pl.col("Quantity").sum())[0,0] or 0)
 async def get_xdock_info(item_code: str):
     """Retorna cantidad reservada desde RAM."""
     global reservation_qty_map

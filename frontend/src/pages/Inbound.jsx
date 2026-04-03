@@ -174,7 +174,37 @@ const Inbound = () => {
             } catch (e) { console.error("Error loading pending logs", e); }
         }
 
-        setLogs([...pendingLogs, ...apiLogs]);
+        // Cargar GRN info para cada item único
+        const allLogs = [...pendingLogs, ...apiLogs];
+        const uniqueItems = [...new Set(allLogs.map(l => l.itemCode))];
+        const grnMap = {};
+        try {
+            const db = await getDB();
+            for (const itemCode of uniqueItems) {
+                const grnInfo = await db.get('grn_pending', itemCode);
+                grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
+            }
+        } catch (e) { console.error("Error loading GRN info", e); }
+
+        // Calcular total recibido por ítem para la diferencia total
+        const totalsMap = {};
+        allLogs.forEach(log => {
+            const code = log.itemCode;
+            totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+        });
+
+        // Agregar información de esperado y diferencia a cada log
+        const logsWithGRN = allLogs.map(log => {
+            const expected = grnMap[log.itemCode] || 0;
+            const totalReceived = totalsMap[log.itemCode] || 0;
+            return {
+                ...log,
+                expected_qty: expected,
+                difference: totalReceived - expected
+            };
+        });
+
+        setLogs(logsWithGRN);
     };
 
     const loadVersions = async () => {
@@ -257,7 +287,7 @@ const Inbound = () => {
                         weight: localItem.Weight_per_Unit,
                         itemType: localItem.ABC_Code_stockroom,
                         sicCode: localItem.SIC_Code_stockroom,
-                        grn_qty: grnInfo ? grnInfo.total_expected : 0,
+                        defaultQtyGrn: grnInfo ? grnInfo.total_expected : 0,
                         xdockTotal: xdockInfo ? xdockInfo.total : 0,
                         xdockPending: xdockInfo ? xdockInfo.total : 0,
                         xdockCustomers: xdockInfo ? xdockInfo.customers : [],
@@ -391,6 +421,9 @@ const Inbound = () => {
     const displayQty = (cumulativeQty + currentQtyNum);
     const itemWeight = parseFloat(itemData?.weight || 0);
     const totalWeight = isNaN(itemWeight) || isNaN(currentQtyNum) ? '0.00' : (itemWeight * (currentQtyNum || 1)).toFixed(2);
+    
+    // Cálculo dinámico de Xdock pendiente basado en lo que ya se ha registrado en la tabla
+    const effectiveXdockPending = Math.max(0, (itemData?.xdockTotal || 0) - cumulativeQty);
 
     const handlePrint = () => {
         const frame = printFrameRef.current;
@@ -585,19 +618,19 @@ const Inbound = () => {
                                 <div><label className="form-label">Bin (Original)</label><div className="data-field">{itemData?.binLocation || ''}</div></div>
                                 <div><label className="form-label">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" /></div>
                                 
-                                {(itemData?.xdockPending > 0 || itemData?.suggestedBin) && (
+                                {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                                        {itemData?.xdockPending > 0 ? (
+                                        {effectiveXdockPending > 0 ? (
                                             <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm">
                                                 <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">XDOCK</h4>
                                                 <div className="flex flex-col gap-0.5 text-black">
                                                     <div className="flex justify-between items-center text-[9px] uppercase font-normal"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-red-600"><span>Pendiente:</span><span>{itemData.xdockPending} UN</span></div>
+                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-red-600"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
 
-                                        {itemData?.xdockCustomers?.length > 0 ? (
+                                        {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
                                             <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm overflow-hidden">
                                                 <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">RESERVAS:</h4>
                                                 <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1">
@@ -609,7 +642,7 @@ const Inbound = () => {
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : (itemData?.xdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-400 italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-400 italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
                                         {itemData?.suggestedBin ? (
                                             <div className="bg-emerald-50 border border-emerald-200 rounded p-2 shadow-sm cursor-pointer hover:bg-emerald-100" onClick={() => setRelocatedBin(itemData.suggestedBin)}>
@@ -626,9 +659,13 @@ const Inbound = () => {
 
                             <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
                                 <h3 className="text-xs font-medium uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{displayQty}</div></div>
-                                    <div><label className="form-label">Contado</label><div className="data-field font-bold text-gray-700">{auditCount} {auditCount === 1 ? 'vez' : 'veces'}</div></div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
+                                    <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' : 
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                    }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
                             <div className="flex gap-3"><button type="submit" className="btn-sap btn-primary w-60 h-10">{editId ? 'Guardar Cambios' : 'Añadir Registro'}</button> {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}</div>
@@ -704,11 +741,14 @@ const Inbound = () => {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
+                            <thead className="bg-slate-700 text-white"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-center">Esperado</th><th className="px-2 py-1.5 text-center">Diferencia</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="10" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.isPending && '⏳ '}{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
+                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.isPending && '⏳ '}{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${
+                                            (log.difference || 0) > 0 ? 'text-blue-600' : 
+                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
+                                        }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
                                     </tr>
                                 ))}
                             </tbody>
