@@ -302,7 +302,16 @@ const SlottingConfig = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        Object.entries(config.turnover).map(([sic, info]) => (
+                                        Object.entries(config.turnover)
+                                            .sort((a, b) => {
+                                                const order = ['W', 'X', 'Y', 'K', 'L', 'Z', '0'];
+                                                let idxA = order.indexOf(a[0]);
+                                                let idxB = order.indexOf(b[0]);
+                                                if (idxA === -1) idxA = 99;
+                                                if (idxB === -1) idxB = 99;
+                                                return idxA - idxB;
+                                            })
+                                            .map(([sic, info]) => (
                                             <tr key={sic} className="hover:bg-[#f5f5f5] transition-colors leading-none">
                                                 <td className="px-3 py-1 font-bold text-gray-700 text-[12px]">{sic}</td>
                                                 <td className="px-3 py-1 text-gray-500 font-medium text-[11px]">{info.range}</td>

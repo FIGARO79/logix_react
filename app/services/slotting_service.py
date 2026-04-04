@@ -11,6 +11,27 @@ class SlottingService:
     def __init__(self):
         self.params_path = SLOTTING_PARAMS_PATH
 
+    def get_sic_code_by_hits(self, hits: int) -> str:
+        """Categoriza un ítem basándose en su frecuencia de movimiento (Hits)."""
+        if hits > 30: return 'W'
+        if hits >= 11: return 'X'
+        if hits >= 7: return 'Y'
+        if hits >= 5: return 'K'
+        if hits >= 3: return 'L'
+        if hits >= 1: return 'Z'
+        return '0'
+
+    async def _get_item_hits(self, db: AsyncSession, item_code: str, days: int = 90) -> int:
+        """Obtiene el conteo de movimientos históricos para un ítem."""
+        import datetime
+        try:
+            # Buscamos en logs de los últimos N días
+            since_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
+            stmt = select(func.count(Log.id)).where(and_(Log.itemCode == item_code, Log.timestamp >= since_date))
+            res = await db.execute(stmt)
+            return res.scalar() or 0
+        except: return 0
+
     async def _get_layout_config(self, db: AsyncSession) -> Dict[str, Any]:
         """Obtiene la configuración del layout con prioridad en SQL y fallback en JSON."""
         # 1. Intentar obtener de SQL (Ubicaciones)
@@ -59,7 +80,15 @@ class SlottingService:
         target_levels = None
         forbidden_zones = []
         description = str(item_details.get('Item_Description', '')).upper()
-        sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper()
+        item_code = str(item_details.get('Item_Code', '')).strip()
+        
+        # 1. Obtener hits y clasificar dinámicamente si es posible
+        hits = await self._get_item_hits(db, item_code)
+        sic_code = self.get_sic_code_by_hits(hits)
+        
+        # Fallback al código de stockroom si el dinámico es '0' pero el maestro tiene algo
+        if sic_code == '0':
+            sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper() or '0'
         
         weight = 0.0
         try:
@@ -82,8 +111,10 @@ class SlottingService:
             target_zone = "Rack"
             if sic_code in ['W', 'X']:
                 target_levels = [1]
-            else:
+            elif sic_code in ['Y', 'K']:
                 target_levels = [1, 2]
+            else:
+                target_levels = [3, 4, 5]
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
@@ -108,12 +139,17 @@ class SlottingService:
                 })
 
         # --- FILTRADO POR ROTACIÓN (HOT/COLD) ---
+        # Nueva organización: W, X, Y son HOT. K, L, Z, 0 son COLD.
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        if sic_code in ['W', 'Z']: ideal_spot = 'hot'
+        if sic_code in ['W', 'X', 'Y']: 
+            ideal_spot = 'hot'
+        elif sic_code in ['K', 'L', 'Z', '0']:
+            ideal_spot = 'cold'
 
-        if sic_code in ['Y', 'K', 'L', 'Z', '0', 'W']:
-            exact_matches = [c for c in candidates if c['spot'] == ideal_spot]
-            if exact_matches: candidates = exact_matches
+        # Filtrar candidatos que coincidan con el spot ideal
+        matches = [c for c in candidates if c['spot'] == ideal_spot]
+        if matches:
+            candidates = matches
 
         # Ordenar por afinidad de spot y luego por menor ocupación
         candidates.sort(key=lambda x: (x['spot'] != ideal_spot, x['occupancy']))
