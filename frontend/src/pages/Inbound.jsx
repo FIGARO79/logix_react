@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB, savePendingSync } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import { sandvikLogoBase64 } from '../assets/logo';
@@ -32,6 +33,7 @@ const Inbound = () => {
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [hasWarnedOffline, setHasWarnedOffline] = useState(false);
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -142,11 +144,22 @@ const Inbound = () => {
             const res = await fetch(url, { credentials: 'include' });
             if (res.ok) {
                 apiLogs = await res.json();
+                // Guardar en caché para acceso offline posterior
+                if (!version || version === '') {
+                    await cacheData('inbound_logs', apiLogs);
+                }
             } else {
                 console.error("Failed to load logs:", res.status, res.statusText);
                 if (res.status === 401) window.location.href = '/login';
             }
-        } catch (e) { console.error("Error loading logs from API", e); }
+        } catch (e) {
+            console.error("Error loading logs from API", e);
+            // Intentar cargar desde caché si estamos offline o la API falla
+            if (!version || version === '') {
+                apiLogs = await getCachedData('inbound_logs') || [];
+                console.log("Cargado desde caché local:", apiLogs.length, "registros");
+            }
+        }
 
         // Cargar logs pendientes de IndexedDB
         let pendingLogs = [];
@@ -164,10 +177,33 @@ const Inbound = () => {
                 }));
             } catch (e) { console.error("Error loading pending logs", e); }
         }
+        
+        // Deduplicación estricta usando Map por UUID (client_id)
+        // El Map garantiza que solo exista una entrada por UUID, priorizando la del servidor
+        const logMap = new Map();
 
-        // Cargar GRN info para cada item único
-        const allLogs = [...pendingLogs, ...apiLogs];
-        const uniqueItems = [...new Set(allLogs.map(l => l.itemCode))];
+        // 1. Primero los pendientes locales (prioridad más baja)
+        pendingLogs.forEach(log => {
+            const key = log.id; // UUID generado por crypto.randomUUID()
+            logMap.set(key, log);
+        });
+
+        // 2. Después los del servidor (sobrescriben cualquier pendiente con el mismo client_id)
+        apiLogs.forEach(log => {
+            const key = log.client_id || `server_${log.id}`; // Priorizar client_id UUID
+            logMap.set(key, log);
+        });
+
+        // 3. Ordenar por fecha (más reciente primero)
+        const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
+            const timeA = new Date(a.timestamp).getTime();
+            const timeB = new Date(b.timestamp).getTime();
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
+        });
+
+        const uniqueItems = [...new Set(allLogsSorted.map(l => l.itemCode))];
+
         const grnMap = {};
         try {
             const db = await getDB();
@@ -179,24 +215,25 @@ const Inbound = () => {
 
         // Calcular total recibido por ítem y encontrar la última entrada (por timestamp) para cada uno
         const totalsMap = {};
-        const latestEntryMap = {}; // Guarda {id, ts} por cada itemCode
+        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode (ya ordenados)
 
-        allLogs.forEach(log => {
+        allLogsSorted.forEach(log => {
             const code = log.itemCode;
-            totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+            // Asegurar que usamos qtyReceived del payload o campo directo
+            const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+            totalsMap[code] = (totalsMap[code] || 0) + qty;
 
-            const ts = new Date(log.timestamp).getTime();
-            // Identificamos el log más reciente basándonos en el timestamp
-            if (!latestEntryMap[code] || ts > latestEntryMap[code].ts) {
-                latestEntryMap[code] = { id: log.id, ts: ts };
+            if (!latestEntryMap[code]) {
+                latestEntryMap[code] = log.id;
             }
         });
 
-        // Agregar información de esperado y diferencia (solo en la última entrada)
-        const logsWithGRN = allLogs.map(log => {
+        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem)
+        const logsWithGRN = allLogsSorted.map(log => {
             const expected = grnMap[log.itemCode] || 0;
             const totalReceived = totalsMap[log.itemCode] || 0;
-            const isLatest = latestEntryMap[log.itemCode]?.id === log.id;
+            const isLatest = latestEntryMap[log.itemCode] === log.id;
+
 
             return {
                 ...log,
@@ -331,6 +368,8 @@ const Inbound = () => {
     const handleSaveLog = async (e) => {
         e.preventDefault();
         if (!itemData) return alert("Busque un item primero");
+        if (isSaving) return; // Bloquear doble clic
+        setIsSaving(true);
 
         const targetClientId = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
         const payload = {
@@ -346,47 +385,50 @@ const Inbound = () => {
             client_id: targetClientId
         };
 
-        if (navigator.onLine) {
-            try {
-                let res;
-                if (editId) {
-                    if (typeof editId === 'string' && editId.includes('-')) {
-                        const db = await getDB();
-                        await savePendingSync('inbound', payload, editId);
-                        loadLogs(); resetForm(); return;
-                    }
-                    res = await fetch(`/api/update_log/${editId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            importReference: payload.importReference,
-                            waybill: payload.waybill,
-                            qtyReceived: payload.quantity,
-                            relocatedBin: payload.relocatedBin
-                        })
-                    });
-                } else {
-                    res = await fetch(`/api/add_log`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify(payload)
-                    });
-                }
-                if (res.ok) { loadLogs(); resetForm(); return; }
-            } catch (e) { console.error("Connection error, falling back to offline save", e); }
-        }
-
         try {
-            const db = await getDB();
+            if (navigator.onLine) {
+                try {
+                    let res;
+                    if (editId) {
+                        if (typeof editId === 'string' && editId.includes('-')) {
+                            await savePendingSync('inbound', payload, editId);
+                            loadLogs(); resetForm(); return;
+                        }
+                        res = await fetch(`/api/update_log/${editId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                importReference: payload.importReference,
+                                waybill: payload.waybill,
+                                qtyReceived: payload.quantity,
+                                relocatedBin: payload.relocatedBin
+                            })
+                        });
+                    } else {
+                        res = await fetch(`/api/add_log`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify(payload)
+                        });
+                    }
+                    if (res.ok) { loadLogs(); resetForm(); return; }
+                } catch (e) { console.error("Connection error, falling back to offline save", e); }
+            }
+
+            // Guardar offline
             await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
             if (!hasWarnedOffline) {
                 alert("Guardado localmente (Offline).");
                 setHasWarnedOffline(true);
             }
             loadLogs(); resetForm();
-        } catch (e) { alert("Error al guardar localmente"); }
+        } catch (e) {
+            alert("Error al guardar");
+        } finally {
+            setIsSaving(false); // Siempre liberar el bloqueo
+        }
     };
 
     const handleDelete = async (id) => {
@@ -693,7 +735,21 @@ const Inbound = () => {
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
-                            <div className="flex gap-3"><button type="submit" className="btn-sap btn-primary w-60 h-10">{editId ? 'Guardar Cambios' : 'Añadir Registro'}</button> {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}</div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className={`btn-sap btn-primary w-60 h-10 flex items-center justify-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                >
+                                    {isSaving ? (
+                                        <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
+                                    ) : (
+                                        editId ? 'Guardar Cambios' : 'Añadir Registro'
+                                    )}
+                                </button>
+                                {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}
+                            </div>
+
                         </div>
 
                         <div className="lg:col-span-1">

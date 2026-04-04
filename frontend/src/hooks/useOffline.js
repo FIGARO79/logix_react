@@ -14,7 +14,12 @@ export const useOffline = () => {
             toast.info('Conexión restaurada. Sincronizando datos...');
             await syncPendingData();
             await refreshPendingCount();
+            // Recargar automáticamente para asegurar que los datos del servidor se reflejen en la UI
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         } else {
+
             toast.warning('Modo offline activado. Los datos se guardarán localmente.');
         }
     };
