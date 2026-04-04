@@ -13,7 +13,7 @@ import '../styles/Label.css';
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { isOnline, pendingCount, syncPendingData } = useOffline();
-    
+
     useEffect(() => { setTitle("Recepción"); }, [setTitle]);
 
 
@@ -177,7 +177,7 @@ const Inbound = () => {
                 }));
             } catch (e) { console.error("Error loading pending logs", e); }
         }
-        
+
         // Deduplicación estricta usando Map por UUID (client_id)
         // El Map garantiza que solo exista una entrada por UUID, priorizando la del servidor
         const logMap = new Map();
@@ -731,7 +731,7 @@ const Inbound = () => {
                                     <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
                                     <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
                                     <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' :
-                                            (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
@@ -772,7 +772,7 @@ const Inbound = () => {
 
                                     {/* Header */}
                                     <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', color: '#000' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '11pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
 
                                     <div style={{ flexGrow: 1 }}></div>
 
@@ -837,7 +837,7 @@ const Inbound = () => {
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
-                                                (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
+                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
                                             }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
                                     </tr>
                                 ))}

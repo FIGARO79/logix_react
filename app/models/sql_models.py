@@ -301,9 +301,3 @@ class SlottingRule(Base):
     sic_code: Mapped[str] = mapped_column(String(50), primary_key=True, index=True)
     ideal_spot: Mapped[str] = mapped_column(String(50), default="cold")
     description: Mapped[Optional[str]] = mapped_column(String(255))
-
-class PlannerHoliday(Base):
-    """Días feriados para el planificador."""
-    __tablename__ = "planner_holidays"
-    date: Mapped[str] = mapped_column(String(50), primary_key=True)
-    description: Mapped[Optional[str]] = mapped_column(String(255))

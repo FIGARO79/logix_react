@@ -10,21 +10,6 @@ class LogEntry(BaseModel):
     relocatedBin: Optional[str] = ''
     client_id: Optional[str] = None
 
-class Count(BaseModel):
-    """Modelo para conteos básicos."""
-    item_code: str
-    quantity: int
-    location: Optional[str] = 'N/A'
-
-class StockCount(BaseModel):
-    """Modelo para conteos de inventario con sesión."""
-    session_id: int
-    item_code: str
-    counted_qty: int
-    counted_location: str
-    description: Optional[str] = ''
-    bin_location_system: Optional[str] = ''
-
 class CloseLocationRequest(BaseModel):
     """Modelo para cerrar una ubicación en conteo."""
     session_id: int
