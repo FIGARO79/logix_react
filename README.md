@@ -189,6 +189,13 @@ SECRET_KEY=your_secret_key
 
 ## 🔄 Recent Updates
 
+### v2.6.0 (2026-04-04)
+- ✅ **Consolidación de Envíos**: Nuevo sistema para agrupar múltiples auditorías de picking en un solo envío (`Shipment`), con generación de Packing Lists consolidados para logística de despacho.
+- ✅ **Módulo de Conciliación v2**: Motor de comparación inteligente entre el Reporte 280 y logs físicos, con mapeo automático de I.R. a GRN y cálculo de diferencias optimizado mediante Polars.
+- ✅ **Auditoría con Snapshots**: Implementación de capturas automáticas del estado de conciliación antes de actualizaciones críticas, asegurando trazabilidad total en el módulo Inbound.
+- ✅ **Limpieza de Código Muerto**: Eliminación de archivos redundantes (`InventoryStock.jsx`) y esquemas Pydantic/SQL obsoletos (`PlannerHoliday`, `Count`) para optimizar el rendimiento y mantenibilidad.
+- ✅ **Consolidación de Frontend**: Migración completa de funcionalidades de búsqueda de stock a `StockSearch.jsx`.
+
 ### v2.5.0 (2026-04-02)
 - ✅ **Documentación de Stack**: README actualizado con el stack tecnológico completo y versiones reales extraídas de `requirements.txt` y `package.json`.
 - ✅ **Performance Backend**: Confirmado uso de `orjson` (serialización JSON de alto rendimiento) y `uvloop` (event loop optimizado vía libuv) como dependencias core del backend.
