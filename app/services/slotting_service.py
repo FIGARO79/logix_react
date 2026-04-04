@@ -4,28 +4,52 @@ import os
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from app.models.sql_models import MasterItem, Log
+from app.models.sql_models import MasterItem, Log, BinLocation, SlottingRule
 from app.core.config import SLOTTING_PARAMS_PATH
 
 class SlottingService:
     def __init__(self):
         self.params_path = SLOTTING_PARAMS_PATH
-        self.params = self._load_params()
 
-    def _load_params(self) -> Dict[str, Any]:
-        try:
-            if os.path.exists(self.params_path):
+    async def _get_layout_config(self, db: AsyncSession) -> Dict[str, Any]:
+        """Obtiene la configuración del layout con prioridad en SQL y fallback en JSON."""
+        # 1. Intentar obtener de SQL (Ubicaciones)
+        res_bins = await db.execute(select(BinLocation))
+        bins_sql = res_bins.scalars().all()
+        
+        storage = {}
+        if bins_sql:
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+        
+        # 2. Intentar obtener de SQL (Reglas de Rotación)
+        res_rules = await db.execute(select(SlottingRule))
+        rules_sql = res_rules.scalars().all()
+        
+        turnover = {}
+        if rules_sql:
+            turnover = {r.sic_code: {"range": r.description, "spot": r.ideal_spot} for r in rules_sql}
+
+        # 3. Fallback al JSON si SQL está vacío (Migración inicial)
+        if not storage and os.path.exists(self.params_path):
+            try:
                 with open(self.params_path, 'rb') as f:
-                    return orjson.loads(f.read())
-        except Exception as e:
-            print(f"Error cargando slotting_parameters.json: {e}")
-        return {"turnover": {}, "storage": {}}
+                    config = orjson.loads(f.read())
+                    storage = config.get("storage", {})
+                    if not turnover:
+                        turnover = config.get("turnover", {})
+            except: pass
+            
+        return {"storage": storage, "turnover": turnover}
 
     async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
-        # Recargar parámetros por si cambiaron en admin
-        storage = self._load_params().get('storage', {})
+        """Calcula la mejor ubicación disponible basada en el mapa de slotting y reglas de negocio."""
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
+        turnover_map = config.get('turnover', {})
+        
         current_bin = str(item_details.get('Bin_1', '')).strip().upper()
 
+        # Si el ítem ya está en una ubicación que existe en el mapa maestro, no sugerimos nada nuevo
         if current_bin in storage:
             return None
 
@@ -43,6 +67,7 @@ class SlottingService:
             weight = float(str(weight_val).replace(',', '')) if weight_val else 0.0
         except: pass
 
+        # --- REGLAS DE NEGOCIO POR ATRIBUTOS ---
         if "ROD" in description or "INTEGRAL STEEL" in description:
             target_zone = "Cantilever"
         elif 0 < weight < 0.1:
@@ -63,6 +88,7 @@ class SlottingService:
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
 
+        # --- BÚSQUEDA DE CANDIDATOS EN EL MAPA ---
         candidates = []
         for bin_code, info in storage.items():
             zone = info.get('zone')
@@ -78,28 +104,26 @@ class SlottingService:
                 candidates.append({
                     'bin': bin_code,
                     'occupancy': current_items,
-                    'spot': info.get('spot', 'Cold').lower()
+                    'spot': str(info.get('spot', 'Cold')).lower()
                 })
 
-        turnover_map = self._load_params().get('turnover', {})
+        # --- FILTRADO POR ROTACIÓN (HOT/COLD) ---
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        
-        # Forzar 'hot' para W y Z si no está definido en el mapa de rotación
-        if sic_code in ['W', 'Z']:
-            ideal_spot = 'hot'
+        if sic_code in ['W', 'Z']: ideal_spot = 'hot'
 
         if sic_code in ['Y', 'K', 'L', 'Z', '0', 'W']:
             exact_matches = [c for c in candidates if c['spot'] == ideal_spot]
             if exact_matches: candidates = exact_matches
 
+        # Ordenar por afinidad de spot y luego por menor ocupación
         candidates.sort(key=lambda x: (x['spot'] != ideal_spot, x['occupancy']))
         return candidates[0]['bin'] if candidates else None
 
     async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
-        """Calcula cuántos SKUs hay en cada bin."""
+        """Calcula cuántos SKUs hay en cada bin (Cruza maestro + reubicaciones activas)."""
         occupancy = {}
         try:
-            # 1. Master Items
+            # 1. Master Items (Stock físico actual)
             master_stmt = select(MasterItem.bin_1, func.count(MasterItem.item_code)).where(MasterItem.physical_qty > 0).group_by(MasterItem.bin_1)
             master_res = await db.execute(master_stmt)
             for bin_code, count in master_res.all():
@@ -107,7 +131,7 @@ class SlottingService:
                     code = str(bin_code).strip().upper()
                     occupancy[code] = occupancy.get(code, 0) + count
 
-            # 2. Logs Activos (Reubicaciones pendientes)
+            # 2. Logs Activos (Mercancía en camino a un bin)
             logs_stmt = select(Log.relocatedBin, func.count(func.distinct(Log.itemCode))).where(and_(Log.archived_at == None, Log.relocatedBin != '', Log.relocatedBin != None)).group_by(Log.relocatedBin)
             logs_res = await db.execute(logs_stmt)
             for bin_code, count in logs_res.all():
@@ -119,11 +143,11 @@ class SlottingService:
         return occupancy
 
     async def get_occupancy_report(self, db: AsyncSession) -> Dict[str, Any]:
-        """Genera un reporte detallado de ocupación por zona y nivel."""
+        """Genera el reporte de métricas del mapa de slotting."""
         occupancy = await self._get_bins_occupancy(db)
-        storage = self._load_params().get('storage', {})
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
         
-        # Diccionarios para estadísticas avanzadas
         zones_by_items = {}
         aisles_by_items = {}
         total_items = 0
@@ -155,11 +179,9 @@ class SlottingService:
             if level not in report["zones"][zone]["levels"]:
                 report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0}
             
-            # Contar bin en zona y nivel
             report["zones"][zone]["total"] += 1
             report["zones"][zone]["levels"][level]["total"] += 1
             
-            # Calcular ocupación real de este bin
             current_skus = occupancy.get(bin_code.upper(), 0)
             limit = 3 if zone == "Minuteria" else 4
             
@@ -169,7 +191,6 @@ class SlottingService:
                 report["zones"][zone]["levels"][level]["occupied_skus"] += current_skus
                 total_items += current_skus
                 
-                # Stats para analítica
                 zones_by_items[zone] = zones_by_items.get(zone, 0) + current_skus
                 if aisle != 'N/A':
                     aisles_by_items[aisle] = aisles_by_items.get(aisle, 0) + current_skus
@@ -179,18 +200,13 @@ class SlottingService:
             else:
                 report["summary"]["available_bins"] += 1
         
-        # Cálculos finales de resumen
         report["summary"]["total_items"] = total_items
         if report["summary"]["total_bins"] > 0:
             report["summary"]["occupancy_pct"] = round((report["summary"]["filled_bins"] / report["summary"]["total_bins"]) * 100, 1)
-            # Unificación: Promedio basado en bins en uso (densidad real)
             report["summary"]["avg_items_per_bin"] = round(total_items / report["summary"]["filled_bins"], 1) if report["summary"]["filled_bins"] > 0 else 0
 
-        # Ordenar analítica
         report["analytics"]["zones_by_items"] = dict(sorted(zones_by_items.items(), key=lambda x: x[1], reverse=True)[:5])
         report["analytics"]["top_aisles"] = dict(sorted(aisles_by_items.items(), key=lambda x: x[1], reverse=True)[:5])
-        
-        # Agregar conteo de bins por zona (Layout Físico)
         report["analytics"]["bins_by_zone"] = {z: data["total"] for z, data in report["zones"].items()}
         report["analytics"]["bins_by_zone"] = dict(sorted(report["analytics"]["bins_by_zone"].items(), key=lambda x: x[1], reverse=True))
                 

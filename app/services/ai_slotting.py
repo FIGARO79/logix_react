@@ -76,14 +76,20 @@ class AISlottingService:
     async def learn_from_decision(self, db: AsyncSession, item_code: str, final_bin: str, sic_code: str):
         """
         Registra una decisión de ubicación exitosa en la DB y actualiza el cache.
+        Excluye ubicaciones virtuales como XDOCK para no contaminar la IA.
         """
         if not final_bin or not item_code:
+            return
+
+        final_bin = final_bin.strip().upper()
+        
+        # Filtro de seguridad: No aprender de bines virtuales
+        if final_bin in ["XDOCK", "PUTAWAY", "STAGE", "TRANSITO"]:
             return
 
         await self._ensure_initialized(db)
         
         item_code = item_code.strip().upper()
-        final_bin = final_bin.strip().upper()
         sic_code = sic_code.strip().upper() if sic_code else "N/A"
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 

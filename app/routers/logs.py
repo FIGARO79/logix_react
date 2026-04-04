@@ -49,8 +49,12 @@ async def find_item(
     
     expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
     original_bin = item_details.get('Bin_1', 'N/A')
+    
+    # La ubicación base para mostrar en el frontend será SIEMPRE la del maestro
+    effective_bin_location = original_bin
+    
+    # Obtenemos la última reubicación solo para lógica interna, no para visualización principal
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
-    effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
     
     # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
     traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
@@ -74,11 +78,7 @@ async def find_item(
             final_suggested_bin = traditional_suggested_bin
             is_ai_prediction = False
 
-    if latest_relocated_bin or final_suggested_bin == effective_bin_location:
-        final_suggested_bin = None
-        is_ai_prediction = False
-
-    # 4. Información de Cross-Docking (Xdock) - Ahora con estructura detallada
+    # 4. Información de Cross-Docking (Xdock)
     xdock_data = await csv_handler.get_xdock_info(item_code)
     total_reserved = xdock_data.get("total", 0)
     xdock_customers = xdock_data.get("customers", [])
@@ -86,10 +86,15 @@ async def find_item(
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
     xdock_pending = max(0, total_reserved - already_received)
 
-    # 5. PRIORIDAD XDOCK: Si hay saldo pendiente, la sugerencia es XDOCK
+    # 5. PRIORIDAD XDOCK: Si hay saldo pendiente, la sugerencia es XDOCK en el badge
     if xdock_pending > 0:
         final_suggested_bin = "XDOCK"
         is_ai_prediction = True
+
+    # 6. LIMPIEZA: No sugerir si el ítem ya está en la ubicación sugerida (comparando con el maestro)
+    if final_suggested_bin == effective_bin_location:
+        final_suggested_bin = None
+        is_ai_prediction = False
 
     response_data = {
         "itemCode": item_details.get('Item_Code', item_code),

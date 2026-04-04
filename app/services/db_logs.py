@@ -103,10 +103,13 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
 
 
 async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
-    """Carga todos los logs de la base de datos."""
+    """Carga todos los logs activos (no archivados) de la base de datos."""
     try:
-        # Default: Cargar solo logs activos (archived_at es NULL)
-        stmt = select(Log).where(Log.archived_at.is_(None)).order_by(Log.id.desc())
+        # Cargamos registros donde archived_at es NULL o string vacío
+        from sqlalchemy import or_
+        stmt = select(Log).where(
+            or_(Log.archived_at.is_(None), Log.archived_at == '')
+        ).order_by(Log.id.desc())
         result = await db.execute(stmt)
         logs = result.scalars().all()
         # Convertir a dict explícitamente porque los modelos ORM no son dicts
@@ -205,12 +208,16 @@ async def delete_log_entry_db_async(db: AsyncSession, log_id: int) -> bool:
 
 
 async def get_latest_relocated_bin_async(db: AsyncSession, item_code: str) -> Optional[str]:
-    """Obtiene el último bin de reubicación para un item."""
+    """Obtiene el último bin de reubicación real (no virtual) para un item."""
     try:
+        # Excluimos bines virtuales para que no se conviertan en la ubicación por defecto
+        virtual_bins = ["XDOCK", "PUTAWAY", "STAGE", "TRANSITO", "RECIBO"]
+        
         stmt = select(Log.relocatedBin).where(
             Log.itemCode == item_code,
             Log.relocatedBin.is_not(None),
             Log.relocatedBin != '',
+            ~Log.relocatedBin.in_(virtual_bins),
             Log.archived_at.is_(None)
         ).order_by(Log.id.desc()).limit(1)
         
