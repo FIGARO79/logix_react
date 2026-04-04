@@ -220,7 +220,7 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
     # Mapeo de columnas a español (coincidiendo con el frontend)
     col_map = {
         'id': 'ID',
-        'timestamp': 'Fecha/Hora',
+        'timestamp': 'Fecha',
         'username': 'Usuario',
         'importReference': 'I.R.',
         'waybill': 'Waybill',
@@ -233,7 +233,7 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         'difference': 'Diferencia'
     }
     
-    cols_out = ['ID', 'Fecha/Hora', 'Usuario', 'I.R.', 'Waybill', 'Código Item', 'Descripción',
+    cols_out = ['ID', 'Fecha', 'Usuario', 'I.R.', 'Waybill', 'Código Item', 'Descripción',
                 'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. Esperada', 'Diferencia']
 
     # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
@@ -257,7 +257,7 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         if code not in latest_id_map:
             latest_id_map[code] = log.get('id')
 
-    # 3. Enriquecer logs CON ALINEACIÓN (Cero en repetidos)
+    # 3. Enriquecer logs CON ALINEACIÓN Y FORMATO DE FECHA
     enriched = []
     for log in logs_sorted:
         code = log.get('itemCode')
@@ -265,9 +265,21 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         
         expected = expected_map.get(code, 0)
         total_rec = totals_map.get(code, 0)
+
+        # Formatear fecha para que coincida con la pantalla (DD/MM/YYYY HH:MM)
+        ts_raw = log.get('timestamp', '')
+        formatted_date = ts_raw
+        try:
+            # Limpiar posibles variaciones de formato ISO
+            clean_ts = str(ts_raw).replace(' ', 'T').replace('Z', '')
+            dt_obj = datetime.datetime.fromisoformat(clean_ts)
+            formatted_date = dt_obj.strftime('%d/%m/%Y %H:%M')
+        except:
+            pass
         
         enriched.append({
             **log,
+            'timestamp': formatted_date,
             # Solo mostramos el total esperado y la diferencia en la última fila del ítem
             # para que el reporte sea sumable sin duplicidades.
             'qtyGrn': expected if is_latest else 0,
