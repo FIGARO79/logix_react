@@ -224,53 +224,54 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         'username': 'Usuario',
         'importReference': 'I.R.',
         'waybill': 'Waybill',
-        'itemCode': 'Item Code',
+        'itemCode': 'Código Item',
         'itemDescription': 'Descripción',
         'binLocation': 'Ubicación',
         'relocatedBin': 'Reubicación',
         'qtyReceived': 'Cant. Recibida',
-        'qtyGrn': 'Cant. GRN',
+        'qtyGrn': 'Cant. Esperada',
         'difference': 'Diferencia'
     }
     
-    cols_out = ['ID', 'Fecha/Hora', 'Usuario', 'I.R.', 'Waybill', 'Item Code', 'Descripción',
-                'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. GRN', 'Diferencia']
+    cols_out = ['ID', 'Fecha/Hora', 'Usuario', 'I.R.', 'Waybill', 'Código Item', 'Descripción',
+                'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. Esperada', 'Diferencia']
 
-    # ── LÓGICA IDÉNTICA AL FRONTEND ──────────────────────────────────────────
-    # 1. Obtener cantidad esperada del GRN CSV para cada itemCode único
+    # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
+    # 1. Obtener cantidad esperada del GRN CSV por itemCode
     unique_items = list({log['itemCode'] for log in logs if log.get('itemCode')})
     expected_map = {}
     for item in unique_items:
         expected_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
 
     # 2. Calcular total recibido por itemCode y encontrar el log más reciente
+    #    Ordenamos por ID descendente para marcar la "última" fila del item.
+    logs_sorted = sorted(logs, key=lambda x: (x.get('id') or 0), reverse=True)
+    
     totals_map = {}
-    latest_map = {}  # itemCode -> {'id': ..., 'ts': ...}
-    for log in logs:
+    latest_id_map = {}
+    
+    for log in logs_sorted:
         code = log.get('itemCode')
-        if not code:
-            continue
+        if not code: continue
         totals_map[code] = totals_map.get(code, 0) + int(log.get('qtyReceived') or 0)
-        ts_str = str(log.get('timestamp') or '')
-        log_id = log.get('id') or 0
-        if code not in latest_map:
-            latest_map[code] = {'id': log_id, 'ts': ts_str}
-        else:
-            prev = latest_map[code]
-            if ts_str > prev['ts'] or (ts_str == prev['ts'] and log_id > prev['id']):
-                latest_map[code] = {'id': log_id, 'ts': ts_str}
+        if code not in latest_id_map:
+            latest_id_map[code] = log.get('id')
 
-    # 3. Enriquecer logs con qtyGrn y diferencia calculados desde el CSV
+    # 3. Enriquecer logs CON ALINEACIÓN (Cero en repetidos)
     enriched = []
-    for log in logs:
+    for log in logs_sorted:
         code = log.get('itemCode')
+        is_latest = latest_id_map.get(code) == log.get('id')
+        
         expected = expected_map.get(code, 0)
-        total_received = totals_map.get(code, 0)
-        is_latest = latest_map.get(code, {}).get('id') == log.get('id')
+        total_rec = totals_map.get(code, 0)
+        
         enriched.append({
             **log,
-            'qtyGrn': expected,
-            'difference': (total_received - expected) if is_latest else 0
+            # Solo mostramos el total esperado y la diferencia en la última fila del ítem
+            # para que el reporte sea sumable sin duplicidades.
+            'qtyGrn': expected if is_latest else 0,
+            'difference': (total_rec - expected) if is_latest else 0
         })
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -365,7 +366,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Reubicado":          getattr(r, 'relocated_bin', '') or '',
                 "Cant. Esperada":     int(r.qty_expected or 0),
                 "Cant. Recibida":     int(r.qty_received or 0),
-                "Diferencia Total I.R.": int(r.difference or 0),
+                "Diferencia":         int(r.difference or 0),
             } for r in rows])
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
@@ -397,7 +398,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 pl.col("Reubicado").alias("Reubicado"),
                 pl.col("Cant_Esperada").alias("Cant. Esperada"),
                 pl.col("Cant_Recibida").alias("Cant. Recibida"),
-                pl.col("Diferencia").alias("Diferencia Total I.R."),
+                pl.col("Diferencia").alias("Diferencia"),
             ])
 
             utc_now = datetime.datetime.now(datetime.timezone.utc)

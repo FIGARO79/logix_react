@@ -18,6 +18,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
     """
     Ejecuta los cálculos de conciliación cruzando el Reporte 280 con los Logs de Inbound.
     Mantiene el desglose línea por línea del Reporte 280 (no agrupa items repetidos).
+    Lógica de cálculo alineada con logix_chile.
     """
     try:
         await csv_handler.reload_cache_if_needed()
@@ -53,7 +54,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             ])
         )
 
-        # Suma de recibido por IR + item (Agrupamos solo por estas dos para evitar multiplicar filas de la 280)
+        # Suma de recibido por IR + item
         logs_grouped = (
             logs_pl
             .group_by(["importReference", "itemCode"])
@@ -63,7 +64,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             ])
         )
 
-        # 3. Construir mapa primario (GRN) y mapa de respaldo (Order+Item)
+        # 3. Construir mapas de asociación (GRN -> IR)
         grn_to_ir_map: dict[str, dict] = {}
         order_item_to_ir_map: dict[tuple[str, str], dict] = {}
 
@@ -79,12 +80,10 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                             cust_ref = str(item.get("customer_ref") or "").strip().upper()
                             item_code = str(item.get("item_code") or "").strip().upper()
                             
-                            # Poblar Fallback (Order + Item)
                             if cust_ref and item_code:
                                 if (cust_ref, item_code) not in order_item_to_ir_map:
                                     order_item_to_ir_map[(cust_ref, item_code)] = {"ir": ir_val, "wb": wb_val}
                             
-                            # Poblar Primario estricto (GRNs)
                             raw_grns = item.get("grn")
                             if raw_grns:
                                 for g in str(raw_grns).split(','):
@@ -106,22 +105,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                             grn_to_ir_map[grn] = {"ir": ir, "wb": row.get("Waybill", row.get("waybill", ""))}
             except: pass
 
-        if not grn_to_ir_map and not order_item_to_ir_map:
-            print("⚠️ [RECONCILIATION] No se encontraron asociaciones en el sistema.")
-            return logs_grouped.select([
-                pl.col("importReference").alias("Import_Reference"),
-                pl.lit("SIN WAYBILL").alias("Waybill"),
-                pl.lit("SIN GRN").alias("GRN"),
-                pl.col("itemCode").alias("Codigo_Item"),
-                pl.lit("No en reporte 280").alias("Descripcion"),
-                pl.lit("").alias("Ubicacion"),
-                pl.lit("").alias("Reubicado"),
-                pl.lit(0).alias("Cant_Esperada"),
-                pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
-                pl.col("qtyReceived").cast(pl.Int64).alias("Diferencia")
-            ]).to_dicts()
-
-        # 4. Construir DataFrames (1 a 1 para evitar explosión cartesiana)
+        # 4. Construir DataFrames de Mapeo
         df_mapping_grn = pl.DataFrame([
             {"grn_map": k, "ir_map_grn": v["ir"], "wb_map_grn": str(v["wb"] or "")}
             for k, v in grn_to_ir_map.items()
@@ -132,12 +116,11 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             for k, v in order_item_to_ir_map.items()
         ]).unique(["order_map", "item_map"], keep="first") if order_item_to_ir_map else pl.DataFrame(schema={"order_map": pl.Utf8, "item_map": pl.Utf8, "ir_map_fall": pl.Utf8, "wb_map_fall": pl.Utf8})
 
-        # 5. Normalizar GRN cache (Reporte 280)
+        # 5. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
         if grn_pl is None:
             return []
 
-        # Asegurar que Order_Number esté disponible
         grn_cols = ["GRN_Number", "Item_Code", "Item_Description", "Quantity"]
         if "Order_Number" in grn_pl.columns:
             grn_cols.append("Order_Number")
@@ -152,38 +135,21 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         if "Order_Number" in grn_pl.columns:
             grn_pl = grn_pl.with_columns(pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase())
 
-        # 6. Join: mapping + GRN (líneas individuales esperadas)
+        # 6. Join para asignar IR a cada línea del reporte 280
         grn_enriched = grn_pl.select(grn_cols)
+        df_expected = grn_enriched.join(df_mapping_grn, left_on="GRN_Number", right_on="grn_map", how="left")
 
-        # 6.1 Join estricto por GRN_Number
-        df_expected = grn_enriched.join(
-            df_mapping_grn,
-            left_on="GRN_Number",
-            right_on="grn_map",
-            how="left"
-        )
-
-        # 6.2 Join secundario (fallback) por Order_Number + Item_Code
         if "Order_Number" in df_expected.columns:
-            df_expected = df_expected.join(
-                df_mapping_fallback,
-                left_on=["Order_Number", "Item_Code"],
-                right_on=["order_map", "item_map"],
-                how="left"
-            )
+            df_expected = df_expected.join(df_mapping_fallback, left_on=["Order_Number", "Item_Code"], right_on=["order_map", "item_map"], how="left")
         else:
             df_expected = df_expected.with_columns([pl.lit(None).alias("ir_map_fall"), pl.lit(None).alias("wb_map_fall")])
 
-        # 6.3 Coalescer los resultados, priorizando el exacto por GRN, luego el Fallback.
         df_expected = df_expected.with_columns([
             pl.coalesce(["ir_map_grn", "ir_map_fall"]).alias("ir_map"),
             pl.coalesce(["wb_map_grn", "wb_map_fall"]).alias("wb_map")
-        ])
+        ]).filter(pl.col("ir_map").is_not_null())
 
-        # Filtrar solo lo que tiene una IR asignada
-        df_expected = df_expected.filter(pl.col("ir_map").is_not_null())
-
-        # Total esperado por IR + Item (para cálculo de diferencia global del item)
+        # Total esperado por IR + Item (Suma de todas las líneas/GRNs del item en esa IR)
         total_exp = (
             df_expected
             .group_by(["ir_map", "Item_Code"])
@@ -191,8 +157,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         )
         df_expected = df_expected.join(total_exp, on=["ir_map", "Item_Code"], how="left")
 
-
-        # 7. Join final: esperado ↔ recibido
+        # 7. Unir con lo recibido físicamente (Logs)
         final = df_expected.join(
             logs_grouped,
             left_on=["ir_map", "Item_Code"],
@@ -200,7 +165,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             how="left"
         )
 
-        # Logs que no tienen IR asociado (anti-join)
+        # 8. Casos de ítems recibidos que no están en el reporte 280 para esa IR
         logs_sin_grn = logs_grouped.join(
             df_expected.select(["ir_map", "Item_Code"]).unique(),
             left_on=["importReference", "itemCode"],
@@ -211,15 +176,14 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("Waybill_Log").alias("wb_map"),
             pl.lit("SIN GRN").alias("GRN_Number"), 
             pl.col("itemCode").alias("Item_Code"),
-            pl.lit("No en reporte 280 o sin correspondencia en po_lookup").alias("Item_Description"),
+            pl.lit("No en reporte 280").alias("Item_Description"),
             pl.lit(0.0).alias("Quantity"),
             pl.lit(0.0).alias("Total_Esperado_IR"),
         ])
 
-        # Unificar
         final = pl.concat([final, logs_sin_grn], how="diagonal")
 
-        # 8. Rellenar nulos y cálculos finales
+        # 9. Cálculos de Diferencia y Limpieza
         final = final.with_columns([
             pl.col("qtyReceived").fill_null(0.0),
             pl.col("Quantity").fill_null(0.0),
@@ -228,38 +192,31 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("wb_map").fill_null("SIN WAYBILL"),
             pl.col("Item_Code").fill_null("SIN CODIGO"),
             pl.col("GRN_Number").fill_null("SIN GRN"),
-            pl.col("Item_Description").fill_null("No en reporte 280"),
-        ]).with_columns([
-            # La diferencia es el total recibido del item menos el total esperado del item en esa IR
-            (pl.col("qtyReceived") - pl.col("Total_Esperado_IR")).alias("Diferencia"),
-            pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
-            pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"), # Cantidad de esta línea específica
         ])
 
-        # 9. Unir ubicaciones
-        final = final.join(
-            df_locations,
-            left_on=["ir_map", "Item_Code"],
-            right_on=["importReference", "itemCode"],
-            how="left"
-        ).with_columns([
-            pl.col("binLocation").fill_null(""),
-            pl.col("relocatedBin").fill_null(""),
-        ])
+        # Join ubicaciones
+        final = final.join(df_locations, left_on=["ir_map", "Item_Code"], right_on=["importReference", "itemCode"], how="left")
+        final = final.with_columns([pl.col("binLocation").fill_null(""), pl.col("relocatedBin").fill_null("")])
 
-        # 9.5. Ordenar para establecer qué fila es la "última" de cada grupo (ir + item)
-        #       y mostrar Diferencia solo en esa fila (evitar que se repita en líneas múltiples de GRN)
+        # LÓGICA CRÍTICA: Mostrar diferencia solo en la última fila del grupo (IR + Item)
         final = final.sort(["ir_map", "Item_Code", "GRN_Number"])
         final = final.with_columns([
             pl.col("GRN_Number").cum_count().over(["ir_map", "Item_Code"]).alias("_row_num"),
             pl.col("GRN_Number").count().over(["ir_map", "Item_Code"]).alias("_group_size"),
-        ]).with_columns(
-            Diferencia=pl.when(pl.col("_row_num") == pl.col("_group_size"))
-                .then(pl.col("Diferencia").cast(pl.Int64))
-                .otherwise(pl.lit(0, dtype=pl.Int64))
-        ).drop(["_row_num", "_group_size"])
+        ])
 
-        # 10. Seleccionar y renombrar para el frontend (Sin .unique() para mantener todas las líneas)
+        final = final.with_columns([
+            # Diferencia = (Total Recibido en Logs) - (Suma de Cantidades Esperadas en Reporte 280)
+            pl.when(pl.col("_row_num") == pl.col("_group_size"))
+                .then((pl.col("qtyReceived") - pl.col("Total_Esperado_IR")).cast(pl.Int64))
+                .otherwise(pl.lit(0, dtype=pl.Int64))
+                .alias("Diferencia"),
+            pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
+            pl.col("Quantity").cast(pl.Int64).alias("Cant_Esperada"),  # Cantidad de la línea individual
+        ])
+
+
+        # 10. Mapeo final para exportación y frontend
         result = final.select([
             pl.col("ir_map").alias("Import_Reference"),
             pl.col("wb_map").alias("Waybill"),
@@ -268,9 +225,9 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("Item_Description").alias("Descripcion"),
             pl.col("binLocation").alias("Ubicacion"),
             pl.col("relocatedBin").alias("Reubicado"),
-            pl.col("Cant_Linea").alias("Cant_Esperada"),  # Cantidad de esta línea GRN individual
-            pl.col("Cant_Recibida"),                      # Total recibido (mismo para todas las líneas del item)
-            pl.col("Diferencia")                          # Solo en la última línea GRN del item
+            pl.col("Cant_Esperada"),
+            pl.col("Cant_Recibida"),
+            pl.col("Diferencia")
         ]).sort(["Import_Reference", "GRN"]).to_dicts()
 
         return result
