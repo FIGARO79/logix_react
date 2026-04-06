@@ -634,7 +634,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-120px)] lg:flex lg:flex-col lg:overflow-hidden">
+            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-30px)] lg:flex lg:flex-col lg:overflow-hidden">
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-4">
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
@@ -831,14 +831,14 @@ const Inbound = () => {
                     </div>
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white sticky top-0 z-20"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-center">Esp.</th><th className="px-2 py-1.5 text-center">Dif.</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
+                            <thead className="bg-slate-700 text-white sticky top-0 z-20"><tr><th className="px-2 py-0.5 text-left">Ref</th><th className="px-2 py-0.5 text-left">Waybill</th><th className="px-2 py-0.5 text-left">Item</th><th className="px-2 py-0.5 text-left">Desc</th><th className="px-2 py-0.5 text-left">Orig</th><th className="px-2 py-0.5 text-left">New</th><th className="px-2 py-0.5 text-center">Qty</th><th className="px-2 py-0.5 text-center">Esp.</th><th className="px-2 py-0.5 text-center">Dif.</th><th className="px-2 py-0.5 text-left">Fecha</th><th className="px-2 py-0.5 text-left">User</th><th className="px-2 py-0.5 text-center">Acc</th></tr></thead>
 
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
+                                        <td className="px-2 py-0.5">{log.importReference}</td><td className="px-2 py-0.5">{log.waybill}</td><td className="px-2 py-0.5 font-mono">{log.itemCode}</td><td className="px-2 py-0.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-0.5">{log.binLocation}</td><td className="px-2 py-0.5">{log.relocatedBin}</td><td className="px-2 py-0.5 text-center">{log.qtyReceived}</td><td className="px-2 py-0.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-0.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
                                             (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
-                                            }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
+                                            }`}>{log.difference || 0}</td><td className="px-2 py-0.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-0.5 uppercase">{log.username}</td><td className="px-2 py-0.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
                                     </tr>
                                 ))}
                             </tbody>
