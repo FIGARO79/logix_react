@@ -45,7 +45,11 @@ async def generate_reservation_cache():
                          ignore_errors=True)
         
         processed_df = (
-            df.filter((pl.col("SO_Number").is_not_null()) & (pl.col("SO_Number").cast(pl.Utf8).str.strip_chars() != ""))
+            df.filter(
+                (pl.col("Item_Code").is_not_null()) & 
+                (pl.col("SO_Number").is_not_null()) & 
+                (pl.col("SO_Number").cast(pl.Utf8).str.strip_chars() != "")
+            )
             .with_columns([
                 pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
                 pl.col("Quantity_reserved").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
@@ -89,16 +93,30 @@ async def load_csv_data():
             _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             raw_master = pl.read_csv(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER, infer_schema_length=0, 
                                          null_values=['', 'nan', 'NaN', 'None', 'null'], ignore_errors=True, encoding='utf-8-sig')
-            df_master_cache = raw_master.with_columns([
-                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-                pl.col("Physical_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
-            ])
-            master_qty_map = {r["Item_Code"]: int(r["Physical_Qty"]) for r in df_master_cache.select(["Item_Code", "Physical_Qty"]).to_dicts() if r["Item_Code"]}
+            df_master_cache = (
+                raw_master
+                .filter(pl.col("Item_Code").is_not_null())
+                .with_columns([
+                    pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                    pl.col("Physical_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                ])
+            )
+            master_qty_map = {
+                str(r["Item_Code"]): int(r["Physical_Qty"]) 
+                for r in df_master_cache.select(["Item_Code", "Physical_Qty"]).to_dicts() 
+                if r["Item_Code"]
+            }
 
         if os.path.exists(GRN_CSV_FILE_PATH):
             _mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
             raw_grn = pl.read_csv(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN, infer_schema_length=0, null_values=['', 'nan', 'NaN'], ignore_errors=True)
-            df_grn_cache = raw_grn.with_columns([pl.col("Quantity").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)])
+            df_grn_cache = (
+                raw_grn
+                .filter(pl.col("Item_Code").is_not_null())
+                .with_columns([
+                    pl.col("Quantity").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                ])
+            )
 
         await generate_reservation_cache()
         print(f"✅ [POLARS] Sincronización RAM completa ({time.time() - t0:.3f}s)")

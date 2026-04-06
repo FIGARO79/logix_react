@@ -60,10 +60,11 @@ async def get_master_sync_data(user: str = Depends(login_required)):
         import polars as pl
         summary = (
             csv_handler.df_grn_cache
-            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase())
+            .filter(pl.col("Item_Code").is_not_null())
+            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Code"))
             .agg(pl.col("Quantity").sum().alias("total_expected"))
         )
-        grn_data = {row["Item_Code"]: int(row["total_expected"]) for row in summary.to_dicts()}
+        grn_data = {str(row["Item_Code"]): int(row["total_expected"]) for row in summary.to_dicts() if row["Item_Code"]}
 
     # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
     xdock_data = csv_handler.reservation_qty_map
