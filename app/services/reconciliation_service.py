@@ -99,10 +99,26 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                 with open(GRN_JSON_DATA_PATH, 'rb') as f:
                     inbound_data = orjson.loads(f.read())
                     for row in inbound_data:
-                        ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()
+                        # Soporte para múltiples formatos de cabeceras (Excel, Exportaciones, etc)
+                        ir = str(
+                            row.get("Import_Reference", 
+                            row.get("import_reference", 
+                            row.get("IMPORT REFERENCE", "")))
+                        ).strip().upper()
+                        
+                        grn = str(
+                            row.get("GRN_Number", 
+                            row.get("grn_number", 
+                            row.get("GRN1NUMBER", "")))
+                        ).strip().upper()
+                        
                         if ir and grn:
-                            grn_to_ir_map[grn] = {"ir": ir, "wb": row.get("Waybill", row.get("waybill", ""))}
+                            wb = str(
+                                row.get("Waybill", 
+                                row.get("waybill", 
+                                row.get("WAYBILL", "")))
+                            ).strip().upper()
+                            grn_to_ir_map[grn] = {"ir": ir, "wb": wb}
             except: pass
 
         # 4. Construir DataFrames de Mapeo
