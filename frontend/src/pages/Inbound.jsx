@@ -85,8 +85,17 @@ const Inbound = () => {
     const runAutoSync = async () => {
         if (isSyncing) return;
         setIsSyncing(true);
-        await checkAndSyncIfNeeded();
+        const didSync = await checkAndSyncIfNeeded();
         setIsSyncing(false);
+        if (didSync) {
+            console.log("Logix: Sincronización automática detectó cambios. Refrescando datos...");
+            // Recargar logs para actualizar la tabla de diferencias
+            loadLogs();
+            // Si ya hay un item cargado, refrescar su información (cantidades esperadas)
+            if (itemData && itemCode) {
+                findItem();
+            }
+        }
     };
 
     useEffect(() => {
