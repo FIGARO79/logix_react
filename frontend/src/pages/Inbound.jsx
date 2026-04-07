@@ -643,7 +643,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-10px)] lg:flex lg:flex-col lg:overflow-hidden">
+            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-1">
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
