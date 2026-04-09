@@ -35,10 +35,15 @@ python3.13 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# INSTALACIÓN DE PLAYWRIGHT (Robot PO)
+# Instala los binarios del navegador y las dependencias del sistema necesarias
+playwright install --with-deps chromium
 ```
 
 #### Librerías Clave en `requirements.txt`:
 - **fastapi & uvicorn**: Servidor web ASGI.
+- **playwright**: Automatización del robot de extracción de PO.
 - **sqlalchemy & alembic**: Gestión de base de datos y migraciones.
 - **polars & openpyxl**: Procesamiento de datos y exportación a Excel.
 - **orjson**: Serialización rápida de JSON.
