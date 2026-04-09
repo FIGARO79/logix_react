@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { getDB } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
@@ -7,18 +8,16 @@ const InboundHistory = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [versions, setVersions] = useState([]);
+    const [currentVersion, setCurrentVersion] = useState('');
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
         let normalized = dateString.trim().replace(' ', 'T');
-
         if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return `${normalized}T00:00:00`;
         }
-
-        const hasTimeZone = normalized.includes('Z') ||
-            normalized.match(/[+-]\d{2}:\d{2}$/) ||
-            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+        const hasTimeZone = normalized.includes('Z') || normalized.match(/[+-]\d{2}:\d{2}$/);
         if (!hasTimeZone) normalized = `${normalized}Z`;
         return normalized;
     };
@@ -28,63 +27,78 @@ const InboundHistory = () => {
         if (!normalized) return '-';
         const date = new Date(normalized);
         if (isNaN(date.getTime())) return 'Fecha Inválida';
-        return date.toLocaleString(undefined, {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
+        return date.toLocaleString('es-CO', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
         });
     };
 
     useEffect(() => {
         setTitle("Historial de Inbound");
-    }, []);
+        loadVersions();
+    }, [setTitle]);
 
-    useEffect(() => {
-        const fetchLogs = async () => {
+    const loadVersions = async () => {
+        try {
+            const res = await fetch('/api/logs/versions', { credentials: 'include' });
+            if (res.ok) setVersions(await res.json());
+        } catch (e) { console.error("Error loading versions", e); }
+    };
+
+    const loadLogs = async (version = '') => {
+        setLoading(true);
+        setCurrentVersion(version);
+        try {
+            const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
+            const res = await fetch(url, { credentials: 'include' });
+            if (!res.ok) throw new Error("Error loading logs");
+            const data = await res.json();
+
+            // Ordenar por fecha (más reciente primero)
+            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            // Obtener datos del reporte 280 desde IndexedDB (Cache local)
+            const grnMap = {};
             try {
-                const res = await fetch('/api/get_logs');
-                if (!res.ok) throw new Error("Error loading logs");
-                const data = await res.json();
-                
-                // Calcular total recibido por ítem y encontrar el log más reciente por cada uno
-                const totalsMap = {};
-                const latestLogMap = {}; // Guarda {id, ts} por cada itemCode
+                const db = await getDB();
+                const uniqueItems = [...new Set(sortedData.map(l => l.itemCode))];
+                for (const itemCode of uniqueItems) {
+                    const grnInfo = await db.get('grn_pending', itemCode);
+                    grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
+                }
+            } catch (e) { console.error("Offline GRN error", e); }
 
-                data.forEach(log => {
-                    const code = log.itemCode;
-                    totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+            // Calcular totales por ítem y marcar última entrada para mostrar diferencia
+            const totalsMap = {};
+            const latestEntryMap = {};
 
-                    const ts = new Date(log.timestamp).getTime();
-                    if (!latestLogMap[code] || ts > latestLogMap[code].ts) {
-                        latestLogMap[code] = { id: log.id, ts };
-                    }
-                });
+            sortedData.forEach(log => {
+                const code = log.itemCode;
+                totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+                if (!latestEntryMap[code]) latestEntryMap[code] = log.id;
+            });
 
-                // Enriquecer logs con la diferencia, solo en la entrada más reciente
-                const enrichedLogs = data.map(log => {
-                    const totalReceived = totalsMap[log.itemCode] || 0;
-                    const expected = parseInt(log.qtyGrn) || 0;
-                    const isLatest = latestLogMap[log.itemCode]?.id === log.id;
+            const enrichedLogs = sortedData.map(log => {
+                const expected = grnMap[log.itemCode] || parseInt(log.qtyGrn) || 0;
+                const totalReceived = totalsMap[log.itemCode] || 0;
+                const isLatest = latestEntryMap[log.itemCode] === log.id;
 
-                    return {
-                        ...log,
-                        totalReceived,
-                        calculatedDifference: isLatest ? (totalReceived - expected) : 0
-                    };
-                });
+                return {
+                    ...log,
+                    expected_qty: expected,
+                    calculatedDifference: isLatest ? (totalReceived - expected) : 0
+                };
+            });
 
-                setLogs(enrichedLogs);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchLogs();
-    }, []);
+            setLogs(enrichedLogs);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadLogs(); }, []);
 
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -95,11 +109,11 @@ const InboundHistory = () => {
 
     return (
         <div className="w-full px-4 py-6">
-            {/* Header */}
+            {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
                 <h1 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
-                    <div className="relative w-full sm:w-72 flex-shrink-0">
+                    <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
                             type="text"
                             placeholder="Buscar..."
@@ -112,7 +126,6 @@ const InboundHistory = () => {
                                 type="button"
                                 onClick={() => setSearchTerm('')}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                                title="Borrar búsqueda"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
@@ -120,9 +133,16 @@ const InboundHistory = () => {
                             </button>
                         )}
                     </div>
+                    <select 
+                        onChange={(e) => loadLogs(e.target.value)}
+                        className="h-8 px-3 text-xs bg-white border border-gray-300 rounded outline-none focus:border-[#285f94] w-full sm:w-40"
+                    >
+                        <option value="">-- Actual --</option>
+                        {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
+                    </select>
                     <button
-                        onClick={() => window.location.href = '/api/export_log'}
-                        className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5"
+                        onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'}
+                        className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar
@@ -132,7 +152,7 @@ const InboundHistory = () => {
 
             {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded text-sm">{error}</div>}
 
-            {/* Table */}
+            {/* Tabla Enriquecida */}
             <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
                 <div className="overflow-x-auto max-h-[70vh]">
                     <table className="w-full text-xs border-collapse">
@@ -148,18 +168,18 @@ const InboundHistory = () => {
                                 <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN</th>
                                 <th className="px-2 py-1.5 text-left font-medium">REUBICACIÓN</th>
                                 <th className="px-2 py-1.5 text-center font-medium">CANT. RECIBIDA</th>
-                                <th className="px-2 py-1.5 text-center font-medium">CANT. GRN</th>
+                                <th className="px-2 py-1.5 text-center font-medium">CANT. ESPERADA</th>
                                 <th className="px-2 py-1.5 text-center font-medium">DIFERENCIA</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
-                            {filteredLogs.length === 0 && !loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No encontrado.</td></tr>}
+                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{log.username?.toUpperCase()}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600 uppercase">{log.username}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>
@@ -167,7 +187,7 @@ const InboundHistory = () => {
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.binLocation}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.qtyGrn}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.expected_qty}</td>
                                     <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
