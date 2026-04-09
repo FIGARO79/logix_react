@@ -36,3 +36,14 @@ Finalmente, el sistema permite guardar "Snapshots". Esto es una copia exacta de 
 *   Se crean manualmente por el usuario o de forma **automática** antes de procesos críticos de limpieza o actualización, asegurando que siempre haya una pista de auditoría de qué se concilió y cuándo.
 
 En resumen: **Conciliación = (Reporte 280 + Mapeo de I.R.) vs. Logs Físicos.**
+
+---
+
+## Opciones de Mejora
+
+### 1. Autodescubrimiento de Asociaciones de GRN (Dinámico)
+Actualmente, si un GRN del Reporte 280 no existe en el `po_lookup.json` o en la base de datos `GRNMaster`, el sistema le asigna la etiqueta **"SIN I.R. MAESTRA"**. Esto puede ocurrir si el reporte 280 se carga antes de que se actualicen los archivos de mapeo.
+
+**Propuesta:** Implementar una lógica de "respaldo" que, en caso de fallo en el mapeo, busque en los **Logs Físicos** una coincidencia exacta de **Ítem + Cantidad Recibida**. 
+*   **Funcionamiento:** Si existe una única IR que haya recibido la misma cantidad de ese ítem recientemente, el sistema puede sugerir o realizar la asociación de forma dinámica en la vista de conciliación.
+*   **Ventaja:** Reduce la dependencia de actualizaciones manuales de archivos JSON y evita que el usuario vea registros como "Sin I.R." cuando la información ya existe en el historial físico de recepción.
