@@ -52,11 +52,11 @@ async def run_po_robot(start_date: str, end_date: str):
             await page.keyboard.type(end_date, delay=50)
             await page.keyboard.press("Enter")
             
-            # 2. Selección de Chile
-            print("🇨🇱 [ROBOT] Seleccionando Chile...", flush=True)
-            chile_check = page.locator("#Form_SelectedCountries_2__IsSelected")
-            await chile_check.scroll_into_view_if_needed()
-            await chile_check.check(force=True)
+            # 2. Selección de Colombia
+            print("🇨🇴 [ROBOT] Seleccionando Colombia...", flush=True)
+            colombia_check = page.locator("#Form_SelectedCountries_3__IsSelected")
+            await colombia_check.scroll_into_view_if_needed()
+            await colombia_check.check(force=True)
 
             # 3. Exportar
             print("💾 [ROBOT] Buscando botón Export...", flush=True)
