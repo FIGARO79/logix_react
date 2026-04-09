@@ -25,6 +25,7 @@ from app.core.config import (
     ADMIN_PASSWORD
 )
 from app.services.csv_handler import load_csv_data
+from app.services.csv_to_db import sync_master_csv_to_db
 from app.utils.auth import login_required
 from app.core.templates import templates
 
@@ -357,7 +358,17 @@ async def update_files_post(
             error += f'Error PO Extractor (Crash): {str(e)}. '
 
     if files_uploaded:
+        # Tareas en segundo plano
         background_tasks.add_task(load_csv_data)
+        
+        # Si se subió el maestro de ítems, sincronizar también la base de datos SQL
+        if item_master and item_master.filename:
+            from app.core.db import AsyncSessionLocal
+            async def run_sql_sync():
+                async with AsyncSessionLocal() as session:
+                    await sync_master_csv_to_db(session)
+            background_tasks.add_task(run_sql_sync)
+
         message += " Procesamiento en segundo plano iniciado."
 
     if error:

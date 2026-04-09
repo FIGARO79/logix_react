@@ -92,7 +92,7 @@ async def load_csv_data():
         if os.path.exists(ITEM_MASTER_CSV_PATH):
             _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             raw_master = pl.read_csv(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER, infer_schema_length=0, 
-                                         null_values=['', 'nan', 'NaN', 'None', 'null'], ignore_errors=True, encoding='utf-8-sig')
+                                         null_values=['', 'nan', 'NaN', 'None', 'null'], ignore_errors=True, encoding='utf8')
             df_master_cache = (
                 raw_master
                 .filter(pl.col("Item_Code").is_not_null())
@@ -153,7 +153,9 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
                     "Weight_per_Unit": db_item.weight_per_unit,
                     "SIC_Code_stockroom": db_item.sic_code_stockroom,
                     "Aditional_Bin_Location": db_item.additional_bin,
-                    "Cost_per_Unit": float(db_item.cost_per_unit) if db_item.cost_per_unit else 0.0
+                    "Cost_per_Unit": float(db_item.cost_per_unit) if db_item.cost_per_unit else 0.0,
+                    "Date_Last_Received": db_item.date_last_received,
+                    "SupersededBy": db_item.superseded_by
                 }
         except Exception as e:
             print(f"⚠️ Error consultando MasterItem en DB: {e}")

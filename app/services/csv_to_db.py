@@ -41,22 +41,31 @@ async def sync_master_csv_to_db(db: AsyncSession):
             'Stockroom': 'stockroom',
             'Cost_per_Unit': 'cost_per_unit',
             'SIC_Code_Company': 'sic_code_company',
-            'SIC_Code_stockroom': 'sic_code_stockroom'
+            'SIC_Code_stockroom': 'sic_code_stockroom',
+            'Date_Last_Received': 'date_last_received',
+            'SupersededBy': 'superseded_by'
         }
         
         # 1. Leer y transformar con Polars (Lazy loading para eficiencia)
         q = (
             pl.scan_csv(
                 ITEM_MASTER_CSV_PATH,
-                encoding='utf-8-sig',
+                encoding='utf8',
                 infer_schema_length=10000,
-                null_values=['', 'nan', 'NAN', 'NaN', 'None']
+                null_values=['', 'nan', 'NAN', 'NaN', 'None'],
+                schema_overrides={
+                    "Physical_Qty": pl.String,
+                    "Cost_per_Unit": pl.String,
+                    "Item_Code": pl.String,
+                    "Date_Last_Received": pl.String,
+                    "SupersededBy": pl.String
+                }
             )
             .select([pl.col(c) for c in col_map.keys() if c in pl.scan_csv(ITEM_MASTER_CSV_PATH).columns])
             .with_columns([
                 pl.col('Item_Code').str.strip_chars().str.to_uppercase(),
                 pl.col('Physical_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
-                pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(None),
+                pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False),
             ])
             .filter(pl.col('Item_Code').is_not_null() & (pl.col('Item_Code') != ""))
         )
