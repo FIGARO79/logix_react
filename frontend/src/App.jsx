@@ -1,41 +1,41 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 
-// Lazy load de páginas principales
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Login = lazy(() => import('./pages/Login'));
-const Reconciliation = lazy(() => import('./pages/Reconciliation'));
-const StockSearch = lazy(() => import('./pages/StockSearch'));
-const PickingAuditHistory = lazy(() => import('./pages/PickingAuditHistory'));
-const Inbound = lazy(() => import('./pages/Inbound'));
-const CycleCounts = lazy(() => import('./pages/CycleCounts'));
-const LabelPrinting = lazy(() => import('./pages/LabelPrinting'));
-const Planner = lazy(() => import('./pages/Planner'));
-const PlannerExecution = lazy(() => import('./pages/PlannerExecution'));
-const PickingAudit = lazy(() => import('./pages/PickingAudit'));
-const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const AdminUsers = lazy(() => import('./pages/AdminUsers'));
-const AdminInventory = lazy(() => import('./pages/AdminInventory'));
-const SlottingConfig = lazy(() => import('./pages/SlottingConfig'));
-const ManageCounts = lazy(() => import('./pages/ManageCounts'));
-const ViewCounts = lazy(() => import('./pages/ViewCounts'));
-const EditCount = lazy(() => import('./pages/EditCount'));
-const InboundHistory = lazy(() => import('./pages/InboundHistory'));
-const Update = lazy(() => import('./pages/Update'));
-const Register = lazy(() => import('./pages/Register'));
-const SetPassword = lazy(() => import('./pages/SetPassword'));
-const PackingListPrint = lazy(() => import('./pages/PackingListPrint'));
-const CycleCountHistory = lazy(() => import('./pages/CycleCountHistory'));
-const DashboardInventario = lazy(() => import('./pages/DashboardInventario'));
-const OccupancyDashboard = lazy(() => import('./pages/OccupancyDashboard'));
-const ManageCountDifferences = lazy(() => import('./pages/ManageCountDifferences'));
-const ManageCycleCountDifferences = lazy(() => import('./pages/ManageCycleCountDifferences'));
-const Shipments = lazy(() => import('./pages/Shipments'));
-const ConsolidatedPackingList = lazy(() => import('./pages/ConsolidatedPackingList'));
-const ErrorPage = lazy(() => import('./pages/Error'));
+// Importación estática de páginas para soporte offline total (Desktop & Mobile)
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Reconciliation from './pages/Reconciliation';
+import StockSearch from './pages/StockSearch';
+import PickingAuditHistory from './pages/PickingAuditHistory';
+import Inbound from './pages/Inbound';
+import CycleCounts from './pages/CycleCounts';
+import LabelPrinting from './pages/LabelPrinting';
+import Planner from './pages/Planner';
+import PlannerExecution from './pages/PlannerExecution';
+import PickingAudit from './pages/PickingAudit';
+import AdminLogin from './pages/AdminLogin';
+import AdminUsers from './pages/AdminUsers';
+import AdminInventory from './pages/AdminInventory';
+import SlottingConfig from './pages/SlottingConfig';
+import ManageCounts from './pages/ManageCounts';
+import ViewCounts from './pages/ViewCounts';
+import EditCount from './pages/EditCount';
+import InboundHistory from './pages/InboundHistory';
+import Update from './pages/Update';
+import Register from './pages/Register';
+import SetPassword from './pages/SetPassword';
+import PackingListPrint from './pages/PackingListPrint';
+import CycleCountHistory from './pages/CycleCountHistory';
+import DashboardInventario from './pages/DashboardInventario';
+import OccupancyDashboard from './pages/OccupancyDashboard';
+import ManageCountDifferences from './pages/ManageCountDifferences';
+import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
+import Shipments from './pages/Shipments';
+import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
+import ErrorPage from './pages/Error';
 
-// Componente de carga
+// Componente de carga (para procesos internos)
 const LoadingFallback = () => (
     <div style={{
         display: 'flex',
@@ -51,25 +51,34 @@ const LoadingFallback = () => (
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredPermission }) => {
+    // Basic auth check
     const userJson = localStorage.getItem('user');
-    if (!userJson) return <Navigate to="/login" replace />;
+    const isAuthenticated = !!userJson;
 
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+    // Permission check
     if (requiredPermission) {
         try {
             const user = JSON.parse(userJson);
+            // If admin, allow everything
             if (user.username === 'admin') return children;
 
-            const perms = user.permissions ? user.permissions.split(',').map(p => p.trim()) : [];
+            const perms = user.permissions ? user.permissions.split(',') : [];
             const hasPermission = Array.isArray(requiredPermission)
                 ? requiredPermission.some(p => perms.includes(p))
                 : perms.includes(requiredPermission);
 
-            if (!hasPermission) return <Navigate to="/dashboard" replace />;
+            if (!hasPermission) {
+                // Determine where to redirect if unauthorized
+                return <Navigate to="/dashboard" replace />; // Or an Unauthorized page
+            }
         } catch (e) {
-            localStorage.removeItem('user');
+            console.error("Error parsing user data", e);
             return <Navigate to="/login" replace />;
         }
     }
+
     return children;
 };
 
@@ -91,22 +100,14 @@ const AdminProtectedRoute = ({ children }) => {
     return children;
 };
 
-function App() {
-    // Forzar un cierre de sesión único tras la actualización de permisos
-    useEffect(() => {
-        const hasReset = localStorage.getItem('session_reset_v2');
-        if (!hasReset) {
-            localStorage.clear();
-            localStorage.setItem('session_reset_v2', 'true');
-            window.location.href = '/login';
-        }
-    }, []);
+import ReloadPrompt from './components/ReloadPrompt';
 
+function App() {
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                    {/* Redirigir raíz a login */}
+            <ReloadPrompt />
+            <Routes>
+                {/* Redirigir raíz a login */}
                     <Route path="/" element={<Navigate to="/login" replace />} />
 
                     {/* Rutas públicas */}
@@ -114,22 +115,19 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/set_password" element={<SetPassword />} />
 
-                    {/* Rutas protegidas que comparten el Layout */}
+                    {/* Protected Routes wrapped in Layout */}
                     <Route element={
                         <ProtectedRoute>
                             <Layout />
                         </ProtectedRoute>
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        
                         <Route path="/inbound" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <Inbound />
                             </ProtectedRoute>
                         } />
-                        
                         <Route path="/label" element={<LabelPrinting />} />
-                        
                         <Route path="/stock" element={
                             <ProtectedRoute requiredPermission={['stock', 'inbound']}>
                                 <StockSearch />
@@ -257,7 +255,6 @@ function App() {
                     {/* Catch-all for 404 */}
                     <Route path="*" element={<ErrorPage />} />
                 </Routes>
-            </Suspense>
         </Router>
     );
 }

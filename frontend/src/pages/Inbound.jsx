@@ -2,16 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
+import { sandvikLogoBase64 } from '../assets/logo';
 import '../styles/Label.css';
+
 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { isOnline, pendingCount, syncPendingData } = useOffline();
-    
-    useEffect(() => { setTitle("Inbound"); }, [setTitle]);
+
+    useEffect(() => { setTitle("Recepción"); }, [setTitle]);
+
 
     // --- Estados del Formulario ---
     const [importRef, setImportRef] = useState('');
@@ -29,6 +33,7 @@ const Inbound = () => {
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [hasWarnedOffline, setHasWarnedOffline] = useState(false);
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -80,8 +85,17 @@ const Inbound = () => {
     const runAutoSync = async () => {
         if (isSyncing) return;
         setIsSyncing(true);
-        await checkAndSyncIfNeeded();
+        const didSync = await checkAndSyncIfNeeded();
         setIsSyncing(false);
+        if (didSync) {
+            console.log("Logix: Sincronización automática detectó cambios. Refrescando datos...");
+            // Recargar logs para actualizar la tabla de diferencias
+            loadLogs();
+            // Si ya hay un item cargado, refrescar su información (cantidades esperadas)
+            if (itemData && itemCode) {
+                findItem();
+            }
+        }
     };
 
     useEffect(() => {
@@ -139,11 +153,22 @@ const Inbound = () => {
             const res = await fetch(url, { credentials: 'include' });
             if (res.ok) {
                 apiLogs = await res.json();
+                // Guardar en caché para acceso offline posterior
+                if (!version || version === '') {
+                    await cacheData('inbound_logs', apiLogs);
+                }
             } else {
                 console.error("Failed to load logs:", res.status, res.statusText);
                 if (res.status === 401) window.location.href = '/login';
             }
-        } catch (e) { console.error("Error loading logs from API", e); }
+        } catch (e) {
+            console.error("Error loading logs from API", e);
+            // Intentar cargar desde caché si estamos offline o la API falla
+            if (!version || version === '') {
+                apiLogs = await getCachedData('inbound_logs') || [];
+                console.log("Cargado desde caché local:", apiLogs.length, "registros");
+            }
+        }
 
         // Cargar logs pendientes de IndexedDB
         let pendingLogs = [];
@@ -162,9 +187,32 @@ const Inbound = () => {
             } catch (e) { console.error("Error loading pending logs", e); }
         }
 
-        // Cargar GRN info para cada item único
-        const allLogs = [...pendingLogs, ...apiLogs];
-        const uniqueItems = [...new Set(allLogs.map(l => l.itemCode))];
+        // Deduplicación estricta usando Map por UUID (client_id)
+        // El Map garantiza que solo exista una entrada por UUID, priorizando la del servidor
+        const logMap = new Map();
+
+        // 1. Primero los pendientes locales (prioridad más baja)
+        pendingLogs.forEach(log => {
+            const key = log.id; // UUID generado por crypto.randomUUID()
+            logMap.set(key, log);
+        });
+
+        // 2. Después los del servidor (sobrescriben cualquier pendiente con el mismo client_id)
+        apiLogs.forEach(log => {
+            const key = log.client_id || `server_${log.id}`; // Priorizar client_id UUID
+            logMap.set(key, log);
+        });
+
+        // 3. Ordenar por fecha (más reciente primero)
+        const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
+            const timeA = new Date(a.timestamp).getTime();
+            const timeB = new Date(b.timestamp).getTime();
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
+        });
+
+        const uniqueItems = [...new Set(allLogsSorted.map(l => l.itemCode))];
+
         const grnMap = {};
         try {
             const db = await getDB();
@@ -176,24 +224,25 @@ const Inbound = () => {
 
         // Calcular total recibido por ítem y encontrar la última entrada (por timestamp) para cada uno
         const totalsMap = {};
-        const latestEntryMap = {}; // Guarda {id, ts} por cada itemCode
+        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode (ya ordenados)
 
-        allLogs.forEach(log => {
+        allLogsSorted.forEach(log => {
             const code = log.itemCode;
-            totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
+            // Asegurar que usamos qtyReceived del payload o campo directo
+            const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+            totalsMap[code] = (totalsMap[code] || 0) + qty;
 
-            const ts = new Date(log.timestamp).getTime();
-            // Identificamos el log más reciente basándonos en el timestamp
-            if (!latestEntryMap[code] || ts > latestEntryMap[code].ts) {
-                latestEntryMap[code] = { id: log.id, ts: ts };
+            if (!latestEntryMap[code]) {
+                latestEntryMap[code] = log.id;
             }
         });
 
-        // Agregar información de esperado y diferencia (solo en la última entrada)
-        const logsWithGRN = allLogs.map(log => {
+        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem)
+        const logsWithGRN = allLogsSorted.map(log => {
             const expected = grnMap[log.itemCode] || 0;
             const totalReceived = totalsMap[log.itemCode] || 0;
-            const isLatest = latestEntryMap[log.itemCode]?.id === log.id;
+            const isLatest = latestEntryMap[log.itemCode] === log.id;
+
 
             return {
                 ...log,
@@ -246,26 +295,20 @@ const Inbound = () => {
         }
     };
 
-    const findItem = async () => {
-        if (!itemCode || !importRef) {
-            alert("Ingrese Import Reference e Item Code");
-            return;
-        }
+    const fetchItemData = async (code, ref) => {
+        if (!code || !ref) return;
         setLoading(true);
-        const normalizedCode = itemCode.trim().toUpperCase();
+        const normalizedCode = code.trim().toUpperCase();
+        const normalizedRef = ref.trim().toUpperCase();
 
         let onlineFound = false;
         if (navigator.onLine) {
             try {
-                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
+                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(normalizedRef)}`, { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     setItemData(data);
-                    if (!editId) setQuantity('');
-                    quantityRef.current?.focus();
-                    setLoading(false);
                     onlineFound = true;
-                    return;
                 }
             } catch (e) { console.error("Error finding item online", e); }
         }
@@ -311,23 +354,32 @@ const Inbound = () => {
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin
                     });
-                    if (!editId) setQuantity('');
-                    quantityRef.current?.focus();
                 } else {
-                    alert("Item no encontrado en el maestro local.");
+                    if (normalizedCode) alert("Item no encontrado en el maestro local.");
                     setItemData(null);
                 }
             } catch (e) {
                 console.error("Offline lookup error", e);
-                alert("Error al buscar el ítem localmente.");
             }
-            finally { setLoading(false); }
         }
+        setLoading(false);
+        if (!editId) setQuantity('');
+        setTimeout(() => quantityRef.current?.focus(), 100);
+    };
+
+    const findItem = async () => {
+        if (!itemCode || !importRef) {
+            alert("Ingrese Import Reference e Item Code");
+            return;
+        }
+        await fetchItemData(itemCode, importRef);
     };
 
     const handleSaveLog = async (e) => {
         e.preventDefault();
         if (!itemData) return alert("Busque un item primero");
+        if (isSaving) return; // Bloquear doble clic
+        setIsSaving(true);
 
         const targetClientId = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
         const payload = {
@@ -336,56 +388,57 @@ const Inbound = () => {
             itemCode: itemData.itemCode,
             itemDescription: itemData.description,
             quantity: parseInt(quantity),
+            qtyReceived: parseInt(quantity),
             relocatedBin: relocatedBin.trim().toUpperCase(),
+            binLocation: itemData.binLocation,
+            qtyGrn: itemData.defaultQtyGrn,
             client_id: targetClientId
         };
 
-        if (navigator.onLine) {
-            try {
-                let res;
-                if (editId) {
-                    if (typeof editId === 'string' && editId.includes('-')) {
-                        const db = await getDB();
-                        await db.put('pending_sync', { id: editId, payload, timestamp: new Date().toISOString() });
-                        loadLogs(); resetForm(); return;
-                    }
-                    res = await fetch(`/api/update_log/${editId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            importReference: payload.importReference,
-                            waybill: payload.waybill,
-                            qtyReceived: payload.quantity,
-                            relocatedBin: payload.relocatedBin
-                        })
-                    });
-                } else {
-                    res = await fetch(`/api/add_log`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify(payload)
-                    });
-                }
-                if (res.ok) { loadLogs(); resetForm(); return; }
-            } catch (e) { console.error("Connection error, falling back to offline save", e); }
-        }
-
         try {
-            const db = await getDB();
-            await db.put('pending_sync', {
-                id: payload.client_id,
-                payload,
-                timestamp: new Date().toISOString(),
-                editId: typeof editId === 'number' ? editId : null
-            });
+            if (navigator.onLine) {
+                try {
+                    let res;
+                    if (editId) {
+                        if (typeof editId === 'string' && editId.includes('-')) {
+                            await savePendingSync('inbound', payload, editId);
+                            loadLogs(); resetForm(); return;
+                        }
+                        res = await fetch(`/api/update_log/${editId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                importReference: payload.importReference,
+                                waybill: payload.waybill,
+                                qtyReceived: payload.quantity,
+                                relocatedBin: payload.relocatedBin
+                            })
+                        });
+                    } else {
+                        res = await fetch(`/api/add_log`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify(payload)
+                        });
+                    }
+                    if (res.ok) { loadLogs(); resetForm(); return; }
+                } catch (e) { console.error("Connection error, falling back to offline save", e); }
+            }
+
+            // Guardar offline
+            await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
             if (!hasWarnedOffline) {
                 alert("Guardado localmente (Offline).");
                 setHasWarnedOffline(true);
             }
             loadLogs(); resetForm();
-        } catch (e) { alert("Error al guardar localmente"); }
+        } catch (e) {
+            alert("Error al guardar");
+        } finally {
+            setIsSaving(false); // Siempre liberar el bloqueo
+        }
     };
 
     const handleDelete = async (id) => {
@@ -418,13 +471,16 @@ const Inbound = () => {
 
     const startEdit = (log) => {
         setEditId(log.id);
-        setImportRef(log.importReference ? log.importReference.trim() : '');
-        setWaybill(log.waybill ? log.waybill.trim() : '');
+        const ref = log.importReference ? log.importReference.trim() : '';
+        const wb = log.waybill ? log.waybill.trim() : '';
+        setImportRef(ref);
+        setWaybill(wb);
         setItemCode(log.itemCode);
         setQuantity(log.qtyReceived);
         setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
-        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
-            .then(r => r.json()).then(data => setItemData(data));
+        
+        // Ejecutar búsqueda sin alertas usando la función directa
+        fetchItemData(log.itemCode, ref);
     };
 
     const handleScan = (code) => {
@@ -545,7 +601,7 @@ const Inbound = () => {
             <body>
                 <div class="label-container">
                     <!-- Logo -->
-                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
+                    <img src="${sandvikLogoBase64}" alt="Sandvik" class="label-logo" />
                     
                     <!-- Header -->
                     <div class="label-item-code">${itemData?.itemCode || ''}</div>
@@ -591,8 +647,9 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-2 pb-4">
-                <form onSubmit={handleSaveLog}>
+            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
+                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-1">
+
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
                             <div className="bg-white text-gray-900 px-2 py-3 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
@@ -628,7 +685,13 @@ const Inbound = () => {
                                                 <button type="button" className="btn-sap btn-secondary" onClick={() => setScannerOpen(true)} title="Escanear">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
                                                 </button>
-                                                <button type="button" className="btn-sap btn-secondary" onClick={findItem} disabled={loading}>{loading ? '...' : '🔍'}</button>
+                                                <button type="button" className="btn-sap btn-secondary" onClick={findItem} disabled={loading}>
+                                                    {loading ? '...' : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                                        </svg>
+                                                    )}
+                                                </button>
                                             </>
                                         )}
                                     </div>
@@ -687,11 +750,25 @@ const Inbound = () => {
                                     <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
                                     <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
                                     <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' :
-                                            (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
-                            <div className="flex gap-3"><button type="submit" className="btn-sap btn-primary w-60 h-10">{editId ? 'Guardar Cambios' : 'Añadir Registro'}</button> {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}</div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className={`btn-sap btn-primary w-60 h-10 flex items-center justify-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                >
+                                    {isSaving ? (
+                                        <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
+                                    ) : (
+                                        editId ? 'Guardar Cambios' : 'Añadir Registro'
+                                    )}
+                                </button>
+                                {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}
+                            </div>
+
                         </div>
 
                         <div className="lg:col-span-1">
@@ -710,11 +787,11 @@ const Inbound = () => {
                                     flexDirection: 'column'
                                 }}>
                                     {/* Logo */}
-                                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
+                                    <img src={sandvikLogoBase64} alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
 
                                     {/* Header */}
                                     <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', color: '#000' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '11pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
+                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
 
                                     <div style={{ flexGrow: 1 }}></div>
 
@@ -754,25 +831,47 @@ const Inbound = () => {
                     </div>
                 </form>
 
-                <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
-                    <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center">
+                <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
+                    <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0">
                         <h2 className="text-base font-normal tracking-tight">Registros</h2>
                         <div className="flex gap-2 items-center">
-                            <input type="text" placeholder="Buscar..." className="h-8 px-2 text-xs border border-gray-300 rounded w-full sm:w-72" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                            <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs bg-emerald-600 text-white rounded">Exportar</button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 px-3 text-xs bg-white border border-gray-300 rounded"><option value="">-- Actual --</option>{versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}</select>
-                            <button onClick={handleArchive} className="h-8 px-4 text-xs bg-red-600 text-white rounded">Archivar</button>
+                            <div className="relative w-full sm:w-72">
+                                <input type="text" placeholder="Buscar..." className="h-8 pl-3 pr-8 text-xs border border-gray-300 rounded w-full outline-none focus:border-[var(--sap-primary)]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                {searchTerm && (
+                                    <button type="button" onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none bg-transparent">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+                            </div>
+                            <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-all">Exportar</button>
+                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 px-3 text-xs bg-white border border-gray-300 rounded outline-none focus:border-[var(--sap-primary)] w-full sm:w-40"><option value="">-- Actual --</option>{versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}</select>
+                            <button onClick={handleArchive} className="h-8 px-4 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-all">Archivar</button>
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white"><tr><th className="px-2 py-1.5 text-left">Ref</th><th className="px-2 py-1.5 text-left">Waybill</th><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Desc</th><th className="px-2 py-1.5 text-left">Orig</th><th className="px-2 py-1.5 text-left">New</th><th className="px-2 py-1.5 text-center">Qty</th><th className="px-2 py-1.5 text-center">Esp.</th><th className="px-2 py-1.5 text-center">Dif.</th><th className="px-2 py-1.5 text-left">Fecha</th><th className="px-2 py-1.5 text-left">User</th><th className="px-2 py-1.5 text-center">Acc</th></tr></thead>
+                            <thead className="bg-slate-700 text-white sticky top-0 z-20"><tr><th className="px-2 py-0.5 text-left">Ref</th><th className="px-2 py-0.5 text-left">Waybill</th><th className="px-2 py-0.5 text-left">Item</th><th className="px-2 py-0.5 text-left">Desc</th><th className="px-2 py-0.5 text-left">Orig</th><th className="px-2 py-0.5 text-left">New</th><th className="px-2 py-0.5 text-center">Qty</th><th className="px-2 py-0.5 text-center">Esp.</th><th className="px-2 py-0.5 text-center">Dif.</th><th className="px-2 py-0.5 text-left">Fecha</th><th className="px-2 py-0.5 text-left">User</th><th className="px-2 py-0.5 text-center">Acc</th></tr></thead>
+
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1.5">{log.importReference}</td><td className="px-2 py-1.5">{log.waybill}</td><td className="px-2 py-1.5 font-mono">{log.itemCode}</td><td className="px-2 py-1.5 truncate max-w-[180px]">{log.isPending && '⏳ '}{log.itemDescription}</td><td className="px-2 py-1.5">{log.binLocation}</td><td className="px-2 py-1.5">{log.relocatedBin}</td><td className="px-2 py-1.5 text-center">{log.qtyReceived}</td><td className="px-2 py-1.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-1.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
-                                                (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
-                                            }`}>{log.difference || 0}</td><td className="px-2 py-1.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-1.5 uppercase">{log.username}</td><td className="px-2 py-1.5"><div className="flex gap-1 justify-center"><button onClick={() => startEdit(log)}>✎</button><button onClick={() => handleDelete(log.id)}>🗑</button></div></td>
+                                        <td className="px-2 py-0.5">{log.importReference}</td><td className="px-2 py-0.5">{log.waybill}</td><td className="px-2 py-0.5 font-mono">{log.itemCode}</td><td className="px-2 py-0.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-0.5">{log.binLocation}</td><td className="px-2 py-0.5">{log.relocatedBin}</td><td className="px-2 py-0.5 text-center">{log.qtyReceived}</td><td className="px-2 py-0.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-0.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
+                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
+                                            }`}>{log.difference || 0}</td><td className="px-2 py-0.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-0.5 uppercase">{log.username}</td>
+                                        <td className="px-2 py-0.5">
+                                            <div className="flex gap-1 justify-center">
+                                                <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                                    </svg>
+                                                </button>
+                                                <button onClick={() => handleDelete(log.id)} className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

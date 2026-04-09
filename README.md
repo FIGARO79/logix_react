@@ -127,6 +127,13 @@ SESSION_COOKIE_SECURE=True  # NECESARIO para HTTPS en el VPS
 
 ## 🔄 Recent Updates
 
+### v2.7.0 (2026-04-07)
+- 🚀 **Ecosistema PWA & Offline**: Implementación total de soporte fuera de línea para la recepción de materiales (Inbound). Los registros se guardan en **IndexedDB** (`idb`) y se sincronizan automáticamente al detectar conexión.
+- 🚀 **Dynamic Labeling Engine**: Nuevo motor de impresión de etiquetas que funciona offline. Incluye previsualización dinámica en el navegador, generación de QR local y branding corporativo incrustado en Base64.
+- 🚀 **Sincronización de Maestros**: Sistema de fondo (`syncManager`) que descarga y actualiza los catálogos de items y el reporte 280 basándose en marcas de tiempo del servidor.
+- ✅ **Reconciliation Engine Unified**: Se ha estandarizado el motor de conciliación de Chile como la base lógica para todos los repositorios, integrando mapeo complejo IR→GRN y persistencia en `GRNMaster`.
+- ✅ **UI/UX Refactor**: Navegación estructurada por módulos (Recepción, Despacho, Inventario, Admin) alineada con estándares SAP Fiori.
+
 ### v2.6.0 (2026-04-03)
 - 🚀 **Migración SQL Core**: El módulo de **Slotting** ha sido migrado de JSON a SQL, permitiendo la gestión centralizada de 879 ubicaciones y reglas de rotación.
 - 🚀 **Optimización de API**: Eliminada la dependencia de `ORJSONResponse` a favor de la serialización nativa de FastAPI (Pydantic V2), reduciendo advertencias y mejorando la compatibilidad.

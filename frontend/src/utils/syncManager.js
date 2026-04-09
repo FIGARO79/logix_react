@@ -149,30 +149,39 @@ export const syncPendingInbound = syncPendingData;
  * Verifica si el maestro local está desactualizado comparando timestamps con el servidor.
  */
 export const checkAndSyncIfNeeded = async () => {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine) return false;
     
     try {
         const res = await fetch('/api/sync/status');
-        if (!res.ok) return;
+        if (!res.ok) return false;
         const serverStatus = await res.json();
         
         const db = await getDB();
         const lastSyncMeta = await db.get('sync_metadata', 'last_master_sync_server');
         const lastLocalSync = lastSyncMeta ? lastSyncMeta.value : 0;
         
-        // Si el MTIME del master items en el servidor es mayor que nuestra última sincronización
-        if (serverStatus.master_items > lastLocalSync) {
-            console.log('Logix: Maestro desactualizado. Sincronizando...');
+        // Calcular el MTIME máximo de TODOS los archivos maestros clave reportados por el servidor
+        const relevantMtimes = Object.values(serverStatus).filter(v => typeof v === 'number');
+        const maxServerMtime = Math.max(...relevantMtimes, 0);
+        
+        // Si el MTIME máximo en el servidor es mayor que nuestra última sincronización local
+        if (maxServerMtime > lastLocalSync) {
+            console.log('Logix: Datos maestros desactualizados (GRN u otros). Sincronizando en segundo plano...');
             const success = await downloadMasterData();
             if (success) {
                 const tx = db.transaction('sync_metadata', 'readwrite');
-                await tx.objectStore('sync_metadata').put({ key: 'last_master_sync_server', value: serverStatus.master_items });
+                await tx.objectStore('sync_metadata').put({ 
+                    key: 'last_master_sync_server', 
+                    value: maxServerMtime 
+                });
                 await tx.done;
+                return true; // Indica que se realizó una sincronización
             }
         }
     } catch (e) {
         console.error('Error en checkAndSyncIfNeeded:', e);
     }
+    return false;
 };
 
 /**

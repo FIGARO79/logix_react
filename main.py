@@ -128,4 +128,4 @@ async def root():
 if __name__ == "__main__":
     import granian
     # loop="uvloop" asegura el uso del bucle de eventos de alto rendimiento
-    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, loop="uvloop", reload_ignore_dirs=["instance"]).serve()
+    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, loop="uvloop", interface="asgi", reload_ignore_dirs=["instance"]).serve()
