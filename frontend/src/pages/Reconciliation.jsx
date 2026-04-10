@@ -251,7 +251,7 @@ const Reconciliation = () => {
                         Cargando datos de reconciliación...
                     </div>
                 ) : (
-                    <div className="overflow-x-auto max-h-[85vh]">
+                    <div className="overflow-x-auto max-h-[70vh]">
                         <table className="w-full text-xs border-collapse">
                             <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
                                 <tr>
