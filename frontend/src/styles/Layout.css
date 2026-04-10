@@ -104,3 +104,33 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Estilos de Pestañas (Tab System) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Efectos de hover y micro-interacciones para pestañas */
+header .flex.items-center.gap-1.overflow-x-auto div:hover button {
+    opacity: 1;
+}
+
+header .flex.items-center.gap-1.overflow-x-auto div button {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+header .header-actions {
+    flex-shrink: 0;
+}
+
+/* Ajuste responsivo para tablets/móviles */
+@media (max-width: 640px) {
+    .header-title {
+        display: none;
+    }
+}
