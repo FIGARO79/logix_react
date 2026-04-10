@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {

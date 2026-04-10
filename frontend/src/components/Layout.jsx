@@ -1,8 +1,60 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Outlet, Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';
+import { TabProvider } from '../hooks/useTabContext';
+
+// Importación de componentes para Keep-Alive
+import Dashboard from '../pages/Dashboard';
+import Reconciliation from '../pages/Reconciliation';
+import StockSearch from '../pages/StockSearch';
+import PickingAuditHistory from '../pages/PickingAuditHistory';
+import Inbound from '../pages/Inbound';
+import CycleCounts from '../pages/CycleCounts';
+import LabelPrinting from '../pages/LabelPrinting';
+import Planner from '../pages/Planner';
+import PlannerExecution from '../pages/PlannerExecution';
+import PickingAudit from '../pages/PickingAudit';
+import AdminInventory from '../pages/AdminInventory';
+import SlottingConfig from '../pages/SlottingConfig';
+import ManageCounts from '../pages/ManageCounts';
+import ViewCounts from '../pages/ViewCounts';
+import EditCount from '../pages/EditCount';
+import InboundHistory from '../pages/InboundHistory';
+import Update from '../pages/Update';
+import CycleCountHistory from '../pages/CycleCountHistory';
+import DashboardInventario from '../pages/DashboardInventario';
+import OccupancyDashboard from '../pages/OccupancyDashboard';
+import ManageCountDifferences from '../pages/ManageCountDifferences';
+import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
+import Shipments from '../pages/Shipments';
+
+// Mapeo de rutas a componentes
+const ROUTE_MAP = [
+    { path: '/dashboard', component: Dashboard },
+    { path: '/inbound', component: Inbound },
+    { path: '/reconciliation', component: Reconciliation },
+    { path: '/stock', component: StockSearch },
+    { path: '/view_picking_audits', component: PickingAuditHistory },
+    { path: '/label', component: LabelPrinting },
+    { path: '/planner', component: Planner },
+    { path: '/planner/execution', component: PlannerExecution },
+    { path: '/planner/manage_differences', component: ManageCycleCountDifferences },
+    { path: '/picking', component: PickingAudit },
+    { path: '/view_logs', component: InboundHistory },
+    { path: '/counts', component: CycleCounts },
+    { path: '/counts/manage', component: ManageCounts },
+    { path: '/view_counts', component: ViewCounts },
+    { path: '/counts/manage_differences', component: ManageCountDifferences },
+    { path: '/view_counts/recordings', component: CycleCountHistory },
+    { path: '/inventory-dashboard', component: DashboardInventario },
+    { path: '/occupancy', component: OccupancyDashboard },
+    { path: '/admin/inventory', component: AdminInventory },
+    { path: '/admin/slotting', component: SlottingConfig },
+    { path: '/shipments', component: Shipments },
+    { path: '/counts/edit/:id', component: EditCount },
+];
 
 // Check if user is on specific path for active styling
 const MenuItem = ({ to, icon, label, onClick }) => {
@@ -150,6 +202,44 @@ const Layout = () => {
         document.title = title;
         checkAndSyncIfNeeded();
     }, [title]);
+
+    // Resolver componente para una ruta
+    const resolveComponent = (path) => {
+        for (const route of ROUTE_MAP) {
+            const match = matchPath(route.path, path);
+            if (match) {
+                return { Component: route.component, params: match.params };
+            }
+        }
+        return null;
+    };
+
+    // Componente de contenido de pestaña que simula el contexto de Outlet
+    const TabContentWrapper = useMemo(() => {
+        return ({ tab, isActive }) => {
+            const resolved = resolveComponent(tab.path);
+            if (!resolved) return <div className="p-4">Módulo no encontrado: {tab.path}</div>;
+            
+            const { Component } = resolved;
+            
+            // Renderizamos independientemente de isActive para mantener el estado, 
+            // pero lo ocultamos con CSS si no es la activa.
+            return (
+                <div 
+                    className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
+                    style={{ height: '100%', width: '100%' }}
+                >
+                    {/* 
+                        IMPORTANTE: Envolvemos en TabProvider para sustituir useOutletContext()
+                        y mantener la compatibilidad con el sistema de pestañas Keep-Alive.
+                    */}
+                    <TabProvider value={{ setTitle }}>
+                        <Component setTitle={setTitle} />
+                    </TabProvider>
+                </div>
+            );
+        };
+    }, []);
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
@@ -305,10 +395,18 @@ const Layout = () => {
                 onClick={toggleMenu}
             ></div>
 
-            {/* Main Content */}
+            {/* Main Content con Keep-Alive */}
             <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto">
-                <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
-                    <Outlet context={{ setTitle }} /> {/* Renders the child route (e.g. Dashboard) */}
+                <div className="w-full px-4 py-6 sm:px-6 lg:px-8 h-full">
+                    {tabs.map(tab => (
+                        <TabContentWrapper 
+                            key={tab.id} 
+                            tab={tab} 
+                            isActive={activeTabId === tab.id} 
+                        />
+                    ))}
+                    {/* Fallback para rutas que no están en pestañas (ej. login, etc) */}
+                    {tabs.length === 0 && <Outlet context={{ setTitle }} />}
                 </div>
             </main>
         </div>

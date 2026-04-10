@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const CycleCountHistory = () => {
     const navigate = useNavigate();

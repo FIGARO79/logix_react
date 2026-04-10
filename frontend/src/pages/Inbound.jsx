@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
@@ -310,7 +310,11 @@ const Inbound = () => {
                 if (res.ok) {
                     const data = await res.json();
                     setItemData(data);
-                    if (!editId) setQuantity('');
+                    if (!editId) {
+                        setQuantity('');
+                        // El binLocation ya viene actualizado del backend (effective_bin_location)
+                        setRelocatedBin(''); 
+                    }
                     quantityRef.current?.focus();
                     setLoading(false);
                     onlineFound = true;
@@ -360,7 +364,11 @@ const Inbound = () => {
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin
                     });
-                    if (!editId) setQuantity('');
+                    if (!editId) {
+                        setQuantity('');
+                        // En offline mantenemos el comportamiento anterior
+                        setRelocatedBin('');
+                    }
                     quantityRef.current?.focus();
                 } else {
                     alert("Item no encontrado en el maestro local.");

@@ -50,11 +50,12 @@ async def find_item(
     expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
     original_bin = item_details.get('Bin_1', 'N/A')
     
-    # La ubicación base para mostrar en el frontend será SIEMPRE la del maestro
-    effective_bin_location = original_bin
-    
-    # Obtenemos la última reubicación solo para lógica interna, no para visualización principal
+    # Obtenemos la última reubicación para que aparezca como ubicación base si ya se movió
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
+    
+    # La ubicación base será la reubicada si existe, sino la del maestro
+    effective_bin_location = latest_relocated_bin if latest_relocated_bin else original_bin
+    
     
     # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
     traditional_suggested_bin = await slotting_service.get_suggested_bin(db, item_details)
@@ -112,7 +113,8 @@ async def find_item(
         "itemType": item_details.get('ABC_Code_stockroom', 'N/A'),
         "sicCode": item_details.get('SIC_Code_stockroom', 'N/A'),
         "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
-        "supersededBy": item_details.get('SupersededBy', 'N/A')
+        "supersededBy": item_details.get('SupersededBy', 'N/A'),
+        "latestRelocatedBin": latest_relocated_bin
     }
     return ORJSONResponse(content=response_data)
 

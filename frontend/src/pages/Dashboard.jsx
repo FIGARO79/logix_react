@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import {
     DownloadIcon, SearchIcon, TagIcon, CartIcon,
     HomeIcon, ChecklistIcon, CalculatorIcon,

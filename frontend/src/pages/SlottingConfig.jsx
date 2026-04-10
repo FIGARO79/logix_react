@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import * as Icons from '../components/Icons';
 
 const SlottingConfig = () => {
