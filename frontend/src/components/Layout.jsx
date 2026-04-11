@@ -17,6 +17,7 @@ import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
 import PickingAudit from '../pages/PickingAudit';
 import AdminInventory from '../pages/AdminInventory';
+import AdminUsers from '../pages/AdminUsers';
 import SlottingConfig from '../pages/SlottingConfig';
 import ManageCounts from '../pages/ManageCounts';
 import ViewCounts from '../pages/ViewCounts';
@@ -53,6 +54,8 @@ const ROUTE_MAP = [
     { path: '/admin/inventory', component: AdminInventory },
     { path: '/admin/slotting', component: SlottingConfig },
     { path: '/shipments', component: Shipments },
+    { path: '/update', component: Update },
+    { path: '/admin/users', component: AdminUsers },
     { path: '/counts/edit/:id', component: EditCount },
 ];
 
@@ -294,13 +297,15 @@ const Layout = () => {
                                 className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
                             >
                                 <span className="tab-label">{tab.label}</span>
-                                <button 
-                                    onClick={(e) => closeTab(e, tab.id)}
-                                    className="tab-close-btn"
-                                    title="Cerrar pestaña"
-                                >
-                                    <span style={{ fontSize: '15px', lineHeight: '1', fontWeight: 'bold' }}>&#215;</span>
-                                </button>
+                                {tabs.length > 1 && (
+                                    <button 
+                                        onClick={(e) => closeTab(e, tab.id)}
+                                        className="tab-close-btn"
+                                        title="Cerrar pestaña"
+                                    >
+                                        <span style={{ fontSize: '15px', lineHeight: '1', fontWeight: 'bold' }}>&#215;</span>
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
