@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
@@ -104,6 +104,44 @@ const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" view
 
 const MAX_TABS = 5;
 
+// Resolver componente para una ruta (Extraido de Layout para estabilidad)
+const resolveComponent = (path) => {
+    for (const route of ROUTE_MAP) {
+        const match = matchPath(route.path, path);
+        if (match) {
+            return { Component: route.component, params: match.params };
+        }
+    }
+    return null;
+};
+
+// Componente de contenido de pestaña optimizado y extraído a nivel superior
+// para garantizar que React jamás desmonte los componentes internos al cambiar de pestaña
+const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
+    const resolved = resolveComponent(tab.path);
+    if (!resolved) return <div className="p-4">Módulo no encontrado: {tab.path}</div>;
+    
+    const { Component } = resolved;
+    
+    // Creamos un setTitle específico para esta pestaña que no dependa del estado de Layout
+    const tabSetTitle = useCallback((newTitle) => {
+        onTitleChange(tab.id, newTitle);
+    }, [tab.id, onTitleChange]);
+
+    // Memoizamos el valor del contexto para que no cambie en cada render interno
+    const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
+    return (
+        <div 
+            className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
+            style={{ height: '100%', width: '100%' }}
+        >
+            <TabProvider value={contextValue}>
+                <Component setTitle={tabSetTitle} />
+            </TabProvider>
+        </div>
+    );
+});
 
 const Layout = () => {
     const navigate = useNavigate();
@@ -153,12 +191,22 @@ const Layout = () => {
         }
     }, [activeTabId]);
 
-    // Asegurar que la ruta coincide con la pestaña activa
+    const lastActiveTabId = useRef(activeTabId);
+
+    // Asegurar que la ruta coincide con la pestaña activa, 
+    // previniendo "race conditions" cuando se navega y cambia la pestaña a la vez
     useEffect(() => {
+        // Si el usuario acaba de cambiar de pestaña, ignoramos la primera actualización
+        // para que la ruta de React Router se sincronice sin sobreescribir la pestaña destino.
+        if (lastActiveTabId.current !== activeTabId) {
+            lastActiveTabId.current = activeTabId;
+            return;
+        }
+
         const activeTab = tabs.find(t => t.id === activeTabId);
         if (activeTab && activeTab.path !== location.pathname) {
             // No navegamos automáticamente aquí para evitar bucles, 
-            // pero actualizamos el path de la pestaña si el usuario navegó por otros medios
+            // pero actualizamos el path de la pestaña si el usuario navegó internamente (ej: click a un link)
             setTabs(prev => prev.map(tab => 
                 tab.id === activeTabId ? { ...tab, path: location.pathname } : tab
             ));
@@ -206,46 +254,7 @@ const Layout = () => {
         checkAndSyncIfNeeded();
     }, [title]);
 
-    // Resolver componente para una ruta
-    const resolveComponent = (path) => {
-        for (const route of ROUTE_MAP) {
-            const match = matchPath(route.path, path);
-            if (match) {
-                return { Component: route.component, params: match.params };
-            }
-        }
-        return null;
-    };
 
-    // Componente de contenido de pestaña optimizado
-    const TabContentWrapper = useMemo(() => {
-        // Usamos React.memo para evitar re-renders si las props no cambian
-        return React.memo(({ tab, isActive, onTitleChange }) => {
-            const resolved = resolveComponent(tab.path);
-            if (!resolved) return <div className="p-4">Módulo no encontrado: {tab.path}</div>;
-            
-            const { Component } = resolved;
-            
-            // Creamos un setTitle específico para esta pestaña que no dependa del estado de Layout
-            const tabSetTitle = useCallback((newTitle) => {
-                onTitleChange(tab.id, newTitle);
-            }, [tab.id, onTitleChange]);
-
-            // Memoizamos el valor del contexto para que no cambie en cada render de Layout
-            const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
-
-            return (
-                <div 
-                    className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
-                    style={{ height: '100%', width: '100%' }}
-                >
-                    <TabProvider value={contextValue}>
-                        <Component setTitle={tabSetTitle} />
-                    </TabProvider>
-                </div>
-            );
-        });
-    }, []);
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
