@@ -58,8 +58,8 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "https://localhost:5173",
-    "https://logixapp.dev",
-    "https://www.logixapp.dev"
+    "https://logixapp.online",
+    "https://www.logixapp.online"
 ]
 
 app.add_middleware(
@@ -72,7 +72,7 @@ app.add_middleware(
 )
 
 # --- Middlewares de seguridad ---
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "logixapp.online", "localhost", "127.0.0.1"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.online", "www.logixapp.online", "localhost", "127.0.0.1"])
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(

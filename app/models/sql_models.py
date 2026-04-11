@@ -230,6 +230,8 @@ class MasterItem(Base):
     cost_per_unit: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
     sic_code_company: Mapped[Optional[str]] = mapped_column(String(50))
     sic_code_stockroom: Mapped[Optional[str]] = mapped_column(String(50))
+    date_last_received: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    superseded_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     updated_at: Mapped[str] = mapped_column(String(50), nullable=True)
 
 class GRNMaster(Base):
