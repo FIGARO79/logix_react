@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useReactToPrint } from 'react-to-print';
 import QRCode from 'qrcode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { sandvikLogoBase64 } from '../assets/logo';
 import SandvikLabel from '../components/labels/SandvikLabel';
-import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 
 
@@ -71,8 +71,9 @@ const LabelPrinting = () => {
 
     const handlePrint = useReactToPrint({
         contentRef: labelComponentRef,
-        documentTitle: itemData ? `Etiqueta-${itemData.itemCode}` : 'Etiqueta',
-        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }",
+        content: () => labelComponentRef.current,
+        documentTitle: itemData ? `Etiqueta_${itemData.itemCode}` : "Etiqueta",
+        pageStyle: "@page { size: 70mm 100mm; margin: 0; } body { margin: 0; -webkit-print-color-adjust: exact; }"
     });
 
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
