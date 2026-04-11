@@ -229,7 +229,14 @@ const Layout = () => {
 
     const closeTab = (e, id) => {
         e.stopPropagation();
-        if (tabs.length === 1) return; // No cerrar la última pestaña
+        
+        // Si es la última pestaña, no la eliminamos de la lista, la "limpiamos" regresándola a Dashboard
+        if (tabs.length === 1) {
+            setTabs([{ id: 'tab-' + Date.now(), path: '/dashboard', label: 'Inicio' }]);
+            setActiveTabId(tabs[0].id);
+            navigate('/dashboard');
+            return;
+        }
 
         const newTabs = tabs.filter(t => t.id !== id);
         setTabs(newTabs);
@@ -287,15 +294,13 @@ const Layout = () => {
                                 className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
                             >
                                 <span className="tab-label">{tab.label}</span>
-                                {tabs.length > 1 && (
-                                    <button 
-                                        onClick={(e) => closeTab(e, tab.id)}
-                                        className="tab-close-btn"
-                                        title="Cerrar pestaña"
-                                    >
-                                        <CloseIcon />
-                                    </button>
-                                )}
+                                <button 
+                                    onClick={(e) => closeTab(e, tab.id)}
+                                    className="tab-close-btn"
+                                    title="Cerrar pestaña"
+                                >
+                                    <span style={{ fontSize: '15px', lineHeight: '1', fontWeight: 'bold' }}>&#215;</span>
+                                </button>
                             </div>
                         ))}
                     </div>

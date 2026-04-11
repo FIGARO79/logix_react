@@ -7,6 +7,7 @@ import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offli
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import { sandvikLogoBase64 } from '../assets/logo';
+import SandvikLabel from '../components/labels/SandvikLabel';
 import '../styles/Label.css';
 
 
@@ -778,57 +779,13 @@ const Inbound = () => {
                         <div className="lg:col-span-1">
                             <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
                             <div className="flex justify-center">
-                                <div style={{
-                                    width: '70mm',
-                                    height: '100mm',
-                                    padding: '3.5mm',
-                                    boxSizing: 'border-box',
-                                    background: 'white',
-                                    border: '1px solid #ccc',
-                                    fontFamily: 'Arial, sans-serif',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}>
-                                    {/* Logo */}
-                                    <img src={sandvikLogoBase64} alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
-
-                                    {/* Header */}
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', color: '#000' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
-
-                                    <div style={{ flexGrow: 1 }}></div>
-
-                                    {/* Data Table */}
-                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0, color: '#000' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Quantity/pack</div>
-                                            <div>{quantity || 1} EA</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Product weight</div>
-                                            <div>{totalWeight} kg</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Packaging date</div>
-                                            <div>{new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Bin location</div>
-                                            <div>{relocatedBin || itemData?.binLocation || ''}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0, flexGrow: 1 }}>
-                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
-                                            All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                        </p>
-                                        <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
-                                            {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
-                                        </div>
-                                    </div>
-                                </div>
+                                <SandvikLabel 
+                                    data={itemData} 
+                                    qrImage={qrImage} 
+                                    quantity={quantity} 
+                                    relocatedBin={relocatedBin} 
+                                    totalWeight={totalWeight} 
+                                />
                             </div>
                             <div className="w-full flex justify-center mt-4"><button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>Imprimir</button></div>
                         </div>
