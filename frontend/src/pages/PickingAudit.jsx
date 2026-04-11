@@ -65,7 +65,7 @@ const PickingAudit = () => {
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
 
     useEffect(() => {
-        setTitle("Verificación de Picking");
+        setTitle("Packing");
         loadTrackingData();
     }, [setTitle]);
 
@@ -755,11 +755,11 @@ const PickingAudit = () => {
 
     // Load Order View
     return (
-        <div className="container-wrapper max-w-3xl mx-auto px-4 py-8">
+        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
             <ToastContainer position="top-right" autoClose={3000} />
 
-            <div className="bg-white p-8 rounded-lg shadow-xl border border-gray-200">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Cargar Pedido Picking</h1>
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h1 className="text-[16px] font-normal text-gray-800 mb-6">Cargar Pedido Picking</h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>

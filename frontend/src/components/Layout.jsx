@@ -59,7 +59,6 @@ const ROUTE_MAP = [
     { path: '/counts/edit/:id', component: EditCount },
 ];
 
-// Item de Menú simplificado (sin iconos) y compacto
 const MenuItem = ({ to, label, onClick }) => {
     const location = useLocation();
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
@@ -67,7 +66,7 @@ const MenuItem = ({ to, label, onClick }) => {
     return (
         <Link
             to={to}
-            className={`flex items-center px-4 py-1 text-white transition-all border-l-[4px] 
+            className={`flex items-center px-4 py-1.5 text-white transition-all border-l-[4px] 
             ${isActive ? 'bg-white/10 border-blue-400 font-bold' : 'hover:bg-white/5 border-transparent hover:border-blue-400/40'}`}
             onClick={onClick}
         >
@@ -91,9 +90,9 @@ const resolveComponent = (path) => {
 const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
     const resolved = resolveComponent(tab.path);
     if (!resolved) return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
-    
+
     const { Component } = resolved;
-    
+
     const tabSetTitle = useCallback((newTitle) => {
         onTitleChange(tab.id, newTitle);
     }, [tab.id, onTitleChange]);
@@ -101,7 +100,7 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
 
     return (
-        <div 
+        <div
             className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
             style={{ height: '100%', width: '100%' }}
         >
@@ -119,7 +118,6 @@ const Layout = () => {
     const [title, setTitle] = useState('Inicio');
     const { isOnline, pendingCount, syncPendingData } = useOffline();
 
-    // Gestión de pestañas
     const [tabs, setTabs] = useState(() => {
         const saved = localStorage.getItem('logix_tabs');
         if (saved) {
@@ -148,13 +146,10 @@ const Layout = () => {
     }, [activeTabId]);
 
     const updateTabLabel = useCallback((tabId, newLabel) => {
-        setTabs(prev => prev.map(tab => 
+        setTabs(prev => prev.map(tab =>
             tab.id === tabId ? { ...tab, label: newLabel } : tab
         ));
-        
-        if (tabId === activeTabId) {
-            setTitle(newLabel);
-        }
+        if (tabId === activeTabId) setTitle(newLabel);
     }, [activeTabId]);
 
     const lastActiveTabId = useRef(activeTabId);
@@ -164,10 +159,9 @@ const Layout = () => {
             lastActiveTabId.current = activeTabId;
             return;
         }
-
         const activeTab = tabs.find(t => t.id === activeTabId);
         if (activeTab && activeTab.path !== location.pathname) {
-            setTabs(prev => prev.map(tab => 
+            setTabs(prev => prev.map(tab =>
                 tab.id === activeTabId ? { ...tab, path: location.pathname } : tab
             ));
         }
@@ -219,8 +213,8 @@ const Layout = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
-            {/* Header */}
-            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[50px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden border-b border-white/5">
+            {/* Header Sincronizado a 48px */}
+            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden border-none">
                 <button
                     className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
                     onClick={toggleMenu}
@@ -230,11 +224,11 @@ const Layout = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-                
+
                 <div className="tabs-wrapper flex-grow mr-4 min-w-0">
                     <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                         {tabs.map(tab => (
-                            <div 
+                            <div
                                 key={tab.id}
                                 onClick={() => switchTab(tab.id)}
                                 className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
@@ -258,32 +252,29 @@ const Layout = () => {
                         </div>
                     )}
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 text-red-200 border-red-500/30' : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'}`}>
-                        {!isOnline ? 'MODO OFFLINE' : 'SISTEMA ONLINE'}
+                        {!isOnline ? 'OFFLINE' : 'ONLINE'}
                     </div>
-                    <Link to="/admin/login" className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all">Panel Admin</Link>
+                    <Link to="/admin/login" className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all">Admin</Link>
                 </div>
             </header>
 
-            {/* Sidebar Menu */}
+            {/* Sidebar Menu Sincronizado a 48px */}
             <div
-                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out border-r border-white/5 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                style={{ top: '50px', height: 'calc(100vh - 50px)' }}
+                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
-
                 <nav className="py-4">
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Principal</div>
                         <MenuItem to="/dashboard" label="Inicio" onClick={toggleMenu} />
                         <MenuItem to="/stock" label="Consultar Stock" onClick={toggleMenu} />
                     </div>
-
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Inbound</div>
                         <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
                     </div>
-
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>
                         <MenuItem to="/picking" label="Auditoría" onClick={toggleMenu} />
@@ -291,7 +282,6 @@ const Layout = () => {
                         <MenuItem to="/shipments" label="Despacho" onClick={toggleMenu} />
                         <MenuItem to="/label" label="Etiquetado" onClick={toggleMenu} />
                     </div>
-
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Control Inventario</div>
                         <MenuItem to="/planner" label="Plan Cíclico" onClick={toggleMenu} />
@@ -302,20 +292,16 @@ const Layout = () => {
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Slotting" onClick={toggleMenu} />
                     </div>
-
                     <div className="px-4 mb-8">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
-                        <MenuItem to="/admin/inventory" label="Administración" onClick={toggleMenu} />
+                        <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
+                        <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
-                        
                         <button
-                            className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-bold tracking-widest"
+                            className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-bold tracking-widest text-left"
                             onClick={async () => {
-                                try {
-                                    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-                                } finally {
-                                    window.location.href = '/login';
-                                }
+                                try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } 
+                                finally { window.location.href = '/login'; }
                             }}
                         >
                             Cerrar Sesión
@@ -324,10 +310,10 @@ const Layout = () => {
                 </nav>
             </div>
 
-            {/* Overlay */}
+            {/* Overlay Sincronizado a 48px */}
             <div
                 className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
-                style={{ top: '50px' }}
+                style={{ top: '48px' }}
                 onClick={toggleMenu}
             ></div>
 
@@ -335,10 +321,10 @@ const Layout = () => {
             <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto bg-[#fafafa]">
                 <div className="w-full h-full">
                     {tabs.map(tab => (
-                        <TabContentWrapper 
-                            key={tab.id} 
-                            tab={tab} 
-                            isActive={activeTabId === tab.id} 
+                        <TabContentWrapper
+                            key={tab.id}
+                            tab={tab}
+                            isActive={activeTabId === tab.id}
                             onTitleChange={updateTabLabel}
                         />
                     ))}

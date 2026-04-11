@@ -56,11 +56,11 @@ const Shipments = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 pt-2 pb-4">
             <ToastContainer position="top-right" autoClose={3000} />
 
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Mis Envíos</h2>
+            <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-normal text-black">Mis Envíos</h2>
                 <button
                     onClick={fetchShipments}
                     className="text-sm text-[#285f94] hover:underline"
@@ -70,11 +70,11 @@ const Shipments = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-12">
+                <div className="flex justify-center py-6">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#285f94]"></div>
                 </div>
             ) : shipments.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
                     <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>

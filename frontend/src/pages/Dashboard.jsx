@@ -10,7 +10,8 @@ const menuCategories = [
         items: [
             { href: '/inbound', text: 'REGISTRO INBOUND', desc: 'Entrada de mercancía y referencias' },
             { href: '/reconciliation', text: 'CONCILIACIÓN', desc: 'Cruce de documentos y discrepancias' },
-            { href: '/view_logs', text: 'HISTORIAL', desc: 'Consulta de registros históricos' }
+            { href: '/view_logs', text: 'HISTORIAL', desc: 'Consulta de registros históricos' },
+            { href: '/stock', text: 'CONSULTAR STOCK', desc: 'Búsqueda global de inventario y saldos' }
         ]
     },
     {
@@ -41,8 +42,8 @@ const menuCategories = [
         title: 'Administración del Sistema',
         accent: 'bg-slate-700',
         items: [
-            { href: '/admin/inventory', text: 'MAESTRO ÍTEMS', desc: 'Configuración de datos maestros' },
-            { href: '/admin/slotting', text: 'REGLAS SLOTTING', desc: 'Parámetros de ubicación' },
+            { href: '/admin/inventory', text: 'ADMINISTRACIÓN INVENTARIO', desc: 'Control de ciclos de conteo' },
+            { href: '/admin/slotting', text: 'REGLAS SLOTTING', desc: 'Parámetros de ubicaciones' },
             { href: '/update', text: 'CARGA DE DATOS', desc: 'Actualización masiva vía ficheros' }
         ]
     }
@@ -52,17 +53,17 @@ const Dashboard = () => {
     const { setTitle } = useOutletContext();
 
     useEffect(() => {
-        setTitle("Dashboard Operativo");
+        setTitle("Dashboard");
     }, [setTitle]);
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] p-6 lg:p-12">
+        <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] px-6 pt-4 pb-12 lg:px-12 lg:pt-6 lg:pb-12">
             <div className="max-w-7xl mx-auto">
                 {/* Header Profesional */}
                 <header className="mb-12 border-b border-slate-200 pb-8 flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-light text-slate-900 tracking-tight">Consola de Operaciones</h1>
-                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Logix Warehouse Management System</p>
+                        <h1 className="text-2xl font-light text-slate-900 tracking-tight">Panel de Control</h1>
+                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Logix WMS</p>
                     </div>
                     <div className="hidden md:block text-right">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado del Sistema</span>
@@ -81,7 +82,7 @@ const Dashboard = () => {
                                 <div className={`h-4 w-1 ${category.accent} rounded-full`}></div>
                                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">{category.title}</h2>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 {category.items.map((item, idx) => (
                                     <Link
@@ -100,27 +101,6 @@ const Dashboard = () => {
                             </div>
                         </div>
                     ))}
-                </div>
-
-                {/* Acceso Rápido de Stock (Banner Profesional) */}
-                <div className="mt-16">
-                    <Link 
-                        to="/stock" 
-                        className="flex items-center justify-between p-6 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg group"
-                    >
-                        <div className="flex items-center gap-8">
-                            <div className="hidden sm:block border-r border-slate-700 pr-8">
-                                <span className="text-3xl font-light">STOCK</span>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-medium tracking-tight">Búsqueda Global de Inventario</h3>
-                                <p className="text-slate-400 text-[10px] uppercase tracking-widest mt-0.5">Consulta de saldos, ubicaciones y movimientos en tiempo real</p>
-                            </div>
-                        </div>
-                        <div className="h-10 px-6 border border-slate-700 rounded-md flex items-center justify-center group-hover:border-white transition-colors">
-                            <span className="text-xs font-bold tracking-widest">CONSULTAR →</span>
-                        </div>
-                    </Link>
                 </div>
             </div>
         </div>

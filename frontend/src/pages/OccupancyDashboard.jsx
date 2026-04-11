@@ -35,7 +35,7 @@ const OccupancyDashboard = () => {
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Processing spatial data...</div>
+            <div className="text-black text-[10px] font-bold tracking-widest uppercase">Processing spatial data...</div>
         </div>
     );
 
@@ -49,34 +49,34 @@ const OccupancyDashboard = () => {
     const zones = Object.keys(data.zones).sort();
 
     return (
-        <div className="max-w-[1600px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-slate-800">
+        <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
             
             {/* Header / Actions Section */}
             <div className="mb-8 border-b border-slate-200 pb-4 flex justify-between items-end">
                 <div>
-                    <h1 className="text-xl font-light text-slate-900 tracking-tight">Warehouse Occupancy Analytics</h1>
-                    <p className="text-slate-400 text-[9px] uppercase tracking-widest font-bold">Real-time Bin Saturation & Density Map</p>
+                    <h1 className="text-[14px] font-normal text-black tracking-tight">Ocupación de Bodega</h1>
+                    <p className="text-black text-[8px] uppercase tracking-widest font-normal">Mapa de Saturación y Densidad de Bins</p>
                 </div>
                 <button 
                     onClick={fetchData}
-                    className="px-4 py-1.5 border border-slate-300 text-slate-600 bg-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-slate-50 transition-all shadow-sm"
+                    className="px-4 py-1.5 border border-black text-black bg-white text-[9px] font-normal uppercase tracking-widest rounded hover:bg-slate-50 transition-all shadow-sm"
                 >
-                    Refresh Data
+                    Actualizar Datos
                 </button>
             </div>
 
             {/* Global Utilization Summary */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
                 {[
-                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-slate-800' },
-                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-slate-800' },
-                    { label: 'Available', val: data.summary.available_bins, color: 'text-slate-800' },
-                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-600' : 'text-slate-800' },
-                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-slate-800' },
-                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-slate-800' }
+                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-black' },
+                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-black' },
+                    { label: 'Available', val: data.summary.available_bins, color: 'text-black' },
+                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-600' : 'text-black' },
+                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-black' },
+                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white p-4 border border-slate-200 shadow-sm">
-                        <label className="text-[9px] uppercase text-slate-500 font-bold tracking-widest block mb-1">{s.label}</label>
+                        <label className="text-[9px] uppercase text-black font-normal tracking-widest block mb-1">{s.label}</label>
                         <p className={`text-2xl font-bold font-mono ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
@@ -85,18 +85,18 @@ const OccupancyDashboard = () => {
             {/* Heatmap Matrix Section */}
             <div className="bg-white border border-slate-200 shadow-sm mb-8 overflow-hidden">
                 <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                        Bin Saturation Matrix (Level vs Zone)
+                    <h3 className="text-[10px] font-normal text-black uppercase tracking-widest">
+                        Matriz de Saturación de Bins (Nivel vs Zona)
                     </h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                         <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-[10px] font-bold text-white uppercase tracking-wider border-b border-slate-600">Zone Identifier</th>
+                                <th className="px-6 py-3 text-left text-[10px] font-normal text-white uppercase tracking-wider border-b border-slate-600">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-3 text-center text-[10px] font-bold text-white uppercase tracking-wider border-b border-slate-600">
-                                        Level {level}
+                                    <th key={level} className="px-2 py-3 text-center text-[10px] font-normal text-white uppercase tracking-wider border-b border-slate-600">
+                                        Nivel {level}
                                     </th>
                                 ))}
                             </tr>
@@ -107,13 +107,13 @@ const OccupancyDashboard = () => {
                                 return (
                                     <tr key={zoneName} className="hover:bg-slate-50/30 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-semibold text-slate-700 leading-none">{zoneName}</div>
-                                            <div className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">
+                                            <div className="text-sm font-normal text-black leading-none">{zoneName}</div>
+                                            <div className="text-[9px] text-black font-normal mt-1 uppercase tracking-tighter">
                                                 {zoneData.total} Bins Total
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
-                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0 };
+                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0 };   
                                             const occupancyPercent = levelData.total > 0 
                                                 ? Math.round((levelData.full_bins / levelData.total) * 100) 
                                                 : 0;
@@ -127,10 +127,10 @@ const OccupancyDashboard = () => {
                                                             transition-all duration-200
                                                         `}>
                                                             <span className="text-lg font-mono font-bold leading-none mb-1">{occupancyPercent}%</span>
-                                                            <div className="text-[8px] uppercase tracking-tighter font-bold opacity-80 text-center">
+                                                            <div className="text-[8px] uppercase tracking-tighter font-normal opacity-80 text-center">
                                                                 {levelData.full_bins}/{levelData.total} Bins
                                                             </div>
-                                                            <div className="text-[8px] font-semibold opacity-70">
+                                                            <div className="text-[8px] font-normal opacity-70">
                                                                 {levelData.occupied_skus} SKUs
                                                             </div>
                                                         </div>
@@ -153,18 +153,18 @@ const OccupancyDashboard = () => {
                 <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-emerald-50 border border-emerald-100 rounded-full"></div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Low Utilization</span>
+                        <span className="text-[9px] font-normal text-black uppercase tracking-widest">Baja Utilización</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-amber-50 border border-amber-100 rounded-full"></div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Optimal Load</span>
+                        <span className="text-[9px] font-normal text-black uppercase tracking-widest">Carga Óptima</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-red-50 border border-red-100 rounded-full"></div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Saturated</span>
+                        <span className="text-[9px] font-normal text-black uppercase tracking-widest">Saturado</span>
                     </div>
-                    <div className="ml-auto text-[9px] font-medium text-slate-300 italic">
-                        * Values indicate bins reaching configured capacity thresholds.
+                    <div className="ml-auto text-[9px] font-normal text-black italic">
+                        * Los valores indican bins alcanzando umbrales de capacidad configurados.
                     </div>
                 </div>
             </div>
@@ -174,16 +174,16 @@ const OccupancyDashboard = () => {
                 
                 {/* 1. Spatial Distribution */}
                 <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">
-                        Bin Distribution by Zone
+                    <h3 className="text-[9px] font-normal text-black uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">
+                        Distribución de Bins por Zona
                     </h3>
                     <div className="space-y-4">
                         {Object.entries(data.analytics.bins_by_zone).map(([zone, count]) => (
                             <div key={zone} className="flex justify-between items-end border-b border-slate-50 pb-1.5">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-semibold text-slate-600">{zone}</span>
+                                    <span className="text-[10px] font-semibold text-black">{zone}</span>
                                 </div>
-                                <span className="font-mono text-sm text-slate-700 font-bold">{count} <span className="text-[9px] uppercase ml-0.5 text-slate-400">Units</span></span>
+                                <span className="font-mono text-sm text-black font-bold">{count} <span className="text-[9px] uppercase ml-0.5 text-black">Units</span></span>
                             </div>
                         ))}
                     </div>
@@ -191,8 +191,8 @@ const OccupancyDashboard = () => {
 
                 {/* 2. SKU Volume Distribution */}
                 <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">
-                        SKU Density by Zone
+                    <h3 className="text-[9px] font-normal text-black uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">
+                        Densidad de SKUs por Zona
                     </h3>
                     <div className="space-y-6">
                         {Object.entries(data.analytics.zones_by_items).map(([zone, count]) => {
@@ -200,9 +200,9 @@ const OccupancyDashboard = () => {
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={zone}>
-                                    <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-tighter">
+                                    <div className="flex justify-between text-[10px] font-normal text-black mb-1.5 uppercase tracking-tighter">
                                         <span>{zone}</span>
-                                        <span className="text-slate-900 font-mono">{count}</span>
+                                        <span className="text-black font-mono">{count}</span>
                                     </div>
                                     <div className="w-full bg-slate-50 h-0.5 overflow-hidden">
                                         <div className="h-full bg-slate-900 opacity-60" style={{ width: `${pct}%` }}></div>
@@ -215,8 +215,8 @@ const OccupancyDashboard = () => {
 
                 {/* 3. Operational Risk (Hot Aisles) */}
                 <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2 text-red-800">
-                        Critical Density (Top Aisles)
+                    <h3 className="text-[9px] font-normal text-black uppercase tracking-widest mb-6 border-b border-slate-50 pb-2 text-red-800">
+                        Densidad Crítica (Pasillos Principales)
                     </h3>
                     <div className="space-y-6">
                         {Object.entries(data.analytics.top_aisles).map(([aisle, count], idx) => {
@@ -224,9 +224,9 @@ const OccupancyDashboard = () => {
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={aisle}>
-                                    <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-tighter">
+                                    <div className="flex justify-between text-[10px] font-normal text-black mb-1.5 uppercase tracking-tighter">
                                         <span>Aisle {aisle}</span>
-                                        <span className="text-slate-400 font-mono">{count}</span>
+                                        <span className="text-black font-mono">{count}</span>
                                     </div>
                                     <div className="w-full bg-slate-50 h-0.5 overflow-hidden">
                                         <div 
