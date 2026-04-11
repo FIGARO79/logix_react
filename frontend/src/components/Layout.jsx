@@ -141,14 +141,17 @@ const Layout = () => {
         }
     }, [activeTabId]);
 
-    // Actualizar etiqueta de pestaña activa cuando el título cambia
-    useEffect(() => {
-        if (activeTabId) {
-            setTabs(prev => prev.map(tab => 
-                tab.id === activeTabId ? { ...tab, label: title } : tab
-            ));
+    // Función para actualizar el título de una pestaña específica
+    const updateTabLabel = useCallback((tabId, newLabel) => {
+        setTabs(prev => prev.map(tab => 
+            tab.id === tabId ? { ...tab, label: newLabel } : tab
+        ));
+        
+        // Solo actualizamos el título global (document.title) si es la pestaña activa
+        if (tabId === activeTabId) {
+            setTitle(newLabel);
         }
-    }, [title, activeTabId]);
+    }, [activeTabId]);
 
     // Asegurar que la ruta coincide con la pestaña activa
     useEffect(() => {
@@ -214,31 +217,34 @@ const Layout = () => {
         return null;
     };
 
-    // Componente de contenido de pestaña que simula el contexto de Outlet
+    // Componente de contenido de pestaña optimizado
     const TabContentWrapper = useMemo(() => {
-        return ({ tab, isActive }) => {
+        // Usamos React.memo para evitar re-renders si las props no cambian
+        return React.memo(({ tab, isActive, onTitleChange }) => {
             const resolved = resolveComponent(tab.path);
             if (!resolved) return <div className="p-4">Módulo no encontrado: {tab.path}</div>;
             
             const { Component } = resolved;
             
-            // Renderizamos independientemente de isActive para mantener el estado, 
-            // pero lo ocultamos con CSS si no es la activa.
+            // Creamos un setTitle específico para esta pestaña que no dependa del estado de Layout
+            const tabSetTitle = useCallback((newTitle) => {
+                onTitleChange(tab.id, newTitle);
+            }, [tab.id, onTitleChange]);
+
+            // Memoizamos el valor del contexto para que no cambie en cada render de Layout
+            const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
             return (
                 <div 
                     className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
                     style={{ height: '100%', width: '100%' }}
                 >
-                    {/* 
-                        IMPORTANTE: Envolvemos en TabProvider para sustituir useOutletContext()
-                        y mantener la compatibilidad con el sistema de pestañas Keep-Alive.
-                    */}
-                    <TabProvider value={{ setTitle }}>
-                        <Component setTitle={setTitle} />
+                    <TabProvider value={contextValue}>
+                        <Component setTitle={tabSetTitle} />
                     </TabProvider>
                 </div>
             );
-        };
+        });
     }, []);
 
     return (
@@ -263,20 +269,20 @@ const Layout = () => {
                     </svg>
                 </button>
                 
-                <div className="flex items-center gap-2 overflow-x-hidden flex-grow mr-4">
-                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
+                <div className="tabs-wrapper flex-grow mr-4 min-w-0">
+                    <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                         {tabs.map(tab => (
                             <div 
                                 key={tab.id}
                                 onClick={() => switchTab(tab.id)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-t-md cursor-pointer transition-all min-w-[100px] max-w-[180px] border-b-2
-                                    ${activeTabId === tab.id ? 'bg-white/10 border-[var(--sap-primary)] text-white' : 'bg-transparent border-transparent text-white/60 hover:bg-white/5 hover:text-white/80'}`}
+                                className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
                             >
-                                <span className="text-xs font-medium truncate flex-grow text-center">{tab.label}</span>
+                                <span className="tab-label">{tab.label}</span>
                                 {tabs.length > 1 && (
                                     <button 
                                         onClick={(e) => closeTab(e, tab.id)}
-                                        className="p-0.5 rounded-full hover:bg-white/20 transition-colors"
+                                        className="tab-close-btn"
+                                        title="Cerrar pestaña"
                                     >
                                         <CloseIcon />
                                     </button>
@@ -286,10 +292,10 @@ const Layout = () => {
                     </div>
                     <button
                         onClick={addTab}
-                        className="p-1 rounded-full hover:bg-white/10 active:bg-white/20 transition-all text-white/80 hover:text-white"
+                        className="add-tab-btn"
                         title="Añadir pestaña"
                     >
-                        <PlusIcon />
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: 1, marginTop: '-2px' }}>+</span>
                     </button>
                 </div>
 
@@ -403,6 +409,7 @@ const Layout = () => {
                             key={tab.id} 
                             tab={tab} 
                             isActive={activeTabId === tab.id} 
+                            onTitleChange={updateTabLabel}
                         />
                     ))}
                     {/* Fallback para rutas que no están en pestañas (ej. login, etc) */}
