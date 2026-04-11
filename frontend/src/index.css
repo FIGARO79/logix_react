@@ -46,3 +46,34 @@ h6 {
 .no-spinner[type=number] {
     -moz-appearance: textfield;
 }
+
+/* Animación de giro para el botón de sincronización */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+/* 
+  Reset de impresión global para evitar hojas en blanco en React/Vite/PWA.
+  Fuerza a que el contenedor raíz sea visible y tenga altura automática.
+*/
+@media print {
+    html, body, #root {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

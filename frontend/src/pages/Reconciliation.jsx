@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Conciliación de Inbound"); }, [setTitle]);
+    useEffect(() => { setTitle("Conciliación"); }, [setTitle]);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterText, setFilterText] = useState('');
@@ -165,7 +165,7 @@ const Reconciliation = () => {
             {/* Header / Controls */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0 flex items-center gap-2">
-                    Conciliación de inbound
+                    Conciliación
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-center">
@@ -251,7 +251,7 @@ const Reconciliation = () => {
                         Cargando datos de reconciliación...
                     </div>
                 ) : (
-                    <div className="overflow-x-auto max-h-[85vh]">
+                    <div className="overflow-x-auto max-h-[70vh]">
                         <table className="w-full text-xs border-collapse">
                             <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
                                 <tr>

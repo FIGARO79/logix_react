@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useOutletContext } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
-import { useOffline } from '../hooks/useOffline';
-import { savePendingSync, getDB } from '../utils/offlineDb';
-import { downloadDailyPlannerItems } from '../utils/syncManager';
 
 const PlannerExecution = () => {
     const { setTitle } = useOutletContext();
@@ -13,7 +11,6 @@ const PlannerExecution = () => {
     // Default to today or url param
     const today = new Date().toISOString().split('T')[0];
     const [selectedDate, setSelectedDate] = useState(searchParams.get('date') || today);
-    const { isOnline, pendingCount, syncPendingData } = useOffline();
 
     useEffect(() => { setTitle("Ejecución Diaria de Conteos"); }, [setTitle]);
 
@@ -76,23 +73,10 @@ const PlannerExecution = () => {
         setIsRecountMode(false);
 
         try {
-            let data = null;
-            if (isOnline) {
-                // Tries to download and cache
-                data = await downloadDailyPlannerItems(date);
-            } else {
-                // Offline: try to get from data_cache or planner_daily_items
-                const db = await getDB();
-                const cached = await db.get('data_cache', `planner_items_${date}`);
-                if (cached) {
-                    data = cached.data;
-                }
-            }
+            const response = await fetch(`/api/planner/execution/daily_items?date=${date}`);
+            if (!response.ok) throw new Error('Error al cargar ítems planificados');
 
-            if (!data) {
-                if (!isOnline) throw new Error('Modo offline: Ítems no encontrados en caché local para esta fecha.');
-                throw new Error('Error al cargar ítems planificados');
-            }
+            const data = await response.json();
 
             // Verificar si hay conteos previos
             if (data.has_previous_counts) {
@@ -132,7 +116,6 @@ const PlannerExecution = () => {
             setItems(initializedItems);
         } catch (err) {
             setError(err.message);
-            toast.error(err.message, { containerId: "planner-execution" });
         } finally {
             setLoading(false);
         }
@@ -143,7 +126,7 @@ const PlannerExecution = () => {
         setError(null);
 
         try {
-            const response = await fetch(`/api/planner/execution/items_with_differences?date=${selectedDate}`, { credentials: 'include' });
+            const response = await fetch(`/api/planner/execution/items_with_differences?date=${selectedDate}`);
             if (!response.ok) throw new Error('Error al cargar items con diferencias');
 
             const data = await response.json();
@@ -252,30 +235,19 @@ const PlannerExecution = () => {
                 items: itemsPayload
             };
 
-            if (isOnline) {
-                const response = await fetch('/api/planner/execution/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                });
+            const response = await fetch('/api/planner/execution/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-                if (!response.ok) throw new Error('Error al guardar los conteos');
+            if (!response.ok) throw new Error('Error al guardar los conteos');
 
-                const result = await response.json();
-                toast.success(result.message || "Conteos guardados exitosamente", {
-                    containerId: "planner-execution"
-                });
-            } else {
-                // Offline: Guardar en cola de sincronización de IndexedDB
-                await savePendingSync('planner', payload);
-                toast.info("Guardado localmente. Se sincronizará automáticamente al recuperar conexión.", {
-                    containerId: "planner-execution",
-                    autoClose: 10000
-                });
-            }
-
-            setMessage("Operación completada con éxito.");
+            const result = await response.json();
+            toast.success(result.message || "Conteos guardados exitosamente", {
+                containerId: "planner-execution"
+            });
+            setMessage("Guardado exitoso. Puede continuar o cambiar de fecha.");
 
             // Limpiar cantidades guardadas en localStorage para esta fecha
             try { localStorage.removeItem(`pe_counts_${selectedDate}`); } catch (e) { /* ignore */ }
@@ -287,10 +259,13 @@ const PlannerExecution = () => {
             });
             setItems(newItems);
 
+            // Limpiar cantidades guardadas en localStorage para esta fecha
+            try { localStorage.removeItem(`pe_counts_${selectedDate}`); } catch (e) { /* ignore */ }
+
         } catch (err) {
             console.error(err);
             setError(err.message);
-            toast.error("Error al procesar conteos", {
+            toast.error("Error al guardar conteos", {
                 containerId: "planner-execution"
             });
         } finally {

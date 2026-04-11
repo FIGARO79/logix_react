@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { sandvikLogoBase64 } from '../assets/logo';
+import SandvikLabel from '../components/labels/SandvikLabel';
 import '../styles/Label.css';
+
 
 const LabelPrinting = () => {
     const { setTitle } = useOutletContext();
@@ -22,14 +25,15 @@ const LabelPrinting = () => {
 
     // QR Code Generation
     useEffect(() => {
-        if (itemData?.itemCode) {
-            QRCode.toDataURL(itemData.itemCode, { width: 256, margin: 0 })
+        const activeCode = itemData?.itemCode || itemCode;
+        if (activeCode) {
+            QRCode.toDataURL(activeCode, { width: 256, margin: 0 })
                 .then(url => setQrImage(url))
                 .catch(err => console.error(err));
         } else {
             setQrImage(null);
         }
-    }, [itemData]);
+    }, [itemData, itemCode]);
 
     const findItem = async () => {
         if (!itemCode.trim()) {
@@ -45,11 +49,10 @@ const LabelPrinting = () => {
             const data = await res.json();
 
             if (res.ok) {
-                // Map API response (snake_case) to component expectation or use directly
                 setItemData({
                     itemCode: data.item_code,
                     description: data.description,
-                    binLocation: data.bin_location, // Effective bin (relocated or original)
+                    binLocation: data.bin_location,
                     aditionalBins: data.additional_bins,
                     weight: data.weight_kg
                 });
@@ -112,12 +115,13 @@ const LabelPrinting = () => {
                     }
                     .label-item-description { 
                         font-family: Arial, sans-serif;
-                        font-size: 11pt; 
+                        font-size: 12pt; 
                         font-weight: bold; 
                         margin: 0 0 2mm 0;
-                        line-height: 1.1; 
+                        line-height: 1.2; 
                         color: #000;
                         word-break: break-word;
+                        margin-bottom: 2mm;
                     }
                     
                     /* Grid Data Table */
@@ -170,7 +174,7 @@ const LabelPrinting = () => {
             <body>
                 <div class="label-container">
                     <!-- Logo -->
-                    <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" class="label-logo" />
+                    <img src="${sandvikLogoBase64}" alt="Sandvik" class="label-logo" />
                     
                     <!-- Header -->
                     <div class="label-item-code">${itemData?.itemCode || ''}</div>
@@ -181,11 +185,11 @@ const LabelPrinting = () => {
                     <div class="label-data-table">
                         <div class="label-row">
                             <div class="label-label">Quantity/pack</div>
-                            <div class="label-value">${quantity} EA</div>
+                            <div class="label-value">${quantity || 1} EA</div>
                         </div>
                         <div class="label-row">
                             <div class="label-label">Product weight</div>
-                            <div class="label-value">${totalWeight} kg</div>
+                            <div class="label-value">${(parseFloat(itemData.weight || 0) * (parseInt(quantity) || 1)).toFixed(2)} kg</div>
                         </div>
                         <div class="label-row">
                             <div class="label-label">Packaging date</div>
@@ -218,7 +222,7 @@ const LabelPrinting = () => {
         doc.close();
     };
 
-    const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : 'N/A';
+    const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
     return (
         <div className="container-wrapper px-4 py-4">
@@ -265,7 +269,7 @@ const LabelPrinting = () => {
                     </div>
 
                     <div>
-                        <label className="form-label">Quantity Received</label>
+                        <label className="form-label">Quantity Per Pack</label>
                         <input
                             type="number"
                             value={quantity}
@@ -293,57 +297,12 @@ const LabelPrinting = () => {
 
                     {/* Print Area Preview */}
                     <div className="flex justify-center">
-                        <div style={{
-                            width: '70mm',
-                            height: '100mm',
-                            padding: '3.5mm',
-                            boxSizing: 'border-box',
-                            background: 'white',
-                            border: '1px solid #ccc',
-                            fontFamily: 'Arial, sans-serif',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}>
-                            {/* Logo */}
-                            <img src="/static/images/logoytpe_sandvik.png" alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
-
-                            {/* Header */}
-                            <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                            <div style={{ fontSize: '11pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
-
-                            <div style={{ flexGrow: 1 }}></div>
-
-                            {/* Data Table */}
-                            <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0, color: '#000' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                    <div>Quantity/pack</div>
-                                    <div>{quantity} EA</div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                    <div>Product weight</div>
-                                    <div>{totalWeight} kg</div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                    <div>Packaging date</div>
-                                    <div>{new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                    <div>Bin location</div>
-                                    <div>{itemData?.binLocation || ''}</div>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0, flexGrow: 1 }}>
-                                <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
-                                    All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                </p>
-                                <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
-                                    {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
-                                </div>
-                            </div>
-                        </div>
+                        <SandvikLabel 
+                            data={itemData} 
+                            qrImage={qrImage} 
+                            quantity={quantity} 
+                            totalWeight={totalWeight} 
+                        />
                     </div>
 
                     <div className="w-full flex justify-center mt-6">

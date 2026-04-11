@@ -162,17 +162,50 @@ async def reload_cache_if_needed():
         await load_csv_data()
     _last_check = now
 
-async def get_item_details_from_master_csv(item_code: str):
-    """Obtiene el detalle completo de un item desde el caché Polars."""
+async def get_item_details_from_master_csv(item_code: str, db=None):
+    """Obtiene el detalle completo de un item desde el caché Polars o SQL si se provee db."""
     global df_master_cache
+    
+    item_code = item_code.upper().strip()
+
+    # Búsqueda rápida en SQL si se provee la sesión
+    if db is not None:
+        try:
+            from sqlalchemy import select
+            from app.models.sql_models import MasterItem
+            stmt = select(MasterItem).where(MasterItem.item_code == item_code)
+            result = await db.execute(stmt)
+            item = result.scalar_one_or_none()
+            if item:
+                return {
+                    'Item_Code': item.item_code,
+                    'Item_Description': item.description,
+                    'ABC_Code_stockroom': item.abc_code,
+                    'Physical_Qty': item.physical_qty,
+                    'Bin_1': item.bin_1,
+                    'Aditional_Bin_Location': item.additional_bin,
+                    'Weight_per_Unit': item.weight_per_unit,
+                    'Item_Type': item.item_type,
+                    'Item_Class': item.item_class,
+                    'Item_Group_Major': item.item_group_major,
+                    'Stockroom': item.stockroom,
+                    'Cost_per_Unit': float(item.cost_per_unit) if item.cost_per_unit else 0.0,
+                    'SIC_Code_company': item.sic_code_company,
+                    'SIC_Code_stockroom': item.sic_code_stockroom,
+                    'Date_Last_Received': item.date_last_received,
+                    'SupersededBy': item.superseded_by
+                }
+        except Exception as e:
+            print(f"⚠️ Error buscando item en SQL: {e}")
+
     await reload_cache_if_needed()
     if df_master_cache is None: return None
     
-    item_code = item_code.upper().strip()
     res = df_master_cache.filter(pl.col("Item_Code") == item_code)
     if res.height > 0:
         return res.to_dicts()[0]
     return None
+
 
 async def get_total_expected_quantity_for_item(item_code: str, import_reference: str = "NA"):
     """Suma la cantidad pendiente en el GRN para un item, opcionalmente filtrando por referencia."""
@@ -204,7 +237,7 @@ async def get_xdock_info(item_code: str):
     """Retorna cantidad reservada desde RAM."""
     global reservation_qty_map
     if not reservation_qty_map: await generate_reservation_cache()
-    return reservation_qty_map.get(item_code.upper().strip(), 0)
+    return reservation_qty_map.get(item_code.upper().strip(), {})
 
 async def get_locations_with_stock_count():
     """Cuenta items con stock > 0."""

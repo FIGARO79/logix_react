@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const OccupancyDashboard = ({ setTitle }) => {
+const OccupancyDashboard = () => {
+    const { setTitle } = useOutletContext();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (setTitle) setTitle('Warehouse Utilization Matrix');
+        if (setTitle) setTitle('Mapa de Slotting');
         fetchData();
     }, [setTitle]);
 

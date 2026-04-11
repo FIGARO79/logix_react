@@ -1,8 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Outlet, Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';
+import { TabProvider } from '../hooks/useTabContext';
+
+// Importación de componentes para Keep-Alive
+import Dashboard from '../pages/Dashboard';
+import Reconciliation from '../pages/Reconciliation';
+import StockSearch from '../pages/StockSearch';
+import PickingAuditHistory from '../pages/PickingAuditHistory';
+import Inbound from '../pages/Inbound';
+import CycleCounts from '../pages/CycleCounts';
+import LabelPrinting from '../pages/LabelPrinting';
+import Planner from '../pages/Planner';
+import PlannerExecution from '../pages/PlannerExecution';
+import PickingAudit from '../pages/PickingAudit';
+import AdminInventory from '../pages/AdminInventory';
+import SlottingConfig from '../pages/SlottingConfig';
+import ManageCounts from '../pages/ManageCounts';
+import ViewCounts from '../pages/ViewCounts';
+import EditCount from '../pages/EditCount';
+import InboundHistory from '../pages/InboundHistory';
+import Update from '../pages/Update';
+import CycleCountHistory from '../pages/CycleCountHistory';
+import DashboardInventario from '../pages/DashboardInventario';
+import OccupancyDashboard from '../pages/OccupancyDashboard';
+import ManageCountDifferences from '../pages/ManageCountDifferences';
+import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
+import Shipments from '../pages/Shipments';
+
+// Mapeo de rutas a componentes
+const ROUTE_MAP = [
+    { path: '/dashboard', component: Dashboard },
+    { path: '/inbound', component: Inbound },
+    { path: '/reconciliation', component: Reconciliation },
+    { path: '/stock', component: StockSearch },
+    { path: '/view_picking_audits', component: PickingAuditHistory },
+    { path: '/label', component: LabelPrinting },
+    { path: '/planner', component: Planner },
+    { path: '/planner/execution', component: PlannerExecution },
+    { path: '/planner/manage_differences', component: ManageCycleCountDifferences },
+    { path: '/picking', component: PickingAudit },
+    { path: '/view_logs', component: InboundHistory },
+    { path: '/counts', component: CycleCounts },
+    { path: '/counts/manage', component: ManageCounts },
+    { path: '/view_counts', component: ViewCounts },
+    { path: '/counts/manage_differences', component: ManageCountDifferences },
+    { path: '/view_counts/recordings', component: CycleCountHistory },
+    { path: '/inventory-dashboard', component: DashboardInventario },
+    { path: '/occupancy', component: OccupancyDashboard },
+    { path: '/admin/inventory', component: AdminInventory },
+    { path: '/admin/slotting', component: SlottingConfig },
+    { path: '/shipments', component: Shipments },
+    { path: '/counts/edit/:id', component: EditCount },
+];
 
 // Check if user is on specific path for active styling
 const MenuItem = ({ to, icon, label, onClick }) => {
@@ -47,20 +99,177 @@ const BoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBo
 const GearIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const TruckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>;
 const WrenchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75a4.5 4.5 0 0 1-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 1 1-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 0 1 6.336-4.486l-3.276 3.276a3.004 3.004 0 0 0 2.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M4.867 19.125h.008v.008h-.008v-.008Z" /></svg>;
+const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
+const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
+const MAX_TABS = 10;
+
+// Resolver componente para una ruta (Extraido de Layout para estabilidad)
+const resolveComponent = (path) => {
+    for (const route of ROUTE_MAP) {
+        const match = matchPath(route.path, path);
+        if (match) {
+            return { Component: route.component, params: match.params };
+        }
+    }
+    return null;
+};
+
+// Componente de contenido de pestaña optimizado y extraído a nivel superior
+// para garantizar que React jamás desmonte los componentes internos al cambiar de pestaña
+const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
+    const resolved = resolveComponent(tab.path);
+    if (!resolved) return <div className="p-4">Módulo no encontrado: {tab.path}</div>;
+    
+    const { Component } = resolved;
+    
+    // Creamos un setTitle específico para esta pestaña que no dependa del estado de Layout
+    const tabSetTitle = useCallback((newTitle) => {
+        onTitleChange(tab.id, newTitle);
+    }, [tab.id, onTitleChange]);
+
+    // Memoizamos el valor del contexto para que no cambie en cada render interno
+    const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
+    return (
+        <div 
+            className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
+            style={{ height: '100%', width: '100%' }}
+        >
+            <TabProvider value={contextValue}>
+                <Component setTitle={tabSetTitle} />
+            </TabProvider>
+        </div>
+    );
+});
 
 const Layout = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [title, setTitle] = useState('Inicio');
     const { isOnline, pendingCount, syncPendingData } = useOffline();
 
+    // Gestión de pestañas con validación robusta
+    const [tabs, setTabs] = useState(() => {
+        const defaultTabs = [{ id: 'dashboard-' + Date.now(), path: '/dashboard', label: 'Inicio' }];
+        const saved = localStorage.getItem('logix_tabs');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error("Error parsing tabs from localStorage", e);
+                localStorage.removeItem('logix_tabs');
+            }
+        }
+        return defaultTabs;
+    });
+
+    const [activeTabId, setActiveTabId] = useState(() => {
+        const savedActive = localStorage.getItem('logix_active_tab');
+        if (savedActive && tabs.some(t => t.id === savedActive)) {
+            return savedActive;
+        }
+        return tabs.length > 0 ? tabs[0].id : null;
+    });
+
+    // Sincronizar con localStorage
+    useEffect(() => {
+        localStorage.setItem('logix_tabs', JSON.stringify(tabs));
+    }, [tabs]);
+
+    useEffect(() => {
+        if (activeTabId) {
+            localStorage.setItem('logix_active_tab', activeTabId);
+        }
+    }, [activeTabId]);
+
+    // Función para actualizar el título de una pestaña específica
+    const updateTabLabel = useCallback((tabId, newLabel) => {
+        setTabs(prev => prev.map(tab => 
+            tab.id === tabId ? { ...tab, label: newLabel } : tab
+        ));
+        
+        // Solo actualizamos el título global (document.title) si es la pestaña activa
+        if (tabId === activeTabId) {
+            setTitle(newLabel);
+        }
+    }, [activeTabId]);
+
+    const lastActiveTabId = useRef(activeTabId);
+
+    // Asegurar que la ruta coincide con la pestaña activa, 
+    // previniendo "race conditions" cuando se navega y cambia la pestaña a la vez
+    useEffect(() => {
+        // Si el usuario acaba de cambiar de pestaña, ignoramos la primera actualización
+        // para que la ruta de React Router se sincronice sin sobreescribir la pestaña destino.
+        if (lastActiveTabId.current !== activeTabId) {
+            lastActiveTabId.current = activeTabId;
+            return;
+        }
+
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        if (activeTab && activeTab.path !== location.pathname) {
+            // No navegamos automáticamente aquí para evitar bucles, 
+            // pero actualizamos el path de la pestaña si el usuario navegó internamente (ej: click a un link)
+            setTabs(prev => prev.map(tab => 
+                tab.id === activeTabId ? { ...tab, path: location.pathname } : tab
+            ));
+        }
+    }, [location.pathname, activeTabId]);
+
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+    const addTab = () => {
+        if (tabs.length >= MAX_TABS) {
+            alert(`Límite de ${MAX_TABS} pestañas alcanzado.`);
+            return;
+        }
+        const newId = 'tab-' + Date.now();
+        const newTab = { id: newId, path: '/dashboard', label: 'Inicio' };
+        setTabs([...tabs, newTab]);
+        setActiveTabId(newId);
+        navigate('/dashboard');
+    };
+
+    const closeTab = (e, id) => {
+        e.stopPropagation();
+        
+        // Si es la última pestaña, no la eliminamos de la lista, la "limpiamos" regresándola a Dashboard
+        if (tabs.length === 1) {
+            setTabs([{ id: 'tab-' + Date.now(), path: '/dashboard', label: 'Inicio' }]);
+            setActiveTabId(tabs[0].id);
+            navigate('/dashboard');
+            return;
+        }
+
+        const newTabs = tabs.filter(t => t.id !== id);
+        setTabs(newTabs);
+
+        if (activeTabId === id) {
+            const lastTab = newTabs[newTabs.length - 1];
+            setActiveTabId(lastTab.id);
+            navigate(lastTab.path);
+        }
+    };
+
+    const switchTab = (id) => {
+        const tab = tabs.find(t => t.id === id);
+        if (tab) {
+            setActiveTabId(id);
+            navigate(tab.path);
+        }
+    };
+
     useEffect(() => {
         document.title = title;
-        // Sync master data if needed when app loads
         checkAndSyncIfNeeded();
     }, [title]);
 
-    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
@@ -83,7 +292,35 @@ const Layout = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-                <h1 className="header-title flex-grow tracking-wide">{title}</h1>
+                
+                <div className="tabs-wrapper flex-grow mr-4 min-w-0">
+                    <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
+                        {tabs.map(tab => (
+                            <div 
+                                key={tab.id}
+                                onClick={() => switchTab(tab.id)}
+                                className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
+                            >
+                                <span className="tab-label">{tab.label}</span>
+                                <button 
+                                    onClick={(e) => closeTab(e, tab.id)}
+                                    className="tab-close-btn"
+                                    title="Cerrar pestaña"
+                                >
+                                    <span style={{ fontSize: '15px', lineHeight: '1', fontWeight: 'bold' }}>&#215;</span>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={addTab}
+                        className="add-tab-btn"
+                        title="Añadir pestaña"
+                    >
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: 1, marginTop: '-2px' }}>+</span>
+                    </button>
+                </div>
+
                 <div className="header-actions flex items-center gap-3">
                     {pendingCount > 0 && (
                         <div 
@@ -186,10 +423,19 @@ const Layout = () => {
                 onClick={toggleMenu}
             ></div>
 
-            {/* Main Content */}
+            {/* Main Content con Keep-Alive */}
             <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto">
-                <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
-                    <Outlet context={{ setTitle }} /> {/* Renders the child route (e.g. Dashboard) */}
+                <div className="w-full px-4 py-6 sm:px-6 lg:px-8 h-full">
+                    {tabs.map(tab => (
+                        <TabContentWrapper 
+                            key={tab.id} 
+                            tab={tab} 
+                            isActive={activeTabId === tab.id} 
+                            onTitleChange={updateTabLabel}
+                        />
+                    ))}
+                    {/* Fallback para rutas que no están en pestañas (ej. login, etc) */}
+                    {tabs.length === 0 && <Outlet context={{ setTitle }} />}
                 </div>
             </main>
         </div>

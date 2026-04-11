@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
@@ -7,6 +7,7 @@ import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offli
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import { sandvikLogoBase64 } from '../assets/logo';
+import SandvikLabel from '../components/labels/SandvikLabel';
 import '../styles/Label.css';
 
 
@@ -295,20 +296,30 @@ const Inbound = () => {
         }
     };
 
-    const fetchItemData = async (code, ref) => {
-        if (!code || !ref) return;
+    const findItem = async () => {
+        if (!itemCode || !importRef) {
+            alert("Ingrese Import Reference e Item Code");
+            return;
+        }
         setLoading(true);
-        const normalizedCode = code.trim().toUpperCase();
-        const normalizedRef = ref.trim().toUpperCase();
+        const normalizedCode = itemCode.trim().toUpperCase();
 
         let onlineFound = false;
         if (navigator.onLine) {
             try {
-                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(normalizedRef)}`, { credentials: 'include' });
+                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     setItemData(data);
+                    if (!editId) {
+                        setQuantity('');
+                        // El binLocation ya viene actualizado del backend (effective_bin_location)
+                        setRelocatedBin(''); 
+                    }
+                    quantityRef.current?.focus();
+                    setLoading(false);
                     onlineFound = true;
+                    return;
                 }
             } catch (e) { console.error("Error finding item online", e); }
         }
@@ -354,25 +365,22 @@ const Inbound = () => {
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin
                     });
+                    if (!editId) {
+                        setQuantity('');
+                        // En offline mantenemos el comportamiento anterior
+                        setRelocatedBin('');
+                    }
+                    quantityRef.current?.focus();
                 } else {
-                    if (normalizedCode) alert("Item no encontrado en el maestro local.");
+                    alert("Item no encontrado en el maestro local.");
                     setItemData(null);
                 }
             } catch (e) {
                 console.error("Offline lookup error", e);
+                alert("Error al buscar el ítem localmente.");
             }
+            finally { setLoading(false); }
         }
-        setLoading(false);
-        if (!editId) setQuantity('');
-        setTimeout(() => quantityRef.current?.focus(), 100);
-    };
-
-    const findItem = async () => {
-        if (!itemCode || !importRef) {
-            alert("Ingrese Import Reference e Item Code");
-            return;
-        }
-        await fetchItemData(itemCode, importRef);
     };
 
     const handleSaveLog = async (e) => {
@@ -471,16 +479,13 @@ const Inbound = () => {
 
     const startEdit = (log) => {
         setEditId(log.id);
-        const ref = log.importReference ? log.importReference.trim() : '';
-        const wb = log.waybill ? log.waybill.trim() : '';
-        setImportRef(ref);
-        setWaybill(wb);
+        setImportRef(log.importReference ? log.importReference.trim() : '');
+        setWaybill(log.waybill ? log.waybill.trim() : '');
         setItemCode(log.itemCode);
         setQuantity(log.qtyReceived);
         setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
-        
-        // Ejecutar búsqueda sin alertas usando la función directa
-        fetchItemData(log.itemCode, ref);
+        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
+            .then(r => r.json()).then(data => setItemData(data));
     };
 
     const handleScan = (code) => {
@@ -774,57 +779,13 @@ const Inbound = () => {
                         <div className="lg:col-span-1">
                             <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
                             <div className="flex justify-center">
-                                <div style={{
-                                    width: '70mm',
-                                    height: '100mm',
-                                    padding: '3.5mm',
-                                    boxSizing: 'border-box',
-                                    background: 'white',
-                                    border: '1px solid #ccc',
-                                    fontFamily: 'Arial, sans-serif',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}>
-                                    {/* Logo */}
-                                    <img src={sandvikLogoBase64} alt="Sandvik" style={{ height: '7mm', display: 'block', marginBottom: '3.5mm', flexShrink: 0, alignSelf: 'flex-start' }} />
-
-                                    {/* Header */}
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.2, wordBreak: 'break-word', color: '#000' }}>{itemData?.itemCode || 'ITEM CODE'}</div>
-                                    <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: 1.1, wordBreak: 'break-word', marginBottom: '2mm', color: '#000' }}>{itemData?.description || 'Description'}</div>
-
-                                    <div style={{ flexGrow: 1 }}></div>
-
-                                    {/* Data Table */}
-                                    <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0, color: '#000' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Quantity/pack</div>
-                                            <div>{quantity || 1} EA</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Product weight</div>
-                                            <div>{totalWeight} kg</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Packaging date</div>
-                                            <div>{new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
-                                            <div>Bin location</div>
-                                            <div>{relocatedBin || itemData?.binLocation || ''}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2mm', flexShrink: 0, flexGrow: 1 }}>
-                                        <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1, color: '#000' }}>
-                                            All trademarks and logotypes appearing on this label are owned by Sandvik Group
-                                        </p>
-                                        <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
-                                            {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div className="border border-gray-200 w-full h-full"></div>}
-                                        </div>
-                                    </div>
-                                </div>
+                                <SandvikLabel 
+                                    data={itemData} 
+                                    qrImage={qrImage} 
+                                    quantity={quantity} 
+                                    relocatedBin={relocatedBin} 
+                                    totalWeight={totalWeight} 
+                                />
                             </div>
                             <div className="w-full flex justify-center mt-4"><button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>Imprimir</button></div>
                         </div>

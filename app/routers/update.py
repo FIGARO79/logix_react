@@ -356,8 +356,18 @@ async def update_files_post(
             error += f'Error PO Extractor (Crash): {str(e)}. '
 
     if files_uploaded:
-        background_tasks.add_task(load_csv_data)
-        message += " Procesamiento en segundo plano iniciado."
+        from app.services.csv_to_db import sync_master_csv_to_db
+        from app.core.db import AsyncSessionLocal
+
+        async def run_sync_all():
+            # 1. Recargar caché de RAM
+            await load_csv_data()
+            # 2. Sincronizar con SQL (si el maestro cambió)
+            async with AsyncSessionLocal() as session:
+                await sync_master_csv_to_db(session)
+
+        background_tasks.add_task(run_sync_all)
+        message += " Procesamiento en segundo plano y sincronización SQL iniciados."
 
     if error:
         return ORJSONResponse(status_code=400, content={"error": error})

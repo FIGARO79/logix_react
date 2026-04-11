@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
@@ -65,7 +65,7 @@ const PickingAudit = () => {
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
 
     useEffect(() => {
-        setTitle("Chequeo de Picking");
+        setTitle("Verificación de Picking");
         loadTrackingData();
     }, [setTitle]);
 
@@ -163,19 +163,19 @@ const PickingAudit = () => {
                     [pkgNum]: val
                 }
             };
-            
+
             // Sincronizar qty_scan en orderItems
             const [code, line] = itemKey.split(':');
             const newItems = [...orderItems];
             const itemIdx = newItems.findIndex(i => i.code === code && (i.order_line || '') === line);
-            
+
             if (itemIdx > -1) {
                 const totalAssigned = Object.values(next[itemKey]).reduce((a, b) => a + (parseInt(b) || 0), 0);
                 newItems[itemIdx].qty_scan = totalAssigned;
                 newItems[itemIdx].difference = totalAssigned - newItems[itemIdx].qty_req;
                 setOrderItems(newItems);
             }
-            
+
             return next;
         });
     };
@@ -360,7 +360,7 @@ const PickingAudit = () => {
                                     {i + 1}
                                 </button>
                             ))}
-                            
+
                             <div className="flex gap-1">
                                 {(parseInt(packagesCount) || 1) > 1 && (
                                     <button

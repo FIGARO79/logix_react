@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Conteo de Inventario"); }, [setTitle]);
+    useEffect(() => { setTitle("Conteos Cíclicos"); }, [setTitle]);
 
     // Session State
     const [activeSession, setActiveSession] = useState(null);

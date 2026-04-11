@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
@@ -13,7 +13,7 @@ const StockSearch = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
 
     React.useEffect(() => {
-        setTitle('Consultar Stock');
+        setTitle("Consulta de Stock");
     }, [setTitle]);
 
     // Audio Beep Function

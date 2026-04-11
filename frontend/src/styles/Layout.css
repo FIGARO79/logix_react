@@ -104,3 +104,147 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Estilos de Pestañas (Tab System) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Contenedor principal de pestañas */
+.tabs-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 100%;
+    margin-left: 1rem;
+    padding-top: 6px; /* Para que las pestañas no toquen el borde superior */
+}
+
+.tabs-scroll-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 0px; /* Chrome las tiene juntas */
+    height: calc(100% - 2px);
+    margin-bottom: 0px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 40px);
+}
+
+/* Estilo de la pestaña individual (Chrome Style) */
+.tab-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 140px;
+    max-width: 240px;
+    height: 34px;
+    padding: 0 10px 0 14px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    position: relative;
+    user-select: none;
+    background-color: rgba(255, 255, 255, 0.04); /* Inactivo muy oscuro */
+    color: rgba(255, 255, 255, 0.7);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Pestaña Activa */
+.tab-item.active {
+    background-color: rgba(255, 255, 255, 0.15); /* Activo más claro, uniendo con toolbar */
+    color: #ffffff;
+    border-right: 1px solid transparent; /* Sin borde en activo */
+    z-index: 2; /* Por encima de las demás */
+}
+
+.tab-item:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.tab-label {
+    font-size: 0.85rem;
+    font-weight: 400; /* Chrome es font normal */
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+}
+
+/* Botón de cerrar pestaña */
+.tab-close-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    padding: 0 !important;
+    margin-left: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Importante para que no se deforme */
+    opacity: 0;
+    transition: background-color 0.1s;
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.tab-item:hover .tab-close-btn,
+.tab-item.active .tab-close-btn {
+    opacity: 1; /* En Chrome siempre aparece al hacer hover o estar activa */
+}
+
+.tab-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Separador Chrome ' | ' antes del + */
+.tabs-wrapper::after {
+    content: '';
+}
+
+/* Botón de añadir pestaña (+) estilo Chrome */
+.add-tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background-color: transparent; /* Sin fondo circular por defecto */
+    color: rgba(255, 255, 255, 0.8);
+    border: none;
+    transition: background-color 0.2s;
+    margin-left: 8px;
+    margin-bottom: 4px; /* Alinear con el centro de las pestañas */
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.add-tab-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+header .header-actions {
+    flex-shrink: 0;
+}
+
+/* Ajuste responsivo */
+@media (max-width: 768px) {
+    .tab-item {
+        min-width: 80px;
+        padding: 0 0.5rem;
+    }
+    .header-actions {
+        display: none;
+    }
+}

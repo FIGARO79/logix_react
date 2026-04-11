@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const CycleCountHistory = () => {
     const navigate = useNavigate();
@@ -44,7 +45,7 @@ const CycleCountHistory = () => {
     const observerTarget = useRef(null);
 
     useEffect(() => {
-        setTitle("Registro de Conteos");
+        setTitle("Conteos Cíclicos");
     }, [setTitle]);
 
     useEffect(() => {
@@ -69,7 +70,8 @@ const CycleCountHistory = () => {
     };
 
     const handleExport = () => {
-        window.location.href = '/api/counts/export_recordings';
+        const params = new URLSearchParams();
+        window.location.href = `/api/counts/export_recordings?${params.toString()}`;
     };
 
     const filteredRecordings = recordings.filter(rec =>

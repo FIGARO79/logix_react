@@ -20,7 +20,8 @@
     "react-router-dom": "^6.21.3",
     "react-to-print": "^3.2.0",
     "react-toastify": "^11.0.5",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "lucide-react": "^0.344.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
