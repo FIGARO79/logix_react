@@ -130,6 +130,7 @@ class AISlottingService:
     async def predict_best_bin(self, db: AsyncSession, item_code: str, sic_code: str, fallback_bin: Optional[str] = None) -> Optional[str]:
         """
         Predice la ubicación más probable basada en el cache de memoria (respaldado por DB).
+        Filtra las predicciones por categoría asegurando que el spot (Hot/Cold) coincida.
         """
         await self._ensure_initialized(db)
         
@@ -143,11 +144,34 @@ class AISlottingService:
             if bins[best_bin] >= 2:
                 return best_bin
 
-        # Prioridad 2: Categoría SIC (Media Confianza)
+        # Prioridad 2: Categoría SIC (Media Confianza con Conciencia Espacial)
         if sic_code in self._category_cache:
-            bins = self._category_cache[sic_code]
-            best_bin = max(bins, key=bins.get)
-            if bins[best_bin] >= 5:
+            # Obtener configuración del almacén localmente para evitar importaciones circulares
+            from app.services.slotting_service import slotting_service
+            config = await slotting_service._get_layout_config(db)
+            storage = config.get('storage', {})
+            turnover_map = config.get('turnover', {})
+
+            # Determinar el spot ideal de la categoría
+            ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
+            if sic_code in ['W', 'X', 'Y']: 
+                ideal_spot = 'hot'
+            elif sic_code in ['K', 'L', 'Z', '0']:
+                ideal_spot = 'cold'
+
+            # Filtrar ubicaciones aprendidas que tengan al menos 5 repeticiones
+            valid_bins = {b: freq for b, freq in self._category_cache[sic_code].items() if freq >= 5}
+            
+            # Filtrar solo aquellas que coincidan con el spot ideal (Hot/Cold) del mapa
+            spot_matched_bins = {}
+            for b, freq in valid_bins.items():
+                bin_spot = str(storage.get(b, {}).get('spot', 'cold')).lower()
+                if bin_spot == ideal_spot:
+                    spot_matched_bins[b] = freq
+
+            if spot_matched_bins:
+                # Retornar el bin más frecuente que cumple con la regla de optimización de espacio
+                best_bin = max(spot_matched_bins, key=spot_matched_bins.get)
                 return best_bin
 
         return fallback_bin

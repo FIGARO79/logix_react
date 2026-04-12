@@ -69,19 +69,8 @@ class SlottingService:
         turnover_map = config.get('turnover', {})
         
         current_bin = str(item_details.get('Bin_1', '')).strip().upper()
-
-        # Si el ítem ya está en una ubicación que existe en el mapa maestro, no sugerimos nada nuevo
-        if current_bin in storage:
-            return None
-
-        occupancy = await self._get_bins_occupancy(db)
-        
-        target_zone = None
-        target_levels = None
-        forbidden_zones = []
-        description = str(item_details.get('Item_Description', '')).upper()
         item_code = str(item_details.get('Item_Code', '')).strip()
-        
+
         # 1. Obtener hits y clasificar dinámicamente si es posible
         hits = await self._get_item_hits(db, item_code)
         sic_code = self.get_sic_code_by_hits(hits)
@@ -89,6 +78,28 @@ class SlottingService:
         # Fallback al código de stockroom si el dinámico es '0' pero el maestro tiene algo
         if sic_code == '0':
             sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper() or '0'
+
+        # Determinar el spot ideal basado en el SIC Code
+        ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
+        if sic_code in ['W', 'X', 'Y']: 
+            ideal_spot = 'hot'
+        elif sic_code in ['K', 'L', 'Z', '0']:
+            ideal_spot = 'cold'
+
+        # Reubicación Proactiva: Si el ítem ya está en una ubicación válida en el maestro...
+        if current_bin in storage:
+            current_spot = str(storage[current_bin].get('spot', 'cold')).lower()
+            # Si el spot actual coincide con el ideal, NO sugerimos nada nuevo (se queda ahí)
+            if current_spot == ideal_spot:
+                return None
+            # Si NO coincide (ej. está en cold y ahora es hot), el algoritmo continuará y sugerirá un nuevo bin
+
+        occupancy = await self._get_bins_occupancy(db)
+        
+        target_zone = None
+        target_levels = None
+        forbidden_zones = []
+        description = str(item_details.get('Item_Description', '')).upper()
         
         weight = 0.0
         try:
