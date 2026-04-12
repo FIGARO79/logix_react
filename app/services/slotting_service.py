@@ -117,19 +117,15 @@ class SlottingService:
         elif 0 < weight < 0.1:
             target_zone = "Minuteria"
         elif weight > 10:
+            target_zone = "Rack"
             target_levels = [3, 4, 5]
+        elif sic_code in ['W', 'X']:
             target_zone = "Rack"
-        elif 2 <= weight <= 10:
+            target_levels = [0, 1]
+        else:
+            # Todo lo demás <= 10kg (especialmente Y, K, L, Z, 0) va al segundo nivel
+            target_zone = "Rack"
             target_levels = [2]
-            target_zone = "Rack"
-        elif 0.1 <= weight < 2:
-            target_zone = "Rack"
-            if sic_code in ['W', 'X']:
-                target_levels = [1]
-            elif sic_code in ['Y', 'K']:
-                target_levels = [1, 2]
-            else:
-                target_levels = [3, 4, 5]
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
@@ -144,7 +140,14 @@ class SlottingService:
             if target_levels and level not in target_levels: continue
 
             current_items = occupancy.get(bin_code.upper(), 0)
-            limit = 3 if zone == "Minuteria" else 4
+            
+            # Dinámica de límites: Nivel 2 tiene capacidad extendida
+            if zone == "Minuteria":
+                limit = 3
+            elif level == 2:
+                limit = 6
+            else:
+                limit = 4
             
             if current_items < limit:
                 candidates.append({

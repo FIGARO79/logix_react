@@ -39,13 +39,11 @@ El motor de slotting tradicional evalúa las características físicas antes de 
 *   **Minutería:** Si el peso unitario del ítem es inferior a **0.1 kg**.
 
 ### B. Niveles en Rack (Basado en Peso y Rotación)
-Si el ítem no entra en Cantilever o Minutería, se asigna a la zona de **Rack** siguiendo estas reglas:
-*   **Ítems Pesados (> 10 kg):** Ubicados en niveles altos (**3, 4 o 5**) para optimizar el soporte estructural.
-*   **Peso Medio (2 - 10 kg):** Ubicados preferentemente en el **Nivel 2**.
-*   **Peso Ligero (0.1 - 2 kg):**
-    *   Si es rotación **W, X**: **Nivel 1** (Piso) para picking rápido.
-    *   Si es rotación **Y, K**: **Niveles 1 o 2**.
-    *   Si es lenta (**L, Z, 0**): **Niveles 3, 4 o 5**.
+Si el ítem no entra en Cantilever o Minutería, el sistema prioriza la seguridad y el espacio:
+
+1.  **Ítems Pesados (> 10 kg):** Ubicados obligatoriamente en niveles altos (**3, 4 o 5**) para manipulación exclusiva con **montacargas**.
+2.  **Alta Rotación (W, X):** Ubicados en niveles de piso (**0 o 1**) para maximizar la velocidad de picking manual.
+3.  **Resto de ítems (Y, K, L, Z, 0):** Todos los ítems de peso medio/bajo (<= 10 kg) que no sean críticos se centralizan en el **Nivel 2**, aprovechando la altura ergonómica ideal.
 
 ---
 
@@ -62,7 +60,10 @@ El servicio `AISlottingService` aprende de las decisiones de los operarios, pero
 ## 5. Excepciones Absolutas (Prioridad Máxima)
 
 1. **Cross-Docking (XDOCK):** Si el ítem escaneado tiene reservas pendientes para clientes (`xdock_pending > 0`), el sistema ignorará todas las reglas anteriores y la IA, sugiriendo invariablemente **"XDOCK"** (en rojo) para forzar la separación de la mercancía.
-2. **Capacidad del Bin (Regla de Mezcla):** Si la IA sugiere un cajón, el sistema verifica su ocupación real en tiempo real. Si el cajón ya tiene el máximo permitido de SKUs diferentes (3 en Minutería, 4 en Racks), la sugerencia de la IA se anula y el sistema busca un cajón nuevo.
+2. **Capacidad del Bin (Regla de Mezcla):** El sistema verifica cuántos SKUs hay en el cajón para evitar saturación:
+    *   **Minutería:** Máximo **3 SKUs**.
+    *   **Nivel 2:** Máximo **6 SKUs** (Zona optimizada de alta densidad).
+    *   **Otros Niveles de Rack:** Máximo **4 SKUs**.
 
 ---
 
