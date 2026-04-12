@@ -85,3 +85,12 @@ planner_config.json
 ai_slotting_memory.json
 po_lookup.json
 grn_master_data.json
+
+# Scripts de inicio locales
+start_backend.ps1
+start_backend.bat
+start_wsl.sh
+.venv_wsl/
+
+# Agentes IA y herramientas locales
+.agents/

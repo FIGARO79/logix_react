@@ -133,8 +133,8 @@ const Update = () => {
             {/* Header Profesional */}
             <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-black tracking-tight leading-none">Actualización de Sistema</h1>
-                    <p className="text-black text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Sincronización de Base de Datos y Ficheros Maestros</p>
+                    <h1 className="text-base font-normal tracking-tight">Actualización de Sistema</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Sincronización de Base de Datos y Ficheros Maestros</p>
                 </div>
             </div>
 

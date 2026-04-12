@@ -133,8 +133,8 @@ const SlottingConfig = () => {
             {/* Header Técnico */}
             <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-black tracking-tight leading-none">Estrategia de Slotting y Layout</h1>
-                    <p className="text-black text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Configuración de Almacenamiento y Reglas SIC</p>
+                    <h1 className="text-base font-normal tracking-tight">Estrategia de Slotting y Layout</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Configuración de Almacenamiento y Reglas SIC</p>
                 </div>
                 <div className="flex gap-3">
                     <button

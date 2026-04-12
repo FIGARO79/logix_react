@@ -107,8 +107,8 @@ const AdminInventory = () => {
             {/* Header Técnico */}
             <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-black tracking-tight leading-none">Administración de Inventario</h1>
-                    <p className="text-black text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Gestión de Ciclos y Auditoría de Stock</p>
+                    <h1 className="text-base font-normal tracking-tight">Administración de Inventario</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Gestión de Ciclos y Auditoría de Stock</p>
                 </div>
                 <div className="flex gap-3">
                     <button 
@@ -162,7 +162,7 @@ const AdminInventory = () => {
                                             className={`flex-1 h-8 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${
                                                 stage === item.s 
                                                 ? 'bg-[#285f94] text-white hover:bg-[#1e4a74]' 
-                                                : 'bg-zinc-800 text-white hover:bg-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-300'
+                                                : 'bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-100 disabled:text-gray-300'
                                             }`}
                                         >
                                             {item.label}

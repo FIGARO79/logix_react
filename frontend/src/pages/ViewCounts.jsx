@@ -76,12 +76,12 @@ const ViewCounts = () => {
             {/* Page Header */}
             <div className="mb-6 flex justify-between items-end border-b border-gray-100 pb-4">
                 <div>
-                    <h1 className="text-xl font-normal text-[#32363a] mb-1">Auditoría de Campo</h1>
-                    <p className="text-xs text-[#6a6d70] uppercase tracking-wider font-bold">Monitoreo de avance de conteo físico general</p>
+                    <h1 className="text-base font-normal tracking-tight">Auditoría de Campo</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Monitoreo de avance de conteo físico general</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Estado del Proceso</p>
-                    <p className="text-lg font-light text-green-600">{stats.progress_percentage}% Completado</p>
+                    <p className="text-[8px] text-gray-400 uppercase font-bold">Estado del Proceso</p>
+                    <p className="text-base font-light text-green-600">{stats.progress_percentage}% Completado</p>
                 </div>
             </div>
 
@@ -131,7 +131,7 @@ const ViewCounts = () => {
                         <thead className="sticky top-0 z-10 bg-gray-50">
                             <tr>
                                 {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Acciones'].map((h, i) => (
-                                    <th key={i} className="px-4 py-3 border-b border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                                    <th key={i} className="px-4 py-3 border-b border-gray-200 text-[10px] font-bold uppercase tracking-widest text-white-500">
                                         {h}
                                     </th>
                                 ))}
