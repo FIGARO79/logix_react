@@ -71,13 +71,17 @@ class SlottingService:
         current_bin = str(item_details.get('Bin_1', '')).strip().upper()
         item_code = str(item_details.get('Item_Code', '')).strip()
 
-        # 1. Obtener hits y clasificar dinámicamente si es posible
-        hits = await self._get_item_hits(db, item_code)
-        sic_code = self.get_sic_code_by_hits(hits)
-        
-        # Fallback al código de stockroom si el dinámico es '0' pero el maestro tiene algo
-        if sic_code == '0':
-            sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper() or '0'
+        # Prioridad 1: Confiar en la clasificación oficial del Maestro (ERP)
+        sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper()
+
+        # Prioridad 2 (Fallback): Si el ERP no mandó SIC Code (vacío o '0'), intentar deducirlo por actividad local
+        if not sic_code or sic_code == '0' or sic_code == 'N/A':
+            hits = await self._get_item_hits(db, item_code)
+            sic_code = self.get_sic_code_by_hits(hits)
+            
+        # Si aún así no hay nada, por defecto es '0' (Cold)
+        if not sic_code:
+            sic_code = '0'
 
         # Determinar el spot ideal basado en el SIC Code
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()

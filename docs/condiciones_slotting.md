@@ -1,63 +1,101 @@
 # Documentación: Condiciones de Slotting e IA (Logix WMS)
 
-Este documento detalla los criterios lógicos y de Inteligencia Artificial que el sistema Logix utiliza para sugerir ubicaciones óptimas de almacenamiento.
-
-## 1. Clasificación por Rotación (Hits)
-El sistema analiza la frecuencia de movimientos de cada ítem en los últimos **90 días** para asignarle un código de rotación (SIC Code):
-
-| Código | Rango de Hits (90 días) | Descripción |
-| :--- | :--- | :--- |
-| **W** | > 30 | Alta Rotación (Hot) |
-| **X** | 11 - 30 | Rotación Media-Alta |
-| **Y** | 7 - 10 | Rotación Media |
-| **K** | 5 - 6 | Rotación Baja-Media |
-| **L** | 3 - 4 | Rotación Baja |
-| **Z** | 1 - 2 | Muy Baja Rotación |
-| **0** | 0 | Estático o Sin Movimiento |
+Este documento detalla los criterios lógicos, de Inteligencia Artificial y reglas de negocio que el sistema Logix utiliza para sugerir ubicaciones óptimas de almacenamiento durante los procesos de Inbound (Recepción).
 
 ---
 
-## 2. Reglas de Asignación por Atributos Físicos
-El motor de slotting evalúa las características físicas antes de sugerir un nivel y zona:
+## 1. Clasificación por Rotación (SIC Code / ABC Dinámico)
+
+El sistema determina la rotación de un ítem (si es "Hot" o "Cold") utilizando un sistema de **Prioridades Jerárquicas**:
+
+*   **PRIORIDAD 1 (Maestro ERP):** El sistema lee en tiempo real el valor oficial de la columna `SIC_Code_stockroom` desde el archivo maestro (SAP/ERP). Si el ERP ya calculó la rotación (ej. `W`, `X`, `Z`), Logix obedece esta clasificación matemáticamente perfecta sin cuestionarla.
+*   **PRIORIDAD 2 (Cálculo Local - Fallback):** Solo si el maestro no proporciona un `SIC Code` válido (viene vacío, '0' o 'N/A'), Logix calculará los "hits" (frecuencia de recepción) de los últimos 90 días locales para adivinar la rotación:
+
+| Código | Rango de Hits (90 días) | Zona Ideal |
+| :--- | :--- | :--- |
+| **W** | > 30 | Alta Rotación (Hot) |
+| **X** | 11 - 30 | Alta Rotación (Hot) |
+| **Y** | 7 - 10 | Alta Rotación (Hot) |
+| **K** | 5 - 6 | Baja Rotación (Cold) |
+| **L** | 3 - 4 | Baja Rotación (Cold) |
+| **Z** | 1 - 2 | Baja Rotación (Cold) |
+| **0** | 0 | Baja Rotación (Cold) |
+
+---
+
+## 2. Reubicación Proactiva (Optimizador Espacial)
+
+A diferencia de los sistemas estáticos, Logix evalúa si la ubicación actual de un ítem sigue siendo la óptima.
+Si un ítem está guardado en un cajón (ej. zona `Cold`) pero su clasificación de rotación cambia (ej. SAP lo actualiza a `W - Hot`), el sistema **forzará una sugerencia de reubicación proactiva** hacia un cajón `Hot` vacío durante su próxima recepción, rompiendo el estatus quo para optimizar los tiempos de picking.
+
+---
+
+## 3. Reglas de Asignación por Atributos Físicos
+
+El motor de slotting tradicional evalúa las características físicas antes de sugerir un nivel y zona:
 
 ### A. Zonificación por Descripción
 *   **Cantilever:** Si el nombre del ítem contiene las palabras clave `"ROD"` o `"INTEGRAL STEEL"`.
 *   **Minutería:** Si el peso unitario del ítem es inferior a **0.1 kg**.
 
 ### B. Niveles en Rack (Basado en Peso y Rotación)
-Si el ítem no entra en Cantilever o Minutería, se asigna a la zona de **Rack** siguiendo estas reglas de nivel:
-
+Si el ítem no entra en Cantilever o Minutería, se asigna a la zona de **Rack** siguiendo estas reglas:
 *   **Ítems Pesados (> 10 kg):** Ubicados en niveles altos (**3, 4 o 5**) para optimizar el soporte estructural.
 *   **Peso Medio (2 - 10 kg):** Ubicados preferentemente en el **Nivel 2**.
 *   **Peso Ligero (0.1 - 2 kg):**
-    *   Si es rotación **W** o **X**: **Nivel 1** (Piso) para facilitar el picking rápido.
-    *   Si es rotación **Y** o **K**: **Niveles 1 o 2**.
-    *   Si es rotación lenta (**L, Z, 0**): **Niveles 3, 4 o 5**.
+    *   Si es rotación **W, X**: **Nivel 1** (Piso) para picking rápido.
+    *   Si es rotación **Y, K**: **Niveles 1 o 2**.
+    *   Si es lenta (**L, Z, 0**): **Niveles 3, 4 o 5**.
 
 ---
 
-## 3. Estrategia de Ubicación (Hot vs Cold Spots)
-Cada bin en el almacén tiene un atributo de "Spot" que define su accesibilidad:
-*   **Hot Spot:** Ubicaciones de fácil acceso (ej. cabeceras de pasillo). Reservadas para códigos **W, X, Y**.
-*   **Cold Spot:** Ubicaciones de acceso más lento (ej. fondo o niveles altos). Reservadas para códigos **K, L, Z, 0**.
+## 4. Motor de IA (AI Slotting con Conciencia Espacial)
+
+El servicio `AISlottingService` aprende de las decisiones de los operarios, pero cruza esa información con el mapa topológico del almacén para no cometer errores:
+
+1.  **Patrón por Ítem (Alta Confianza):** Si un ítem específico se guarda manualmente en una ubicación al menos **2 veces**, la IA recordará ese bin como la ubicación preferida.
+2.  **Patrón por Categoría (Conciencia Espacial):** Si ítems de la misma rotación (ej. SIC `W`) se guardan consistentemente en un área al menos **5 veces**, la IA aprenderá el patrón. Sin embargo, **solo sugerirá esa ubicación si el cajón aprendido coincide con la regla de temperatura (Hot/Cold) de la categoría.**
+3.  **Filtro de Seguridad:** La IA **NUNCA** aprende de ubicaciones virtuales como `XDOCK`, `PUTAWAY` o `STAGE`.
 
 ---
 
-## 4. Límites de Capacidad (Mezcla de SKUs)
-Para mantener el orden y precisión en el inventario, se limitan los SKUs únicos por bin:
-*   **Minutería:** Máximo **3 SKUs** diferentes.
-*   **Otras Zonas (Rack/Cantilever):** Máximo **4 SKUs** diferentes.
+## 5. Excepciones Absolutas (Prioridad Máxima)
+
+1. **Cross-Docking (XDOCK):** Si el ítem escaneado tiene reservas pendientes para clientes (`xdock_pending > 0`), el sistema ignorará todas las reglas anteriores y la IA, sugiriendo invariablemente **"XDOCK"** (en rojo) para forzar la separación de la mercancía.
+2. **Capacidad del Bin (Regla de Mezcla):** Si la IA sugiere un cajón, el sistema verifica su ocupación real en tiempo real. Si el cajón ya tiene el máximo permitido de SKUs diferentes (3 en Minutería, 4 en Racks), la sugerencia de la IA se anula y el sistema busca un cajón nuevo.
 
 ---
 
-## 5. Motor de IA (Aprendizaje Continuo)
-El servicio `AISlottingService` complementa las reglas estáticas aprendiendo de las decisiones de los operarios:
+## 🚀 ROADMAP: Evolución a WMS Clase Mundial (Integración Outbound)
 
-1.  **Patrón por Ítem:** Si un ítem específico es guardado en una ubicación y esta decisión se repite al menos **2 veces**, la IA recordará ese bin como la "ubicación preferida" de ese ítem.
-2.  **Patrón por Categoría (SIC):** Si ítems de la misma rotación/categoría se guardan consistentemente en un área al menos **5 veces**, la IA generaliza la preferencia para esa zona.
-3.  **Filtro de Seguridad:** La IA **NUNCA** aprende de ubicaciones virtuales como `XDOCK`, `PUTAWAY`, `STAGE` o `TRANSITO`.
+El sistema actual está preparado arquitectónicamente para absorber datos de **Salidas (Outbound / Picking)** desde el ERP. Al conectar un CSV o tabla de despachos (ej. `OUTBOUND_ORDERS.csv`), Logix desbloqueará las siguientes capacidades avanzadas:
+
+1.  **Slotting por Afinidad (Market Basket Analysis):**
+    *   **Lógica:** La IA analizará qué ítems se despachan juntos en las mismas órdenes (ej. Tornillo A + Tuerca B en el 80% de los pedidos).
+    *   **Acción:** Durante la recepción, Logix sugerirá guardar esos ítems en cajones contiguos, reduciendo drásticamente las distancias caminadas durante el picking.
+2.  **Reabastecimiento Predictivo (Replenishment Automático):**
+    *   **Lógica:** Logix cruzará las órdenes pendientes del día con el inventario físico en las ubicaciones "Hot" (nivel de piso).
+    *   **Acción:** Si el stock en el nivel 1 es insuficiente para cubrir la demanda del día, el sistema generará tareas automáticas para que los montacargas bajen pallets desde las zonas de reserva (niveles 4 o 5) antes de que inicie el turno de picking.
+3.  **Inventario Perpetuo en Tiempo Real:**
+    *   **Lógica:** Descontar inventario al milisegundo desde Logix, sin esperar la actualización por lotes del ERP.
+    *   **Acción:** Evitar que el sistema sugiera guardar mercancía en un cajón que SAP considera medio lleno, pero que acaba de vaciarse físicamente hace unos minutos.
+4.  **Detección de Zombis (Campaña de Limpieza):**
+    *   **Lógica:** Identificar ítems almacenados en posiciones "Premium" (Hot Spots) que llevan más de 6 meses sin una sola salida registrada.
+    *   **Acción:** Generar reportes automáticos sugiriendo la reubicación de estos ítems a niveles superiores (Cold Spots), liberando espacio de altísimo valor para mercancía de alta rotación.
+5.  **Rutas de Picking Optimizadas (Pathfinding):**
+    *   **Lógica:** Teniendo las órdenes de salida y las coordenadas exactas de cada ítem en el layout de Logix.
+    *   **Acción:** Generar una lista de recolección digital ordenada lógicamente en forma de "S" o "U", garantizando que el operario nunca tenga que volver atrás en el mismo pasillo.
 
 ---
 
-> [!IMPORTANT]
-> Estas condiciones son dinámicas. Si un ítem aumenta su rotación (por ejemplo, de Z a W), el sistema sugerirá reubicarlo a un nivel 1 o Hot Spot en el próximo movimiento de inventario.
+### 📥 Requisitos de Integración (OUTBOUND_ORDERS.csv)
+
+Para habilitar estas capacidades avanzadas en el futuro, el ERP (SAP) solo necesita exportar un archivo CSV diario o en tiempo real con los movimientos de salida. El archivo debe contener como mínimo las siguientes columnas:
+
+| Nombre Sugerido de Columna | Descripción | Obligatorio |
+| :--- | :--- | :--- |
+| `Order_ID` | Número de la orden de venta, orden de producción o picking. (Clave para análisis de afinidad y agrupamiento). | **Sí** |
+| `Item_Code` | El código único del SKU (debe coincidir con el maestro). | **Sí** |
+| `Quantity` | Cantidad de unidades a despachar o despachadas. | **Sí** |
+| `Timestamp` | Fecha y hora de la creación de la orden o despacho. | No (pero muy recomendado para predecir picos) |
+| `Destination` | Cliente, línea de producción o área de destino. | No |
