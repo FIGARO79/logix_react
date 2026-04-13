@@ -803,7 +803,7 @@ const PickingAudit = () => {
                         </button>
                     </div>
                     {/* Desktop View */}
-                    <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-60 overflow-y-auto">
+                    <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-[500px] overflow-y-auto">
                         <table className="w-full text-left text-sm sap-table">
                             <thead className="sticky top-0 z-10 bg-slate-700 text-white shadow-sm">
                                 <tr>
@@ -857,15 +857,27 @@ const PickingAudit = () => {
                                         ))
                                 )}
                             </tbody>
+                            {trackingData.length > 0 && (
+                                <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                    <tr>
+                                        <td colSpan="4" className="py-2.5 px-3 text-right font-bold text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
+                                        <td className="py-2.5 px-3 text-center font-black text-lg text-[#285f94]">
+                                            {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="block sm:hidden space-y-2 max-h-60 overflow-y-auto">
+                    <div className="block sm:hidden space-y-2 max-h-[500px] overflow-y-auto relative">
                         {trackingData.length === 0 ? (
                             <div className="text-center p-4 text-gray-500 bg-gray-50 rounded">No hay pedidos recientes</div>
                         ) : (
-                            trackingData.map((t, idx) => (
+                            <>
+                                {trackingData.map((t, idx) => (
                                 <div key={idx}
                                     className={`${t.is_audited ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
                                     onClick={() => {
@@ -890,8 +902,15 @@ const PickingAudit = () => {
                                         {t.print_date}
                                     </div>
                                 </div>
-                            ))
-                        )}
+                            ))}
+                            <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Total Líneas:</span>
+                                <span className="text-[12px] font-black text-[#285f94]">
+                                    {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
+                                </span>
+                            </div>
+                        </>
+                    )}
                     </div>
                 </div>
             </div>
