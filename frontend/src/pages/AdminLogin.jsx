@@ -27,7 +27,7 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="min-h-full flex items-center justify-center bg-transparent py-12">
             <div className="fiori-login-card">
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">Admin Login</h1>

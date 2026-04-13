@@ -16,6 +16,7 @@ import LabelPrinting from '../pages/LabelPrinting';
 import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
 import PickingAudit from '../pages/PickingAudit';
+import AdminLogin from '../pages/AdminLogin';
 import AdminInventory from '../pages/AdminInventory';
 import AdminUsers from '../pages/AdminUsers';
 import SlottingConfig from '../pages/SlottingConfig';
@@ -56,6 +57,7 @@ const ROUTE_MAP = [
     { path: '/shipments', component: Shipments },
     { path: '/update', component: Update },
     { path: '/admin/users', component: AdminUsers },
+    { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
 ];
 
