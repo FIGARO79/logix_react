@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -63,6 +64,9 @@ ALLOWED_ORIGINS = [
     "https://logixapp.dev",
     "https://www.logixapp.dev"
 ]
+
+# --- Middlewares [ORDEN CRÍTICO] ---
+app.add_middleware(GZipMiddleware, minimum_size=1000) # Comprime si > 1KB
 
 app.add_middleware(
     CORSMiddleware,
