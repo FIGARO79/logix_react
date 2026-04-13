@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 
 # Importar configuración
-from app.core.config import PROJECT_ROOT, SECRET_KEY
+from app.core.config import PROJECT_ROOT, SECRET_KEY, ENVIRONMENT
 from app.middleware.security import SchemeMiddleware, HSTSMiddleware
 from app.middleware.csv_cache_reload import CSVCacheReloadMiddleware
 
@@ -49,7 +49,11 @@ app = FastAPI(
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
     lifespan=lifespan,
-    default_response_class=ORJSONResponse
+    default_response_class=ORJSONResponse,
+    # [SEGURIDAD] Deshabilitar docs en producción
+    docs_url=None if ENVIRONMENT == 'production' else "/docs",
+    redoc_url=None if ENVIRONMENT == 'production' else "/redoc",
+    openapi_url=None if ENVIRONMENT == 'production' else "/openapi.json"
 )
 # Forzar recarga completa de rutas para instantáneas de conciliación
 app.state.limiter = limiter
@@ -85,7 +89,7 @@ app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
     max_age=None,
-    https_only=False # Cambiado a False para permitir testing local en HTTP y evitar bucle de login
+    https_only=True if ENVIRONMENT == 'production' else False # En producción forzar cookies seguras
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
@@ -132,4 +136,5 @@ async def root():
 if __name__ == "__main__":
     import granian
     # loop="uvloop" asegura el uso del bucle de eventos de alto rendimiento
-    granian.Granian("main:app", address="0.0.0.0", port=8000, reload=True, interface="asgi", loop="uvloop").serve()
+    # [SUEGURIDAD] Solo escuchar en 127.0.0.1 para que solo Nginx pueda acceder
+    granian.Granian("main:app", address="127.0.0.1", port=8000, reload=True, interface="asgi", loop="uvloop").serve()
