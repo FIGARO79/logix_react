@@ -25,6 +25,9 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
+        # Limpiar BOM si existe en los nombres de las columnas
+        df.columns = [c.lstrip('\ufeff') for c in df.columns]
+        
         required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER", "CUSTOMER_NAME", "ORDER_LINE"]
         if not all(col in df.columns for col in required_columns):
             raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
@@ -79,6 +82,9 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         # Leer CSV
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
+        # Limpiar BOM si existe en los nombres de las columnas
+        df.columns = [c.lstrip('\ufeff') for c in df.columns]
+
         # [CORRECCIÓN] Filtrar líneas vacías o nulas de ORDER_ antes de procesar
         df = df.filter(
             (pl.col("ORDER_").is_not_null()) & 
