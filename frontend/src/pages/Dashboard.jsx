@@ -65,13 +65,6 @@ const Dashboard = () => {
                         <h1 className="text-2xl font-light text-slate-900 tracking-tight">Panel de Control</h1>
                         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Logix WMS</p>
                     </div>
-                    <div className="hidden md:block text-right">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado del Sistema</span>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            <span className="text-xs font-semibold text-slate-700 uppercase">Operativo</span>
-                        </div>
-                    </div>
                 </header>
 
                 {/* Grid de Categorías */}
