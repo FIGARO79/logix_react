@@ -16,6 +16,7 @@ import LabelPrinting from '../pages/LabelPrinting';
 import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
 import PickingAudit from '../pages/PickingAudit';
+import AdminLogin from '../pages/AdminLogin';
 import AdminInventory from '../pages/AdminInventory';
 import AdminUsers from '../pages/AdminUsers';
 import SlottingConfig from '../pages/SlottingConfig';
@@ -56,6 +57,7 @@ const ROUTE_MAP = [
     { path: '/shipments', component: Shipments },
     { path: '/update', component: Update },
     { path: '/admin/users', component: AdminUsers },
+    { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
 ];
 
@@ -88,7 +90,23 @@ const resolveComponent = (path) => {
 };
 
 const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
+    const [initialized, setInitialized] = useState(false);
     const resolved = resolveComponent(tab.path);
+
+    // Activar inicialización solo cuando la pestaña sea la activa
+    useEffect(() => {
+        if (isActive && !initialized) {
+            setInitialized(true);
+        }
+    }, [isActive, initialized]);
+
+    // Escuchar cambios en refreshKey para forzar un remontaje
+    useEffect(() => {
+        if (tab.refreshKey > 0) {
+            setInitialized(false);
+        }
+    }, [tab.refreshKey]);
+
     if (!resolved) return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
 
     const { Component } = resolved;
@@ -105,7 +123,14 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
             style={{ height: '100%', width: '100%' }}
         >
             <TabProvider value={contextValue}>
-                <Component setTitle={tabSetTitle} />
+                {/* Solo renderizar el componente si ha sido inicializado (Lazy Load) */}
+                {initialized ? (
+                    <Component setTitle={tabSetTitle} />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400 text-xs uppercase tracking-widest bg-[#fafafa]">
+                        <span>Cargando módulo...</span>
+                    </div>
+                )}
             </TabProvider>
         </div>
     );
@@ -206,6 +231,13 @@ const Layout = () => {
         }
     };
 
+    const refreshTab = (e, id) => {
+        e.stopPropagation();
+        setTabs(prev => prev.map(tab =>
+            tab.id === id ? { ...tab, refreshKey: (tab.refreshKey || 0) + 1 } : tab
+        ));
+    };
+
     useEffect(() => {
         document.title = title;
         checkAndSyncIfNeeded();
@@ -234,11 +266,22 @@ const Layout = () => {
                                 className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
                             >
                                 <span className="tab-label">{tab.label}</span>
-                                {tabs.length > 1 && (
-                                    <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
-                                        <span>&#215;</span>
+                                <div className="tab-actions flex items-center gap-1 ml-2">
+                                    <button 
+                                        onClick={(e) => refreshTab(e, tab.id)} 
+                                        className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                        title="Refrescar datos"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                        </svg>
                                     </button>
-                                )}
+                                    {tabs.length > 1 && (
+                                        <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
+                                            <span>&#215;</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

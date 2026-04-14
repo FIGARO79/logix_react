@@ -77,14 +77,11 @@ async def get_master_sync_data(user: str = Depends(login_required)):
                 po_lookup = orjson.loads(f.read())
         except: pass
 
-    # Retornamos Response con orjson.dumps para control total de serialización
-    return Response(
-        content=orjson.dumps({
-            "timestamp": time.time(),
-            "master_items": master_items,
-            "grn_pending": grn_data,
-            "xdock_reservations": xdock_data,
-            "po_lookup": po_lookup
-        }),
-        media_type="application/json"
-    )
+    # Retornamos ORJSONResponse para mejor integración con middlewares y performance
+    return ORJSONResponse({
+        "timestamp": time.time(),
+        "master_items": master_items,
+        "grn_pending": grn_data,
+        "xdock_reservations": xdock_data,
+        "po_lookup": po_lookup
+    })
