@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_db
 from app.models.schemas import CountExecutionRequest
-from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem, PlannerHoliday, AppState
+from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
 from app.services.db_logs import add_log
@@ -24,46 +24,56 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/planner", tags=["planner"])
 
 # --- Persistencia de Configuración ---
-from app.core.config import PLANNER_DATA_PATH
+from app.core.config import PLANNER_CONFIG_PATH, PLANNER_DATA_PATH
+
+CONFIG_FILE = PLANNER_CONFIG_PATH
 PLAN_DATA_FILE = PLANNER_DATA_PATH
 
-async def get_db_config(db: AsyncSession):
-    """Carga la configuración desde la Base de Datos."""
-    # 1. Obtener Fechas de app_state
-    res_dates = await db.execute(select(AppState).where(AppState.key.in_(['planner_start_date', 'planner_end_date'])))
-    dates_map = {row.key: row.value for row in res_dates.scalars().all()}
+def load_config():
+    """Carga la configuración desde el archivo JSON, o usa defaults."""
+    default_holidays = [
+        "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03",
+        "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29",
+        "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02",
+        "2026-11-16", "2026-12-08", "2026-12-25"
+    ]
     
-    # 2. Obtener Feriados
-    res_holidays = await db.execute(select(PlannerHoliday.date))
-    holidays_list = [h for h in res_holidays.scalars().all()]
-    
-    return {
-        "start_date": dates_map.get('planner_start_date', f"{datetime.datetime.now().year}-01-01"),
-        "end_date": dates_map.get('planner_end_date', f"{datetime.datetime.now().year}-12-31"),
-        "holidays": holidays_list
+    default_config = {
+        "start_date": f"{datetime.datetime.now().year}-01-01",
+        "end_date": f"{datetime.datetime.now().year}-12-31",
+        "holidays": default_holidays
     }
-
-async def save_db_config(db: AsyncSession, config_data: dict):
-    """Guarda la configuración en la Base de Datos."""
-    from sqlalchemy import delete
-    # Guardar Fechas
-    for key, val in [('planner_start_date', config_data['start_date']), ('planner_end_date', config_data['end_date'])]:
-        res = await db.execute(select(AppState).where(AppState.key == key))
-        obj = res.scalar_one_or_none()
-        if obj:
-            obj.value = val
-        else:
-            db.add(AppState(key=key, value=val))
-            
-    # Guardar Feriados (Limpiar y Reinsertar)
-    await db.execute(delete(PlannerHoliday))
-    for h_date in config_data['holidays']:
-        db.add(PlannerHoliday(date=h_date, description="Feriado Nacional"))
     
-    await db.commit()
+    config = default_config
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'rb') as f:
+                loaded = orjson.loads(f.read())
+                config.update(loaded)
+        except Exception:
+            pass
+            
+    global HOLIDAYS
+    try:
+        HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config.get("holidays", [])}
+    except ValueError:
+        HOLIDAYS = set()
+        
+    return config
+
+def save_config(config_data):
+    """Guarda la configuración en el archivo JSON."""
+    with open(CONFIG_FILE, 'wb') as f:
+        f.write(orjson.dumps(config_data, option=orjson.OPT_INDENT_2))
+        
+    global HOLIDAYS
+    try:
+        HOLIDAYS = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in config_data.get("holidays", [])}
+    except ValueError:
+        pass
 
 def load_plan_data():
-    """Carga los datos del plan calculado/guardado."""
+    """Carga los datos del plan calculeado/guardado."""
     if not os.path.exists(PLAN_DATA_FILE):
         return None
     try:
@@ -79,6 +89,9 @@ def save_plan_data(data):
         f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
     os.replace(temp_file, PLAN_DATA_FILE)
 
+# Cargar configuración inicial
+PLANNER_CONFIG = load_config()
+
 class PlannerConfigModel(BaseModel):
     start_date: str
     end_date: str
@@ -86,12 +99,12 @@ class PlannerConfigModel(BaseModel):
 
 FREQUENCY_MAP = {'A': 3, 'B': 2, 'C': 1}
 
-def get_working_days(start_date: datetime.date, end_date: datetime.date, holidays_set: set):
-    """Genera una lista de días hábiles, excluyendo fines de semana y festivos."""
+def get_working_days(start_date: datetime.date, end_date: datetime.date):
+    """Genera una lista de días hábiles, excluyendo fines de semana y festivos configurados."""
     working_days = []
     current_date = start_date
     while current_date <= end_date:
-        if current_date.weekday() < 5 and current_date not in holidays_set:
+        if current_date.weekday() < 5 and current_date not in HOLIDAYS:
             working_days.append(current_date)
         current_date += datetime.timedelta(days=1)
     return working_days
@@ -106,10 +119,6 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
 
     if s_date > e_date:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin.")
-
-    # Cargar feriados de la DB para este cálculo
-    res_h = await db.execute(select(PlannerHoliday.date))
-    holidays_set = {datetime.datetime.strptime(d, "%Y-%m-%d").date() for d in res_h.scalars().all()}
 
     stmt_master = select(MasterItem).where(MasterItem.physical_qty > 0)
     result_master = await db.execute(stmt_master)
@@ -146,7 +155,7 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
     if not tasks_to_schedule:
         return pl.DataFrame({"Item Code": [], "ABC Code": [], "Description": [], "Planned Date": []})
     
-    working_days = get_working_days(s_date, e_date, holidays_set)
+    working_days = get_working_days(s_date, e_date)
     if not working_days:
         raise HTTPException(status_code=400, detail="No hay días hábiles en el rango seleccionado.")
         
@@ -200,15 +209,16 @@ async def generate_count_plan(start_date: str = Query(...), end_date: str = Quer
     return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": f"attachment; filename=plan_conteos_{start_date}.xlsx"})
 
 @router.get("/config")
-async def get_planner_config(username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
-    return await get_db_config(db)
+async def get_planner_config(username: str = Depends(permission_required("planner"))):
+    return PLANNER_CONFIG
 
 @router.post("/config")
-async def update_planner_config(config: PlannerConfigModel, username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+async def update_planner_config(config: PlannerConfigModel, username: str = Depends(permission_required("planner"))):
     try:
-        config_data = config.model_dump()
-        await save_db_config(db, config_data)
-        return {"message": "Configuración guardada en DB", "config": config_data}
+        global PLANNER_CONFIG
+        PLANNER_CONFIG = config.dict()
+        save_config(PLANNER_CONFIG)
+        return {"message": "Configuración guardada", "config": PLANNER_CONFIG}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

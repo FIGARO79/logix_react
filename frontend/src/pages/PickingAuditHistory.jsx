@@ -13,9 +13,6 @@ const PickingAuditHistory = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingAudit, setEditingAudit] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // --- Package assignment edit state ---
-    const [packageModalAnchor, setPackageModalAnchor] = useState(null);
-    // --- Shipment selection ---
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [showShipmentModal, setShowShipmentModal] = useState(false);
     const [shipmentNote, setShipmentNote] = useState('');
@@ -25,7 +22,7 @@ const PickingAuditHistory = () => {
 
     useEffect(() => {
         setTitle("Pickings Empacados");
-    }, []);
+    }, [setTitle]);
 
     useEffect(() => {
         fetchAudits();
@@ -34,9 +31,7 @@ const PickingAuditHistory = () => {
     const fetchAudits = async () => {
         try {
             const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
-            if (!response.ok) {
-                throw new Error('Error al cargar auditorías');
-            }
+            if (!response.ok) throw new Error('Error al cargar auditorías');
             const data = await response.json();
             setAudits(data);
         } catch (err) {
@@ -46,22 +41,14 @@ const PickingAuditHistory = () => {
         }
     };
 
-    const toggleExpand = (id) => {
-        setExpandedAuditId(expandedAuditId === id ? null : id);
-    };
+    const toggleExpand = (id) => setExpandedAuditId(expandedAuditId === id ? null : id);
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
         let normalized = dateString.trim().replace(' ', 'T');
-        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return `${normalized}T00:00:00`;
-        }
-        const hasTimeZone = normalized.includes('Z') ||
-            normalized.match(/[+-]\d{2}:\d{2}$/) ||
-            (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
-        if (!hasTimeZone) {
-            normalized = `${normalized}Z`;
-        }
+        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) return `${normalized}T00:00:00`;
+        const hasTimeZone = normalized.includes('Z') || normalized.match(/[+-]\d{2}:\d{2}$/) || (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
+        if (!hasTimeZone) normalized = `${normalized}Z`;
         return normalized;
     };
 
@@ -70,9 +57,7 @@ const PickingAuditHistory = () => {
         if (!normalized) return false;
         const date = new Date(normalized);
         const today = new Date();
-        return date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear();
+        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
     };
 
     const formatDate = (dateString) => {
@@ -87,11 +72,7 @@ const PickingAuditHistory = () => {
     };
 
     const handleEditClick = (audit) => {
-        const clonedAudit = {
-            ...audit,
-            items: audit.items.map(item => ({ ...item }))
-        };
-        setEditingAudit(clonedAudit);
+        setEditingAudit({ ...audit, items: audit.items.map(item => ({ ...item })) });
         setIsEditModalOpen(true);
     };
 
@@ -101,24 +82,16 @@ const PickingAuditHistory = () => {
         const item = newAudit.items[idx];
         const key = `${item.item_code}:${item.order_line || ''}`;
 
-        // Si se están usando bultos, sincronizar con el primer bulto disponible
         if (newAudit.packages > 0) {
             if (!newAudit.packages_assignment) newAudit.packages_assignment = {};
             if (!newAudit.packages_assignment[key]) newAudit.packages_assignment[key] = {};
-            
-            // Si no hay asignaciones, asignar al bulto 1 por defecto
             const packageKeys = Object.keys(newAudit.packages_assignment[key]);
             const targetPkg = packageKeys.length > 0 ? packageKeys[0] : "1";
-            
             newAudit.packages_assignment[key][targetPkg] = val;
-            
-            // Recalcular total desde asignaciones
-            const total = Object.values(newAudit.packages_assignment[key]).reduce((a, b) => a + (parseInt(b) || 0), 0);
-            item.qty_scan = total;
+            item.qty_scan = Object.values(newAudit.packages_assignment[key]).reduce((a, b) => a + (parseInt(b) || 0), 0);
         } else {
             item.qty_scan = val;
         }
-        
         item.difference = item.qty_scan - item.qty_req;
         setEditingAudit(newAudit);
     };
@@ -142,22 +115,18 @@ const PickingAuditHistory = () => {
                 packages: parseInt(editingAudit.packages) || 0,
                 packages_assignment: editingAudit.packages_assignment || {}
             };
-
             const response = await fetch(`/api/update_picking_audit/${editingAudit.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
                 credentials: 'include'
             });
-
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.detail || 'Error al actualizar');
             }
-
             await fetchAudits();
             setIsEditModalOpen(false);
-            setEditingAudit(null);
             toast.success("Auditoría actualizada exitosamente");
         } catch (err) {
             toast.error(err.message);
@@ -166,38 +135,18 @@ const PickingAuditHistory = () => {
         }
     };
 
-    const handleAddNewPackage = () => {
-        setEditingAudit(prev => ({
-            ...prev,
-            packages: (parseInt(prev.packages) || 0) + 1
-        }));
-    };
-
+    const handleAddNewPackage = () => setEditingAudit(prev => ({ ...prev, packages: (parseInt(prev.packages) || 0) + 1 }));
     const handleRemoveLastPackage = () => {
         if (!editingAudit.packages || editingAudit.packages <= 0) return;
-        
-        // Verificar si el último bulto tiene asignaciones
         const lastPkg = editingAudit.packages.toString();
         let hasAssignments = false;
-        
         if (editingAudit.packages_assignment) {
             for (let key in editingAudit.packages_assignment) {
-                if (editingAudit.packages_assignment[key][lastPkg] > 0) {
-                    hasAssignments = true;
-                    break;
-                }
+                if (editingAudit.packages_assignment[key][lastPkg] > 0) { hasAssignments = true; break; }
             }
         }
-        
-        if (hasAssignments) {
-            toast.warning(`El bulto ${lastPkg} tiene ítems asignados. Vacíelo primero.`);
-            return;
-        }
-
-        setEditingAudit(prev => ({
-            ...prev,
-            packages: Math.max(0, prev.packages - 1)
-        }));
+        if (hasAssignments) { toast.warning(`El bulto ${lastPkg} tiene ítems asignados.`); return; }
+        setEditingAudit(prev => ({ ...prev, packages: Math.max(0, prev.packages - 1) }));
     };
 
     const handlePkgQtyChange = (itemIdx, pkgNum, value) => {
@@ -205,20 +154,11 @@ const PickingAuditHistory = () => {
         const newAudit = { ...editingAudit };
         const item = newAudit.items[itemIdx];
         const key = `${item.item_code}:${item.order_line || ''}`;
-
         if (!newAudit.packages_assignment) newAudit.packages_assignment = {};
         if (!newAudit.packages_assignment[key]) newAudit.packages_assignment[key] = {};
-
         newAudit.packages_assignment[key][pkgNum] = val;
-
-        let total = 0;
-        for (let p in newAudit.packages_assignment[key]) {
-            total += parseInt(newAudit.packages_assignment[key][p]) || 0;
-        }
-
-        item.qty_scan = total;
-        item.difference = total - item.qty_req;
-
+        item.qty_scan = Object.values(newAudit.packages_assignment[key]).reduce((a, b) => a + (parseInt(b) || 0), 0);
+        item.difference = item.qty_scan - item.qty_req;
         setEditingAudit(newAudit);
     };
 
@@ -256,17 +196,10 @@ const PickingAuditHistory = () => {
         const newAudit = { ...editingAudit };
         const item = newAudit.items[itemIdx];
         const key = `${item.item_code}:${item.order_line || ''}`;
-
-        if (newAudit.packages_assignment && newAudit.packages_assignment[key]) {
+        if (newAudit.packages_assignment?.[key]) {
             delete newAudit.packages_assignment[key][pkgNum];
-
-            let total = 0;
-            for (let p in newAudit.packages_assignment[key]) {
-                total += parseInt(newAudit.packages_assignment[key][p]) || 0;
-            }
-            item.qty_scan = total;
-            item.difference = total - item.qty_req;
-
+            item.qty_scan = Object.values(newAudit.packages_assignment[key]).reduce((a, b) => a + (parseInt(b) || 0), 0);
+            item.difference = item.qty_scan - item.qty_req;
             setEditingAudit(newAudit);
         }
     };
@@ -285,161 +218,152 @@ const PickingAuditHistory = () => {
             const res = await fetch('/api/shipments/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    audit_ids: [...selectedIds],
-                    note: shipmentNote || null,
-                    carrier: shipmentCarrier || null
-                }),
+                body: JSON.stringify({ audit_ids: [...selectedIds], note: shipmentNote || null, carrier: shipmentCarrier || null }),
                 credentials: 'include'
             });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'Error al crear envío');
-            }
-            const result = await res.json();
-            toast.success(result.message);
+            if (!res.ok) throw new Error((await res.json()).detail || 'Error al crear envío');
+            toast.success("Envío creado exitosamente");
             setShowShipmentModal(false);
             setSelectedIds(new Set());
-            setShipmentNote('');
-            setShipmentCarrier('');
             setTimeout(() => navigate('/shipments'), 1500);
-        } catch (err) {
-            toast.error(err.message);
-        } finally {
-            setCreatingShipment(false);
-        }
+        } catch (err) { toast.error(err.message); }
+        finally { setCreatingShipment(false); }
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
+            {/* Header Profesional */}
+            <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
+                <div className="flex flex-col gap-0">
+                    <h1 className="text-base font-normal tracking-tight">Pickings Empacados</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
+                </div>
+                <div className="text-[9px] font-bold text-black uppercase tracking-widest">
+                    {audits.length} Registros Encontrados
+                </div>
+            </div>
+
             {loading && (
-                <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#285f94]"></div>
+                <div className="flex justify-center items-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
                 </div>
             )}
 
             {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                    <p className="text-red-700">{error}</p>
+                <div className="mb-6 bg-red-50 text-red-600 px-4 py-3 border border-red-100 text-[10px] font-bold uppercase tracking-widest">
+                    {error}
                 </div>
             )}
 
             {!loading && !error && (
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+                <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="border-b border-gray-200 text-left text-xs font-bold uppercase tracking-wider">
-                                    <th className="px-2 py-2 text-center w-10">Envío</th>
-                                    <th className="px-3 py-2 text-center w-8"></th>
-                                    <th className="px-3 py-2">ID</th>
-                                    <th className="px-3 py-2">Orden</th>
-                                    <th className="px-3 py-2">Despacho</th>
-                                    <th className="px-3 py-2">Cliente</th>
-                                    <th className="px-3 py-2">Usuario</th>
-                                    <th className="px-3 py-2">Fecha</th>
-                                    <th className="px-3 py-2 text-center">Estado</th>
-                                    <th className="px-3 py-2 text-center">Acciones</th>
+                                <tr className="bg-zinc-50 border-b border-zinc-200">
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center w-10">Envío</th>
+                                    <th className="px-4 py-1.5 text-center w-8"></th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">ID</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Orden</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Despacho</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Cliente</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Usuario</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Fecha</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {audits.map((audit) => (
                                     <React.Fragment key={audit.id}>
                                         <tr
-                                            className={`border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer
-                                                ${expandedAuditId === audit.id ? 'bg-blue-50' : ''}
-                                                ${selectedIds.has(audit.id) ? 'bg-indigo-50' : ''}`}
+                                            className={`border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors cursor-pointer
+                                                ${expandedAuditId === audit.id ? 'bg-zinc-50' : ''}
+                                                ${selectedIds.has(audit.id) ? 'bg-blue-50/50' : ''}`}
                                             onClick={() => toggleExpand(audit.id)}
                                         >
-                                            <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
+                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIds.has(audit.id)}
                                                     onChange={() => toggleSelect(audit.id)}
-                                                    className="rounded border-gray-300 text-[#285f94] focus:ring-[#285f94] cursor-pointer"
+                                                    className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
                                                 />
                                             </td>
-                                            <td className="px-3 py-2 text-center">
+                                            <td className="px-4 py-1.5 text-center">
                                                 <svg
-                                                    className={`w-4 h-4 text-gray-500 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
+                                                    className={`w-3 h-3 text-zinc-500 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-3 py-2 text-xs font-medium text-gray-900">{audit.id}</td>
-                                            <td className="px-3 py-2 text-xs text-[#285f94] font-semibold">{audit.order_number}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{audit.despatch_number}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[200px]">
-                                                {audit.customer_code && (
-                                                    <span className="font-bold text-[#285f94] mr-1">{audit.customer_code}</span>
-                                                )}
+                                            <td className="px-4 py-1.5 text-[11px] font-bold text-zinc-900">{audit.id}</td>
+                                            <td className="px-4 py-1.5 text-[11px] font-bold text-[#285f94]">{audit.order_number}</td>
+                                            <td className="px-4 py-1.5 text-[11px] text-zinc-600 font-mono uppercase">{audit.despatch_number}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-bold">
+                                                {audit.customer_code && <span className="text-zinc-500 mr-2">[{audit.customer_code}]</span>}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{audit.username}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{formatDate(audit.timestamp)}</td>
-                                            <td className="px-3 py-2 text-center">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${audit.status === 'Completado' || audit.status === 'Completo'
-                                                    ? 'bg-green-100 text-green-800 border-green-200' :
-                                                    'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                    }`}>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-700 uppercase font-medium">{audit.username}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-600 font-mono">{formatDate(audit.timestamp)}</td>
+                                            <td className="px-4 py-1.5 text-center">
+                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-bold uppercase tracking-tight rounded border ${
+                                                    audit.status === 'Completado' || audit.status === 'Completo'
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                                                }`}>
                                                     {audit.status}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 text-center">
-                                                <div className="flex justify-center gap-2">
+                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                                                <div className="flex justify-center items-center gap-4">
                                                     {isToday(audit.timestamp) && (
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleEditClick(audit); }}
-                                                            className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded border border-blue-100 shadow-sm"
-                                                            title="Editar Auditoría"
+                                                            onClick={() => handleEditClick(audit)}
+                                                            className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors leading-none"
+                                                            title="Editar"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                            </svg>
+                                                            Editar
                                                         </button>
                                                     )}
                                                     <Link
                                                         to={`/packing_list/print/${audit.id}`}
-                                                        className="p-1.5 bg-gray-50 text-gray-600 hover:bg-[#285f94] hover:text-white rounded border border-gray-200 shadow-sm"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        title="Imprimir Packing List"
+                                                        className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#285f94] transition-colors leading-none"
+                                                        title="Imprimir"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                        </svg>
+                                                        Print
                                                     </Link>
                                                 </div>
                                             </td>
                                         </tr>
 
                                         {expandedAuditId === audit.id && (
-                                            <tr className="bg-gray-50">
-                                                <td colSpan="10" className="p-4 border-b border-gray-200">
-                                                    <div className="bg-white rounded border border-gray-200 p-4">
-                                                        <h4 className="font-bold text-gray-700 mb-3 text-sm uppercase">Detalle de Ítems</h4>
-                                                        <table className="w-full text-sm">
+                                            <tr className="bg-zinc-50/50">
+                                                <td colSpan="10" className="px-10 py-4 border-b border-zinc-100">
+                                                    <div className="bg-white border border-zinc-200 p-4 shadow-sm">
+                                                        <h4 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4 border-b border-zinc-50 pb-2">Detalle de Contenido</h4>
+                                                        <table className="w-full">
                                                             <thead>
-                                                                <tr className="border-b text-gray-500">
-                                                                    <th className="py-1 text-left w-12">Línea</th>
-                                                                    <th className="py-1 text-left">Código Item</th>
-                                                                    <th className="py-1 text-left">Descripción</th>
-                                                                    <th className="py-1 text-right">Req.</th>
-                                                                    <th className="py-1 text-right">Esc.</th>
-                                                                    <th className="py-1 text-right">Dif.</th>
+                                                                <tr className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">
+                                                                    <th className="pb-2 text-left w-12">Lín.</th>
+                                                                    <th className="pb-2 text-left">SKU</th>
+                                                                    <th className="pb-2 text-left">Descripción</th>
+                                                                    <th className="pb-2 text-right">Req.</th>
+                                                                    <th className="pb-2 text-right">Esc.</th>
+                                                                    <th className="pb-2 text-right">Dif.</th>
                                                                 </tr>
                                                             </thead>
-                                                            <tbody>
+                                                            <tbody className="text-[10px]">
                                                                 {audit.items.map((item, idx) => (
-                                                                    <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
-                                                                        <td className="py-1.5 font-mono text-[10px] text-gray-400">{item.order_line}</td>
-                                                                        <td className="py-1.5 font-medium">{item.item_code}</td>
-                                                                        <td className="py-1.5 text-gray-600 truncate max-w-[200px]">{item.description}</td>
-                                                                        <td className="py-1.5 text-right">{item.qty_req}</td>
-                                                                        <td className="py-1.5 text-right">{item.qty_scan}</td>
-                                                                        <td className={`py-1.5 text-right font-bold ${item.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                                    <tr key={idx} className="border-t border-zinc-50 hover:bg-zinc-50/30">
+                                                                        <td className="py-2 font-mono text-zinc-400">{item.order_line}</td>
+                                                                        <td className="py-2 font-bold text-zinc-800">{item.item_code}</td>
+                                                                        <td className="py-2 text-zinc-500 uppercase text-[9px]">{item.description}</td>
+                                                                        <td className="py-2 text-right font-mono">{item.qty_req}</td>
+                                                                        <td className="py-2 text-right font-mono font-bold">{item.qty_scan}</td>
+                                                                        <td className={`py-2 text-right font-mono font-bold ${item.difference !== 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                                                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                                                         </td>
                                                                     </tr>
@@ -456,47 +380,42 @@ const PickingAuditHistory = () => {
                         </table>
                     </div>
 
-                    <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
+                    {/* Mobile View */}
+                    <div className="block sm:hidden bg-zinc-50 p-2 space-y-3">
                         {audits.map((audit) => (
-                            <div key={audit.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                <div className="p-4" onClick={() => toggleExpand(audit.id)}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg font-bold text-[#285f94]">{audit.order_number}</span>
-                                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border">{audit.despatch_number}</span>
-                                        </div>
-                                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100'}`}>
-                                            {audit.status}
-                                        </span>
+                            <div key={audit.id} className="bg-white border border-zinc-200 p-4 shadow-sm" onClick={() => toggleExpand(audit.id)}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[12px] font-bold text-[#285f94] tracking-tight">{audit.order_number}</span>
+                                        <span className="text-[8px] text-zinc-400 uppercase tracking-widest">{audit.despatch_number}</span>
                                     </div>
-                                    <div className="text-sm font-medium mb-1">
-                                        {audit.customer_code && (
-                                            <span className="font-bold text-[#285f94] mr-2">{audit.customer_code}</span>
-                                        )}
-                                        {audit.customer_name}
-                                    </div>
-                                    <div className="flex justify-between items-end text-xs text-gray-500">
-                                        <div>{formatDate(audit.timestamp)}</div>
-                                        <div className="flex gap-2">
-                                            <Link to={`/packing_list/print/${audit.id}`} className="p-2 border rounded" onClick={e => e.stopPropagation()}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                </svg>
-                                            </Link>
-                                        </div>
+                                    <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-tight rounded border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700'}`}>
+                                        {audit.status}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] font-bold text-zinc-700 uppercase mb-3 truncate">
+                                    {audit.customer_code && <span className="text-zinc-400 mr-1">[{audit.customer_code}]</span>}
+                                    {audit.customer_name}
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
+                                    <span className="text-[8px] font-mono text-zinc-400">{formatDate(audit.timestamp)}</span>
+                                    <div className="flex gap-4">
+                                        <Link to={`/packing_list/print/${audit.id}`} className="text-[9px] font-bold uppercase text-zinc-400 hover:text-zinc-900" onClick={e => e.stopPropagation()}>Print</Link>
                                     </div>
                                 </div>
                                 {expandedAuditId === audit.id && (
-                                    <div className="p-4 bg-gray-50 border-t space-y-2">
+                                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
                                         {audit.items.map((item, idx) => (
-                                            <div key={idx} className="bg-white p-2 rounded shadow-sm border text-xs">
-                                                <div className="flex justify-between font-bold mb-1">
-                                                    <span>{item.item_code} (L: {item.order_line})</span>
-                                                    <span className={item.difference === 0 ? 'text-green-600' : 'text-red-500'}>
-                                                        {item.qty_scan} / {item.qty_req}
-                                                    </span>
+                                            <div key={idx} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-zinc-800">{item.item_code}</span>
+                                                    <span className="text-zinc-400 text-[8px]">L: {item.order_line}</span>
                                                 </div>
-                                                <div className="text-gray-500 truncate">{item.description}</div>
+                                                <div className="font-mono">
+                                                    <span className="text-zinc-400">{item.qty_req}</span>
+                                                    <span className="mx-1">/</span>
+                                                    <span className="font-bold">{item.qty_scan}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -507,90 +426,79 @@ const PickingAuditHistory = () => {
                 </div>
             )}
 
+            {/* Selection Bar */}
             {selectedIds.size > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#285f94] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-[slideUp_0.3s_ease-out]">
-                    <span className="text-sm font-medium">{selectedIds.size} seleccionados</span>
-                    <button onClick={() => setShowShipmentModal(true)} className="bg-white text-[#285f94] px-4 py-1.5 rounded-full text-sm font-bold">Crear Envío</button>
-                    <button onClick={() => setSelectedIds(new Set())} className="text-white/70 hover:text-white">✕</button>
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-zinc-900 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{selectedIds.size} Auditorías</span>
+                    <button 
+                        onClick={() => setShowShipmentModal(true)} 
+                        className="bg-white text-zinc-900 px-6 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                    >
+                        Consolidar Envío
+                    </button>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-zinc-500 hover:text-white transition-colors">✕</button>
                 </div>
             )}
 
+            {/* Shipment Modal */}
             {showShipmentModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold mb-4">Crear Envío Consolidado</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Transportadora</label>
-                                <input type="text" value={shipmentCarrier} onChange={e => setShipmentCarrier(e.target.value)} className="w-full border rounded p-2" />
+                <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md p-8">
+                        <h3 className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight mb-6">Crear Envío Consolidado</h3>
+                        <div className="space-y-6">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Transportadora</label>
+                                <input type="text" value={shipmentCarrier} onChange={e => setShipmentCarrier(e.target.value)} className="w-full h-10 border border-zinc-200 px-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Nota</label>
-                                <textarea value={shipmentNote} onChange={e => setShipmentNote(e.target.value)} className="w-full border rounded p-2" rows={2} />
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Observaciones</label>
+                                <textarea value={shipmentNote} onChange={e => setShipmentNote(e.target.value)} className="w-full border border-zinc-200 p-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" rows={3} />
                             </div>
                         </div>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button onClick={() => setShowShipmentModal(false)} className="px-4 py-2 border rounded">Cancelar</button>
-                            <button onClick={handleCreateShipment} className="px-4 py-2 bg-[#285f94] text-white rounded">
-                                {creatingShipment ? 'Creando...' : 'Confirmar'}
+                        <div className="mt-8 flex justify-end gap-4">
+                            <button onClick={() => setShowShipmentModal(false)} className="px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cancelar</button>
+                            <button onClick={handleCreateShipment} className="px-8 py-2 bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800">
+                                {creatingShipment ? 'Procesando...' : 'Confirmar'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Edit Modal */}
             {isEditModalOpen && editingAudit && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-start mb-4 border-b pb-2">
-                            <div className="flex flex-col">
-                                <h3 className="text-xl font-bold text-gray-800">Editar Auditoría #{editingAudit.id}</h3>
-                                <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
-                                    <span>Orden: <span className="font-bold text-black">{editingAudit.order_number} / {editingAudit.despatch_number}</span></span>
-                                    <span className="text-gray-300">|</span>
-                                    <span>Cliente: 
-                                        {editingAudit.customer_code && (
-                                            <span className="font-bold text-[#285f94] ml-1">{editingAudit.customer_code}</span>
-                                        )}
-                                        <span className="font-bold text-black ml-1 uppercase">{editingAudit.customer_name}</span>
-                                    </span>
+                <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-5xl p-8 flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-start mb-8 border-b border-zinc-100 pb-6">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-tight">Editar Auditoría ID #{editingAudit.id}</h3>
+                                <div className="text-[9px] text-zinc-400 uppercase tracking-widest flex items-center gap-4">
+                                    <span>Orden: <span className="text-zinc-900 font-bold">{editingAudit.order_number}</span></span>
+                                    <span>Cliente: <span className="text-zinc-900 font-bold">{editingAudit.customer_name}</span></span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="bg-gray-50 px-3 py-1 rounded-lg border flex items-center gap-4 mr-2">
-                                    <span className="text-sm font-bold text-gray-600">BULTOS: {editingAudit.packages || 0}</span>
-                                    <div className="flex gap-1">
-                                        {editingAudit.packages > 0 && (
-                                            <button 
-                                                onClick={handleRemoveLastPackage}
-                                                className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded border border-red-200 transition-all shadow-sm"
-                                                title="Eliminar Último Bulto"
-                                            >
-                                                −
-                                            </button>
-                                        )}
-                                        <button 
-                                            onClick={handleAddNewPackage}
-                                            className="w-7 h-7 flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded border border-green-200 transition-all shadow-sm font-bold"
-                                            title="Añadir Bulto Nuevo"
-                                        >
-                                            +
-                                        </button>
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-4 bg-zinc-50 px-4 py-2 rounded border border-zinc-100">
+                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bultos: {editingAudit.packages || 0}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRemoveLastPackage} className="w-6 h-6 flex items-center justify-center bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded text-sm font-bold transition-all shadow-sm">−</button>
+                                        <button onClick={handleAddNewPackage} className="w-6 h-6 flex items-center justify-center bg-zinc-900 text-white hover:bg-zinc-800 rounded text-sm font-bold transition-all shadow-sm">+</button>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsEditModalOpen(false)} className="text-2xl text-gray-400 hover:text-gray-800 transition-colors">✕</button>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-300 hover:text-zinc-900 text-xl transition-colors px-2">✕</button>
                             </div>
                         </div>
-                        <div className="overflow-y-auto mb-4">
-                            <table className="min-w-full text-sm">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="p-2 text-center w-12">Línea</th>
-                                        <th className="p-2 text-left">Código</th>
-                                        <th className="p-2 text-left">Descripción</th>
-                                        <th className="p-2 text-center w-16">Req.</th>
-                                        <th className="p-2 text-center w-24">Escaneado</th>
-                                        <th className="p-2 text-left">Asignación en Bultos</th>
+
+                        <div className="overflow-y-auto mb-8 pr-2">
+                            <table className="min-w-full">
+                                <thead>
+                                    <tr className="bg-zinc-50 border-b border-zinc-100 text-[8px] font-bold text-zinc-400 uppercase tracking-widest">
+                                        <th className="p-4 text-left w-12">Lín.</th>
+                                        <th className="p-4 text-left w-32">Código</th>
+                                        <th className="p-4 text-left">Descripción</th>
+                                        <th className="p-4 text-center w-20">Req.</th>
+                                        <th className="p-4 text-center w-32">Escaneado</th>
+                                        <th className="p-4 text-left">Distribución en Bultos</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -599,114 +507,58 @@ const PickingAuditHistory = () => {
                                         const assignments = editingAudit.packages_assignment?.[key] || {};
                                         const packageKeys = Object.keys(assignments);
                                         const isUsingPackages = editingAudit.packages > 0;
-                                        const totalAssigned = Object.values(assignments).reduce((a, b) => a + (parseInt(b) || 0), 0);
-                                        const assignmentMatch = isUsingPackages && totalAssigned === item.qty_scan;
-                                        const hasAssignments = packageKeys.length > 0;
 
                                         return (
-                                            <tr key={idx} className="border-b hover:bg-gray-50 transition-colors">
-                                                <td className="p-2 text-center text-gray-400 font-mono text-[10px]">{item.order_line}</td>
-                                                <td className="p-2 font-bold text-gray-800">{item.item_code}</td>
-                                                <td className="p-2 text-gray-600 truncate max-w-xs" title={item.description}>{item.description}</td>
-                                                <td className="p-2 text-center font-semibold text-gray-700">{item.qty_req}</td>
-                                                <td className="p-2 text-center">
-                                                    {isUsingPackages ? (
-                                                        <div className="inline-flex items-center border border-gray-200 rounded-md overflow-hidden">
-                                                            <button
-                                                                onClick={() => handleQtyChange(idx, Math.max(0, item.qty_scan - 1))}
-                                                                className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors font-bold"
-                                                            >−</button>
-                                                            <input
-                                                                type="text"
-                                                                inputMode="numeric"
-                                                                value={item.qty_scan}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value.replace(/\D/g, '');
-                                                                    handleQtyChange(idx, val);
-                                                                }}
-                                                                className="h-7 text-center font-bold text-base text-gray-800 bg-white border-x border-gray-200 focus:outline-none"
-                                                                style={{ 
-                                                                    width: `${Math.max(45, (item.qty_scan?.toString().length || 1) * 12 + 24)}px`,
-                                                                    minWidth: '45px' 
-                                                                }}
-                                                            />
-                                                            <button
-                                                                onClick={() => handleQtyChange(idx, item.qty_scan + 1)}
-                                                                className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors font-bold"
-                                                            >+</button>
-                                                        </div>
-                                                    ) : (
-                                                        <input type="number" value={item.qty_scan} onChange={(e) => handleQtyChange(idx, e.target.value)} className="w-16 text-center border rounded font-bold focus:ring-2 focus:ring-blue-200 outline-none p-1" min="0" />
-                                                    )}
+                                            <tr key={idx} className="border-b border-zinc-50 hover:bg-zinc-50/20 transition-colors">
+                                                <td className="p-4 font-mono text-[9px] text-zinc-400">{item.order_line}</td>
+                                                <td className="p-4 text-[11px] font-bold text-zinc-900">{item.item_code}</td>
+                                                <td className="p-4 text-[9px] text-zinc-500 uppercase truncate max-w-xs">{item.description}</td>
+                                                <td className="p-4 text-center text-[11px] font-mono text-zinc-400">{item.qty_req}</td>
+                                                <td className="p-4 text-center">
+                                                    <div className="inline-flex items-center border border-zinc-200 bg-white rounded-md overflow-hidden">
+                                                        <button onClick={() => handleQtyChange(idx, Math.max(0, item.qty_scan - 1))} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 text-lg font-light transition-colors">−</button>
+                                                        <input
+                                                            type="text" inputMode="numeric"
+                                                            value={item.qty_scan}
+                                                            onChange={(e) => handleQtyChange(idx, e.target.value.replace(/\D/g, ''))}
+                                                            className="h-8 w-12 text-center text-[12px] font-bold text-zinc-900 bg-transparent border-x border-zinc-100 focus:outline-none"
+                                                        />
+                                                        <button onClick={() => handleQtyChange(idx, item.qty_scan + 1)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 text-lg font-light transition-colors">+</button>
+                                                    </div>
                                                 </td>
-                                                <td className="p-2">
+                                                <td className="p-4">
                                                     {isUsingPackages ? (
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            {/* Controles de cantidad por bulto */}
+                                                        <div className="flex flex-wrap items-center gap-3">
                                                             {packageKeys
                                                                 .filter(pkgNum => (parseInt(assignments[pkgNum]) || 0) > 0)
                                                                 .map(pkgNum => {
                                                                     const qty = parseInt(assignments[pkgNum]) || 0;
                                                                     return (
-                                                                        <div key={pkgNum} className="flex-shrink-0 flex items-center gap-1">
-                                                                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">B{pkgNum}</span>
-                                                                            <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        const newQty = qty - 1;
-                                                                                        if (newQty <= 0) {
-                                                                                            removePackageAssignment(idx, pkgNum);
-                                                                                        } else {
-                                                                                            handlePkgQtyChange(idx, pkgNum, newQty);
-                                                                                        }
-                                                                                    }}
-                                                                                    className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors text-sm font-bold"
-                                                                                >−</button>
-                                                                                 <input
-                                                                                    type="text"
-                                                                                    inputMode="numeric"
-                                                                                    value={qty}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value.replace(/\D/g, '');
-                                                                                        handlePkgQtyChange(idx, pkgNum, val);
-                                                                                    }}
-                                                                                    className="h-6 text-center text-xs font-bold text-gray-800 bg-white border-x border-gray-200 focus:outline-none"
-                                                                                    style={{ 
-                                                                                        width: `${Math.max(40, (qty?.toString().length || 1) * 11 + 20)}px`,
-                                                                                        minWidth: '35px' 
-                                                                                    }}
-                                                                                />
-                                                                                <button
-                                                                                    onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)}
-                                                                                    className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors text-sm font-bold"
-                                                                                >+</button>
+                                                                        <div key={pkgNum} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 p-1.5 rounded">
+                                                                            <span className="text-[8px] font-bold text-zinc-400 uppercase px-1">B{pkgNum}</span>
+                                                                            <div className="flex items-center border border-zinc-200 bg-white rounded overflow-hidden h-6">
+                                                                                <button onClick={() => qty - 1 <= 0 ? removePackageAssignment(idx, pkgNum) : handlePkgQtyChange(idx, pkgNum, qty - 1)} className="w-6 h-full flex items-center justify-center text-zinc-400 hover:bg-zinc-50 transition-colors text-sm">−</button>
+                                                                                <span className="w-8 text-center text-[10px] font-bold font-mono">{qty}</span>
+                                                                                <button onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)} className="w-6 h-full flex items-center justify-center text-zinc-400 hover:bg-zinc-50 transition-colors text-sm">+</button>
                                                                             </div>
                                                                         </div>
                                                                     );
                                                                 })}
-                                                            {/* Botón añadir a bulto */}
-                                                            <div className="relative inline-flex flex-shrink-0">
-                                                                <select
-                                                                    onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
-                                                                    className="appearance-none text-[9px] font-medium bg-white border border-dashed border-gray-300 rounded-full pl-4 pr-3 py-px text-gray-400 cursor-pointer outline-none hover:bg-blue-50 hover:border-blue-300 hover:text-blue-500 transition-all"
-                                                                    defaultValue=""
-                                                                >
-                                                                    <option value="" disabled>+ Añadir bulto</option>
-                                                                    {Array.from({ length: editingAudit.packages || 0 }, (_, i) => i + 1)
-                                                                        .filter(p => !packageKeys.includes(p.toString()))
-                                                                        .map(p => (
-                                                                            <option key={p} value={p}>Bulto {p}</option>
-                                                                        ))
-                                                                    }
-                                                                    <option value="NEW">＋ Nuevo Bulto</option>
-                                                                </select>
-                                                                <svg className="absolute left-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                            </div>
+                                                            <select
+                                                                onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
+                                                                className="h-9 px-3 text-[9px] font-bold uppercase tracking-widest bg-white border border-dashed border-zinc-300 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-400"
+                                                                defaultValue=""
+                                                            >
+                                                                <option value="" disabled>+ Añadir Bulto</option>
+                                                                {Array.from({ length: editingAudit.packages || 0 }, (_, i) => i + 1)
+                                                                    .filter(p => !packageKeys.includes(p.toString()))
+                                                                    .map(p => <option key={p} value={p}>Bulto {p}</option>)
+                                                                }
+                                                                <option value="NEW">＋ Nuevo Bulto</option>
+                                                            </select>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-xs text-gray-400 italic">Auditoría sin bultos</span>
+                                                        <span className="text-[9px] text-zinc-300 uppercase italic tracking-widest">Sin asignación de bultos</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -715,10 +567,10 @@ const PickingAuditHistory = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex justify-end gap-3 pt-4 border-t">
-                            <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 border rounded">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="px-4 py-2 bg-[#285f94] text-white rounded" disabled={isSubmitting}>
-                                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                        <div className="flex justify-end gap-4 pt-8 border-t border-zinc-100">
+                            <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-2 text-[11px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cancelar</button>
+                            <button onClick={handleSaveEdit} className="px-10 py-2 bg-zinc-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-zinc-800 disabled:bg-zinc-100" disabled={isSubmitting}>
+                                {isSubmitting ? 'Guardando...' : 'Publicar Cambios'}
                             </button>
                         </div>
                     </div>

@@ -1,18 +1,102 @@
+import orjson
 import os
+
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from app.models.sql_models import MasterItem, Log, BinLocation, SlottingRule
+from app.core.config import SLOTTING_PARAMS_PATH
 
 class SlottingService:
-    async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
-        current_bin = str(item_details.get('Bin_1', '')).strip().upper()
+    def __init__(self):
+        self.params_path = SLOTTING_PARAMS_PATH
 
-        # 1. Verificar si el bin actual es válido en la DB
-        check_stmt = select(BinLocation).where(BinLocation.bin_code == current_bin)
-        check_res = await db.execute(check_stmt)
-        if check_res.scalar_one_or_none():
-            return None
+    def get_sic_code_by_hits(self, hits: int) -> str:
+        """Categoriza un ítem basándose en su frecuencia de movimiento (Hits)."""
+        if hits > 30: return 'W'
+        if hits >= 11: return 'X'
+        if hits >= 7: return 'Y'
+        if hits >= 5: return 'K'
+        if hits >= 3: return 'L'
+        if hits >= 1: return 'Z'
+        return '0'
+
+    async def _get_item_hits(self, db: AsyncSession, item_code: str, days: int = 90) -> int:
+        """Obtiene el conteo de movimientos históricos para un ítem."""
+        import datetime
+        try:
+            # Buscamos en logs de los últimos N días
+            since_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
+            stmt = select(func.count(Log.id)).where(and_(Log.itemCode == item_code, Log.timestamp >= since_date))
+            res = await db.execute(stmt)
+            return res.scalar() or 0
+        except: return 0
+
+    async def _get_layout_config(self, db: AsyncSession) -> Dict[str, Any]:
+        """Obtiene la configuración del layout con prioridad en SQL y fallback en JSON."""
+        # 1. Intentar obtener de SQL (Ubicaciones)
+        res_bins = await db.execute(select(BinLocation))
+        bins_sql = res_bins.scalars().all()
+        
+        storage = {}
+        if bins_sql:
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+        
+        # 2. Intentar obtener de SQL (Reglas de Rotación)
+        res_rules = await db.execute(select(SlottingRule))
+        rules_sql = res_rules.scalars().all()
+        
+        turnover = {}
+        if rules_sql:
+            turnover = {r.sic_code: {"range": r.description, "spot": r.ideal_spot} for r in rules_sql}
+
+        # 3. Fallback al JSON si SQL está vacío (Migración inicial)
+        if not storage and os.path.exists(self.params_path):
+            try:
+                with open(self.params_path, 'rb') as f:
+                    config = orjson.loads(f.read())
+                    storage = config.get("storage", {})
+                    if not turnover:
+                        turnover = config.get("turnover", {})
+            except: pass
+            
+        return {"storage": storage, "turnover": turnover}
+
+    async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
+        """Calcula la mejor ubicación disponible basada en el mapa de slotting y reglas de negocio."""
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
+        turnover_map = config.get('turnover', {})
+        
+        current_bin = str(item_details.get('Bin_1', '')).strip().upper()
+        item_code = str(item_details.get('Item_Code', '')).strip()
+
+        # Prioridad 1: Confiar en la clasificación oficial del Maestro (ERP)
+        sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper()
+
+        # Prioridad 2 (Fallback): Si el ERP no mandó SIC Code (vacío o '0'), intentar deducirlo por actividad local
+        if not sic_code or sic_code == '0' or sic_code == 'N/A':
+            hits = await self._get_item_hits(db, item_code)
+            sic_code = self.get_sic_code_by_hits(hits)
+            
+        # Si aún así no hay nada, por defecto es '0' (Cold)
+        if not sic_code:
+            sic_code = '0'
+
+        # Determinar el spot ideal basado en el SIC Code
+        ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
+        if sic_code in ['W', 'X', 'Y']: 
+            ideal_spot = 'hot'
+        elif sic_code in ['K', 'L', 'Z', '0']:
+            ideal_spot = 'cold'
+
+        # Reubicación Proactiva: Si el ítem ya está en una ubicación válida en el maestro...
+        if current_bin in storage:
+            current_spot = str(storage[current_bin].get('spot', 'cold')).lower()
+            # Si el spot actual coincide con el ideal, NO sugerimos nada nuevo (se queda ahí)
+            if current_spot == ideal_spot:
+                return None
+            # Si NO coincide (ej. está en cold y ahora es hot), el algoritmo continuará y sugerirá un nuevo bin
 
         occupancy = await self._get_bins_occupancy(db)
         
@@ -20,7 +104,6 @@ class SlottingService:
         target_levels = None
         forbidden_zones = []
         description = str(item_details.get('Item_Description', '')).upper()
-        sic_code = str(item_details.get('SIC_Code_stockroom', '')).strip().upper()
         
         weight = 0.0
         try:
@@ -28,71 +111,73 @@ class SlottingService:
             weight = float(str(weight_val).replace(',', '')) if weight_val else 0.0
         except: pass
 
+        # --- REGLAS DE NEGOCIO POR ATRIBUTOS ---
         if "ROD" in description or "INTEGRAL STEEL" in description:
             target_zone = "Cantilever"
         elif 0 < weight < 0.1:
             target_zone = "Minuteria"
         elif weight > 10:
+            target_zone = "Rack"
             target_levels = [3, 4, 5]
+        elif sic_code in ['W', 'X']:
             target_zone = "Rack"
-        elif 2 <= weight <= 10:
+            target_levels = [0, 1]
+        else:
+            # Todo lo demás <= 10kg (especialmente Y, K, L, Z, 0) va al segundo nivel
+            target_zone = "Rack"
             target_levels = [2]
-            target_zone = "Rack"
-        elif 0.1 <= weight < 2:
-            target_zone = "Rack"
-            if sic_code in ['W', 'X']:
-                target_levels = [1]
-            else:
-                target_levels = [1, 2]
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
 
-        # 2. Buscar candidatos en la Base de Datos
-        query = select(BinLocation)
-        if target_zone:
-            query = query.where(BinLocation.zone == target_zone)
-        if forbidden_zones:
-            query = query.where(BinLocation.zone.notin_(forbidden_zones))
-        if target_levels:
-            query = query.where(BinLocation.level.in_(target_levels))
-        
-        res = await db.execute(query)
-        storage_bins = res.scalars().all()
-
-        # 3. Obtener regla de afinidad
-        rule_stmt = select(SlottingRule).where(SlottingRule.sic_code == sic_code)
-        rule_res = await db.execute(rule_stmt)
-        rule = rule_res.scalar_one_or_none()
-        ideal_spot = rule.ideal_spot.lower() if rule else 'cold'
-        
-        if sic_code in ['W', 'Z']:
-            ideal_spot = 'hot'
-
+        # --- BÚSQUEDA DE CANDIDATOS EN EL MAPA ---
         candidates = []
-        for b in storage_bins:
-            current_items = occupancy.get(b.bin_code.upper(), 0)
-            limit = 3 if b.zone == "Minuteria" else 4
+        for bin_code, info in storage.items():
+            zone = info.get('zone')
+            level = info.get('level')
+            if zone in forbidden_zones: continue
+            if target_zone and zone != target_zone: continue
+            if target_levels and level not in target_levels: continue
+
+            current_items = occupancy.get(bin_code.upper(), 0)
+            
+            # Dinámica de límites: Nivel 2 tiene capacidad extendida
+            if zone == "Minuteria":
+                limit = 3
+            elif level == 2:
+                limit = 6
+            else:
+                limit = 4
             
             if current_items < limit:
                 candidates.append({
-                    'bin': b.bin_code,
+                    'bin': bin_code,
                     'occupancy': current_items,
-                    'spot': b.spot.lower()
+                    'spot': str(info.get('spot', 'Cold')).lower()
                 })
 
-        if sic_code in ['Y', 'K', 'L', 'Z', '0', 'W']:
-            exact_matches = [c for c in candidates if c['spot'] == ideal_spot]
-            if exact_matches: candidates = exact_matches
+        # --- FILTRADO POR ROTACIÓN (HOT/COLD) ---
+        # Nueva organización: W, X, Y son HOT. K, L, Z, 0 son COLD.
+        ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
+        if sic_code in ['W', 'X', 'Y']: 
+            ideal_spot = 'hot'
+        elif sic_code in ['K', 'L', 'Z', '0']:
+            ideal_spot = 'cold'
 
+        # Filtrar candidatos que coincidan con el spot ideal
+        matches = [c for c in candidates if c['spot'] == ideal_spot]
+        if matches:
+            candidates = matches
+
+        # Ordenar por afinidad de spot y luego por menor ocupación
         candidates.sort(key=lambda x: (x['spot'] != ideal_spot, x['occupancy']))
         return candidates[0]['bin'] if candidates else None
 
     async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
-        """Calcula cuántos SKUs hay en cada bin."""
+        """Calcula cuántos SKUs hay en cada bin (Cruza maestro + reubicaciones activas)."""
         occupancy = {}
         try:
-            # 1. Master Items
+            # 1. Master Items (Stock físico actual)
             master_stmt = select(MasterItem.bin_1, func.count(MasterItem.item_code)).where(MasterItem.physical_qty > 0).group_by(MasterItem.bin_1)
             master_res = await db.execute(master_stmt)
             for bin_code, count in master_res.all():
@@ -100,8 +185,8 @@ class SlottingService:
                     code = str(bin_code).strip().upper()
                     occupancy[code] = occupancy.get(code, 0) + count
 
-            # 2. Logs Activos (Reubicaciones pendientes)
-            logs_stmt = select(Log.relocatedBin, func.count(func.distinct(Log.itemCode))).where(and_(Log.archived_at.is_(None), Log.relocatedBin != '', Log.relocatedBin.is_not(None))).group_by(Log.relocatedBin)
+            # 2. Logs Activos (Mercancía en camino a un bin)
+            logs_stmt = select(Log.relocatedBin, func.count(func.distinct(Log.itemCode))).where(and_(Log.archived_at == None, Log.relocatedBin != '', Log.relocatedBin != None)).group_by(Log.relocatedBin)
             logs_res = await db.execute(logs_stmt)
             for bin_code, count in logs_res.all():
                 if bin_code:
@@ -112,11 +197,10 @@ class SlottingService:
         return occupancy
 
     async def get_occupancy_report(self, db: AsyncSession) -> Dict[str, Any]:
-        """Genera un reporte detallado de ocupación consultando la Base de Datos."""
+        """Genera el reporte de métricas del mapa de slotting."""
         occupancy = await self._get_bins_occupancy(db)
-        
-        res = await db.execute(select(BinLocation))
-        storage_bins = res.scalars().all()
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
         
         zones_by_items = {}
         aisles_by_items = {}
@@ -124,7 +208,7 @@ class SlottingService:
         
         report = {
             "summary": {
-                "total_bins": len(storage_bins), 
+                "total_bins": len(storage), 
                 "filled_bins": 0, 
                 "available_bins": 0,
                 "occupancy_pct": 0,
@@ -138,10 +222,10 @@ class SlottingService:
             }
         }
         
-        for b in storage_bins:
-            zone = b.zone
-            level = b.level
-            aisle = b.aisle or 'N/A'
+        for bin_code, info in storage.items():
+            zone = info.get('zone', 'Unknown')
+            level = info.get('level', 0)
+            aisle = info.get('aisle', 'N/A')
             
             if zone not in report["zones"]:
                 report["zones"][zone] = {"total": 0, "occupied": 0, "levels": {}}
@@ -152,7 +236,7 @@ class SlottingService:
             report["zones"][zone]["total"] += 1
             report["zones"][zone]["levels"][level]["total"] += 1
             
-            current_skus = occupancy.get(b.bin_code.upper(), 0)
+            current_skus = occupancy.get(bin_code.upper(), 0)
             limit = 3 if zone == "Minuteria" else 4
             
             if current_skus > 0:
@@ -181,7 +265,5 @@ class SlottingService:
         report["analytics"]["bins_by_zone"] = dict(sorted(report["analytics"]["bins_by_zone"].items(), key=lambda x: x[1], reverse=True))
                 
         return report
-
-slotting_service = SlottingService()
 
 slotting_service = SlottingService()

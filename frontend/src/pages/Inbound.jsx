@@ -8,6 +8,7 @@ import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '..
 import { useOffline } from '../hooks/useOffline';
 import { sandvikLogoBase64 } from '../assets/logo';
 import SandvikLabel from '../components/labels/SandvikLabel';
+import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 
 
@@ -80,7 +81,7 @@ const Inbound = () => {
     // --- Refs ---
     const quantityRef = useRef(null);
     const itemCodeRef = useRef(null);
-    const printFrameRef = useRef(null);
+    const labelComponentRef = useRef(null);
 
     // --- Helpers de Sincronización ---
     const runAutoSync = async () => {
@@ -263,7 +264,7 @@ const Inbound = () => {
     };
 
     const handleLookupReference = async (type, value) => {
-        if (!value || editId) return;
+        if (!value) return;
         const normalizedValue = value.trim().toUpperCase();
 
         let onlineDataFound = false;
@@ -506,149 +507,11 @@ const Inbound = () => {
     // Cálculo dinámico de Xdock pendiente basado en lo que ya se ha registrado en la tabla
     const effectiveXdockPending = Math.max(0, (itemData?.xdockTotal || 0) - cumulativeQty);
 
-    const handlePrint = () => {
-        const frame = printFrameRef.current;
-        if (!frame) return alert("Error: No se encontró el marco de impresión.");
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Etiqueta ${itemData ? itemData.itemCode : ''}</title>
-                <style>
-                    @page { size: 70mm 100mm; margin: 0; }
-                    html, body { 
-                        width: 70mm; height: 100mm; margin: 0; padding: 0; 
-                        overflow: hidden; background: white; 
-                        font-family: Arial, sans-serif; 
-                    }
-                    .label-container {
-                        width: 70mm; height: 100mm; 
-                        box-sizing: border-box;
-                        padding: 3.5mm; 
-                        background: white;
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    .label-logo { 
-                        height: 7mm; 
-                        display: block; 
-                        margin-bottom: 3.5mm;
-                        flex-shrink: 0;
-                        align-self: flex-start;
-                    }
-                    .label-item-code { 
-                        font-family: Arial, sans-serif;
-                        font-size: 12pt; 
-                        font-weight: bold; 
-                        margin: 0; 
-                        line-height: 1.2; 
-                        color: #000;
-                        word-break: break-word;
-                    }
-                    .label-item-description { 
-                        font-family: Arial, sans-serif;
-                        font-size: 12pt; 
-                        font-weight: bold; 
-                        margin: 0 0 2mm 0;
-                        line-height: 1.2; 
-                        color: #000;
-                        word-break: break-word;
-                        margin-bottom: 2mm;
-                    }
-                    
-                    /* Grid Data Table */
-                    .label-data-table {
-                        width: 100%;
-                        font-size: 9pt;
-                        line-height: 1.4;
-                        flex-shrink: 0;
-                    }
-                    .label-row {
-                        display: grid;
-                        grid-template-columns: 28mm 1fr;
-                    }
-                    .label-label {
-                         font-weight: normal; color: #000;
-                    }
-                    .label-value {
-                         font-weight: normal; color: #000;
-                    }
-                    
-                    /* Footer */
-                    .label-footer { 
-                        display: flex; 
-                        align-items: flex-end; 
-                        justify-content: space-between;
-                        margin-top: 2mm;
-                        flex-shrink: 0;
-                        flex-grow: 1;
-                    }
-                    
-                    .label-disclaimer { 
-                        font-size: 7pt; 
-                        color: #000; 
-                        max-width: 35mm; 
-                        line-height: 1.1; 
-                        margin: 0; 
-                    }
-                    
-                    #qrCodeContainer { 
-                        width: 25mm; 
-                        height: 25mm; 
-                        display: flex; 
-                        justify-content: center; 
-                        align-items: center;
-                        flex-shrink: 0;
-                    }
-                    #qrCodeContainer img { width: 100%; height: 100%; object-fit: contain; }
-                </style>
-            </head>
-            <body>
-                <div class="label-container">
-                    <!-- Logo -->
-                    <img src="${sandvikLogoBase64}" alt="Sandvik" class="label-logo" />
-                    
-                    <!-- Header -->
-                    <div class="label-item-code">${itemData?.itemCode || ''}</div>
-                    <div class="label-item-description">${itemData?.description || ''}</div>
-
-                    <div style="flex-grow: 1;"></div>
-                    <!-- Data Grid -->
-                    <div class="label-data-table">
-                        <div class="label-row">
-                            <div class="label-label">Quantity/pack</div>
-                            <div class="label-value">${quantity || 1} EA</div>
-                        </div>
-                        <div class="label-row">
-                            <div class="label-label">Product weight</div>
-                            <div class="label-value">${totalWeight} kg</div>
-                        </div>
-                        <div class="label-row">
-                            <div class="label-label">Packaging date</div>
-                            <div class="label-value">${new Date().toLocaleDateString('es-CO', { year: '2-digit', month: '2-digit', day: '2-digit' })}</div>
-                        </div>
-                        <div class="label-row">
-                            <div class="label-label">Bin location</div>
-                            <div class="label-value">${relocatedBin || itemData?.binLocation || ''}</div>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="label-footer">
-                        <p class="label-disclaimer">All trademarks and logotypes appearing on this label are owned by Sandvik Group</p>
-                        <div id="qrCodeContainer">
-                            ${qrImage ? `<img src="${qrImage}" />` : ''}
-                        </div>
-                    </div>
-                </div>
-                <script>
-                    window.onload = function() { setTimeout(function(){ window.print(); }, 200); }
-                </script>
-            </body>
-            </html>
-        `;
-        const doc = frame.contentWindow.document; doc.open(); doc.write(htmlContent); doc.close();
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: labelComponentRef,
+        documentTitle: itemData ? `Etiqueta-${itemData.itemCode}` : 'Etiqueta',
+        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }",
+    });
 
     return (
         <>
@@ -657,7 +520,7 @@ const Inbound = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
-                            <div className="bg-white text-gray-900 px-2 py-3 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
+                            <div className="bg-white text-gray-900 px-2 py-0 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-normal tracking-tight">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
@@ -685,19 +548,17 @@ const Inbound = () => {
                                     <label className="form-label">Item Code</label>
                                     <div className="flex gap-2">
                                         <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" required disabled={!!editId} />
+                                        <button type="button" className="btn-sap btn-secondary" onClick={findItem} disabled={loading}>
+                                            {loading ? '...' : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                                </svg>
+                                            )}
+                                        </button>
                                         {!editId && (
-                                            <>
-                                                <button type="button" className="btn-sap btn-secondary" onClick={() => setScannerOpen(true)} title="Escanear">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
-                                                </button>
-                                                <button type="button" className="btn-sap btn-secondary" onClick={findItem} disabled={loading}>
-                                                    {loading ? '...' : (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                            </>
+                                            <button type="button" className="btn-sap btn-secondary" onClick={() => setScannerOpen(true)} title="Escanear">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
+                                            </button>
                                         )}
                                     </div>
                                 </div>
@@ -779,13 +640,15 @@ const Inbound = () => {
                         <div className="lg:col-span-1">
                             <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
                             <div className="flex justify-center">
-                                <SandvikLabel 
-                                    data={itemData} 
-                                    qrImage={qrImage} 
-                                    quantity={quantity} 
-                                    relocatedBin={relocatedBin} 
-                                    totalWeight={totalWeight} 
-                                />
+                                <div ref={labelComponentRef} className="bg-white">
+                                    <SandvikLabel 
+                                        data={itemData} 
+                                        qrImage={qrImage} 
+                                        quantity={quantity} 
+                                        relocatedBin={relocatedBin} 
+                                        totalWeight={totalWeight} 
+                                    />
+                                </div>
                             </div>
                             <div className="w-full flex justify-center mt-4"><button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>Imprimir</button></div>
                         </div>
@@ -840,7 +703,6 @@ const Inbound = () => {
                     </div>
                 </div>
             </div>
-            <iframe ref={printFrameRef} title="print-frame" style={{ position: 'fixed', top: '-1000px', width: '1px', height: '1px' }} />
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
         </>
     );
