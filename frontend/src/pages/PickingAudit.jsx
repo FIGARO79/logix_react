@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 
 // Sound effects using Web Audio API
@@ -80,30 +78,24 @@ const PickingAudit = () => {
             const res = await fetch('/api/picking/tracking', { credentials: 'include' });
             if (res.ok) {
                 setTrackingData(await res.json());
-                toast.success("Lista actualizada");
             }
         } catch (e) {
             console.error(e);
-            toast.error("Error actualizando lista");
         } finally {
             setLoadingTracking(false);
         }
     };
 
     const handleLoadOrder = async () => {
-        if (!orderNumber || !despatchNumber) {
-            toast.error("Ingrese Order y Despatch Number");
-            return;
-        }
+        if (!orderNumber || !despatchNumber) return;
         setLoadingOrder(true);
         try {
-            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`, { credentials: 'include' }); // Matches picking.py endpoint
+            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`, { credentials: 'include' }); 
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.length > 0) {
                     setCustomerCode(data[0]['Customer Code'] || '');
                     setCustomerName(data[0]['Customer Name']);
-                    // Map CSV columns to internal state
                     const items = data.map(row => ({
                         code: row['Item Code'],
                         description: row['Item Description'],
@@ -114,7 +106,6 @@ const PickingAudit = () => {
                     }));
                     setOrderItems(items);
 
-                    // Initialize assignments for dynamic allocation using unique key (code:order_line)
                     const initialAssignments = {};
                     items.forEach(item => {
                         const itemKey = `${item.code}:${item.order_line || ''}`;
@@ -125,15 +116,10 @@ const PickingAudit = () => {
                     setActivePackage(1);
 
                     setAuditActive(true);
-                    toast.success("Pedido cargado");
-                } else {
-                    toast.error("Pedido vacio o no encontrado");
                 }
-            } else {
-                toast.error("Pedido no encontrado");
             }
         } catch (e) {
-            toast.error("Error de conexión");
+            console.error(e);
         } finally {
             setLoadingOrder(false);
         }
@@ -204,7 +190,6 @@ const PickingAudit = () => {
             playSuccess();
         } else {
             playError();
-            toast.error(`Item NO pertenece al pedido: ${cleanCode}`);
             setItemCodeInput('');
         }
     };
@@ -263,12 +248,8 @@ const PickingAudit = () => {
         setShowQtyModal(false);
         setScannedItem(null);
 
-        const anyOver = newItems.filter(i => i.code === scannedItem.code).some(i => i.qty_scan > i.qty_req);
-        if (!anyOver) {
-            toast.success(`Leído: ${scannedItem.code} (+${totalAdding})`);
-        } else {
+        if (anyOver) {
             playError();
-            toast.warning(`Exceso: ${scannedItem.code} (+${totalAdding})`);
         }
     };
 
@@ -309,48 +290,24 @@ const PickingAudit = () => {
             });
 
             if (res.ok) {
-                toast.success("Auditoría Finalizada Correctamente");
                 handleReset();
                 setShowConfirmModal(false);
                 setShowAssignmentModal(false);
                 setPackagesCount('1');
-            } else {
-                const err = await res.json();
-                toast.error(err.detail || "Error al guardar");
             }
         } catch (e) {
-            toast.error("Error de conexión");
+            console.error(e);
         }
     };
 
     // -- Scanner Effect --
     // -- Scanner Effect --
     // -- Scanner Logic --
-    // The previous manual useEffect is removed in favor of ScannerModal
-
-
     // -- Render --
-
-    const toastStyles = `
-        .Toastify__toast { border-radius: 8px !important; font-size: 11px !important; min-height: 42px !important; padding: 10px 14px !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; border: 1px solid; }
-        .Toastify__toast--success { background: #f0fdf4 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
-        .Toastify__toast--error   { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
-        .Toastify__toast--warning { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
-        .Toastify__toast--info    { background: #eff6ff !important; color: #285f94 !important; border-color: #bfdbfe !important; }
-        .Toastify__toast-body { padding: 0 !important; font-weight: 500; letter-spacing: 0.01em; }
-        .Toastify__progress-bar { height: 2px !important; }
-        .Toastify__progress-bar--success { background: #16a34a !important; }
-        .Toastify__progress-bar--error   { background: #dc2626 !important; }
-        .Toastify__progress-bar--warning { background: #d97706 !important; }
-        .Toastify__close-button { color: #a1a1aa !important; opacity: 1 !important; align-self: center !important; }
-        .Toastify__toast-icon { width: 16px !important; margin-right: 8px !important; }
-    `;
-
     if (auditActive) {
         return (
             <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
-                <style>{toastStyles}</style>
-                <ToastContainer position="bottom-right" autoClose={2500} hideProgressBar={false} theme="light" style={{ width: '300px' }} />
+
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
@@ -388,10 +345,7 @@ const PickingAudit = () => {
                                                 if (itemPkgs[currentTotal] > 0) hasAssignments = true;
                                             });
 
-                                            if (hasAssignments) {
-                                                toast.warning("El último bulto no está vacío");
-                                                return;
-                                            }
+                                            if (hasAssignments) return;
 
                                             const newCount = currentTotal - 1;
                                             setPackagesCount(newCount.toString());
@@ -769,11 +723,8 @@ const PickingAudit = () => {
         );
     }
 
-    // Load Order View
     return (
         <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
-            <style>{toastStyles}</style>
-            <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} theme="light" style={{ width: '300px' }} />
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h1 className="text-[16px] font-normal text-gray-800 mb-6">Cargar Pedido Picking</h1>
@@ -814,9 +765,15 @@ const PickingAudit = () => {
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
-                            className={`text-sm ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
+                            className={`flex items-center gap-2 text-sm transition-all ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
                         >
-                            {loadingTracking ? 'Actualizando...' : 'Actualizar'}
+                            <span>Actualizar</span>
+                            {loadingTracking && (
+                                <svg className="animate-spin h-3.5 w-3.5 text-[#285f94]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            )}
                         </button>
                     </div>
                     {/* Desktop View */}
