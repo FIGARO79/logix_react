@@ -286,7 +286,7 @@ const Reconciliation = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-auto flex-1 no-scrollbar">
+                            <div className="overflow-auto max-h-[70vh]">
                                 <table className="w-full text-left border-separate border-spacing-0">
                                     <thead className="sticky top-0 z-20">
                                         <tr style={{ background: '#354a5f' }}>
