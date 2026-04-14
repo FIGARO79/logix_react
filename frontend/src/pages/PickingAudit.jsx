@@ -331,10 +331,26 @@ const PickingAudit = () => {
 
     // -- Render --
 
+    const toastStyles = `
+        .Toastify__toast { border-radius: 8px !important; font-size: 11px !important; min-height: 42px !important; padding: 10px 14px !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; border: 1px solid; }
+        .Toastify__toast--success { background: #f0fdf4 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
+        .Toastify__toast--error   { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+        .Toastify__toast--warning { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
+        .Toastify__toast--info    { background: #eff6ff !important; color: #285f94 !important; border-color: #bfdbfe !important; }
+        .Toastify__toast-body { padding: 0 !important; font-weight: 500; letter-spacing: 0.01em; }
+        .Toastify__progress-bar { height: 2px !important; }
+        .Toastify__progress-bar--success { background: #16a34a !important; }
+        .Toastify__progress-bar--error   { background: #dc2626 !important; }
+        .Toastify__progress-bar--warning { background: #d97706 !important; }
+        .Toastify__close-button { color: #a1a1aa !important; opacity: 1 !important; align-self: center !important; }
+        .Toastify__toast-icon { width: 16px !important; margin-right: 8px !important; }
+    `;
+
     if (auditActive) {
         return (
             <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
-                <ToastContainer position="top-right" autoClose={2000} />
+                <style>{toastStyles}</style>
+                <ToastContainer position="bottom-right" autoClose={2500} hideProgressBar={false} theme="light" style={{ width: '300px' }} />
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
@@ -756,7 +772,8 @@ const PickingAudit = () => {
     // Load Order View
     return (
         <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
-            <ToastContainer position="top-right" autoClose={3000} />
+            <style>{toastStyles}</style>
+            <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} theme="light" style={{ width: '300px' }} />
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h1 className="text-[16px] font-normal text-gray-800 mb-6">Cargar Pedido Picking</h1>

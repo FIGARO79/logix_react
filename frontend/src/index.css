@@ -77,3 +77,12 @@ h6 {
         print-color-adjust: exact !important;
     }
 }
+
+/* Ocultar barras de desplazamiento manteniendo funcionalidad */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}

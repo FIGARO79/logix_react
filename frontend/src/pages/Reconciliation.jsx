@@ -31,7 +31,6 @@ const Reconciliation = () => {
                     const response = await res.json();
                     if (response.data) {
                         setData(response.data);
-                        // Guardar en caché local si es la vista actual (sin filtros de fecha)
                         if (!params.archive_date && !params.snapshot_date) {
                             await cacheData('last_reconciliation', response.data);
                         }
@@ -46,13 +45,11 @@ const Reconciliation = () => {
             }
         }
 
-        // Fallback Offline
         try {
             const cachedData = await getCachedData('last_reconciliation');
             if (cachedData) {
                 setData(cachedData);
                 setIsOfflineData(true);
-                console.log("Logix: Cargada conciliación desde caché offline.");
             }
         } catch (e) {
             console.error("Error loading cached reconciliation:", e);
@@ -66,7 +63,7 @@ const Reconciliation = () => {
 
     const handleArchiveSnapshot = async () => {
         if (!data || data.length === 0) return alert("No hay datos para archivar");
-        if (!confirm("¿Deseas guardar una instantánea (SNAPSHOT) de esta conciliación? Esto congelará las diferencias calculadas actualmente.")) return;
+        if (!confirm("¿Deseas guardar una instantánea (SNAPSHOT) de esta conciliación?")) return;
 
         try {
             const res = await fetch('/api/views/reconciliation/archive', {
@@ -77,7 +74,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 const result = await res.json();
                 alert(`Instantánea guardada correctamente: ${result.archive_date}`);
-                fetchData(); // Recargar versiones
+                fetchData();
             } else {
                 alert("Error al guardar la instantánea");
             }
@@ -89,14 +86,14 @@ const Reconciliation = () => {
     const handleVersionChange = (e) => {
         const val = e.target.value;
         setCurrentVersion(val);
-        setCurrentSnapshot(''); // Limpiar snapshot si cambia versión de logs
+        setCurrentSnapshot('');
         fetchData({ archive_date: val });
     };
 
     const handleSnapshotChange = (e) => {
         const val = e.target.value;
         setCurrentSnapshot(val);
-        setCurrentVersion(''); // Limpiar versión de logs si cambia snapshot
+        setCurrentVersion('');
         fetchData({ snapshot_date: val });
     };
 
@@ -108,35 +105,25 @@ const Reconciliation = () => {
         } catch (e) { return dateStr; }
     };
 
-    // Sorting logic
     const sortedData = useMemo(() => {
         let sortableItems = [...data];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
                 let aKey = a[sortConfig.key];
                 let bKey = b[sortConfig.key];
-
-                // Handle numbers correctly
                 if (typeof aKey === 'number' && typeof bKey === 'number') {
                     return sortConfig.direction === 'ascending' ? aKey - bKey : bKey - aKey;
                 }
-                // Handle strings
                 aKey = aKey ? aKey.toString().toLowerCase() : '';
                 bKey = bKey ? bKey.toString().toLowerCase() : '';
-
-                if (aKey < bKey) {
-                    return sortConfig.direction === 'ascending' ? -1 : 1;
-                }
-                if (aKey > bKey) {
-                    return sortConfig.direction === 'ascending' ? 1 : -1;
-                }
+                if (aKey < bKey) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aKey > bKey) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
             });
         }
         return sortableItems;
     }, [data, sortConfig]);
 
-    // Filtering logic
     const filteredData = useMemo(() => {
         return sortedData.filter(item => {
             if (!filterText) return true;
@@ -154,187 +141,236 @@ const Reconciliation = () => {
         setSortConfig({ key, direction });
     };
 
-    // Helper for Sort Icons
     const getSortIcon = (name) => {
-        if (sortConfig.key !== name) return <span className="ml-1 text-gray-400">↕</span>;
-        return sortConfig.direction === 'ascending' ? <span className="ml-1 text-black">↑</span> : <span className="ml-1 text-black">↓</span>;
+        if (sortConfig.key !== name) return <span className="ml-1 opacity-30">↕</span>;
+        return sortConfig.direction === 'ascending' ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>;
     };
 
     return (
-        <div className="p-2 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* Header / Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0 flex items-center gap-2">
-                    Conciliación
-                </h2>
+        <div className="flex flex-col h-full bg-[#fcfcfc] text-black font-sans font-normal">
+            <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                    <div className="space-y-0.5">
+                        <h1 className="text-lg tracking-tight text-black">Conciliación de Inventario</h1>
+                        <div className="flex items-center gap-2">
+                            <p className="text-[8px] uppercase tracking-[0.2em] text-black">Auditoría de Diferencias</p>
+                            <span className="text-zinc-200"></span>
+                            {isOfflineData ? (
+                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
+                                    Offline
+                                </span>
+                            ) : (
+                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
+                                    
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-center">
-                    {/* Select Logs Archived */}
-                    <select
-                        value={currentVersion}
-                        onChange={handleVersionChange}
-                        className="h-8 text-[10px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
-                    >
-                        <option value="">-- Logs Actuales --</option>
-                        {archiveVersions.map(v => (
-                            <option key={v} value={v}>Logs: {formatDateShort(v)}</option>
-                        ))}
-                    </select>
-
-                    {/* Select Snapshots (Frozen) */}
-                    <select
-                        value={currentSnapshot}
-                        onChange={handleSnapshotChange}
-                        className="h-8 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md shadow-sm hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[#285f94] transition-all duration-150 cursor-pointer"
-                    >
-                        <option value="">-- Historial Snapshots --</option>
-                        {snapshotVersions.map(v => (
-                            <option key={v} value={v}>Snapshot: {formatDateShort(v)}</option>
-                        ))}
-                    </select>
-
-                    {/* Search Box */}
-                    <div className="relative w-full sm:w-72 flex-shrink-0">
-                        <input
-                            type="text"
-                            placeholder="Buscar..."
-                            className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
-                            value={filterText}
-                            onChange={(e) => setFilterText(e.target.value)}
-                        />
-                        {filterText && (
-                            <button
-                                type="button"
-                                onClick={() => setFilterText('')}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                                title="Borrar búsqueda"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100">
+                    <div className="flex-1 min-w-[200px]">
+                        <div style={{ position: 'relative' }}>
+                            {/* Ícono lupa — pointer-events none para no bloquear el input */}
+                            <span style={{
+                                position: 'absolute',
+                                left: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                pointerEvents: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#a1a1aa',
+                                zIndex: 2
+                            }}>
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="BUSCAR REGISTRO..."
+                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider"
+                                style={{ paddingLeft: '32px', paddingRight: filterText ? '30px' : '12px' }}
+                                value={filterText}
+                                onChange={(e) => setFilterText(e.target.value)}
+                            />
+                            {/* Botón X para limpiar — solo visible cuando hay texto */}
+                            {filterText && (
+                                <button
+                                    onClick={() => setFilterText('')}
+                                    title="Limpiar búsqueda"
+                                    style={{
+                                        position: 'absolute',
+                                        right: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '18px',
+                                        height: '18px',
+                                        borderRadius: '50%',
+                                        background: '#e4e4e7',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '13px',
+                                        lineHeight: 1,
+                                        color: '#52525b',
+                                        padding: 0,
+                                        zIndex: 2
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="w-40">
+                        <select
+                            value={currentVersion}
+                            onChange={handleVersionChange}
+                            className="w-full h-9 px-2 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                        >
+                            <option value="">LOGS ACTUALES</option>
+                            {archiveVersions.map(v => (
+                                <option key={v} value={v}>LOGS: {formatDateShort(v)}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="w-40">
+                        <select
+                            value={currentSnapshot}
+                            onChange={handleSnapshotChange}
+                            className="w-full h-9 px-2 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                        >
+                            <option value="">INSTANTÁNEAS</option>
+                            {snapshotVersions.map(v => (
+                                <option key={v} value={v}>SNAP: {formatDateShort(v)}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams();
+                                if (currentVersion) params.append('archive_date', currentVersion);
+                                if (currentSnapshot) params.append('snapshot_date', currentSnapshot);
+                                window.location.href = `/api/export_reconciliation?${params.toString()}`;
+                            }}
+                            className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background='#1e4a74'} onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                        >
+                            Exportar
+                        </button>
+
+                        {!currentSnapshot && (
+                            <button
+                                onClick={handleArchiveSnapshot}
+                                className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background='#1e4a74'} onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            >
+                                Snapshot
                             </button>
                         )}
                     </div>
-
-                    {/* Export Button */}
-                    <button
-                        onClick={() => {
-                            const params = new URLSearchParams();
-                            if (currentVersion) params.append('archive_date', currentVersion);
-                            if (currentSnapshot) params.append('snapshot_date', currentSnapshot);
-                            window.location.href = `/api/export_reconciliation?${params.toString()}`;
-                        }}
-                        className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white border border-emerald-700 rounded-md shadow-sm hover:bg-emerald-700 transition-all duration-150 flex items-center justify-center gap-1.5"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
-                        Exportar
-                    </button>
-
-                    {/* Archive Snapshot Button */}
-                    {!currentSnapshot && (
-                        <button
-                            onClick={handleArchiveSnapshot}
-                            className="h-8 px-4 text-xs font-medium bg-blue-600 text-white border border-blue-700 rounded-md shadow-sm hover:bg-blue-700 transition-all duration-150 flex items-center justify-center gap-1.5"
-                            title="Congelar esta vista en el historial"
-                        >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                            Snapshot
-                        </button>
-                    )}
                 </div>
             </div>
 
-            {/* Data Table */}
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-                {loading ? (
-                    <div className="p-12 text-center text-gray-500 animate-pulse">
-                        Cargando datos de reconciliación...
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto max-h-[70vh]">
-                        <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white sticky top-0 z-10 shadow-sm">
-                                <tr>
-                                    {['Import_Reference', 'Waybill', 'GRN', 'Codigo_Item', 'Descripcion', 'Ubicacion', 'Reubicado', 'Cant_Esperada', 'Cant_Recibida', 'Diferencia'].map((head) => (
-                                        <th
-                                            key={head}
-                                            onClick={() => requestSort(head)}
-                                            className="px-2 py-1.5 text-left font-medium cursor-pointer transition select-none whitespace-nowrap hover:bg-slate-600"
-                                        >
-                                            <div className="flex items-center">
-                                                {head === 'Import_Reference' ? 'I.R.' : head.replace(/_/g, ' ')}
-                                                {getSortIcon(head)}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredData.length > 0 ? (
-                                    filteredData.map((row, idx) => {
-                                        const diff = row.Diferencia;
-                                        const baseClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-
-                                        // Lógica de colores simplificada (Solo Azul y Rojo)
-                                        let rowClass = `${baseClass} hover:bg-gray-100`;
-                                        let textClass = "text-gray-600";
-
-                                        if (diff > 0) {
-                                            // Sobrante: Azul
-                                            rowClass = "bg-blue-50 hover:bg-blue-100";
-                                            textClass = "text-blue-600 font-bold";
-                                        } else if (diff < 0) {
-                                            // Faltante: Rojo
-                                            rowClass = "bg-red-50 hover:bg-red-100";
-                                            textClass = "text-red-600 font-bold";
-                                        }
-
-                                        return (
-                                            <tr key={idx} className={`${rowClass} transition-colors border-b border-gray-100`}>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-medium text-gray-900">{row.Import_Reference}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{row.Waybill}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-gray-500 italic">{row.GRN}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono font-bold text-[#285f94]">{row.Codigo_Item}</td>
-                                                <td className="px-2 py-1.5 truncate max-w-[200px]" title={row.Descripcion}>{row.Descripcion}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono text-gray-700">{row.Ubicacion || '-'}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap font-mono text-gray-700">{row.Reubicado || '-'}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{row.Cant_Esperada}</td>
-                                                <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono font-bold">{row.Cant_Recibida}</td>
-                                                <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono ${textClass}`}>
-                                                    {diff > 0 ? `+${diff}` : diff}
-                                                </td>
+            <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
+                <div className="bg-white border border-zinc-200 rounded-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
+                    {loading ? (
+                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-black">
+                            Cargando...
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-auto flex-1 no-scrollbar">
+                                <table className="w-full text-left border-separate border-spacing-0">
+                                    <thead className="sticky top-0 z-20">
+                                        <tr style={{ background: '#354a5f' }}>
+                                            {[
+                                                { id: 'Import_Reference', label: 'I.R.' },
+                                                { id: 'Waybill', label: 'WAYBILL' },
+                                                { id: 'GRN', label: 'GRN' },
+                                                { id: 'Codigo_Item', label: 'CODIGO ITEM' },
+                                                { id: 'Descripcion', label: 'DESCRIPCION' },
+                                                { id: 'Ubicacion', label: 'UBICACION' },
+                                                { id: 'Reubicado', label: 'REUBICADO' },
+                                                { id: 'Cant_Esperada', label: 'CANT ESPERADA' },
+                                                { id: 'Cant_Recibida', label: 'CANT RECIBIDA' },
+                                                { id: 'Diferencia', label: 'DIFERENCIA' }
+                                            ].map((head) => (
+                                                <th
+                                                    key={head.id}
+                                                    onClick={() => requestSort(head.id)}
+                                                    className="px-3 py-2 text-[10px] font-semibold text-white cursor-pointer select-none whitespace-nowrap uppercase tracking-wider"
+                                                    style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#2a3c4e'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = ''}
+                                                >
+                                                    <div className="flex items-center gap-1">
+                                                        {head.label}
+                                                        {getSortIcon(head.id)}
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredData.length > 0 ? (
+                                            filteredData.map((row, idx) => (
+                                                <tr
+                                                    key={idx}
+                                                    className="transition-colors"
+                                                    style={{ background: idx % 2 === 0 ? '#fff' : '#f8f9fa' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#eef3f8'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#f8f9fa'}
+                                                >
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Import_Reference}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Waybill}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.GRN}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] font-medium" style={{ borderBottom: '1px solid #f0f0f0', color: '#285f94' }}>{row.Codigo_Item}</td>
+                                                    <td className="px-3 py-1.5 truncate max-w-[300px] text-[11px] text-zinc-700 uppercase" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Descripcion}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Ubicacion || '-'}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Reubicado || '-'}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-center text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Cant_Esperada}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-center font-bold text-zinc-900" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Cant_Recibida}</td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-center text-[11px] font-bold" style={{ borderBottom: '1px solid #f0f0f0', color: row.Diferencia > 0 ? '#285f94' : row.Diferencia < 0 ? '#dc2626' : '#030303ff' }}>
+                                                        {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="10" className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
                                             </tr>
-                                        );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan="10" className="px-2 py-4 text-center text-gray-500">
-                                            No se encontraron datos {filterText && `para "${filterText}"`}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                {/* Footer / Stats */}
-                {!loading && (
-                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex flex-col xs:flex-row items-center justify-between text-xs text-gray-500">
-                        <span>Mostrando {filteredData.length} registros</span>
-                        {isOfflineData ? (
-                            <span className="text-amber-600 font-bold flex items-center gap-1">
-                                <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-                                Datos en Caché Offline
-                            </span>
-                        ) : (
-                            <span className="text-emerald-600 flex items-center gap-1">
-                                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                                Datos en tiempo real
-                            </span>
-                        )}
-                    </div>
-                )}
+                            {/* Footer */}
+                            <div className="flex items-center gap-3 px-4 py-2 border-t border-zinc-100 bg-white text-[10px] text-zinc-500">
+                                <span>Mostrando <span className="font-semibold text-zinc-700">{filteredData.length}</span> registros</span>
+                                {!isOfflineData && (
+                                    <span className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                        Datos en tiempo real
+                                    </span>
+                                )}
+                                {isOfflineData && (
+                                    <span className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                                        Datos sin conexión
+                                    </span>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                </div>
             </div>
         </div>
     );
