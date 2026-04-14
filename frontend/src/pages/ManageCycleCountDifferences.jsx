@@ -17,7 +17,7 @@ const ManageCycleCountDifferences = () => {
     const [newPhysicalQty, setNewPhysicalQty] = useState('');
 
     useEffect(() => {
-        setTitle("Gestión de Diferencias - Conteos Cíclicos");
+        setTitle("Gestión de Diferencias");
     }, [setTitle]);
 
     const fetchData = async () => {
@@ -85,26 +85,34 @@ const ManageCycleCountDifferences = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
+        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+            
+            {/* Header Técnico */}
+            <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
+                <div className="flex flex-col gap-0">
+                    <h1 className="text-[14px] font-normal tracking-tight">Gestión de Diferencias</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-zinc-900">Auditoría de Resultados y Ajustes de Ciclo</p>
+                </div>
+            </div>
             {/* Filtros */}
-            <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex flex-wrap gap-4 items-end">
+            <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
                 <div>
-                    <label className="block text-gray-700 font-medium mb-1">Año</label>
+                    <label className="block text-[9px] uppercase font-bold text-zinc-900 tracking-widest mb-1.5">Año</label>
                     <input
                         type="number"
                         value={year}
                         onChange={(e) => setYear(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 w-20"
+                        className="h-8 border border-zinc-200 rounded px-3 w-24 text-xs focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
                     />
                 </div>
                 <div>
-                    <label className="block text-gray-700 font-medium mb-1">Mes</label>
+                    <label className="block text-[9px] uppercase font-bold text-zinc-900 tracking-widest mb-1.5">Mes</label>
                     <select
                         value={month}
                         onChange={(e) => setMonth(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 w-32"
+                        className="h-8 border border-zinc-200 rounded px-3 w-36 text-xs focus:ring-1 focus:ring-zinc-900 outline-none transition-all cursor-pointer"
                     >
-                        <option value="">Todos</option>
+                        <option value="">Todos los meses</option>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                             <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('es-ES', { month: 'long' })}</option>
                         ))}
@@ -116,68 +124,63 @@ const ManageCycleCountDifferences = () => {
                         checked={onlyDifferences}
                         onChange={(e) => setOnlyDifferences(e.target.checked)}
                         id="onlyDiff"
-                        className="mr-2"
+                        className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
                     />
-                    <label htmlFor="onlyDiff" className="cursor-pointer select-none">Solo Diferencias</label>
+                    <label htmlFor="onlyDiff" className="ml-2 text-[10px] uppercase font-bold text-zinc-900 tracking-tight cursor-pointer select-none">Solo Diferencias</label>
                 </div>
                 <div className="flex-grow"></div>
-                <button onClick={fetchData} className="bg-[#285f94] text-white px-4 py-1.5 rounded hover:bg-[#1e4a74] transition">
-                    Actualizar
+                <button 
+                    onClick={fetchData} 
+                    className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-bold uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
+                >
+                    Actualizar Vista
                 </button>
             </div>
 
-            <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
-                <table className="w-full text-left border-collapse text-[11px] leading-tight">
-                    <thead className="bg-slate-700 text-white">
+            <div className="bg-white shadow-sm border border-zinc-200 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-zinc-900 text-white">
                         <tr>
-                            <th className="px-3 py-2">Fecha Ejec.</th>
-                            <th className="px-3 py-2">Item Code</th>
-                            <th className="px-3 py-2">Descripción</th>
-                            <th className="px-3 py-2">Ubicación</th>
-                            <th className="px-3 py-2 text-center">ABC</th>
-                            <th className="px-3 py-2 text-right">Cant. Sistema</th>
-                            <th className="px-3 py-2 text-right">Cant. Física</th>
-                            <th className="px-3 py-2 text-right">Diferencia</th>
-                            <th className="px-3 py-2">Usuario</th>
-                            <th className="px-3 py-2 text-center">Acciones</th>
+                            {['Fecha Ejec.', 'Item Code', 'Descripción', 'Ubicación', 'ABC', 'Sistema', 'Física', 'Diff', 'Usuario', 'Acciones'].map((h, i) => (
+                                <th key={i} className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest ${i > 4 && i < 8 ? 'text-right' : (i === 4 || i === 9 ? 'text-center' : 'text-left')}`}>{h}</th>
+                            ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-zinc-100">
                         {loading ? (
-                            <tr><td colSpan="10" className="text-center py-4 text-gray-500">Cargando...</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-bold tracking-widest">Analizando discrepancias...</td></tr>
                         ) : data.length === 0 ? (
-                            <tr><td colSpan="10" className="text-center py-4 text-gray-500">No se encontraron registros.</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-bold tracking-widest">No se encontraron diferencias en este periodo.</td></tr>
                         ) : (
                             data.map((row) => (
-                                <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                                    <td className="px-3 py-1 whitespace-nowrap">{formatDate(row.executed_date)}</td>
-                                    <td className="px-3 py-1 font-mono font-medium text-[#1e4a74]">{row.item_code}</td>
-                                    <td className="px-3 py-1 truncate max-w-[200px]" title={row.item_description}>{row.item_description}</td>
-                                    <td className="px-3 py-1">{row.bin_location}</td>
-                                    <td className="px-3 py-1 text-center">
+                                <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors leading-none">
+                                    <td className="px-4 py-1.5 whitespace-nowrap text-[10px] text-zinc-600 font-mono">{formatDate(row.executed_date)}</td>
+                                    <td className="px-4 py-1.5 font-mono font-bold text-[#285f94] text-[11px]">{row.item_code}</td>
+                                    <td className="px-4 py-1.5 truncate max-w-[200px] text-[10px] text-zinc-800 uppercase font-bold" title={row.item_description}>{row.item_description}</td>
+                                    <td className="px-4 py-1.5 text-[11px] text-zinc-600 font-mono uppercase">{row.bin_location}</td>
+                                    <td className="px-4 py-1.5 text-center">
                                         {row.abc_code && (
-                                            <span className={`inline-block w-5 h-5 leading-5 rounded-full text-[9px] font-bold 
-                                                ${row.abc_code === 'A' ? 'bg-red-100 text-red-800' :
-                                                    row.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                            <span className={`px-2 py-0.5 inline-flex text-[9px] font-bold uppercase tracking-tight rounded border ${
+                                                row.abc_code === 'A' ? 'bg-red-50 text-red-800 border-red-200' :
+                                                row.abc_code === 'B' ? 'bg-amber-50 text-amber-800 border-amber-200' : 
+                                                'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
                                                 {row.abc_code}
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-3 py-1 text-right font-mono">{row.system_qty}</td>
-                                    <td className="px-3 py-1 text-right font-mono">{row.physical_qty}</td>
-                                    <td className={`px-3 py-1 text-right font-bold ${row.difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    <td className="px-4 py-1.5 text-right font-mono text-[11px] text-zinc-600">{row.system_qty}</td>
+                                    <td className="px-4 py-1.5 text-right font-mono text-[11px] text-zinc-900 font-bold">{row.physical_qty}</td>
+                                    <td className={`px-4 py-1.5 text-right font-bold text-[11px] ${row.difference !== 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                                         {row.difference > 0 ? `+${row.difference}` : row.difference}
                                     </td>
-                                    <td className="px-3 py-1 text-gray-600">{row.username}</td>
-                                    <td className="px-3 py-1 text-center">
+                                    <td className="px-4 py-1.5 text-[10px] text-zinc-600 uppercase font-medium">{row.username}</td>
+                                    <td className="px-4 py-1.5 text-center">
                                         <button
                                             onClick={() => handleEdit(row)}
-                                            className="bg-blue-50 hover:bg-blue-100 text-[#285f94] p-1 rounded border border-blue-200 transition-colors"
-                                            title="Recount"
+                                            className="text-[9px] font-bold uppercase tracking-widest text-[#285f94] hover:text-black transition-colors leading-none"
+                                            title="Recuento"
                                         >
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
+                                            RECOUNT
                                         </button>
                                     </td>
                                 </tr>
@@ -189,34 +192,49 @@ const ManageCycleCountDifferences = () => {
 
             {/* Modal Editar */}
             {editingItem && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full">
-                        <h3 className="text-lg font-semibold mb-4">Actualizar Cantidad Física</h3>
-                        <p className="mb-2 text-gray-600">Item: <strong>{editingItem.item_code}</strong></p>
-                        <p className="mb-4 text-gray-600">Cant. Sistema: {editingItem.system_qty}</p>
+                <div className="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white border border-zinc-200 shadow-2xl max-w-sm w-full overflow-hidden">
+                        <div className="bg-zinc-900 px-6 py-3">
+                            <h3 className="text-[10px] font-bold text-white uppercase tracking-widest">Actualizar Cantidad Física</h3>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-6 space-y-1">
+                                <label className="text-[8px] uppercase font-bold text-zinc-400 tracking-widest block">Referencia</label>
+                                <p className="text-sm font-bold text-zinc-900 tracking-tight">{editingItem.item_code}</p>
+                                <p className="text-[10px] text-zinc-500 uppercase">{editingItem.item_description}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="p-3 bg-zinc-50 border border-zinc-100">
+                                    <label className="text-[8px] uppercase font-bold text-zinc-400 tracking-widest block mb-1">Stock Sistema</label>
+                                    <p className="text-xl font-light text-zinc-900">{editingItem.system_qty}</p>
+                                </div>
+                                <div className="p-3 bg-blue-50/30 border border-blue-100">
+                                    <label className="text-[8px] uppercase font-bold text-blue-400 tracking-widest block mb-1">Stock Físico</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-transparent text-xl font-bold text-[#285f94] focus:outline-none"
+                                        value={newPhysicalQty}
+                                        onChange={(e) => setNewPhysicalQty(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
 
-                        <label className="block mb-1 text-sm font-medium">Nueva Cantidad Física:</label>
-                        <input
-                            type="number"
-                            className="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#285f94]"
-                            value={newPhysicalQty}
-                            onChange={(e) => setNewPhysicalQty(e.target.value)}
-                            autoFocus
-                        />
-
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setEditingItem(null)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleSaveEdit}
-                                className="px-4 py-2 bg-[#285f94] text-white rounded hover:bg-[#1e4a74]"
-                            >
-                                Guardar
-                            </button>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setEditingItem(null)}
+                                    className="px-4 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    className="px-6 py-2 bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-black transition-all shadow-md"
+                                >
+                                    Confirmar Ajuste
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

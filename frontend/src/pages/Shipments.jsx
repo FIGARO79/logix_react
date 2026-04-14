@@ -12,8 +12,11 @@ const Shipments = () => {
 
     useEffect(() => {
         setTitle("Envíos Consolidados");
-        fetchShipments();
     }, [setTitle]);
+
+    useEffect(() => {
+        fetchShipments();
+    }, []);
 
     const fetchShipments = async () => {
         setLoading(true);
@@ -29,7 +32,7 @@ const Shipments = () => {
     };
 
     const handleCancel = async (id) => {
-        if (!confirm(`¿Cancelar envío #${id}?`)) return;
+        if (!confirm(`¿CANCELAR ENVÍO #${id}?`)) return;
         try {
             const res = await fetch(`/api/shipments/${id}`, {
                 method: 'DELETE',
@@ -56,118 +59,120 @@ const Shipments = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 pt-2 pb-4">
+        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
-            <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-normal text-black">Mis Envíos</h2>
-                <button
-                    onClick={fetchShipments}
-                    className="text-sm text-[#285f94] hover:underline"
-                >
-                    Actualizar
-                </button>
+            {/* Header Profesional */}
+            <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
+                <div className="flex flex-col gap-0">
+                    <h1 className="text-base font-normal tracking-tight">Gestión de Envíos</h1>
+                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-zinc-400">Seguimiento de Despacho y Consolidación de Carga</p>
+                </div>
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={fetchShipments}
+                        className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors"
+                    >
+                        Sincronizar
+                    </button>
+                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest border-l border-zinc-200 pl-6">
+                        {shipments.length} Envíos
+                    </div>
+                </div>
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#285f94]"></div>
+                <div className="flex justify-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
                 </div>
             ) : shipments.length === 0 ? (
-                <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-                    <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <h3 className="text-lg text-gray-400 mb-1">Sin Envíos</h3>
-                    <p className="text-sm text-gray-500">
-                        Crea un envío desde el{' '}
-                        <Link to="/view_picking_audits" className="text-[#285f94] hover:underline">
+                <div className="text-center py-20 bg-white border border-zinc-200 shadow-sm">
+                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">No se encontraron registros</h3>
+                    <p className="text-[9px] text-zinc-400 uppercase">
+                        Inicia una consolidación desde el{' '}
+                        <Link to="/view_picking_audits" className="text-zinc-900 underline hover:text-black">
                             Historial de Auditorías
                         </Link>
                     </p>
                 </div>
             ) : (
-                <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+                <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
                     {/* Desktop Table */}
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="border-b border-gray-200 text-left text-xs font-bold uppercase tracking-wider">
-                                    <th className="px-3 py-2 text-center w-8"></th>
-                                    <th className="px-3 py-2">ID</th>
-                                    <th className="px-3 py-2">Fecha</th>
-                                    <th className="px-3 py-2">Cliente</th>
-                                    <th className="px-3 py-2">Usuario</th>
-                                    <th className="px-3 py-2">Transportadora</th>
-                                    <th className="px-3 py-2 text-center">Pedidos</th>
-                                    <th className="px-3 py-2 text-center">Estado</th>
-                                    <th className="px-3 py-2 text-center">Acciones</th>
+                                <tr className="bg-zinc-900 border-b border-zinc-800 text-white">
+                                    <th className="px-4 py-1.5 text-center w-10"></th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">ID</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Fecha</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Cliente Principal</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Usuario</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Transporte</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Items</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {shipments.map(s => (
                                     <React.Fragment key={s.id}>
                                         <tr
-                                            className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors
+                                            className={`border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors cursor-pointer
                                                 ${s.status === 'cancelled' ? 'opacity-50' : ''}
-                                                ${expandedId === s.id ? 'bg-blue-50' : ''}`}
+                                                ${expandedId === s.id ? 'bg-zinc-50' : ''}`}
                                             onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
                                         >
-                                            <td className="px-3 py-2 text-center">
+                                            <td className="px-4 py-1.5 text-center">
                                                 <svg
-                                                    className={`w-4 h-4 text-gray-500 transform transition-transform ${expandedId === s.id ? 'rotate-90' : ''}`}
+                                                    className={`w-3 h-3 text-zinc-500 transform transition-transform duration-200 ${expandedId === s.id ? 'rotate-90' : ''}`}
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-3 py-2 text-xs font-bold text-[#285f94]">#{s.id}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{formatDate(s.created_at)}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 truncate max-w-[200px]">
+                                            <td className="px-4 py-1.5 text-[11px] font-bold text-[#285f94]">#{s.id}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-600 font-mono">{formatDate(s.created_at)}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-bold">
                                                 {s.audits.length > 0 && (
                                                     <>
-                                                        <span className="font-bold text-[#285f94] mr-1">{s.audits[0].customer_code}</span>
-                                                        <span className="uppercase">{s.audits[0].customer_name}</span>
-                                                        {s.audits.length > 1 && <span className="text-[10px] text-gray-400 ml-1">(+{s.audits.length - 1})</span>}
+                                                        <span className="text-zinc-500 mr-2">[{s.audits[0].customer_code}]</span>
+                                                        {s.audits[0].customer_name}
+                                                        {s.audits.length > 1 && <span className="text-[8px] bg-zinc-100 px-1 ml-2 text-zinc-500">+{s.audits.length - 1}</span>}
                                                     </>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2 text-xs text-gray-600">{s.username}</td>
-                                            <td className="px-3 py-2 text-xs text-gray-600 uppercase">{s.carrier || '—'}</td>
-                                            <td className="px-3 py-2 text-center">
-                                                <span className="bg-[#285f94] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-700 uppercase font-medium">{s.username}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-600 uppercase tracking-tight font-medium">{s.carrier || '—'}</td>
+                                            <td className="px-4 py-1.5 text-center">
+                                                <span className="text-[10px] font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded">
                                                     {s.total_orders}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 text-center">
-                                                <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${s.status === 'active'
-                                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                                    : 'bg-red-100 text-red-800 border-red-200'
+                                            <td className="px-4 py-1.5 text-center">
+                                                <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight rounded border ${s.status === 'active'
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                    : 'bg-red-50 text-red-800 border-red-200'
                                                     }`}>
                                                     {s.status === 'active' ? 'Activo' : 'Cancelado'}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 text-center">
-                                                <div className="flex justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                                                <div className="flex justify-center items-center gap-6">
                                                     {s.status === 'active' && (
                                                         <>
                                                             <Link
                                                                 to={`/shipments/print/${s.id}`}
-                                                                className="w-6 h-6 p-0 min-w-0 flex items-center justify-center bg-gray-50 text-gray-600 hover:bg-[#285f94] hover:text-white rounded transition-colors border border-gray-200 shadow-sm"
-                                                                title="Imprimir Packing List Consolidado"
+                                                                className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 hover:text-[#285f94] transition-colors leading-none"
+                                                                title="Imprimir"
                                                             >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                                </svg>
+                                                                Print
                                                             </Link>
                                                             <button
                                                                 onClick={() => handleCancel(s.id)}
-                                                                className="w-6 h-6 p-0 min-w-0 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded transition-colors border border-red-100 shadow-sm"
-                                                                title="Cancelar Envío"
+                                                                className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-red-600 transition-colors leading-none"
+                                                                title="Anular"
                                                             >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
+                                                                Anular
                                                             </button>
                                                         </>
                                                     )}
@@ -177,27 +182,37 @@ const Shipments = () => {
 
                                         {/* Expanded detail */}
                                         {expandedId === s.id && (
-                                            <tr className="bg-gray-50">
-                                                <td colSpan="8" className="p-4 border-b border-gray-200">
-                                                    <div className="bg-white rounded border border-gray-200 p-4">
-                                                        {s.note && (
-                                                            <p className="text-sm text-gray-600 mb-3">
-                                                                <span className="font-semibold">Nota:</span> {s.note}
-                                                            </p>
-                                                        )}
-                                                        <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase tracking-wide">Pedidos Incluidos</h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                            <tr className="bg-zinc-50/50">
+                                                <td colSpan="9" className="px-10 py-4 border-b border-zinc-100">
+                                                    <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+                                                        <div className="flex justify-between items-start mb-6 border-b border-zinc-50 pb-4">
+                                                            <div>
+                                                                <h4 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">Observaciones del Envío</h4>
+                                                                <p className="text-[11px] text-zinc-600 italic">
+                                                                    {s.note || "SIN OBSERVACIONES REGISTRADAS"}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest block">Consolidado por</span>
+                                                                <span className="text-[10px] font-bold text-zinc-900 uppercase">{s.username}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <h4 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">Pedidos Agrupados</h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                                             {s.audits.map(a => (
-                                                                <div key={a.audit_id} className="bg-gray-50 rounded border border-gray-200 p-3">
-                                                                    <div className="flex justify-between items-center mb-1">
-                                                                        <span className="font-bold text-[#285f94]">{a.order_number}</span>
-                                                                        <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded border">{a.despatch_number}</span>
+                                                                <div key={a.audit_id} className="bg-zinc-50 border border-zinc-100 p-3 hover:border-zinc-200 transition-all">
+                                                                    <div className="flex justify-between items-center mb-2">
+                                                                        <span className="text-[11px] font-bold text-[#285f94]">{a.order_number}</span>
+                                                                        <span className="text-[9px] font-mono text-zinc-400 bg-white px-1.5 border border-zinc-100">{a.despatch_number}</span>
                                                                     </div>
-                                                                    <div className="text-xs text-gray-600 truncate">
-                                                                        <span className="font-mono text-[10px] bg-gray-100 px-1 rounded mr-1">{a.customer_code}</span>
+                                                                    <div className="text-[9px] text-zinc-500 uppercase font-medium truncate mb-1">
+                                                                        <span className="text-zinc-400 mr-2">[{a.customer_code}]</span>
                                                                         {a.customer_name}
                                                                     </div>
-                                                                    <div className="text-xs text-gray-400 mt-1">{a.packages} bulto(s)</div>
+                                                                    <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                                                        CONTENIDO: {a.packages} BULTOS
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -212,68 +227,51 @@ const Shipments = () => {
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
+                    <div className="block sm:hidden bg-zinc-50 p-2 space-y-3">
                         {shipments.map(s => (
-                            <div key={s.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${s.status === 'cancelled' ? 'opacity-60' : ''}`}>
-                                <div className="p-4" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg font-bold text-[#285f94]">Envío #{s.id}</span>
-                                            <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${s.status === 'active'
-                                                ? 'bg-green-100 text-green-800 border-green-200'
-                                                : 'bg-red-100 text-red-800 border-red-200'
-                                                }`}>
-                                                {s.status === 'active' ? 'Activo' : 'Cancelado'}
-                                            </span>
-                                        </div>
-                                        <span className="bg-[#285f94] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                            {s.total_orders} pedido(s)
-                                        </span>
+                            <div key={s.id} className={`bg-white border border-zinc-200 p-4 shadow-sm ${s.status === 'cancelled' ? 'opacity-60' : ''}`} onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[12px] font-bold text-[#285f94] tracking-tight">ENVÍO #{s.id}</span>
+                                        <span className="text-[8px] text-zinc-400 uppercase tracking-widest">{formatDate(s.created_at)}</span>
                                     </div>
+                                    <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-tight rounded border ${s.status === 'active'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                        : 'bg-red-50 text-red-700 border-red-100'
+                                        }`}>
+                                        {s.status === 'active' ? 'ACTIVO' : 'ANULADO'}
+                                    </span>
+                                </div>
 
-                                    <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                        <span>{formatDate(s.created_at)}</span>
-                                        <span className="uppercase">{s.carrier || ''}</span>
-                                    </div>
-
+                                <div className="text-[10px] font-bold text-zinc-700 uppercase mb-3 truncate">
                                     {s.audits.length > 0 && (
-                                        <div className="text-xs font-medium text-gray-700 mb-2 truncate">
-                                            <span className="font-bold text-[#285f94] mr-2">{s.audits[0].customer_code}</span>
-                                            <span className="uppercase">{s.audits[0].customer_name}</span>
-                                            {s.audits.length > 1 && <span className="text-[10px] text-gray-400 ml-1">(+{s.audits.length - 1} más)</span>}
-                                        </div>
+                                        <>
+                                            <span className="text-zinc-400 mr-2">[{s.audits[0].customer_code}]</span>
+                                            {s.audits[0].customer_name}
+                                        </>
                                     )}
+                                </div>
 
+                                <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
+                                    <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">{s.total_orders} PEDIDOS</span>
                                     {s.status === 'active' && (
-                                        <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
-                                            <Link
-                                                to={`/shipments/print/${s.id}`}
-                                                className="flex-1 text-center py-2 bg-[#285f94] text-white rounded text-sm font-bold"
-                                            >
-                                                Imprimir
-                                            </Link>
-                                            <button
-                                                onClick={() => handleCancel(s.id)}
-                                                className="px-4 py-2 bg-red-50 text-red-600 rounded text-sm font-bold border border-red-100"
-                                            >
-                                                Cancelar
-                                            </button>
+                                        <div className="flex gap-4" onClick={e => e.stopPropagation()}>
+                                            <Link to={`/shipments/print/${s.id}`} className="text-[9px] font-bold uppercase text-zinc-400 hover:text-zinc-900">Print</Link>
+                                            <button onClick={() => handleCancel(s.id)} className="text-[9px] font-bold uppercase text-zinc-300 hover:text-red-500">Anular</button>
                                         </div>
                                     )}
                                 </div>
 
                                 {expandedId === s.id && (
-                                    <div className="bg-gray-50 border-t border-gray-100 p-3 space-y-2">
-                                        {s.note && <p className="text-xs text-gray-600"><span className="font-semibold">Nota:</span> {s.note}</p>}
+                                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
                                         {s.audits.map(a => (
-                                            <div key={a.audit_id} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-sm">
-                                                <div>
-                                                    <span className="font-bold text-[#285f94]">{a.order_number}</span>
-                                                    <span className="text-xs text-gray-400 ml-2">/ {a.despatch_number}</span>
+                                            <div key={a.audit_id} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-zinc-800">{a.order_number}</span>
+                                                    <span className="text-zinc-400 text-[8px]">{a.despatch_number}</span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-[10px] font-mono text-gray-500">{a.customer_code}</div>
-                                                    <div className="text-xs text-gray-500">{a.customer_name}</div>
+                                                    <div className="font-bold text-zinc-600">{a.packages} BULTOS</div>
                                                 </div>
                                             </div>
                                         ))}
