@@ -624,7 +624,10 @@ const Inbound = () => {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className={`btn-sap btn-primary w-60 h-10 flex items-center justify-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background='#1e4a74')}
+                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background='#285f94')}
                                 >
                                     {isSaving ? (
                                         <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
@@ -632,7 +635,15 @@ const Inbound = () => {
                                         editId ? 'Guardar Cambios' : 'Añadir Registro'
                                     )}
                                 </button>
-                                {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}
+                                {editId && (
+                                    <button 
+                                        type="button" 
+                                        onClick={resetForm} 
+                                        className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
                             </div>
 
                         </div>
@@ -650,31 +661,100 @@ const Inbound = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="w-full flex justify-center mt-4"><button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>Imprimir</button></div>
+                            <div className="w-full flex justify-center mt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={handlePrint} 
+                                    className="h-9 px-8 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background='#1e4a74')}
+                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background='#285f94')}
+                                    disabled={!itemData}
+                                >
+                                    Imprimir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
 
-                <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
-                    <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0">
+                <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
+                    <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
                         <h2 className="text-base font-normal tracking-tight">Registros</h2>
-                        <div className="flex gap-2 items-center">
-                            <div className="relative w-full sm:w-72">
-                                <input type="text" placeholder="Buscar..." className="h-8 pl-3 pr-8 text-xs border border-gray-300 rounded w-full outline-none focus:border-[var(--sap-primary)]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <div className="flex flex-wrap gap-2 items-center justify-end">
+                            <div className="relative w-full sm:w-64">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    placeholder="BUSCAR..." 
+                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all" 
+                                    style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                />
                                 {searchTerm && (
-                                    <button type="button" onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none bg-transparent">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setSearchTerm('')} 
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-bold"
+                                        title="Limpiar búsqueda"
+                                    >
+                                        ✕
                                     </button>
                                 )}
                             </div>
-                            <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-all">Exportar</button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 px-3 text-xs bg-white border border-gray-300 rounded outline-none focus:border-[var(--sap-primary)] w-full sm:w-40"><option value="">-- Actual --</option>{versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}</select>
-                            <button onClick={handleArchive} className="h-8 px-4 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-all">Archivar</button>
+                            
+                            <select 
+                                onChange={(e) => loadLogs(e.target.value)} 
+                                className="h-9 px-3 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
+                            >
+                                <option value="">ACTUAL</option>
+                                {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
+                            </select>
+
+                            <button 
+                                onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} 
+                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#285f94' }}
+                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            >
+                                Exportar
+                            </button>
+                            
+                            <button 
+                                onClick={handleArchive} 
+                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#285f94' }}
+                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            >
+                                Archivar
+                            </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white sticky top-0 z-20"><tr><th className="px-2 py-0.5 text-left">Ref</th><th className="px-2 py-0.5 text-left">Waybill</th><th className="px-2 py-0.5 text-left">Item</th><th className="px-2 py-0.5 text-left">Desc</th><th className="px-2 py-0.5 text-left">Orig</th><th className="px-2 py-0.5 text-left">New</th><th className="px-2 py-0.5 text-center">Qty</th><th className="px-2 py-0.5 text-center">Esp.</th><th className="px-2 py-0.5 text-center">Dif.</th><th className="px-2 py-0.5 text-left">Fecha</th><th className="px-2 py-0.5 text-left">User</th><th className="px-2 py-0.5 text-center">Acc</th></tr></thead>
+                            <thead className="sticky top-0 z-20">
+                                <tr style={{ background: '#354a5f' }} className="text-white">
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Item</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">New</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">User</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Acc</th>
+                                </tr>
+                            </thead>
 
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (

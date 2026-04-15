@@ -6,15 +6,20 @@
 
 :root {
     --sap-font-family: 'Roboto', sans-serif;
+    --sap-font-heading: 'Inter', 'Roboto', sans-serif;
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
-    --sap-text: #32363a;
+    --sap-text: #1a1c1e; /* Color de cuerpo más profundo para mejor contraste */
+    --sap-text-header: #001d35; /* Azul casi negro para encabezados con autoridad */
 }
 
 body {
     font-family: var(--sap-font-family);
     color: var(--sap-text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -23,9 +28,10 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: var(--sap-font-family);
-    font-weight: 500;
-    /* Usually SAP headers are not super bold */
+    font-family: var(--sap-font-heading);
+    color: var(--sap-text-header);
+    font-weight: 700; /* Incrementado de 500 a 700 para mayor jerarquía */
+    letter-spacing: -0.02em; /* Ajuste tipográfico profesional */
 }
 
 .header-title {
