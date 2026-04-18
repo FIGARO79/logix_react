@@ -72,7 +72,7 @@ const PackingListPrint = () => {
                 <div className="pb-0.5 border-b border-gray-100 flex items-center gap-2">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black">Cliente:</span>
                     <span className="text-sm font-bold text-black flex flex-wrap items-center gap-1 leading-tight">
-                        {data.customer_code ? (
+                        {data.customer_code && data.customer_code.trim() !== "" ? (
                             <span>{data.customer_code} - {data.customer_name || 'N/A'}</span>
                         ) : (
                             <span>{data.customer_name || 'N/A'}</span>

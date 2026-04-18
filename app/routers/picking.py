@@ -28,9 +28,12 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
         # Limpiar BOM si existe en los nombres de las columnas
         df.columns = [c.lstrip('\ufeff') for c in df.columns]
         
-        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER", "CUSTOMER_NAME", "ORDER_LINE"]
-        if not all(col in df.columns for col in required_columns):
-            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+        # Identificar la columna de código de cliente disponible
+        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
+        
+        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
+        if not all(col in df.columns for col in required_columns) or not customer_col:
+            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas (Falta CUSTOMER o CUSTOMER_CODE).")
 
         # Limpiar espacios en blanco en columnas clave y comas de miles en QTY
         df = df.with_columns([
@@ -52,8 +55,7 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
         if order_data.height == 0:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
 
-        # Identificar la columna de código de cliente disponible
-        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
+        # customer_col ya fue identificado arriba
         
         # Renombrar columnas para consistencia interna
         rename_map = {
@@ -503,12 +505,34 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
 async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Guarda una auditoría de picking en la base de datos."""
     try:
+        # Fallback para customer_code y name si vienen vacíos
+        if not audit_data.customer_code or not audit_data.customer_name or audit_data.customer_name == "N/A":
+             try:
+                 from app.core.config import PICKING_CSV_PATH
+                 if os.path.exists(PICKING_CSV_PATH):
+                     df_lookup = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
+                     df_lookup.columns = [c.lstrip('\ufeff') for c in df_lookup.columns]
+                     # Identificar columna
+                     c_col = "CUSTOMER" if "CUSTOMER" in df_lookup.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df_lookup.columns else None)
+                     
+                     match = df_lookup.filter(
+                         (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() == audit_data.order_number.strip()) &
+                         (pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars() == audit_data.despatch_number.strip())
+                     )
+                     if match.height > 0:
+                         if not audit_data.customer_code:
+                             audit_data.customer_code = str(match[0, c_col] or "").strip()
+                         if not audit_data.customer_name or audit_data.customer_name == "N/A":
+                             audit_data.customer_name = str(match[0, "CUSTOMER_NAME"] or "").strip()
+             except Exception as lookup_err:
+                 print(f"Fallback lookup failed: {lookup_err}")
+
         # 1. Crear la auditoría principal
         new_audit = PickingAuditModel(
-            order_number=audit_data.order_number,
-            despatch_number=audit_data.despatch_number,
-            customer_code=audit_data.customer_code,
-            customer_name=audit_data.customer_name,
+            order_number=audit_data.order_number.strip(),
+            despatch_number=audit_data.despatch_number.strip(),
+            customer_code=audit_data.customer_code.strip() if audit_data.customer_code else None,
+            customer_name=audit_data.customer_name.strip() if audit_data.customer_name else "N/A",
             username=username,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
             status=audit_data.status,

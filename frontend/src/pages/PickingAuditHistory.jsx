@@ -304,7 +304,9 @@ const PickingAuditHistory = () => {
                                             <td className="px-4 py-1.5 text-[11px] font-bold text-[#285f94]">{audit.order_number}</td>
                                             <td className="px-4 py-1.5 text-[11px] text-zinc-600 font-mono uppercase">{audit.despatch_number}</td>
                                             <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-bold">
-                                                {audit.customer_code && <span className="text-zinc-500 mr-2">[{audit.customer_code}]</span>}
+                                                 {audit.customer_code && audit.customer_code.trim() !== "" && (
+                                                     <span className="text-zinc-500 mr-2">[{audit.customer_code}]</span>
+                                                 )}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
                                             <td className="px-4 py-1.5 text-[10px] text-zinc-700 uppercase font-medium">{audit.username}</td>
@@ -394,7 +396,9 @@ const PickingAuditHistory = () => {
                                     </span>
                                 </div>
                                 <div className="text-[10px] font-bold text-zinc-700 uppercase mb-3 truncate">
-                                    {audit.customer_code && <span className="text-zinc-400 mr-1">[{audit.customer_code}]</span>}
+                                    {audit.customer_code && audit.customer_code.trim() !== "" && (
+                                         <span className="text-zinc-400 mr-1">[{audit.customer_code}]</span>
+                                     )}
                                     {audit.customer_name}
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
