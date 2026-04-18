@@ -10,6 +10,7 @@ import StockSearch from './pages/StockSearch';
 import PickingAuditHistory from './pages/PickingAuditHistory';
 import Inbound from './pages/Inbound';
 import CycleCounts from './pages/CycleCounts';
+import ExpressAudit from './pages/ExpressAudit';
 import LabelPrinting from './pages/LabelPrinting';
 import Planner from './pages/Planner';
 import PlannerExecution from './pages/PlannerExecution';
@@ -152,6 +153,11 @@ function App() {
                         <Route path="/counts" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <CycleCounts />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/express-audit" element={
+                            <ProtectedRoute requiredPermission="inventory">
+                                <ExpressAudit />
                             </ProtectedRoute>
                         } />
                         <Route path="/counts/manage" element={

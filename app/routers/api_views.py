@@ -318,6 +318,32 @@ async def get_cycle_count_recordings(
         # Valores por defecto si no se encuentra
         cost = 0.0
         weight = 0.0
+        
+        if master_item:
+            try:
+                # Convertir Numeric a float de forma segura
+                cost = float(master_item.cost_per_unit) if master_item.cost_per_unit is not None else 0.0
+                # Intentar extraer peso numérico
+                weight_str = str(master_item.weight_per_unit or "0").replace(" KG", "").replace(",", ".")
+                weight = float(weight_str) if weight_str else 0.0
+            except (ValueError, TypeError):
+                pass
+
+        data.append({
+            "id": rec.id,
+            "planned_date": rec.planned_date,
+            "executed_date": rec.executed_date,
+            "item_code": rec.item_code,
+            "item_description": rec.item_description or (master_item.description if master_item else "N/A"),
+            "bin_location": rec.bin_location,
+            "system_qty": rec.system_qty,
+            "physical_qty": rec.physical_qty,
+            "difference": rec.difference,
+            "username": rec.username or "N/A",
+            "abc_code": rec.abc_code or (master_item.abc_code if master_item else "C"),
+            "unit_cost": cost,
+            "unit_weight": weight
+        })
         stockroom = ""
         item_type = ""
         item_class = ""

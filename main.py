@@ -2,8 +2,12 @@
 Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
 import os
+import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+
+# Asegurar que los archivos .wasm se sirvan con el tipo MIME correcto
+mimetypes.add_type('application/wasm', '.wasm')
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -23,8 +27,21 @@ from app.middleware.csv_cache_reload import CSVCacheReloadMiddleware
 from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
-# Importar routers existentes (que ya eran JSON o mixtos)
-from app.routers import sessions, logs, stock, counts, auth, admin, update, picking, inventory, planner, inbound, grn, shipment
+# Importar routers existentes
+from app.routers import sessions
+from app.routers import logs
+from app.routers import stock
+from app.routers import counts
+from app.routers import auth
+from app.routers import admin
+from app.routers import update
+from app.routers import picking
+from app.routers import inventory
+from app.routers import planner
+from app.routers import inbound
+from app.routers import grn
+from app.routers import shipment
+from app.routers import express_audit
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
@@ -114,6 +131,7 @@ app.include_router(grn.router)
 app.include_router(shipment.router)
 app.include_router(integrations.router)
 app.include_router(sync.router)
+app.include_router(express_audit.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")

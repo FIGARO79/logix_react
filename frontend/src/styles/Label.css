@@ -116,3 +116,12 @@
 }
 
 /* ===== PRINT STYLES (CRITICAL) ===== */
+@media print {
+    .label-container {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 3.5mm !important; /* Internal padding for the actual label */
+    }
+}

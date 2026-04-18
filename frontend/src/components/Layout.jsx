@@ -12,6 +12,7 @@ import StockSearch from '../pages/StockSearch';
 import PickingAuditHistory from '../pages/PickingAuditHistory';
 import Inbound from '../pages/Inbound';
 import CycleCounts from '../pages/CycleCounts';
+import ExpressAudit from '../pages/ExpressAudit';
 import LabelPrinting from '../pages/LabelPrinting';
 import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
@@ -26,7 +27,7 @@ import EditCount from '../pages/EditCount';
 import InboundHistory from '../pages/InboundHistory';
 import Update from '../pages/Update';
 import CycleCountHistory from '../pages/CycleCountHistory';
-import DashboardInventario from '../pages/DashboardInventario';
+import DashboardInventario from './../pages/DashboardInventario';
 import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
@@ -46,6 +47,7 @@ const ROUTE_MAP = [
     { path: '/picking', component: PickingAudit },
     { path: '/view_logs', component: InboundHistory },
     { path: '/counts', component: CycleCounts },
+    { path: '/express-audit', component: ExpressAudit },
     { path: '/counts/manage', component: ManageCounts },
     { path: '/view_counts', component: ViewCounts },
     { path: '/counts/manage_differences', component: ManageCountDifferences },
@@ -91,7 +93,7 @@ const resolveComponent = (path) => {
 
 const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
     const [initialized, setInitialized] = useState(false);
-    const resolved = resolveComponent(tab.path);
+    const resolved = useMemo(() => resolveComponent(tab.path), [tab.path]);
 
     // Activar inicialización solo cuando la pestaña sea la activa
     useEffect(() => {
@@ -107,15 +109,18 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
         }
     }, [tab.refreshKey]);
 
-    if (!resolved) return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
-
-    const { Component } = resolved;
-
     const tabSetTitle = useCallback((newTitle) => {
         onTitleChange(tab.id, newTitle);
     }, [tab.id, onTitleChange]);
 
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
+    // Retorno anticipado DESPUÉS de que todos los hooks han sido declarados
+    if (!resolved) {
+        return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
+    }
+
+    const { Component } = resolved;
 
     return (
         <div
