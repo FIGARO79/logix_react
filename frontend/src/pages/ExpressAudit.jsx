@@ -124,7 +124,7 @@ const ExpressAudit = () => {
             <div className="px-4 py-3 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
                 <div className="flex justify-between items-center max-w-6xl mx-auto w-full">
                     <div>
-                        <h1 className="text-base font-bold tracking-tight text-[#001d35] uppercase">Auditoría Express</h1>
+                        <h1 className="text-base font-bold tracking-tight text-[#001d35] uppercase">Ciclo Manual</h1>
                         <p className="text-[9px] uppercase tracking-[0.2em] text-gray-400 font-semibold">Módulo de Inspección Aleatoria</p>
                     </div>
                     <button onClick={resetAll} className="h-8 px-4 text-[10px] bg-gray-100 text-gray-600 border border-gray-200 rounded hover:bg-gray-200 uppercase tracking-widest transition-all font-bold">Limpiar Sesión</button>
