@@ -30,11 +30,11 @@ const menuCategories = [
         title: 'Control de Inventario',
         accent: 'bg-amber-600',
         items: [
-            { href: '/express-audit', text: 'AUDITORÍA EXPRESS', desc: 'Conteo ciego y auditoría rápida' },
             { href: '/planner', text: 'PLANIFICACIÓN', desc: 'Programación de conteos cíclicos' },
             { href: '/inventory-dashboard', text: 'MÉTRICAS ERI', desc: 'Indicadores de exactitud' },
             { href: '/planner/manage_differences', text: 'DIFERENCIAS', desc: 'Gestión de ajustes y discrepancias' },
-            { href: '/counts', text: 'CONTEO FÍSICO', desc: 'Inventario general wall-to-wall' }
+            { href: '/counts', text: 'CONTEO FÍSICO', desc: 'Inventario general wall-to-wall' },
+            { href: '/express-audit', text: 'CICLO MANUAL', desc: 'Conteo ciego y auditoría rápida' }
         ]
     },
     {

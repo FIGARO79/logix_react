@@ -6,7 +6,7 @@ import ScannerModal from '../components/ScannerModal';
 
 const ExpressAudit = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Auditoría Express"); }, [setTitle]);
+    useEffect(() => { setTitle("Ciclo Manual"); }, [setTitle]);
 
     const [binLocation, setBinLocation] = useState('');
     const [itemCode, setItemCode] = useState('');
