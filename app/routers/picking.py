@@ -52,16 +52,29 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
         if order_data.height == 0:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
 
-        order_data = order_data.rename({
+        # Identificar la columna de código de cliente disponible
+        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
+        
+        # Renombrar columnas para consistencia interna
+        rename_map = {
             "ORDER_": "Order Number",
             "DESPATCH_": "Despatch Number",
             "ITEM": "Item Code",
             "DESCRIPTION": "Item Description",
             "QTY": "Qty",
-            "CUSTOMER": "Customer Code",
             "CUSTOMER_NAME": "Customer Name",
             "ORDER_LINE": "Order Line"
-        })
+        }
+        if customer_col:
+            rename_map[customer_col] = "Customer Code"
+            
+        order_data = order_data.rename(rename_map)
+
+        # Limpiar espacios en blanco en los resultados
+        order_data = order_data.with_columns([
+            pl.col("Customer Code").cast(pl.Utf8).str.strip_chars() if "Customer Code" in order_data.columns else pl.lit(""),
+            pl.col("Customer Name").cast(pl.Utf8).str.strip_chars()
+        ])
 
         order_data = order_data.fill_null("")
         
@@ -91,22 +104,27 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
             (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() != "")
         )
 
-        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
+        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
-            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+            # Verificar si existe al menos CUSTOMER o CUSTOMER_CODE
+            if "CUSTOMER" not in df.columns and "CUSTOMER_CODE" not in df.columns:
+                raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+
+        # Identificar columna de cliente
+        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else "CUSTOMER_CODE"
 
         # Limpiar datos clave antes de agrupar
         df = df.with_columns([
             pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
             pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
-            pl.col("CUSTOMER").cast(pl.Utf8).fill_null(""),
+            pl.col(customer_col).cast(pl.Utf8).fill_null(""),
             pl.col("CUSTOMER_NAME").cast(pl.Utf8).fill_null(""),
             pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars().fill_null(""),
             pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars().fill_null("")
         ])
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
-        grouped = df.group_by(["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME"]).agg([
+        grouped = df.group_by(["ORDER_", "DESPATCH_", customer_col, "CUSTOMER_NAME"]).agg([
             pl.col("ORDER_").len().alias("total_lines"),
             pl.col("PICK_LIST_PRINTED_TIME").filter(pl.col("PICK_LIST_PRINTED_TIME") != "").first().alias("print_time"),
             pl.col("Time_Zone_Hours").filter(pl.col("Time_Zone_Hours") != "").first().alias("time_zone")
@@ -167,7 +185,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
             tracking_data.append({
                 "order_number": order_num,
                 "despatch_number": despatch_num,
-                "customer_code": str(row["CUSTOMER"] or "").strip(),
+                "customer_code": str(row[customer_col] or "").strip(),
                 "customer_name": str(row["CUSTOMER_NAME"] or "").strip(),
                 "total_lines": int(row["total_lines"]),
                 "print_date": format_local_print_time(row["print_time"], row["time_zone"]),

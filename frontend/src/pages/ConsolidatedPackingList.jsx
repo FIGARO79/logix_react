@@ -83,26 +83,16 @@ const ConsolidatedPackingList = () => {
 
     // Info del pedido individual
     const OrderInfo = ({ order }) => (
-        <div className="grid grid-cols-2 gap-4 mb-3 text-sm print:gap-2 print:mb-2">
-            <div className="pb-1 border-b border-gray-100">
-                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Cliente:</span>
-                <span className="text-lg font-bold text-black leading-tight uppercase flex flex-wrap items-center gap-1">
-                    {order.customer_code ? (
-                        <span>{order.customer_code} - {order.customer_name || 'N/A'}</span>
-                    ) : (
-                        <span>{order.customer_name || 'N/A'}</span>
-                    )}
-                </span>
-            </div>
-            <div className="text-right pb-1 border-b border-gray-100">
-                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
-                <span className="text-xl text-[#285f94] print:text-black">{order.total_packages}</span>
-            </div>
-            <div className="col-span-2">
+        <div className="flex justify-between items-end mb-3 text-sm print:gap-2 print:mb-2 border-b border-zinc-100 pb-1">
+            <div className="flex-1">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
-                <span className="text-base text-black">
+                <span className="text-lg text-black font-bold">
                     {order.order_number} <span className="mx-1 text-gray-300">/</span> {order.despatch_number}
                 </span>
+            </div>
+            <div className="text-right">
+                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
+                <span className="text-2xl font-bold text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
             </div>
         </div>
     );
@@ -148,19 +138,17 @@ const ConsolidatedPackingList = () => {
     // Calcular total de páginas (1 por pedido)
     const totalPages = data.orders.length;
 
-    // Obtener información del cliente si es único para todo el envío
-    const uniqueClientCodes = [...new Set(data.orders.map(o => o.customer_code).filter(Boolean))];
-    let commonCustomerHeader = null;
-    if (uniqueClientCodes.length === 1) {
-        const firstOrder = data.orders.find(o => o.customer_code === uniqueClientCodes[0]);
-        commonCustomerHeader = `${firstOrder.customer_code} - ${firstOrder.customer_name}`;
-    } else if (uniqueClientCodes.length === 0 && data.orders.length > 0) {
-        // Caso donde no hay códigos pero quizás hay nombres únicos
-        const uniqueClientNames = [...new Set(data.orders.map(o => o.customer_name).filter(Boolean))];
-        if (uniqueClientNames.length === 1) {
-            commonCustomerHeader = uniqueClientNames[0];
-        }
-    }
+    // Obtener información única de clientes para el encabezado
+    const uniqueClients = data.orders.reduce((acc, o) => {
+        const clientLabel = o.customer_code 
+            ? `${o.customer_code} - ${o.customer_name}` 
+            : (o.customer_name || 'CLIENTE DESCONOCIDO');
+        
+        if (!acc.includes(clientLabel)) acc.push(clientLabel);
+        return acc;
+    }, []);
+
+    const commonCustomerHeader = uniqueClients.join(' / ');
 
     return (
         <div className="bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
@@ -245,7 +233,7 @@ const ConsolidatedPackingList = () => {
                                         <div className="border border-black overflow-hidden print:border-black mt-2">
                                             <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
                                                 <h3 className="text-sm font-bold uppercase leading-tight">
-                                                    Detalle del Pedido — {order.customer_code ? `${order.customer_code} - ${order.customer_name}` : order.customer_name}
+                                                    Detalle del Pedido #{order.order_number}
                                                 </h3>
                                             </div>
                                             <table className="min-w-full text-sm">

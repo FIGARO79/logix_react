@@ -78,18 +78,16 @@ async def list_shipments(
     for s in shipments:
         # Recopilar info de las auditorías vinculadas
         audits_info = []
-        total_items = 0
         for link in s.audit_links:
             audit = link.audit
             audits_info.append({
                 "audit_id": audit.id,
                 "order_number": audit.order_number,
                 "despatch_number": audit.despatch_number,
-                "customer_code": audit.customer_code or "",
-                "customer_name": audit.customer_name or "N/A",
+                "customer_code": str(audit.customer_code or "").strip(),
+                "customer_name": str(audit.customer_name or "N/A").strip(),
                 "packages": audit.packages or 0
             })
-            total_items += 1
 
         response.append({
             "id": s.id,
@@ -129,8 +127,8 @@ async def get_shipment(
             "audit_id": audit.id,
             "order_number": audit.order_number,
             "despatch_number": audit.despatch_number,
-            "customer_code": audit.customer_code or "",
-            "customer_name": audit.customer_name or "N/A",
+            "customer_code": str(audit.customer_code or "").strip(),
+            "customer_name": str(audit.customer_name or "N/A").strip(),
             "packages": audit.packages or 0
         })
 
@@ -151,20 +149,7 @@ async def get_consolidated_packing_list(
     username: str = Depends(permission_required("picking")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Obtener datos del packing list consolidado, separado por pedido.
-
-    Retorna:
-    {
-        shipment_id, created_at, carrier, note,
-        orders: [
-            {
-                order_number, despatch_number, customer_name, total_packages,
-                packages: { "1": [{item_code, description, quantity}], ... }
-            },
-            ...
-        ]
-    }
-    """
+    """Obtener datos del packing list consolidado, separado por pedido."""
     # Cargar envío con auditorías
     result = await db.execute(
         select(Shipment)
@@ -220,8 +205,8 @@ async def get_consolidated_packing_list(
             "audit_id": audit.id,
             "order_number": str(audit.order_number or ""),
             "despatch_number": str(audit.despatch_number or ""),
-            "customer_code": str(audit.customer_code or ""),
-            "customer_name": str(audit.customer_name or "N/A"),
+            "customer_code": str(audit.customer_code or "").strip(),
+            "customer_name": str(audit.customer_name or "N/A").strip(),
             "timestamp": str(audit.timestamp) if audit.timestamp else "",
             "total_packages": int(audit.packages or 0),
             "packages": packages
@@ -235,6 +220,16 @@ async def get_consolidated_packing_list(
         "total_orders": len(orders),
         "orders": orders
     })
+
+
+@router.get("/{shipment_id}/print")
+async def get_shipment_print_data(
+    shipment_id: int,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Alias para packing_list para mantener consistencia con otros módulos."""
+    return await get_consolidated_packing_list(shipment_id, username, db)
 
 
 @router.delete("/{shipment_id}")
