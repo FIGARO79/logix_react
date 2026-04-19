@@ -49,8 +49,22 @@ const SandvikLabel = ({ data, qrImage, quantity, relocatedBin, totalWeight }) =>
                 <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1 }}>
                     All trademarks and logotypes appearing on this label are owned by Sandvik Group
                 </p>
-                <div style={{ width: '25mm', height: '25mm', flexShrink: 0 }}>
-                    {qrImage ? <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ width: '100%', height: '100%' }}></div>}
+                <div style={{ 
+                    width: '25mm', 
+                    height: '25mm', 
+                    flexShrink: 0,
+                    border: qrImage ? 'none' : '1px solid #e5e7eb',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box'
+                }}>
+                    {qrImage ? (
+                        <img src={qrImage} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                        <div style={{ width: '100%', height: '100%' }}></div>
+                    )}
                 </div>
             </div>
         </div>

@@ -69,26 +69,9 @@
     word-break: break-all;
 }
 
-/* QR Code Section */
-#qrCodeContainer {
-    min-height: 96px;
-    width: 96px;
-    height: 96px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    /* border: 1px solid #e5e7eb; Removed per user request */
-    border-radius: 0.25rem;
-    flex-shrink: 0;
-}
 
-#qrCodeContainer img {
-    display: block;
-    margin: auto;
-    max-width: 100%;
-    max-height: 100%;
-}
+
+
 
 .label-bottom-section {
     margin-top: auto;
@@ -122,6 +105,7 @@
         box-shadow: none !important;
         margin: 0 !important;
         border-radius: 0 !important;
-        padding: 3.5mm !important; /* Internal padding for the actual label */
+        padding: 3.5mm !important;
+        /* Internal padding for the actual label */
     }
 }
