@@ -13,6 +13,7 @@ import PickingAuditHistory from '../pages/PickingAuditHistory';
 import Inbound from '../pages/Inbound';
 import CycleCounts from '../pages/CycleCounts';
 import ExpressAudit from '../pages/ExpressAudit';
+import SpotCheck from '../pages/SpotCheck';
 import LabelPrinting from '../pages/LabelPrinting';
 import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
@@ -39,6 +40,7 @@ const ROUTE_MAP = [
     { path: '/inbound', component: Inbound },
     { path: '/reconciliation', component: Reconciliation },
     { path: '/stock', component: StockSearch },
+    { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
     { path: '/label', component: LabelPrinting },
     { path: '/planner', component: Planner },

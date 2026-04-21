@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
+    const navigate = useNavigate();
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -93,13 +95,22 @@ const StockSearch = () => {
 
             {/* Search Card */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
-                <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200">
+                <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         Búsqueda de Stock
                     </h2>
+                    <button 
+                        onClick={() => navigate('/spot-check')}
+                        className="btn-sap btn-secondary text-[10px] uppercase font-bold tracking-wider px-4 flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        Verificar Saldo
+                    </button>
                 </div>
 
                 <div className="p-6">
@@ -119,7 +130,7 @@ const StockSearch = () => {
                             <button
                                 type="button"
                                 onClick={() => setScannerOpen(true)}
-                                className="btn-sap btn-secondary px-0 p-0 flex items-center justify-center"
+                                className="btn-sap btn-secondary w-[38px] h-[38px] p-0 flex items-center justify-center"
                                 title="Escanear Código"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">

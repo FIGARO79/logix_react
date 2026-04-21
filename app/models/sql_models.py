@@ -303,3 +303,14 @@ class SlottingRule(Base):
     sic_code: Mapped[str] = mapped_column(String(50), primary_key=True, index=True)
     ideal_spot: Mapped[str] = mapped_column(String(50), default="cold")
     description: Mapped[Optional[str]] = mapped_column(String(255))
+
+class SpotCheck(Base):
+    """Verificaciones de saldo independientes (no afectan conteos cíclicos)."""
+    __tablename__ = "spot_checks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bin_location: Mapped[str] = mapped_column(String(100), index=True)
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    item_description: Mapped[Optional[str]] = mapped_column(String(255))
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    username: Mapped[str] = mapped_column(String(100))
