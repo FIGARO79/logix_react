@@ -87,10 +87,8 @@ async def find_item(
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
     xdock_pending = max(0, total_reserved - already_received)
 
-    # 5. PRIORIDAD XDOCK: Si hay saldo pendiente, la sugerencia es XDOCK en el badge
-    if xdock_pending > 0:
-        final_suggested_bin = "XDOCK"
-        is_ai_prediction = True
+    # 5. ELIMINADO: Ya no sobreescribimos final_suggested_bin con "XDOCK" aquí.
+    # El frontend manejará el indicador visual de XDOCK basado en xdock_pending.
 
     # 6. LIMPIEZA: No sugerir si el ítem ya está en la ubicación sugerida (comparando con el maestro)
     if final_suggested_bin == effective_bin_location:

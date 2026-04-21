@@ -41,7 +41,7 @@ const AdminInventory = () => {
 
     useEffect(() => {
         fetchStats();
-        if (setTitle) setTitle("Inventario W2W");
+        if (setTitle) setTitle("Adm. Inventario");
     }, [setTitle]);
 
     const handleAction = async (actionUrl, confirmText) => {
@@ -103,7 +103,7 @@ const AdminInventory = () => {
 
     return (
         <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
-            
+
             {/* Header Técnico */}
             <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
                 <div className="flex flex-col gap-0">
@@ -111,8 +111,8 @@ const AdminInventory = () => {
                     <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Gestión de Ciclos y Auditoría de Stock</p>
                 </div>
                 <div className="flex gap-3">
-                    <button 
-                        onClick={() => window.location.href = `/api/export_counts`} 
+                    <button
+                        onClick={() => window.location.href = `/api/export_counts`}
                         className="bg-white border border-black text-black text-[8px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors text-sm font-medium shadow-sm"
                     >
                         Exportar Master
@@ -159,17 +159,16 @@ const AdminInventory = () => {
                                         <button
                                             onClick={() => handleAction(item.action, `¿Confirmar transición a Fase ${item.s}?`)}
                                             disabled={loading || (item.s === 1 ? (stage !== 0 && stage !== 4) : stage !== item.s - 1)}
-                                            className={`flex-1 h-8 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${
-                                                stage === item.s 
-                                                ? 'bg-[#285f94] text-white hover:bg-[#1e4a74]' 
-                                                : 'bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-100 disabled:text-gray-300'
-                                            }`}
+                                            className={`flex-1 h-8 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${stage === item.s
+                                                    ? 'bg-[#285f94] text-white hover:bg-[#1e4a74]'
+                                                    : 'bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-100 disabled:text-gray-300'
+                                                }`}
                                         >
                                             {item.label}
                                         </button>
                                         {stage >= item.s && (
-                                            <button 
-                                                onClick={() => window.location.href = `/api/export_recount_list/${item.s}`} 
+                                            <button
+                                                onClick={() => window.location.href = `/api/export_recount_list/${item.s}`}
                                                 className="px-3 border border-zinc-200 rounded hover:bg-zinc-50 text-black hover:text-black transition-colors"
                                             >
                                                 ↓
@@ -304,7 +303,7 @@ const AdminInventory = () => {
                                             {filteredCounts.map((c) => (
                                                 <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-none">
                                                     <td className="px-4 py-2 text-[11px] font-semibold text-black">{c.username}</td>
-                                                    <td className="px-4 py-2 text-[10px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                                                    <td className="px-4 py-2 text-[10px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                                                     <td className="px-4 py-2 text-[11px] font-bold text-[#285f94] font-mono tracking-tight uppercase">{c.item_code}</td>
                                                     <td className="px-4 py-2 text-[11px] text-black font-mono uppercase">{c.counted_location}</td>
                                                     <td className="px-4 py-2 text-xs font-bold text-black border-l border-zinc-50">{c.counted_qty}</td>

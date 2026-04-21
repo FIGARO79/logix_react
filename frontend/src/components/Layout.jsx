@@ -336,14 +336,15 @@ const Layout = () => {
                         <MenuItem to="/inventory-dashboard" label="Métricas" onClick={toggleMenu} />
                         <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
                         <MenuItem to="/planner/manage_differences" label="Diferencias" onClick={toggleMenu} />
-                        <MenuItem to="/counts" label="Conteo W2W" onClick={toggleMenu} />
+                        <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
-                        <MenuItem to="/occupancy" label="Slotting" onClick={toggleMenu} />
+                        <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-8">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
                         <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
+                        <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
                         <button
                             className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-bold tracking-widest text-left"

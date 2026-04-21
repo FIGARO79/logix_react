@@ -32,6 +32,7 @@ const Inbound = () => {
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+        const [validBins, setValidBins] = useState(new Set());
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
@@ -103,6 +104,7 @@ const Inbound = () => {
     useEffect(() => {
         loadLogs();
         loadVersions();
+        loadSlottingBins();
 
         // Check inicial
         runAutoSync();
@@ -121,6 +123,20 @@ const Inbound = () => {
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
+
+    const loadSlottingBins = async () => {
+        try {
+            const res = await fetch('/static/json/slotting_parameters.json');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.storage) {
+                    setValidBins(new Set(Object.keys(data.storage).map(b => b.toUpperCase())));
+                }
+            }
+        } catch (e) {
+            console.error("Error loading slotting bins", e);
+        }
+    };
 
     // Filter logs based on search term
     const filteredLogs = logs.filter(log =>
@@ -346,10 +362,10 @@ const Inbound = () => {
                     const xdockRemanente = Math.max(0, totalRes - localCumulative);
 
                     let offlineSuggestedBin = null;
-                    if (xdockRemanente > 0) {
-                        offlineSuggestedBin = 'XDOCK';
-                    } else if (recentRelocation) {
+                    if (recentRelocation) {
                         offlineSuggestedBin = recentRelocation.payload.relocatedBin;
+                    } else {
+                        offlineSuggestedBin = localItem.Bin_1;
                     }
 
                     setItemData({
@@ -387,6 +403,16 @@ const Inbound = () => {
     const handleSaveLog = async (e) => {
         e.preventDefault();
         if (!itemData) return alert("Busque un item primero");
+
+        // Validación de Ubicación (Slotting)
+        if (relocatedBin.trim()) {
+            const normalizedBin = relocatedBin.trim().toUpperCase();
+            if (validBins.size > 0 && normalizedBin !== 'XDOCK' && !validBins.has(normalizedBin)) {
+                alert(`La ubicación "${normalizedBin}" no existe.`);
+                return;
+            }
+        }
+
         if (isSaving) return; // Bloquear doble clic
         setIsSaving(true);
 
@@ -556,8 +582,8 @@ const Inbound = () => {
                                             )}
                                         </button>
                                         {!editId && (
-                                            <button type="button" className="btn-sap btn-secondary" onClick={() => setScannerOpen(true)} title="Escanear">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
+                                            <button type="button" className="btn-sap btn-secondary p-0 flex items-center justify-center" onClick={() => setScannerOpen(true)} title="Escanear">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 26 26" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
                                             </button>
                                         )}
                                     </div>
@@ -598,9 +624,23 @@ const Inbound = () => {
                                         ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-400 italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
                                         {itemData?.suggestedBin ? (
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded p-2 shadow-sm cursor-pointer hover:bg-emerald-100" onClick={() => setRelocatedBin(itemData.suggestedBin)}>
-                                                <div className="flex justify-between border-b border-emerald-100 pb-0.5 mb-1"><span className="text-[10px] font-normal uppercase text-emerald-700">Sugerida</span><span className="text-[8px] italic text-gray-500">Tap usar</span></div>
-                                                <div className="flex items-center gap-2"><svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span></div>
+                                            <div className={`rounded p-2 shadow-sm cursor-pointer border ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-300 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
+                                                <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
+                                                    <span className="text-[10px] font-bold uppercase">
+                                                        {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
+                                                    </span>
+                                                    <span className="text-[8px] italic text-gray-500">Tap usar</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-600' : 'text-emerald-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
+                                                    {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
+                                                        <span className="ml-auto text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded">XDOCK</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>

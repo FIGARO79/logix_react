@@ -33,7 +33,7 @@ const menuCategories = [
             { href: '/planner', text: 'PLANIFICACIÓN', desc: 'Programación de conteos cíclicos' },
             { href: '/inventory-dashboard', text: 'MÉTRICAS ERI', desc: 'Indicadores de exactitud' },
             { href: '/planner/manage_differences', text: 'DIFERENCIAS', desc: 'Gestión de ajustes y discrepancias' },
-            { href: '/counts', text: 'CONTEO FÍSICO', desc: 'Inventario general wall-to-wall' },
+            { href: '/counts', text: 'INVENTARIO W2W', desc: 'Conteo masivo wall-to-wall' },
             { href: '/express-audit', text: 'CICLO MANUAL', desc: 'Conteo ciego y auditoría rápida' }
         ]
     },
@@ -44,6 +44,7 @@ const menuCategories = [
         items: [
             { href: '/admin/inventory', text: 'ADMINISTRACIÓN INVENTARIO', desc: 'Control de ciclos de conteo' },
             { href: '/admin/slotting', text: 'REGLAS SLOTTING', desc: 'Parámetros de ubicaciones' },
+            { href: '/occupancy', text: 'OCUPACIÓN BODEGA', desc: 'Análisis de espacio y ubicaciones' },
             { href: '/update', text: 'CARGA DE DATOS', desc: 'Actualización masiva vía ficheros' }
         ]
     }

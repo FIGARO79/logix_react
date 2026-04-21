@@ -37,20 +37,23 @@ const ExpressAudit = () => {
         } catch (e) { console.error(e); }
     };
 
-    const handleSearchItem = async () => {
-        if (!itemCode) return;
+    const handleSearchItem = async (codeToSearch) => {
+        const code = codeToSearch || itemCode;
+        if (!code) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(itemCode)}/NA`);
+            const res = await fetch(`/api/express_audit/find/${encodeURIComponent(code)}`);
             if (res.ok) {
                 const data = await res.json();
                 setItemData({
-                    item_code: data.itemCode,
+                    item_code: data.item_code,
                     description: data.description,
-                    system_qty: parseInt(data.physicalQty) || 0,
-                    system_bin: data.binLocation,
-                    abc_code: data.itemType || 'C'
+                    system_qty: data.system_qty,
+                    system_bin: data.system_bin,
+                    abc_code: data.abc_code
                 });
+                setItemCode(data.item_code);
+                // Salto automático a cantidad
                 setTimeout(() => qtyRef.current?.focus(), 100);
             } else {
                 toast.warn("Item no encontrado");
@@ -58,6 +61,17 @@ const ExpressAudit = () => {
             }
         } catch (e) { toast.error("Error de búsqueda"); }
         finally { setLoading(false); }
+    };
+
+    const handleItemChange = (val) => {
+        const upperVal = val.toUpperCase();
+        const prevVal = itemCode;
+        setItemCode(upperVal);
+        
+        // Si el cambio es de más de 3 caracteres de golpe, probablemente sea un escaneo o pegado
+        if (upperVal.length > prevVal.length + 3) {
+            handleSearchItem(upperVal);
+        }
     };
 
     const handleSave = async (e) => {
@@ -105,7 +119,7 @@ const ExpressAudit = () => {
             itemRef.current?.focus();
         } else {
             setItemCode(code.toUpperCase());
-            setTimeout(() => handleSearchItem(), 100);
+            setTimeout(() => handleSearchItem(code.toUpperCase()), 100);
         }
         setScannerOpen(false);
     };
@@ -173,8 +187,8 @@ const ExpressAudit = () => {
                                         ref={itemRef}
                                         type="text" 
                                         value={itemCode}
-                                        onChange={(e) => setItemCode(e.target.value.toUpperCase())}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                                        onChange={(e) => handleItemChange(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSearchItem(e.target.value)}
                                         style={{height:'40px'}}
                                         className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-bold outline-none focus:border-zinc-900 transition-colors"
                                         placeholder="SCAN SKU"
@@ -207,6 +221,7 @@ const ExpressAudit = () => {
                                     type="number" 
                                     value={physicalQty}
                                     onChange={(e) => setPhysicalQty(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSave(e)}
                                     style={{height:'40px'}}
                                     className="w-full py-0 px-3 border border-zinc-300 rounded bg-white text-base font-bold text-center outline-none focus:border-zinc-900 transition-colors"
                                     placeholder="0"

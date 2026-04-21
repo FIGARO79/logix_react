@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.sql_models import CycleCountRecording
 from app.utils.auth import permission_required
+from app.services import csv_handler, db_logs
 from pydantic import BaseModel
 import datetime
 
@@ -16,6 +17,37 @@ class ExpressAuditPayload(BaseModel):
     physical_qty: int
     abc_code: str
     executed_date: str
+
+@router.get("/find/{item_code}")
+async def find_item_for_audit(
+    item_code: str,
+    username: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # Buscar en el maestro CSV
+        item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
+        if not item_details:
+            raise HTTPException(status_code=404, detail="Item no encontrado")
+            
+        # Obtener ubicación actual (última reubicación o la del maestro)
+        latest_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
+        effective_bin = latest_bin if latest_bin else item_details.get('Bin_1', 'N/A')
+        
+        # Obtener stock total esperado (físico actual en sistema)
+        system_qty = await csv_handler.get_total_expected_quantity_for_item(item_code)
+        
+        return {
+            "item_code": item_code.upper(),
+            "description": item_details.get('Item_Description', 'SIN DESCRIPCIÓN'),
+            "system_qty": system_qty,
+            "system_bin": effective_bin,
+            "abc_code": item_details.get('ABC_Code_stockroom', 'C')
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/save")
 async def save_express_audit(
