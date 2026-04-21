@@ -184,7 +184,7 @@ const SpotCheck = () => {
                                 <button 
                                     onClick={() => { setScanTarget('bin'); setScannerOpen(true); }} 
                                     style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
                                     {scannerIcon}
                                 </button>
@@ -207,7 +207,7 @@ const SpotCheck = () => {
                                 <button 
                                     onClick={() => { setScanTarget('item'); setScannerOpen(true); }} 
                                     style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
                                     {scannerIcon}
                                 </button>
