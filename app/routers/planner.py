@@ -16,7 +16,7 @@ from app.models.schemas import CountExecutionRequest
 from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
-from app.services.db_logs import add_log
+
 import orjson
 import os
 from pydantic import BaseModel
@@ -374,8 +374,6 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
             existing = res_exist.scalar_one_or_none()
             
             if existing:
-                if existing.physical_qty != physical:
-                    await add_log(db, username, "PLANNER", f"Update {item.item_code}: {existing.physical_qty}->{physical}")
                 existing.physical_qty, existing.system_qty = physical, system
                 existing.difference, existing.username, existing.executed_date = physical - system, username, today_iso
                 updated += 1
@@ -397,7 +395,7 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
                     abc_code=m_item.abc_code
                 ))
                 saved += 1
-                await add_log(db, username, "PLANNER", f"New count: {item.item_code}={physical}")
+
 
         await db.commit()
         return {"message": f"Guardados: {saved} nuevos, {updated} actualizados."}
