@@ -292,6 +292,13 @@ async def get_daily_items_for_execution(date: str = Query(...), username: str = 
     res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
     master_map = {m.item_code: m for m in res_master.scalars().all()}
     
+    # Verificar conteos previos en la base de datos
+    res_prev = await db.execute(select(CycleCountRecording).where(CycleCountRecording.planned_date == date))
+    prev_counts = res_prev.scalars().all()
+    
+    has_previous_counts = len(prev_counts) > 0
+    items_with_diff_count = len([r for r in prev_counts if r.difference != 0])
+    
     enriched = []
     for item in daily_items:
         m = master_map.get(item.get("Item Code"))
@@ -304,7 +311,47 @@ async def get_daily_items_for_execution(date: str = Query(...), username: str = 
             "system_qty": m.physical_qty if m else 0,
             "planned_date": date
         })
-    return {"items": sorted(enriched, key=lambda x: x["bin_location"])}
+    
+    return {
+        "items": sorted(enriched, key=lambda x: x["bin_location"]),
+        "has_previous_counts": has_previous_counts,
+        "previous_count": len(prev_counts),
+        "items_with_diff_count": items_with_diff_count
+    }
+
+@router.get("/execution/items_with_differences")
+async def get_items_with_differences(date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    """Carga solo los ítems que tuvieron diferencias en conteos previos para reconteo."""
+    res_prev = await db.execute(select(CycleCountRecording).where(
+        CycleCountRecording.planned_date == date,
+        CycleCountRecording.difference != 0
+    ))
+    prev_items = res_prev.scalars().all()
+    
+    if not prev_items:
+        return {"items": [], "total_items_with_diff": 0}
+        
+    item_codes = [r.item_code for r in prev_items]
+    res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
+    master_map = {m.item_code: m for m in res_master.scalars().all()}
+    
+    enriched = []
+    for prev in prev_items:
+        m = master_map.get(prev.item_code)
+        enriched.append({
+            "item_code": prev.item_code,
+            "description": prev.item_description,
+            "abc_code": prev.abc_code or (m.abc_code if m else "C"),
+            "bin_location": m.bin_1 if m else (prev.bin_location or "N/A"),
+            "additional_locations": m.additional_bin if m and m.additional_bin else "",
+            "system_qty": m.physical_qty if m else prev.system_qty,
+            "planned_date": date
+        })
+        
+    return {
+        "items": sorted(enriched, key=lambda x: x["bin_location"]),
+        "total_items_with_diff": len(enriched)
+    }
 
 @router.post("/execution/save")
 async def save_daily_execution(execution_data: CountExecutionRequest, username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
