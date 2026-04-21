@@ -134,7 +134,9 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     
     entry_data = data.dict()
     entry_data['username'] = username
-    entry_data['timestamp'] = datetime.datetime.now().isoformat()
+    # Usar timestamp del frontend si viene, sino el del servidor (como fallback)
+    if not entry_data.get('timestamp'):
+        entry_data['timestamp'] = datetime.datetime.now().isoformat()
     entry_data['qtyGrn'] = expected_qty
     entry_data['qtyReceived'] = data.quantity
     entry_data['difference'] = data.quantity - expected_qty
@@ -205,7 +207,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
     return ORJSONResponse(content=versions)
 
 @router.get('/export_log')
-async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
+async def export_log(timezone_offset: int = 0, version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta los registros de log a Excel con lógica de diferencia idéntica al frontend."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
@@ -266,15 +268,23 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         expected = expected_map.get(code, 0)
         total_rec = totals_map.get(code, 0)
 
-        # Formatear fecha para que coincida con la pantalla (DD/MM/YYYY HH:MM)
+        # Formatear fecha aplicando el desfase del cliente
         ts_raw = log.get('timestamp', '')
         formatted_date = ts_raw
         try:
             # Limpiar posibles variaciones de formato ISO
             clean_ts = str(ts_raw).replace(' ', 'T').replace('Z', '')
             dt_obj = datetime.datetime.fromisoformat(clean_ts)
-            formatted_date = dt_obj.strftime('%d/%m/%Y %H:%M')
-        except:
+            
+            # Si no tiene zona horaria, asumimos UTC para poder aplicar el offset
+            if dt_obj.tzinfo is None:
+                dt_obj = dt_obj.replace(tzinfo=datetime.timezone.utc)
+            
+            # Aplicar el desfase (timezone_offset viene en minutos)
+            local_dt = dt_obj - datetime.timedelta(minutes=timezone_offset)
+            formatted_date = local_dt.strftime('%d/%m/%Y %H:%M')
+        except Exception as e:
+            print(f"Error formateando fecha en export: {e}")
             pass
         
         enriched.append({
@@ -379,6 +389,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Cant. Esperada":     int(r.qty_expected or 0),
                 "Cant. Recibida":     int(r.qty_received or 0),
                 "Diferencia":         int(r.difference or 0),
+                "Fecha":              (datetime.datetime.fromisoformat(str(r.timestamp).replace('Z', '')) - datetime.timedelta(minutes=timezone_offset)).strftime('%d/%m/%Y %H:%M') if r.timestamp else ''
             } for r in rows])
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
@@ -411,7 +422,23 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 pl.col("Cant_Esperada").alias("Cant. Esperada"),
                 pl.col("Cant_Recibida").alias("Cant. Recibida"),
                 pl.col("Diferencia").alias("Diferencia"),
+                pl.col("Timestamp").alias("Fecha_ISO")
             ])
+
+            # Ajustar la zona horaria en la columna Fecha usando Polars o mapeo manual
+            def _adjust_tz(val):
+                if not val: return ""
+                try:
+                    clean_ts = str(val).replace(' ', 'T').replace('Z', '')
+                    dt = datetime.datetime.fromisoformat(clean_ts)
+                    local_dt = dt - datetime.timedelta(minutes=timezone_offset)
+                    return local_dt.strftime('%d/%m/%Y %H:%M')
+                except:
+                    return str(val)
+
+            df_for_export = df_for_export.with_columns(
+                pl.col("Fecha_ISO").map_elements(_adjust_tz, return_dtype=pl.Utf8).alias("Fecha")
+            ).drop("Fecha_ISO")
 
             utc_now = datetime.datetime.now(datetime.timezone.utc)
             client_time = utc_now - datetime.timedelta(minutes=timezone_offset)

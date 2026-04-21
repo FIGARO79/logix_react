@@ -427,7 +427,8 @@ const Inbound = () => {
             relocatedBin: relocatedBin.trim().toUpperCase(),
             binLocation: itemData.binLocation,
             qtyGrn: itemData.defaultQtyGrn,
-            client_id: targetClientId
+            client_id: targetClientId,
+            timestamp: new Date().toISOString()
         };
 
         try {
@@ -757,7 +758,11 @@ const Inbound = () => {
                             </select>
 
                             <button 
-                                onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} 
+                                onClick={() => {
+                                    const offset = new Date().getTimezoneOffset();
+                                    const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
+                                    window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
+                                }} 
                                 className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}

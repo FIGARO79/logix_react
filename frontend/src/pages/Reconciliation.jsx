@@ -69,7 +69,10 @@ const Reconciliation = () => {
             const res = await fetch('/api/views/reconciliation/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    data: data,
+                    client_timestamp: new Date().toISOString()
+                })
             });
             if (res.ok) {
                 const result = await res.json();
@@ -259,6 +262,7 @@ const Reconciliation = () => {
                                 const params = new URLSearchParams();
                                 if (currentVersion) params.append('archive_date', currentVersion);
                                 if (currentSnapshot) params.append('snapshot_date', currentSnapshot);
+                                params.append('timezone_offset', new Date().getTimezoneOffset());
                                 window.location.href = `/api/export_reconciliation?${params.toString()}`;
                             }}
                             className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background='#1e4a74'} onMouseLeave={e => e.currentTarget.style.background='#285f94'}
@@ -300,7 +304,8 @@ const Reconciliation = () => {
                                                 { id: 'Reubicado', label: 'REUBICADO' },
                                                 { id: 'Cant_Esperada', label: 'CANT ESPERADA' },
                                                 { id: 'Cant_Recibida', label: 'CANT RECIBIDA' },
-                                                { id: 'Diferencia', label: 'DIFERENCIA' }
+                                                { id: 'Diferencia', label: 'DIFERENCIA' },
+                                                { id: 'Timestamp', label: 'FECHA' }
                                             ].map((head) => (
                                                 <th
                                                     key={head.id}
@@ -340,11 +345,14 @@ const Reconciliation = () => {
                                                     <td className="px-3 py-1.5 whitespace-nowrap text-center text-[11px] font-bold" style={{ borderBottom: '1px solid #f0f0f0', color: row.Diferencia > 0 ? '#285f94' : row.Diferencia < 0 ? '#dc2626' : '#030303ff' }}>
                                                         {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                     </td>
+                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-500" style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                        {formatDateShort(row.Timestamp)}
+                                                    </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="10" className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
+                                                <td colSpan="11" className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
                                             </tr>
                                         )}
                                     </tbody>

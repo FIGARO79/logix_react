@@ -137,16 +137,27 @@ async def get_reconciliation_data(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+class ReconciliationArchiveRequest(BaseModel):
+    data: List[dict]
+    client_timestamp: Optional[str] = None
+
 @router.post("/reconciliation/archive")
 async def archive_reconciliation_snapshot(
-    data: List[dict], 
+    payload: ReconciliationArchiveRequest, 
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        archive_date = await reconciliation_service.create_snapshot(db, data, username)
+        archive_date = await reconciliation_service.create_snapshot(
+            db, 
+            payload.data, 
+            username, 
+            client_timestamp=payload.client_timestamp
+        )
         return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
     except Exception as e:
