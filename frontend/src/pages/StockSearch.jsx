@@ -102,13 +102,10 @@ const StockSearch = () => {
                         </svg>
                         Búsqueda de Stock
                     </h2>
-                    <button 
+                    <button
                         onClick={() => navigate('/spot-check')}
-                        className="btn-sap btn-secondary text-[10px] uppercase font-bold tracking-wider px-4 flex items-center gap-2"
+                        className="btn-sap btn-secondary text-[9px] uppercase font-normal tracking-wider px-4 flex items-center"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
                         Verificar Saldo
                     </button>
                 </div>
@@ -238,9 +235,6 @@ const StockSearch = () => {
             {/* Empty State / Intro */}
             {!itemData && !error && (
                 <div className="text-center text-gray-500 mt-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                    </svg>
                     <p>Ingrese un código de item para consultar su disponibilidad y ubicación.</p>
                 </div>
             )}

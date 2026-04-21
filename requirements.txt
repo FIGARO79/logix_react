@@ -43,4 +43,5 @@ pytest>=8.3.0
 pytest-asyncio>=0.24.0
 fastexcel>=0.19.0
 uvloop>=0.19.0
-orjson>=3.9.0xlsxwriter
+orjson>=3.9.0
+xlsxwriter
