@@ -209,6 +209,7 @@ class CycleCountRecording(Base):
     difference: Mapped[int] = mapped_column(Integer, default=0)
     username: Mapped[str] = mapped_column(String(100))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+    source: Mapped[Optional[str]] = mapped_column(String(50), default="planner")
 
 
 class MasterItem(Base):

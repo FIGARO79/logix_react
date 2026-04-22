@@ -29,8 +29,8 @@ const ExpressAudit = () => {
 
     const fetchRecentAudits = async () => {
         try {
-            // Ajustamos a la ruta correcta según el router de counts
-            const res = await fetch('/api/counts/recordings');
+            // Endpoint dedicado que solo trae registros de auditoría express
+            const res = await fetch('/api/express_audit/recordings');
             if (res.ok) {
                 const data = await res.json();
                 setRecentAudits(data.slice(0, 10));
@@ -126,7 +126,13 @@ const ExpressAudit = () => {
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        return new Date(dateStr).toLocaleString('es-CO', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     };
 
     return (
@@ -285,7 +291,8 @@ const ExpressAudit = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-black text-white text-[10px] uppercase tracking-widest font-normal">
                                     <tr>
-                                        <th className="px-6 py-4 border-r border-zinc-800">Hora</th>
+                                        <th className="px-6 py-4 border-r border-zinc-800">Fecha / Hora</th>
+                                        <th className="px-6 py-4 border-r border-zinc-800">Usuario</th>
                                         <th className="px-6 py-4 text-center border-r border-zinc-800">Bin</th>
                                         <th className="px-6 py-4 border-r border-zinc-800">Ítem / SKU</th>
                                         <th className="px-6 py-4 text-center border-r border-zinc-800">Físico</th>
@@ -294,11 +301,12 @@ const ExpressAudit = () => {
                                 </thead>
                                 <tbody className="divide-y-2 divide-zinc-100 text-[11px]">
                                     {recentAudits.length === 0 ? (
-                                        <tr><td colSpan="5" className="px-6 py-16 text-center text-black font-bold uppercase tracking-widest">No se han registrado auditorías en esta sesión</td></tr>
+                                        <tr><td colSpan="6" className="px-6 py-16 text-center text-black font-bold uppercase tracking-widest">No se han registrado auditorías en esta sesión</td></tr>
                                     ) : (
                                         recentAudits.map((audit) => (
                                             <tr key={audit.id} className="hover:bg-zinc-50 transition-colors border-b border-zinc-100">
                                                 <td className="px-6 py-4 text-black font-mono font-bold">{formatDate(audit.executed_date)}</td>
+                                                <td className="px-6 py-4 text-zinc-600 font-bold uppercase tracking-tighter">{audit.username || '—'}</td>
                                                 <td className="px-6 py-4 font-black text-black text-center bg-zinc-50/50">{audit.bin_location}</td>
                                                 <td className="px-6 py-4 font-black text-[#285f94]">{audit.item_code}</td>
                                                 <td className="px-6 py-4 text-center font-black text-black">{audit.physical_qty}</td>

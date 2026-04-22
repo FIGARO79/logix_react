@@ -70,7 +70,8 @@ async def save_express_audit(
             physical_qty=payload.physical_qty,
             difference=difference,
             username=username,
-            abc_code=payload.abc_code
+            abc_code=payload.abc_code,
+            source="express"
         )
         
         db.add(new_recording)
@@ -79,4 +80,37 @@ async def save_express_audit(
         return {"status": "success", "id": new_recording.id}
     except Exception as e:
         await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/recordings")
+async def get_express_audit_recordings(
+    username: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene los últimos registros creados exclusivamente desde Auditoría Express."""
+    try:
+        from sqlalchemy import select
+        result = await db.execute(
+            select(CycleCountRecording)
+            .where(CycleCountRecording.source == "express")
+            .order_by(CycleCountRecording.id.desc())
+            .limit(20)
+        )
+        recordings = result.scalars().all()
+        return [
+            {
+                "id": r.id,
+                "item_code": r.item_code,
+                "description": r.item_description,
+                "bin_location": r.bin_location,
+                "system_qty": r.system_qty,
+                "physical_qty": r.physical_qty,
+                "difference": r.difference,
+                "executed_date": r.executed_date,
+                "username": r.username,
+                "abc_code": r.abc_code,
+            }
+            for r in recordings
+        ]
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
