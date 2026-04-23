@@ -294,7 +294,7 @@ class BinLocation(Base):
     __tablename__ = "bin_locations"
     bin_code: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
     zone: Mapped[str] = mapped_column(String(100), index=True)
-    level: Mapped[int] = mapped_column(Integer, default=0)
+    level: Mapped[str] = mapped_column(String(50), default="0")
     aisle: Mapped[Optional[str]] = mapped_column(String(50))
     spot: Mapped[str] = mapped_column(String(50), default="Cold") # Hot, Cold, etc.
 

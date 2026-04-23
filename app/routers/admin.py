@@ -155,14 +155,14 @@ async def update_slotting_config(data: dict = Body(...), admin: str = Depends(pe
             if existing:
                 existing.zone = info.get("zone", "General")
                 existing.aisle = info.get("aisle", "")
-                existing.level = int(info.get("level", 0))
+                existing.level = info.get("level", 0)
                 existing.spot = info.get("spot", "Cold")
             else:
                 db.add(BinLocation(
                     bin_code=bin_code,
                     zone=info.get("zone", "General"),
                     aisle=info.get("aisle", ""),
-                    level=int(info.get("level", 0)),
+                    level=info.get("level", 0),
                     spot=info.get("spot", "Cold")
                 ))
 
@@ -233,11 +233,8 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
         for r in df.iter_rows(named=True):
             b = str(r.get("BIN", "") or "").strip().upper()
             if b and b.lower() != "nan" and b.lower() != "none" and b != "":
-                val_nivel = r.get("NIVEL")
-                try:
-                    nivel = int(val_nivel) if val_nivel is not None else 0
-                except:
-                    nivel = 0
+                nivel = r.get("NIVEL")
+                if nivel is None: nivel = 0
                 
                 info = {
                     "zone": str(r.get("ZONA", "") or "General"), 

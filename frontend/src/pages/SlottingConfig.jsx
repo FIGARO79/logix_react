@@ -109,7 +109,7 @@ const SlottingConfig = () => {
 
     const updateBin = (binCode, field, value) => {
         const newConfig = { ...config };
-        newConfig.storage[binCode][field] = field === 'level' ? parseInt(value) || 0 : value;
+        newConfig.storage[binCode][field] = value;
         setConfig(newConfig);
     };
 
@@ -256,10 +256,10 @@ const SlottingConfig = () => {
                                                     </select>
                                                 </td>
                                                 <td className="px-4 py-2 text-center w-20">
-                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0 font-mono" />
+                                                    <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-white border border-zinc-300 rounded w-10 text-[11px] font-bold text-center h-6 p-0 font-mono" />
                                                 </td>
                                                 <td className="px-4 py-2 text-center w-20">
-                                                    <input type="number" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-transparent border-none w-10 text-[11px] font-bold text-center h-6 p-0 font-mono" />
+                                                    <input type="text" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-white border border-zinc-300 rounded w-10 text-[11px] font-bold text-center h-6 p-0 font-mono" />
                                                 </td>
                                                 <td className="px-4 py-2 text-center leading-none">
                                                     <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`text-[10px] font-bold bg-transparent border-none outline-none cursor-pointer uppercase tracking-tighter p-0 h-6 text-center w-full ${getSpotColor(info.spot)}`}>
