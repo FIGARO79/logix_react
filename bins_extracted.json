@@ -1,0 +1,5168 @@
+[
+  {
+    "bin_code": "RA30A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 7,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA30B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 8,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA30C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 9,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA40A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 10,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA40B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 11,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA40C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 12,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA50A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 13,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA50B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 14,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA50C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 15,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA60A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 16,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA60B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 17,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA60C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 18,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA70A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 19,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA70B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 20,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA70C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 21,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA80A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 22,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA80B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 23,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA80C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 24,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA90A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 25,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA90B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 26,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA90C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 27,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA100A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 28,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA100B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 29,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA100C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 30,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA110A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 31,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA110B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 32,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA110C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 33,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA120A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 34,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA120B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 35,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA120C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 36,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA130A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 37,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA130B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 38,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA130C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "0",
+    "module": 39,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA31A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 7,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA31B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 8,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA31C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 9,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA41A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 10,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA41B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 11,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA41C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 12,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA51A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 13,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA51B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 14,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA51C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 15,
+    "proximity_score": 15,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA61A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 16,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA61B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 17,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA61C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 18,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA71A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 19,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA71B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 20,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA71C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 21,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA81A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 22,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA81B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 23,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA81C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 24,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA91A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 25,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA91B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 26,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA91C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 27,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA101A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 28,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA101B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 29,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA101C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 30,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA111A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 31,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA111B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 32,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA111C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 33,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA121A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 34,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA121B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 35,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA121C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 36,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA131A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 37,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA131B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 38,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA131C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "1",
+    "module": 39,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA12A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 1,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA12B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 2,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA12C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 3,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA22A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 4,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA22B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 5,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA22C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 6,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA32A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 7,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA32B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 8,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA32C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 9,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA42A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 10,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA42B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 11,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA42C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 12,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA52A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 13,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA52B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 14,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA52C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 15,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA62A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 16,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA62B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 17,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA62C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 18,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA72A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 19,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA72B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 20,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA72C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 21,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA82A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 22,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA82B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 23,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA82C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 24,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA92A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 25,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA92B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 26,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA92C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 27,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA102A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 28,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA102B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 29,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA102C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 30,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA112A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 31,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA112B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 32,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA112C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 33,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA122A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 34,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA122B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 35,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA122C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 36,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA132A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 37,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA132B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 38,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA132C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "2",
+    "module": 39,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA13A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 1,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA13B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 2,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA13C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 3,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA23A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 4,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA23B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 5,
+    "proximity_score": 10,
+    "spot": "Hot"
+  },
+  {
+    "bin_code": "RA23C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 6,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA33A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 7,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA33B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 8,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA33C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 9,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA43A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 10,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA43B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 11,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA43C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 12,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA53A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 13,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA53B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 14,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA53C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 15,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA63A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 16,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA63B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 17,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA63C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 18,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA73A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 19,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA73B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 20,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA73C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 21,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA83A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 22,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA83B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 23,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA83C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 24,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA93A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 25,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA93B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 26,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA93C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 27,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA103A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 28,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA103B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 29,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA103C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 30,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA113A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 31,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA113B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 32,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA113C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 33,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA123A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 34,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA123B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 35,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA123C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 36,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA133A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 37,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA133B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 38,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA133C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "3",
+    "module": 39,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA14A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 1,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA14B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 2,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA14C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 3,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA24A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 4,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA24B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 5,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA24C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 6,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA34A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 7,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA34B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 8,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA34C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 9,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA44A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 10,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA44B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 11,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA44C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 12,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA54A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 13,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA54B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 14,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA54C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 15,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA64A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 16,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA64B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 17,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA64C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 18,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA74A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 19,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA74B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 20,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA74C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 21,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA84A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 22,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA84B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 23,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA84C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 24,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA94A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 25,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA94B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 26,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA94C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 27,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA104A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 28,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA104B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 29,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA104C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 30,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA114A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 31,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA114B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 32,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA114C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 33,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA124A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 34,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA124B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 35,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA124C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 36,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA134A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 37,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA134B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 38,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA134C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "4",
+    "module": 39,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA15A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 1,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA15B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 2,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA15C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 3,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA25A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 4,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA25B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 5,
+    "proximity_score": 25,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA25C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 6,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA35A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 7,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA35B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 8,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA35C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 9,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA45A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 10,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA45B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 11,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA45C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 12,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA55A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 13,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA55B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 14,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA55C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 15,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA65A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 16,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA65B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 17,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA65C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 18,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA75A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 19,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA75B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 20,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA75C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 21,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA85A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 22,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA85B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 23,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA85C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 24,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA95A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 25,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA95B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 26,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA95C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 27,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA105A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 28,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA105B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 29,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA105C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 30,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA115A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 31,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA115B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 32,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA115C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 33,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA125A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 34,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA125B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 35,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA125C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 36,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA135A",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 37,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA135B",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 38,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RA135C",
+    "zone": "Rack",
+    "aisle": "RA",
+    "level": "5",
+    "module": 39,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE30A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 7,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE30B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 8,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE30C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 9,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE40A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 10,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE40B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 11,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE40C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 12,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE50A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 13,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE50B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 14,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE50C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 15,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE60A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 16,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE60B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 17,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE60C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 18,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE70A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 19,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE70B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 20,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE70C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "0",
+    "module": 21,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC10A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 28,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC10B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 29,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC10C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 30,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC20A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 31,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC20B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 32,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC20C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 33,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC30A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 34,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC30B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 35,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC30C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 36,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC40A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 37,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC40B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 38,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC40C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "0",
+    "module": 39,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE31A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 7,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE31B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 8,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE31C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 9,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE41A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 10,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE41B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 11,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE41C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 12,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE51A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 13,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE51B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 14,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE51C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 15,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE61A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 16,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE61B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 17,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE61C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 18,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE71A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 19,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE71B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 20,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE71C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "1",
+    "module": 21,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC11A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 28,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC11B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 29,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC11C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 30,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC21A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 31,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC21B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 32,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC21C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 33,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC31A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 34,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC31B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 35,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC31C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 36,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC41A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 37,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC41B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 38,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC41C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "1",
+    "module": 39,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE22A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 4,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE22B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 5,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE22C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 6,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE32A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 7,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE32B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 8,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE32C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 9,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE42A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 10,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE42B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 11,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE42C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 12,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE52A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 13,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE52B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 14,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE52C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 15,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE62A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 16,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE62B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 17,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE62C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 18,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE72A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 19,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE72B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 20,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE72C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "2",
+    "module": 21,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC12A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 28,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC12C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 30,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC22A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 31,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC22B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 32,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC22C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 33,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC32A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 34,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC32B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 35,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC32C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 36,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC42A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 37,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC42B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 38,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC42C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "2",
+    "module": 39,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE23A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 4,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE23B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 5,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE23C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 6,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE33A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 7,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE33B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 8,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE33C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 9,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE43A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 10,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE43B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 11,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE43C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 12,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE53A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 13,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE53B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 14,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE53C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 15,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE63A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 16,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE63B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 17,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE63C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 18,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE73A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 19,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE73B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 20,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE73C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "3",
+    "module": 21,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC13A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 28,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC13C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 30,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC23A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 31,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC23B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 32,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC23C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 33,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC33A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 34,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC33B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 35,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC33C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 36,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC43A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 37,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC43B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 38,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC43C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "3",
+    "module": 39,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE24A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 4,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE24B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 5,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE24C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 6,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE34A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 7,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE34B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 8,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE34C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 9,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE44A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 10,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE44B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 11,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE44C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 12,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE54A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 13,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE54B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 14,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE54C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 15,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE64A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 16,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE64B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 17,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE64C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 18,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE74A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 19,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE74B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 20,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE74C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "4",
+    "module": 21,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC14A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 28,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC14C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 30,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC24A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 31,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC24B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 32,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC24C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 33,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC34A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 34,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC34B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 35,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC34C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 36,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC44A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 37,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC44B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 38,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC44C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "4",
+    "module": 39,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE25A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 4,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE25B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 5,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE25C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 6,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE35A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 7,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE35B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 8,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE35C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 9,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE45A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 10,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE45B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 11,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE45C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 12,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE55A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 13,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE55B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 14,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE55C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 15,
+    "proximity_score": 80,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE65A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 16,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE65B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 17,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE65C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 18,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE75A",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 19,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE75B",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 20,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RE75C",
+    "zone": "Rack",
+    "aisle": "RE",
+    "level": "5",
+    "module": 21,
+    "proximity_score": 95,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC15A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 28,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC15C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 30,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC25A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 31,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC25B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 32,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC25C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 33,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC35A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 34,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC35B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 35,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC35C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 36,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC45A",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 37,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC45B",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 38,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RC45C",
+    "zone": "Rack",
+    "aisle": "RC",
+    "level": "5",
+    "module": 39,
+    "proximity_score": 75,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD10A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 1,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD10B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 2,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD10C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 3,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD20A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 4,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD20B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 5,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD20C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 6,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD30A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 7,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD30B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 8,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD30C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 9,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD40A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 10,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD40B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 11,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD40C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 12,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD50A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 13,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD50B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 14,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD50C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 15,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD60A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 16,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD60B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 17,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD60C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 18,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD70A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 19,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD70B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 20,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD70C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "0",
+    "module": 21,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB10A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 28,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB10B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 29,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB10C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 30,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB20A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 31,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB20B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 32,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB20C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 33,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB30A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 34,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB30B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 35,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB30C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 36,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB40A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 37,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB40B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 38,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB40C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "0",
+    "module": 39,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD11A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 1,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD11B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 2,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD11C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 3,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD21A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 4,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD21B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 5,
+    "proximity_score": 30,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD21C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 6,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD31A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 7,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD31B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 8,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD31C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 9,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD41A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 10,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD41B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 11,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD41C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 12,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD51A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 13,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD51B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 14,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD51C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 15,
+    "proximity_score": 45,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD61A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 16,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD61B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 17,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD61C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 18,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD71A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 19,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD71B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 20,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD71C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "1",
+    "module": 21,
+    "proximity_score": 60,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB11A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 28,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB11B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 29,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB11C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 30,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB21A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 31,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB21B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 32,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB21C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 33,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB31A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 34,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB31B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 35,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB31C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 36,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB41A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 37,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB41B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 38,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB41C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "1",
+    "module": 39,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD22A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 4,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD22B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 5,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD22C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 6,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD32A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 7,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD32B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 8,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD32C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 9,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD42A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 10,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD42B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 11,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD42C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 12,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD52A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 13,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD52B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 14,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD52C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 15,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD62A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 16,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD62B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 17,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD62C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 18,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD72A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 19,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD72B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 20,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD72C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "2",
+    "module": 21,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB12A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 28,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB12C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 30,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB22A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 31,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB22B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 32,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB22C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 33,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB32A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 34,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB32B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 35,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB32C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 36,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB42A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 37,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB42B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 38,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB42C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "2",
+    "module": 39,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD23A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 4,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD23B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 5,
+    "proximity_score": 40,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD23C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 6,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD33A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 7,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD33B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 8,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD33C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 9,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD43A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 10,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD43B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 11,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD43C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 12,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD53A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 13,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD53B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 14,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD53C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 15,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD63A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 16,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD63B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 17,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD63C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 18,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD73A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 19,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD73B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 20,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD73C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "3",
+    "module": 21,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB13A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 28,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB13C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 30,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB23A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 31,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB23B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 32,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB23C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 33,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB33A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 34,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB33B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 35,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB33C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 36,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB43A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 37,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB43B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 38,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB43C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "3",
+    "module": 39,
+    "proximity_score": 50,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD24A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 4,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD24B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 5,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD24C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 6,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD34A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 7,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD34B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 8,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD34C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 9,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD44A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 10,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD44B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 11,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD44C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 12,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD54A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 13,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD54B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 14,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD54C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 15,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD64A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 16,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD64B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 17,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD64C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 18,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD74A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 19,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD74B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 20,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD74C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "4",
+    "module": 21,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB14A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 28,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB14C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 30,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB24A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 31,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB24B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 32,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB24C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 33,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB34A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 34,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB34B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 35,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB34C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 36,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB44A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 37,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB44B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 38,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB44C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "4",
+    "module": 39,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD25A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 4,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD25B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 5,
+    "proximity_score": 55,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD25C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 6,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD35A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 7,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD35B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 8,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD35C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 9,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD45A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 10,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD45B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 11,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD45C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 12,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD55A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 13,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD55B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 14,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD55C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 15,
+    "proximity_score": 70,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD65A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 16,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD65B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 17,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD65C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 18,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD75A",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 19,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD75B",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 20,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RD75C",
+    "zone": "Rack",
+    "aisle": "RD",
+    "level": "5",
+    "module": 21,
+    "proximity_score": 85,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB15A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 28,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB15C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 30,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB25A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 31,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB25B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 32,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB25C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 33,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB35A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 34,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB35B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 35,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB35C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 36,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB45A",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 37,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB45B",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 38,
+    "proximity_score": 65,
+    "spot": "Cold"
+  },
+  {
+    "bin_code": "RB45C",
+    "zone": "Rack",
+    "aisle": "RB",
+    "level": "5",
+    "module": 39,
+    "proximity_score": 65,
+    "spot": "Cold"
+  }
+]
