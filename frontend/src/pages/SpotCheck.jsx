@@ -9,9 +9,9 @@ const SpotCheck = () => {
     const context = useTabContext();
     const setTitle = context ? context.setTitle : null;
     const navigate = useNavigate();
-    
+
     useEffect(() => {
-        if (setTitle) setTitle("Verificación de Saldo");
+        if (setTitle) setTitle("Conteo por Ubicación");
     }, [setTitle]);
 
     const [binLocation, setBinLocation] = useState('');
@@ -46,7 +46,7 @@ const SpotCheck = () => {
     const handleSearchItem = async (codeToSearch) => {
         const code = (codeToSearch || itemCode || '').trim().toUpperCase();
         if (!code) return;
-        
+
         setLoading(true);
         try {
             const res = await fetch(`/api/spot_check/find/${encodeURIComponent(code)}`);
@@ -149,15 +149,15 @@ const SpotCheck = () => {
     return (
         <div className="max-w-[1200px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={2000} />
-            
+
             <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-xl font-bold text-black uppercase">Verificación de Saldo</h1>
+                    <h1 className="text-[16px] font-normal text-black uppercase">Conteo por Ubicación</h1>
                     <p className="text-[10px] uppercase tracking-[0.15em] font-normal text-zinc-500 mt-1">Hallazgos registrados en tiempo real</p>
                 </div>
-                <button 
+                <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-bold uppercase tracking-widest px-6 h-9 flex items-center"
+                    className="btn-sap btn-secondary text-[11px] font-normal uppercase tracking-widest px-6 h-9 flex items-center"
                 >
                     Stock
                 </button>
@@ -167,22 +167,22 @@ const SpotCheck = () => {
                 <div className="lg:col-span-1">
                     <div className="bg-white border border-zinc-200 shadow-sm p-6 rounded-lg space-y-6 sticky top-24">
                         <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}`}</style>
-                        
+
                         <div>
                             <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Ubicación (BIN)</label>
                             <div className="flex">
-                                <input 
-                                    ref={binRef} 
-                                    type="text" 
-                                    value={binLocation} 
-                                    onChange={(e) => setBinLocation(e.target.value.toUpperCase())} 
+                                <input
+                                    ref={binRef}
+                                    type="text"
+                                    value={binLocation}
+                                    onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0" 
-                                    placeholder="BIN" 
+                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0"
+                                    placeholder="BIN"
                                 />
-                                <button 
-                                    onClick={() => { setScanTarget('bin'); setScannerOpen(true); }} 
+                                <button
+                                    onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
                                     style={{ height: '40px', width: '40px' }}
                                     className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
@@ -194,18 +194,18 @@ const SpotCheck = () => {
                         <div>
                             <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Artículo (SKU)</label>
                             <div className="flex">
-                                <input 
-                                    ref={itemRef} 
-                                    type="text" 
-                                    value={itemCode} 
-                                    onChange={(e) => setItemCode(e.target.value.toUpperCase())} 
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()} 
+                                <input
+                                    ref={itemRef}
+                                    type="text"
+                                    value={itemCode}
+                                    onChange={(e) => setItemCode(e.target.value.toUpperCase())}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0" 
-                                    placeholder="SKU" 
+                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0"
+                                    placeholder="SKU"
                                 />
-                                <button 
-                                    onClick={() => { setScanTarget('item'); setScannerOpen(true); }} 
+                                <button
+                                    onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
                                     style={{ height: '40px', width: '40px' }}
                                     className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
@@ -221,20 +221,20 @@ const SpotCheck = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div>
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Cantidad</label>
-                                <input 
-                                    ref={qtyRef} 
-                                    type="number" 
-                                    value={physicalQty} 
-                                    onChange={(e) => setPhysicalQty(e.target.value)} 
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSave()} 
+                                <input
+                                    ref={qtyRef}
+                                    type="number"
+                                    value={physicalQty}
+                                    onChange={(e) => setPhysicalQty(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                                     style={{ height: '40px' }}
-                                    className="w-full px-3 border border-zinc-300 rounded text-center font-bold text-lg outline-none focus:border-zinc-900 py-0" 
-                                    placeholder="0" 
+                                    className="w-full px-3 border border-zinc-300 rounded text-center font-bold text-lg outline-none focus:border-zinc-900 py-0"
+                                    placeholder="0"
                                 />
                             </div>
-                            <button 
-                                onClick={handleSave} 
-                                disabled={isSaving || !itemData} 
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || !itemData}
                                 style={{ height: '40px' }}
                                 className="w-full bg-zinc-900 text-white rounded font-bold uppercase text-[10px] tracking-widest hover:bg-black disabled:bg-zinc-200 transition-colors"
                             >
@@ -249,13 +249,13 @@ const SpotCheck = () => {
                         <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
                             <h2 className="text-[11px] font-bold text-black uppercase tracking-widest">Hallazgos Recientes</h2>
                             <div className="flex gap-2">
-                                <button 
+                                <button
                                     onClick={handleExport}
                                     className="text-[10px] font-bold uppercase text-[#285f94] hover:text-blue-800 flex items-center gap-1 border border-[#285f94]/20 px-2 py-1 rounded hover:bg-blue-50 transition-all"
                                 >
                                     Excel
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleClearTable}
                                     className="text-[10px] font-bold uppercase text-red-600 hover:text-red-800 flex items-center gap-1 border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-all"
                                 >

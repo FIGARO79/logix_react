@@ -50,14 +50,14 @@ const OccupancyDashboard = () => {
 
     return (
         <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
-            
+
             {/* Header / Actions Section */}
             <div className="mb-8 border-b border-slate-200 pb-4 flex justify-between items-end">
                 <div>
-                    <h1 className="text-[14px] font-normal text-black tracking-tight">Ocupación de Bodega</h1>
+                    <h1 className="text-[16px] font-normal text-black tracking-tight">Ocupación de Bodega</h1>
                     <p className="text-black text-[8px] uppercase tracking-widest font-normal">Mapa de Saturación y Densidad de Bins</p>
                 </div>
-                <button 
+                <button
                     onClick={fetchData}
                     className="px-4 py-1.5 border border-black text-black bg-white text-[9px] font-normal uppercase tracking-widest rounded hover:bg-slate-50 transition-all shadow-sm"
                 >
@@ -113,11 +113,11 @@ const OccupancyDashboard = () => {
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
-                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0 };   
-                                            const occupancyPercent = levelData.total > 0 
-                                                ? Math.round((levelData.full_bins / levelData.total) * 100) 
+                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0 };
+                                            const occupancyPercent = levelData.total > 0
+                                                ? Math.round((levelData.full_bins / levelData.total) * 100)
                                                 : 0;
-                                            
+
                                             return (
                                                 <td key={level} className="px-1 py-2">
                                                     {levelData.total > 0 ? (
@@ -148,7 +148,7 @@ const OccupancyDashboard = () => {
                         </tbody>
                     </table>
                 </div>
-                
+
                 {/* Legend Bar Compact */}
                 <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center gap-6">
                     <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ const OccupancyDashboard = () => {
 
             {/* Granular Analytics Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                
+
                 {/* 1. Spatial Distribution */}
                 <div className="bg-white p-6 border border-slate-200 shadow-sm">
                     <h3 className="text-[9px] font-normal text-black uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">
@@ -229,8 +229,8 @@ const OccupancyDashboard = () => {
                                         <span className="text-black font-mono">{count}</span>
                                     </div>
                                     <div className="w-full bg-slate-50 h-0.5 overflow-hidden">
-                                        <div 
-                                            className={`h-full ${idx === 0 ? 'bg-red-600' : 'bg-slate-900 opacity-40'}`} 
+                                        <div
+                                            className={`h-full ${idx === 0 ? 'bg-red-600' : 'bg-slate-900 opacity-40'}`}
                                             style={{ width: `${pct}%` }}
                                         ></div>
                                     </div>
