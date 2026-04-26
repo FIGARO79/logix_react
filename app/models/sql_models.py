@@ -297,6 +297,7 @@ class BinLocation(Base):
     level: Mapped[str] = mapped_column(String(50), default="0")
     aisle: Mapped[Optional[str]] = mapped_column(String(50))
     spot: Mapped[str] = mapped_column(String(50), default="Cold") # Hot, Cold, etc.
+    score: Mapped[int] = mapped_column(Integer, default=0)
 
 class SlottingRule(Base):
     """Reglas de rotación y afinidad (Turnover mapping)."""

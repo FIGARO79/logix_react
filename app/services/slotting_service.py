@@ -40,7 +40,7 @@ class SlottingService:
         
         storage = {}
         if bins_sql:
-            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot, "score": b.score} for b in bins_sql}
         
         # 2. Intentar obtener de SQL (Reglas de Rotación)
         res_rules = await db.execute(select(SlottingRule))
@@ -63,7 +63,7 @@ class SlottingService:
         return {"storage": storage, "turnover": turnover}
 
     async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
-        """Calcula la mejor ubicación disponible basada en el mapa de slotting y reglas de negocio."""
+        """Calcula la mejor ubicación disponible basada en el mapa de slotting, scores y reglas de negocio."""
         config = await self._get_layout_config(db)
         storage = config.get('storage', {})
         turnover_map = config.get('turnover', {})
@@ -92,11 +92,21 @@ class SlottingService:
 
         # Reubicación Proactiva: Si el ítem ya está en una ubicación válida en el maestro...
         if current_bin in storage:
-            current_spot = str(storage[current_bin].get('spot', 'cold')).lower()
-            # Si el spot actual coincide con el ideal, NO sugerimos nada nuevo (se queda ahí)
+            info = storage[current_bin]
+            current_spot = str(info.get('spot', 'cold')).lower()
+            current_score = info.get('score', 0)
+            
+            # Si el spot actual coincide con el ideal...
             if current_spot == ideal_spot:
-                return None
-            # Si NO coincide (ej. está en cold y ahora es hot), el algoritmo continuará y sugerirá un nuevo bin
+                # Si es un ítem HOT y ya tiene un score excelente (>=8), se queda.
+                if ideal_spot == 'hot' and current_score >= 8:
+                    return None
+                # Si es un ítem COLD y ya está en una zona de exilio o baja prioridad (score <= 3), se queda.
+                if ideal_spot == 'cold' and current_score <= 3:
+                    return None
+                # En otros casos (ej. ítem warm en score medio), se queda si no hay una mejor opción obvia.
+                if ideal_spot == 'warm':
+                    return None
 
         occupancy = await self._get_bins_occupancy(db)
         
@@ -135,6 +145,7 @@ class SlottingService:
         for bin_code, info in storage.items():
             zone = info.get('zone')
             level = info.get('level')
+            score = info.get('score', 0)
             if zone in forbidden_zones: continue
             if target_zone and zone != target_zone: continue
             if target_levels and level not in target_levels: continue
@@ -153,25 +164,25 @@ class SlottingService:
                 candidates.append({
                     'bin': bin_code,
                     'occupancy': current_items,
-                    'spot': str(info.get('spot', 'Cold')).lower()
+                    'spot': str(info.get('spot', 'Cold')).lower(),
+                    'score': score
                 })
 
-        # --- FILTRADO POR ROTACIÓN (HOT/COLD) ---
-        # Nueva organización: W, X, Y son HOT. K, L, Z, 0 son COLD.
-        ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        if sic_code in ['W', 'X', 'Y']: 
-            ideal_spot = 'hot'
-        elif sic_code in ['K', 'L', 'Z', '0']:
-            ideal_spot = 'cold'
+        if not candidates:
+            return None
 
-        # Filtrar candidatos que coincidan con el spot ideal
-        matches = [c for c in candidates if c['spot'] == ideal_spot]
-        if matches:
-            candidates = matches
+        # --- ORDENAMIENTO POR SCORE Y ROTACIÓN ---
+        # Prioridad: 
+        # 1. Que coincida el SPOT (Hot/Cold)
+        # 2. Si es HOT, mayor SCORE físico. Si es COLD, menor SCORE físico.
+        # 3. Menor OCUPACIÓN.
 
-        # Ordenar por afinidad de spot y luego por menor ocupación
-        candidates.sort(key=lambda x: (x['spot'] != ideal_spot, x['occupancy']))
-        return candidates[0]['bin'] if candidates else None
+        if ideal_spot == 'hot':
+            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy']))
+        else:
+            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy']))
+
+        return candidates[0]['bin']
 
     async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
         """Calcula cuántos SKUs hay en cada bin (Cruza maestro + reubicaciones activas)."""

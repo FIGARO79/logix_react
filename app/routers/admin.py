@@ -46,7 +46,7 @@ async def get_slotting_summary(admin: str = Depends(permission_required("invento
         if not storage:
             res_bins = await db.execute(select(BinLocation))
             bins_sql = res_bins.scalars().all()
-            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot, "score": b.score} for b in bins_sql}
             
         total_locations = len(storage)
         if total_locations == 0:
@@ -116,7 +116,7 @@ async def get_slotting_config(admin: str = Depends(permission_required("inventor
         res_bins = await db.execute(select(BinLocation))
         for b in res_bins.scalars().all():
             config["storage"][b.bin_code] = {
-                "zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot
+                "zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot, "score": b.score
             }
             
         res_rules = await db.execute(select(SlottingRule))
@@ -143,9 +143,6 @@ async def update_slotting_config(data: dict = Body(...), admin: str = Depends(pe
     # 2. Sincronizar con SQL (Ubicaciones)
     storage = data.get("storage", {})
     if storage:
-        # Enfoque conservador: Borrar y reinsertar es más simple para sincronización total
-        # pero para rendimiento usaremos merges individuales si el set es pequeño.
-        # Aquí asumimos actualización masiva desde panel.
         for code, info in storage.items():
             bin_code = code.strip().upper()
             stmt = select(BinLocation).where(BinLocation.bin_code == bin_code)
@@ -157,13 +154,15 @@ async def update_slotting_config(data: dict = Body(...), admin: str = Depends(pe
                 existing.aisle = info.get("aisle", "")
                 existing.level = info.get("level", 0)
                 existing.spot = info.get("spot", "Cold")
+                existing.score = info.get("score", 0)
             else:
                 db.add(BinLocation(
                     bin_code=bin_code,
                     zone=info.get("zone", "General"),
                     aisle=info.get("aisle", ""),
                     level=info.get("level", 0),
-                    spot=info.get("spot", "Cold")
+                    spot=info.get("spot", "Cold"),
+                    score=info.get("score", 0)
                 ))
 
     # 3. Sincronizar con SQL (Reglas de Rotación)
@@ -201,13 +200,14 @@ async def get_slotting_template(admin: str = Depends(permission_required("invent
                         "ZONA": i.get('zone',''), 
                         "PASILLO": i.get('aisle',''), 
                         "NIVEL": i.get('level',0), 
-                        "SPOT": i.get('spot','')
+                        "SPOT": i.get('spot',''),
+                        "SCORE": i.get('score', 0)
                     })
     except: pass
     
     import polars as pl
     import openpyxl
-    df = pl.DataFrame(data_list if data_list else [{"BIN":"EJM-01-01", "ZONA":"ALMACEN", "PASILLO":"01", "NIVEL":1, "SPOT":"Hot"}])
+    df = pl.DataFrame(data_list if data_list else [{"BIN":"EJM-01-01", "ZONA":"ALMACEN", "PASILLO":"01", "NIVEL":1, "SPOT":"Hot", "SCORE": 10}])
     df = df.sort("BIN")
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -225,40 +225,61 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
         import polars as pl
         file_bytes = await file.read()
         df = pl.read_excel(file_bytes)
+        
+        # Limpiar nombres de columnas (quitar espacios accidentales)
+        df.columns = [c.strip().upper() for c in df.columns]
         new_storage = {}
         
         # Limpiar tabla SQL antes de carga masiva
         await db.execute(delete(BinLocation))
         
         for r in df.iter_rows(named=True):
+            # Obtener bin y validar que no esté vacío
             b = str(r.get("BIN", "") or "").strip().upper()
-            if b and b.lower() != "nan" and b.lower() != "none" and b != "":
-                nivel = r.get("NIVEL")
-                if nivel is None: nivel = 0
+            if not b or b.lower() in ["nan", "none", "null", ""]:
+                continue
                 
-                info = {
-                    "zone": str(r.get("ZONA", "") or "General"), 
-                    "aisle": str(r.get("PASILLO", "") or ""), 
-                    "level": nivel, 
-                    "spot": str(r.get("SPOT", "") or "Cold")
-                }
-                new_storage[b] = info
+            # Conversión segura de NIVEL
+            try:
+                raw_nivel = r.get("NIVEL")
+                nivel = int(float(str(raw_nivel))) if raw_nivel is not None and str(raw_nivel).lower() != "nan" else 0
+            except:
+                nivel = 0
                 
-                # Insertar en SQL
-                db.add(BinLocation(
-                    bin_code=b,
-                    zone=info["zone"],
-                    aisle=info["aisle"],
-                    level=info["level"],
-                    spot=info["spot"]
-                ))
+            # Conversión segura de SCORE (soporta 10, 10.0, "10")
+            try:
+                raw_score = r.get("SCORE")
+                score = int(float(str(raw_score))) if raw_score is not None and str(raw_score).lower() != "nan" else 0
+            except:
+                score = 0
+                
+            info = {
+                "zone": str(r.get("ZONA", "") or "General").strip(), 
+                "aisle": str(r.get("PASILLO", "") or "").strip(), 
+                "level": nivel, 
+                "spot": str(r.get("SPOT", "") or "Cold").strip(),
+                "score": score
+            }
+            new_storage[b] = info
+            
+            # Insertar en SQL
+            db.add(BinLocation(
+                bin_code=b,
+                zone=info["zone"],
+                aisle=info["aisle"],
+                level=str(info["level"]), # El modelo espera String para level en este proyecto
+                spot=info["spot"],
+                score=info["score"]
+            ))
         
         # Sincronizar archivo JSON
         config = {"turnover": {}, "storage": new_storage}
         if os.path.exists(SLOTTING_PARAMS_PATH):
             with open(SLOTTING_PARAMS_PATH, 'rb') as f: 
-                old_config = orjson.loads(f.read())
-                config["turnover"] = old_config.get("turnover", {})
+                try:
+                    old_config = orjson.loads(f.read())
+                    config["turnover"] = old_config.get("turnover", {})
+                except: pass
             
         with open(SLOTTING_PARAMS_PATH, 'wb') as f: 
             f.write(orjson.dumps(config, option=orjson.OPT_INDENT_2))
@@ -267,8 +288,10 @@ async def upload_slotting_config(file: UploadFile = File(...), admin: str = Depe
         return {"message": f"Cargadas {len(new_storage)} ubicaciones correctamente"}
     except Exception as e:
         await db.rollback()
+        import traceback
+        traceback.print_exc() # Esto imprimirá el error real en la consola del backend
         print(f"Error uploading slotting config: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar Excel: {str(e)}")
 
 # --- Endpoints de Gestión de Usuarios ---
 
