@@ -84,8 +84,3 @@ class ShipmentCreate(BaseModel):
     audit_ids: List[int]
     note: Optional[str] = None
     carrier: Optional[str] = None
-
-class GRNBulkDeleteRequest(BaseModel):
-    """Modelo para la eliminación masiva de GRNs."""
-    grn_numbers: List[str]
-    password: str
