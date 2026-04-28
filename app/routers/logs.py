@@ -296,8 +296,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
             'difference': (total_rec - expected) if is_latest else 0
         })
     # ─────────────────────────────────────────────────────────────────────────
-
-    df_pl = pl.DataFrame(enriched)
+    df_pl = pl.DataFrame(enriched, infer_schema_length=None)
 
     # Renombrar y seleccionar columnas
     available_cols = {k: v for k, v in col_map.items() if k in df_pl.columns}
@@ -390,7 +389,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Cant. Recibida":     int(r.qty_received or 0),
                 "Diferencia":         int(r.difference or 0),
                 "Fecha":              (datetime.datetime.fromisoformat(str(r.timestamp).replace('Z', '')) - datetime.timedelta(minutes=timezone_offset)).strftime('%d/%m/%Y %H:%M') if r.timestamp else ''
-            } for r in rows])
+            } for r in rows], infer_schema_length=None)
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
             return Response(
@@ -408,7 +407,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
             if not result_data:
                 raise HTTPException(status_code=404, detail="No hay datos de conciliación para exportar")
 
-            final_df = pl.DataFrame(result_data)
+            final_df = pl.DataFrame(result_data, infer_schema_length=None)
 
             # Seleccionar y renombrar para el reporte Excel (manteniendo nombres de columnas del reporte)
             df_for_export = final_df.select([
