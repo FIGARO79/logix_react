@@ -281,14 +281,14 @@ const Update = () => {
                                                 <button 
                                                     type="button" 
                                                     onClick={() => setSelectedGrns([...availableGrns])} 
-                                                    className={`text-[9px] font-bold uppercase tracking-tight transition-colors ${selectedGrns.length === availableGrns.length ? 'text-[#285f94]' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                                    className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${selectedGrns.length === availableGrns.length ? 'text-[#285f94]' : 'text-zinc-400 hover:text-zinc-600'}`}
                                                 >
                                                     Marcar Todas
                                                 </button>
                                                 <button 
                                                     type="button" 
                                                     onClick={() => setSelectedGrns([])} 
-                                                    className={`text-[9px] font-bold uppercase tracking-tight transition-colors ${selectedGrns.length === 0 ? 'text-[#285f94]' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                                    className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${selectedGrns.length === 0 ? 'text-[#285f94]' : 'text-zinc-400 hover:text-zinc-600'}`}
                                                 >
                                                     Desmarcar Todas
                                                 </button>
@@ -311,7 +311,7 @@ const Update = () => {
                                         {availableGrns.map(grn => (
                                             <div key={grn} className="flex items-center gap-2">
                                                 <input type="checkbox" checked={selectedGrns.includes(grn)} onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))} className="accent-[#285f94]" />
-                                                <span className="text-[10px] font-mono text-zinc-500">{grn}</span>
+                                                <span className="text-[12px] font-mono text-zinc-500">{grn}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -360,7 +360,7 @@ const Update = () => {
                                         type="button" 
                                         onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({...prev, info: ''})) } : fetchMaestroGrns} 
                                         disabled={isFetchingMaestro}
-                                        className="text-[9px] font-bold text-blue-600 uppercase hover:underline"
+                                        className="text-[10px] font-bold text-blue-600 uppercase hover:underline"
                                     >
                                         {isFetchingMaestro ? 'CARGANDO...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'OCULTAR' : 'VER LISTA')}
                                     </button>
@@ -369,10 +369,10 @@ const Update = () => {
                                 {maestroGrns.length > 0 ? (
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[8px] text-zinc-400 uppercase">{maestroGrns.length} GRNs encontrados</span>
+                                            <span className="text-[10px] text-zinc-400 uppercase">{maestroGrns.length} GRNs encontrados</span>
                                             <div className="flex gap-2">
-                                                <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[8px] font-bold text-zinc-500 uppercase">Todas</button>
-                                                <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[8px] font-bold text-zinc-500 uppercase">Ninguna</button>
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[10px] font-bold text-zinc-500 uppercase">Todas</button>
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[10px] font-bold text-zinc-500 uppercase">Ninguna</button>
                                             </div>
                                         </div>
                                         <div className="max-h-32 overflow-y-auto bg-zinc-50 p-2 border border-zinc-100 rounded shadow-inner space-y-1">
@@ -384,7 +384,7 @@ const Update = () => {
                                                         onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grn]) : setSelectedMaestroGrns(p => p.filter(g => g !== grn))} 
                                                         className="accent-[#285f94]" 
                                                     />
-                                                    <span className="text-[9px] font-mono text-zinc-500">{grn}</span>
+                                                    <span className="text-[12px] font-mono text-zinc-500">{grn}</span>
                                                 </div>
                                             ))}
                                         </div>
