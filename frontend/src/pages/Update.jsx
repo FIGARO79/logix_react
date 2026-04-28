@@ -27,10 +27,14 @@ const Update = () => {
     const [robotEndDate, setRobotEndDate] = useState(formatDateForInput(today));
     const [clearPassword, setClearPassword] = useState('');
     const [backupPassword, setBackupPassword] = useState('');
+    const [deleteMaestroPassword, setDeleteMaestroPassword] = useState('');
 
     // GRN Selection State
     const [availableGrns, setAvailableGrns] = useState([]);
     const [selectedGrns, setSelectedGrns] = useState([]);
+    const [maestroGrns, setMaestroGrns] = useState([]);
+    const [selectedMaestroGrns, setSelectedMaestroGrns] = useState([]);
+    const [isFetchingMaestro, setIsFetchingMaestro] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewedFile, setPreviewedFile] = useState(null);
 
@@ -125,6 +129,65 @@ const Update = () => {
             });
             if (!res.ok) { setIsRobotRunning(false); setMessages({ success: '', error: "ERROR AL ACTIVAR ROBOT" }); }
         } catch (err) { setIsRobotRunning(false); }
+    };
+
+    const fetchMaestroGrns = async () => {
+        setIsFetchingMaestro(true);
+        setMessages({ success: '', error: '', info: '' }); // Limpiar mensajes previos
+        console.log("Cargando maestro de GRNs...");
+        try {
+            const res = await fetch('/api/grn/unique_references');
+            if (res.ok) {
+                const data = await res.json();
+                console.log("Datos recibidos:", data);
+                setMaestroGrns(data);
+                if (data.length === 0) {
+                    setMessages({ success: '', error: '', info: "EL MAESTRO ESTÁ VACÍO. NO HAY GRNS PARA ELIMINAR." });
+                }
+            } else {
+                const errorData = await res.json().catch(() => ({ detail: "Error desconocido" }));
+                console.error("Error al cargar:", errorData);
+                const errorMsg = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail);
+                setMessages({ success: '', error: `ERROR AL CARGAR MAESTRO: ${errorMsg || res.statusText}` });
+            }
+        } catch (err) {
+            console.error("Error de conexión:", err);
+            setMessages({ success: '', error: "ERROR DE CONEXIÓN AL SERVIDOR" });
+        } finally {
+            setIsFetchingMaestro(false);
+        }
+    };
+
+    const handleDeleteMaestroGrns = async (e) => {
+        e.preventDefault();
+        if (selectedMaestroGrns.length === 0) return alert("Seleccione al menos un GRN");
+        if (!window.confirm(`¿ELIMINAR ${selectedMaestroGrns.length} NÚMEROS DE GRN DEL SISTEMA?`)) return;
+
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/grn/delete_bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grn_numbers: selectedMaestroGrns,
+                    password: deleteMaestroPassword
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setMessages({ success: data.message, error: '' });
+                setMaestroGrns(prev => prev.filter(g => !selectedMaestroGrns.includes(g)));
+                setSelectedMaestroGrns([]);
+                setDeleteMaestroPassword('');
+            } else {
+                const errorMsg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+                setMessages({ success: '', error: errorMsg || "ERROR EN ELIMINACIÓN" });
+            }
+        } catch (err) {
+            setMessages({ success: '', error: "ERROR DE CONEXIÓN" });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -288,6 +351,66 @@ const Update = () => {
                                 <input type="password" name="password" placeholder="PASSWORD ADMIN" value={backupPassword} onChange={e => setBackupPassword(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-3 text-[10px] placeholder:text-[10px] outline-none bg-zinc-50 focus:bg-white" required />
                                 <button type="submit" className="w-full h-9 border border-zinc-300 text-zinc-600 text-[10px] font-bold uppercase tracking-widest rounded hover:bg-zinc-50">Generar Respaldo</button>
                             </form>
+
+                            {/* Delete GRN from Master */}
+                            <div className="space-y-3 pt-6 border-t border-zinc-100">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-[10px] font-normal text-black uppercase">Limpieza de Maestro (GRN)</label>
+                                    <button 
+                                        type="button" 
+                                        onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({...prev, info: ''})) } : fetchMaestroGrns} 
+                                        disabled={isFetchingMaestro}
+                                        className="text-[9px] font-bold text-blue-600 uppercase hover:underline"
+                                    >
+                                        {isFetchingMaestro ? 'CARGANDO...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'OCULTAR' : 'VER LISTA')}
+                                    </button>
+                                </div>
+
+                                {maestroGrns.length > 0 ? (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[8px] text-zinc-400 uppercase">{maestroGrns.length} GRNs encontrados</span>
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[8px] font-bold text-zinc-500 uppercase">Todas</button>
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[8px] font-bold text-zinc-500 uppercase">Ninguna</button>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-32 overflow-y-auto bg-zinc-50 p-2 border border-zinc-100 rounded shadow-inner space-y-1">
+                                            {maestroGrns.map(grn => (
+                                                <div key={grn} className="flex items-center gap-2">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedMaestroGrns.includes(grn)} 
+                                                        onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grn]) : setSelectedMaestroGrns(p => p.filter(g => g !== grn))} 
+                                                        className="accent-[#285f94]" 
+                                                    />
+                                                    <span className="text-[9px] font-mono text-zinc-500">{grn}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        <form onSubmit={handleDeleteMaestroGrns} className="space-y-2">
+                                            <input 
+                                                type="password" 
+                                                placeholder="PASSWORD ADMIN" 
+                                                value={deleteMaestroPassword} 
+                                                onChange={e => setDeleteMaestroPassword(e.target.value)} 
+                                                className="w-full h-8 border border-zinc-200 rounded px-3 text-[10px] outline-none bg-zinc-50 focus:bg-white" 
+                                                required 
+                                            />
+                                            <button 
+                                                type="submit" 
+                                                disabled={isLoading || selectedMaestroGrns.length === 0}
+                                                className="w-full h-8 bg-zinc-800 text-white text-[9px] font-bold uppercase tracking-widest rounded hover:bg-zinc-700 disabled:bg-zinc-100"
+                                            >
+                                                ELIMINAR SELECCIONADOS ({selectedMaestroGrns.length})
+                                            </button>
+                                        </form>
+                                    </div>
+                                ) : (
+                                    messages.info && <p className="text-[9px] text-zinc-400 italic">{messages.info}</p>
+                                )}
+                            </div>
 
                             {/* Danger Zone */}
                             <form onSubmit={async (e) => {
