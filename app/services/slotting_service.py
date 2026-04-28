@@ -50,23 +50,36 @@ class SlottingService:
         if rules_sql:
             turnover = {r.sic_code: {"range": r.description, "spot": r.ideal_spot} for r in rules_sql}
 
-        # 3. Fallback al JSON si SQL está vacío (Migración inicial)
-        if not storage and os.path.exists(self.params_path):
+        # 3. Extraer reglas de negocio dinámicas siempre desde JSON
+        zone_rules = {}
+        mix_limits = {}
+        if os.path.exists(self.params_path):
             try:
                 with open(self.params_path, 'rb') as f:
                     config = orjson.loads(f.read())
-                    storage = config.get("storage", {})
+                    zone_rules = config.get("zone_rules", {})
+                    mix_limits = config.get("mix_limits", {})
+                    
+                    if not storage:
+                        storage = config.get("storage", {})
                     if not turnover:
                         turnover = config.get("turnover", {})
             except: pass
             
-        return {"storage": storage, "turnover": turnover}
+        return {
+            "storage": storage, 
+            "turnover": turnover,
+            "zone_rules": zone_rules,
+            "mix_limits": mix_limits
+        }
 
     async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
         """Calcula la mejor ubicación disponible basada en el mapa de slotting, scores y reglas de negocio."""
         config = await self._get_layout_config(db)
         storage = config.get('storage', {})
         turnover_map = config.get('turnover', {})
+        zone_rules = config.get('zone_rules', {})
+        mix_limits = config.get('mix_limits', {})
         
         current_bin = str(item_details.get('Bin_1', '')).strip().upper()
         item_code = str(item_details.get('Item_Code', '')).strip()
@@ -101,8 +114,9 @@ class SlottingService:
                 # Si es un ítem HOT y ya tiene un score excelente (>=8), se queda.
                 if ideal_spot == 'hot' and current_score >= 8:
                     return None
-                # Si es un ítem COLD y ya está en una zona de exilio o baja prioridad (score <= 3), se queda.
-                if ideal_spot == 'cold' and current_score <= 3:
+                # Si es un ítem COLD y ya está en una zona de exilio o baja prioridad (score <= exile_max_score), se queda.
+                exile_max_score = int(zone_rules.get("exile_max_score", 3))
+                if ideal_spot == 'cold' and current_score <= exile_max_score:
                     return None
                 # En otros casos (ej. ítem warm en score medio), se queda si no hay una mejor opción obvia.
                 if ideal_spot == 'warm':
@@ -121,21 +135,41 @@ class SlottingService:
             weight = float(str(weight_val).replace(',', '')) if weight_val else 0.0
         except: pass
 
+        # --- PARÁMETROS DINÁMICOS ---
+        cantilever_kw = [k.strip().upper() for k in zone_rules.get("cantilever_keywords", "ROD, INTEGRAL STEEL").split(",") if k.strip()]
+        minuteria_weight_max = float(zone_rules.get("minuteria_weight_max", 0.1))
+        heavy_weight_min = float(zone_rules.get("heavy_weight_min", 10))
+        heavy_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("heavy_levels", "3, 4, 5")).split(",") if lvl.strip().isdigit()]
+        high_rotation_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("high_rotation_levels", "0, 1")).split(",") if lvl.strip().isdigit()]
+        default_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("default_levels", "2")).split(",") if lvl.strip().isdigit()]
+        exile_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("exile_rack_levels", "2, 3")).split(",") if lvl.strip().isdigit()]
+        exile_sics = [s.strip().upper() for s in str(zone_rules.get("exile_sic_codes", "0, Z, L")).split(",") if s.strip()]
+        minuteria_zone = zone_rules.get("minuteria_zone", "Minuteria")
+
+        limit_minuteria = int(mix_limits.get("minuteria_max_skus", 3))
+        limit_n2 = int(mix_limits.get("nivel2_max_skus", 6))
+        limit_others = int(mix_limits.get("otros_niveles_max_skus", 4))
+
         # --- REGLAS DE NEGOCIO POR ATRIBUTOS ---
-        if "ROD" in description or "INTEGRAL STEEL" in description:
+        is_cantilever = any(kw in description for kw in cantilever_kw)
+        
+        if is_cantilever:
             target_zone = "Cantilever"
-        elif 0 < weight < 0.1:
-            target_zone = "Minuteria"
-        elif weight > 10:
+        elif 0 < weight < minuteria_weight_max:
+            target_zone = minuteria_zone
+        elif weight > heavy_weight_min:
             target_zone = "Rack"
-            target_levels = [3, 4, 5]
+            target_levels = heavy_levels
         elif sic_code in ['W', 'X']:
             target_zone = "Rack"
-            target_levels = [0, 1]
-        else:
-            # Todo lo demás <= 10kg (especialmente Y, K, L, Z, 0) va al segundo nivel
+            target_levels = high_rotation_levels
+        elif sic_code in exile_sics:
             target_zone = "Rack"
-            target_levels = [2]
+            target_levels = exile_levels
+        else:
+            # Todo lo demás (especialmente Y, K)
+            target_zone = "Rack"
+            target_levels = default_levels
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
@@ -152,13 +186,13 @@ class SlottingService:
 
             current_items = occupancy.get(bin_code.upper(), 0)
             
-            # Dinámica de límites: Nivel 2 tiene capacidad extendida
-            if zone == "Minuteria":
-                limit = 3
+            # Dinámica de límites configurables
+            if zone == "Minuteria" or zone == minuteria_zone:
+                limit = limit_minuteria
             elif level == 2:
-                limit = 6
+                limit = limit_n2
             else:
-                limit = 4
+                limit = limit_others
             
             if current_items < limit:
                 candidates.append({
