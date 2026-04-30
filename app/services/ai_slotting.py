@@ -154,9 +154,11 @@ class AISlottingService:
 
             # Determinar el spot ideal de la categoría
             ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-            if sic_code in ['W', 'X', 'Y']: 
+            if sic_code in ['W', 'X']: 
                 ideal_spot = 'hot'
-            elif sic_code in ['K', 'L', 'Z', '0']:
+            elif sic_code in ['Y', 'K']:
+                ideal_spot = 'warm'
+            elif sic_code in ['L', 'Z', '0']:
                 ideal_spot = 'cold'
 
             # Filtrar ubicaciones aprendidas que tengan al menos 5 repeticiones

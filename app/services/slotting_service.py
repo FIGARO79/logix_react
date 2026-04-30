@@ -98,9 +98,11 @@ class SlottingService:
 
         # Determinar el spot ideal basado en el SIC Code
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        if sic_code in ['W', 'X', 'Y']: 
+        if sic_code in ['W', 'X']: 
             ideal_spot = 'hot'
-        elif sic_code in ['K', 'L', 'Z', '0']:
+        elif sic_code in ['Y', 'K']:
+            ideal_spot = 'warm'
+        elif sic_code in ['L', 'Z', '0']:
             ideal_spot = 'cold'
 
         # Reubicación Proactiva: Si el ítem ya está en una ubicación válida en el maestro...
@@ -141,6 +143,13 @@ class SlottingService:
         heavy_weight_min = float(zone_rules.get("heavy_weight_min", 10))
         heavy_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("heavy_levels", "3, 4, 5")).split(",") if lvl.strip().isdigit()]
         high_rotation_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("high_rotation_levels", "0, 1")).split(",") if lvl.strip().isdigit()]
+        high_rotation_min_score = int(zone_rules.get("high_rotation_min_score", 1))
+        high_rotation_max_score = int(zone_rules.get("high_rotation_max_score", 10))
+        
+        medium_rotation_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("medium_rotation_levels", "1, 2")).split(",") if lvl.strip().isdigit()]
+        medium_rotation_min_score = int(zone_rules.get("medium_rotation_min_score", 4))
+        medium_rotation_max_score = int(zone_rules.get("medium_rotation_max_score", 6))
+        
         default_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("default_levels", "2")).split(",") if lvl.strip().isdigit()]
         exile_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("exile_rack_levels", "2, 3")).split(",") if lvl.strip().isdigit()]
         exile_sics = [s.strip().upper() for s in str(zone_rules.get("exile_sic_codes", "0, Z, L")).split(",") if s.strip()]
@@ -153,6 +162,9 @@ class SlottingService:
         # --- REGLAS DE NEGOCIO POR ATRIBUTOS ---
         is_cantilever = any(kw in description for kw in cantilever_kw)
         
+        target_score_min = None
+        target_score_max = None
+
         if is_cantilever:
             target_zone = "Cantilever"
         elif 0 < weight < minuteria_weight_max:
@@ -163,11 +175,18 @@ class SlottingService:
         elif sic_code in ['W', 'X']:
             target_zone = "Rack"
             target_levels = high_rotation_levels
+            target_score_min = high_rotation_min_score
+            target_score_max = high_rotation_max_score
+        elif sic_code in ['Y', 'K']:
+            target_zone = "Rack"
+            target_levels = medium_rotation_levels
+            target_score_min = medium_rotation_min_score
+            target_score_max = medium_rotation_max_score
         elif sic_code in exile_sics:
             target_zone = "Rack"
             target_levels = exile_levels
         else:
-            # Todo lo demás (especialmente Y, K)
+            # Todo lo demás
             target_zone = "Rack"
             target_levels = default_levels
         
@@ -183,6 +202,8 @@ class SlottingService:
             if zone in forbidden_zones: continue
             if target_zone and zone != target_zone: continue
             if target_levels and level not in target_levels: continue
+            if target_score_min is not None and score < target_score_min: continue
+            if target_score_max is not None and score > target_score_max: continue
 
             current_items = occupancy.get(bin_code.upper(), 0)
             
@@ -213,6 +234,8 @@ class SlottingService:
 
         if ideal_spot == 'hot':
             candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy']))
+        elif ideal_spot == 'warm':
+            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy']))
         else:
             candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy']))
 

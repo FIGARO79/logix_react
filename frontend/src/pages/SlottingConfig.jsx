@@ -23,6 +23,11 @@ const SlottingConfig = () => {
         heavy_weight_min: 10,
         heavy_levels: '3, 4, 5',
         high_rotation_levels: '0, 1',
+        high_rotation_min_score: 1,
+        high_rotation_max_score: 2,
+        medium_rotation_levels: '1, 2',
+        medium_rotation_min_score: 4,
+        medium_rotation_max_score: 6,
         default_levels: '2',
         exile_sic_codes: '0, Z, L',
         exile_max_score: 3,
@@ -56,8 +61,8 @@ const SlottingConfig = () => {
             if (res.ok) {
                 const data = await res.json();
                 setConfig(prev => ({ ...prev, ...data }));
-                if (data.mix_limits) setMixLimits(data.mix_limits);
-                if (data.zone_rules) setZoneRules(data.zone_rules);
+                if (data.mix_limits) setMixLimits(prev => ({ ...prev, ...data.mix_limits }));
+                if (data.zone_rules) setZoneRules(prev => ({ ...prev, ...data.zone_rules }));
                 fetchSummary();
             }
         } catch (err) {
@@ -361,7 +366,7 @@ const SlottingConfig = () => {
                                                         type="text"
                                                         value={zoneRules.cantilever_keywords}
                                                         onChange={(e) => handleZoneRuleChange('cantilever_keywords', e.target.value)}
-                                                        className="h-5 !w-60 min-w-0 !px-1 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        className="no-spinner h-5 !w-60 min-w-0 !px-1 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
                                                 </div>
                                             </div>
@@ -373,7 +378,7 @@ const SlottingConfig = () => {
                                                         type="number" step="0.01"
                                                         value={zoneRules.minuteria_weight_max}
                                                         onChange={(e) => handleZoneRuleChange('minuteria_weight_max', parseFloat(e.target.value) || 0.1)}
-                                                        className="h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
                                                     <span className="font-normal text-zinc-400 uppercase tracking-tighter">KG</span>
                                                 </div>
@@ -398,7 +403,7 @@ const SlottingConfig = () => {
                                                         type="number"
                                                         value={zoneRules.heavy_weight_min}
                                                         onChange={(e) => handleZoneRuleChange('heavy_weight_min', parseFloat(e.target.value) || 10)}
-                                                        className="h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
                                                     <span className="font-normal text-zinc-400 uppercase tracking-tighter">KG</span>
                                                 </div>
@@ -408,21 +413,74 @@ const SlottingConfig = () => {
                                                         type="text"
                                                         value={zoneRules.heavy_levels}
                                                         onChange={(e) => handleZoneRuleChange('heavy_levels', e.target.value)}
-                                                        className="h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        className="no-spinner h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="flex justify-between items-center text-[12px] border-b border-zinc-50 pb-2 text-black">
                                                 <span className="font-normal text-black uppercase leading-tight text-black">Alta Rotación (W, X)</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-zinc-400 uppercase tracking-tighter text-[10px]">NIVELES:</span>
-                                                    <input
-                                                        type="text"
-                                                        value={zoneRules.high_rotation_levels}
-                                                        onChange={(e) => handleZoneRuleChange('high_rotation_levels', e.target.value)}
-                                                        className="h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
-                                                    />
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-zinc-400 uppercase tracking-tighter text-[10px]">NIVELES:</span>
+                                                        <input
+                                                            type="text"
+                                                            value={zoneRules.high_rotation_levels}
+                                                            onChange={(e) => handleZoneRuleChange('high_rotation_levels', e.target.value)}
+                                                            className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-zinc-400 uppercase tracking-tighter text-[10px]">SCORE UBIC (MÍN-MÁX):</span>
+                                                        <div className="flex items-center gap-0.5">
+                                                            <input
+                                                                type="number"
+                                                                value={zoneRules.high_rotation_min_score}
+                                                                onChange={(e) => handleZoneRuleChange('high_rotation_min_score', parseInt(e.target.value) || 0)}
+                                                                className="no-spinner h-5 !w-10 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                            />
+                                                            <span className="text-zinc-300">-</span>
+                                                            <input
+                                                                type="number"
+                                                                value={zoneRules.high_rotation_max_score}
+                                                                onChange={(e) => handleZoneRuleChange('high_rotation_max_score', parseInt(e.target.value) || 0)}
+                                                                className="no-spinner h-5 !w-10 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center text-[12px] border-b border-zinc-50 pb-2 text-black">
+                                                <span className="font-normal text-black uppercase leading-tight text-black">Media Rotación (Y, K)</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-zinc-400 uppercase tracking-tighter text-[10px]">NIVELES:</span>
+                                                        <input
+                                                            type="text"
+                                                            value={zoneRules.medium_rotation_levels}
+                                                            onChange={(e) => handleZoneRuleChange('medium_rotation_levels', e.target.value)}
+                                                            className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-zinc-400 uppercase tracking-tighter text-[10px]">SCORE UBIC (MÍN-MÁX):</span>
+                                                        <div className="flex items-center gap-0.5">
+                                                            <input
+                                                                type="number"
+                                                                value={zoneRules.medium_rotation_min_score}
+                                                                onChange={(e) => handleZoneRuleChange('medium_rotation_min_score', parseInt(e.target.value) || 0)}
+                                                                className="no-spinner h-5 !w-10 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                            />
+                                                            <span className="text-zinc-300">-</span>
+                                                            <input
+                                                                type="number"
+                                                                value={zoneRules.medium_rotation_max_score}
+                                                                onChange={(e) => handleZoneRuleChange('medium_rotation_max_score', parseInt(e.target.value) || 0)}
+                                                                className="no-spinner h-5 !w-10 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -448,7 +506,7 @@ const SlottingConfig = () => {
                                                     type="number"
                                                     value={mixLimits.minuteria_max_skus}
                                                     onChange={(e) => handleMixLimitChange('minuteria_max_skus', e.target.value)}
-                                                    className="h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                 />
                                                 <span className="text-[12px] font-normal text-zinc-400 uppercase">SKUs</span>
                                             </div>
@@ -464,7 +522,7 @@ const SlottingConfig = () => {
                                                     type="number"
                                                     value={mixLimits.nivel2_max_skus}
                                                     onChange={(e) => handleMixLimitChange('nivel2_max_skus', e.target.value)}
-                                                    className="h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                 />
                                                 <span className="text-[12px] font-normal text-zinc-400 uppercase">SKUs</span>
                                             </div>
@@ -480,7 +538,7 @@ const SlottingConfig = () => {
                                                     type="number"
                                                     value={mixLimits.otros_niveles_max_skus}
                                                     onChange={(e) => handleMixLimitChange('otros_niveles_max_skus', e.target.value)}
-                                                    className="h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-20 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                 />
                                                 <span className="text-[12px] font-normal text-zinc-400 uppercase">SKUs</span>
                                             </div>
@@ -501,7 +559,7 @@ const SlottingConfig = () => {
                                                     type="text"
                                                     value={zoneRules.exile_sic_codes}
                                                     onChange={(e) => handleZoneRuleChange('exile_sic_codes', e.target.value)}
-                                                    className="h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     placeholder="0, Z, L"
                                                 />
                                             </div>
@@ -512,7 +570,7 @@ const SlottingConfig = () => {
                                                     type="number"
                                                     value={zoneRules.exile_max_score}
                                                     onChange={(e) => handleZoneRuleChange('exile_max_score', parseInt(e.target.value) || 0)}
-                                                    className="h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                 />
                                             </div>
 
@@ -522,7 +580,7 @@ const SlottingConfig = () => {
                                                     type="text"
                                                     value={zoneRules.exile_rack_levels}
                                                     onChange={(e) => handleZoneRuleChange('exile_rack_levels', e.target.value)}
-                                                    className="h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
+                                                    className="no-spinner h-5 !w-20 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     placeholder="2, 3"
                                                 />
                                             </div>
@@ -535,7 +593,7 @@ const SlottingConfig = () => {
                                                         type="number"
                                                         value={zoneRules.ai_min_learn_score}
                                                         onChange={(e) => handleZoneRuleChange('ai_min_learn_score', parseInt(e.target.value) || 6)}
-                                                        className="h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-amber-600 border-amber-100 outline-none focus:border-amber-500 shadow-none bg-white"
+                                                        className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-amber-600 border-amber-100 outline-none focus:border-amber-500 shadow-none bg-white"
                                                     />
                                                 </div>
                                             </div>

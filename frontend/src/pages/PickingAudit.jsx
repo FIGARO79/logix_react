@@ -538,10 +538,6 @@ const PickingAudit = () => {
                                     <span className="block text-gray-500 text-[10px] uppercase">Línea</span>
                                     <span className="font-bold text-lg">{scannedItem.order_line}</span>
                                 </div>
-                                <div>
-                                    <span className="block text-gray-500 text-[10px] uppercase">Requerido</span>
-                                    <span className="font-bold text-lg">{scannedItem.qty_req}</span>
-                                </div>
                                 <div className="text-right">
                                     <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
                                     <span className="font-bold text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
