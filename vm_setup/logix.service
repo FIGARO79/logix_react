@@ -13,7 +13,7 @@ EnvironmentFile=/home/debian/logix/.env
 
 # Variables extra si son necesarias (PATH suele requerirse explícitamente)
 Environment="PATH=/home/debian/logix/venv/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/debian/logix/venv/bin/granian --interface asgi main:app --host 0.0.0.0 --port 8000 --workers 2
+ExecStart=/home/debian/logix/venv/bin/granian --interface asgi main:app --host 127.0.0.1 --port 8000 --workers 2
 
 [Install]
 WantedBy=multi-user.target
