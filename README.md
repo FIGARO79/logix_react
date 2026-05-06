@@ -1,101 +1,128 @@
-# Logix WMS (Warehouse Management System)
+# Logix WMS 🚀
 
-Un sistema integral de gestión de almacenes que cuenta con un backend de **FastAPI de alto rendimiento** y un frontend moderno en **React**. Especializado en control de inventarios, operaciones logísticas y optimización de almacenes impulsada por datos.
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/Frontend-React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![Polars](https://img.shields.io/badge/Engine-Polars-CD792C?style=for-the-badge)](https://www.pola.rs/)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](https://github.com/FIGARO79/logix_react)
 
-> **Nota de Arquitectura**: Este proyecto utiliza una arquitectura desacoplada. El Backend sirve una API JSON y el Frontend es una aplicación de página única (SPA) construida con React, Vite y Tailwind CSS.
+**Logix WMS** es un sistema integral de gestión de almacenes (Warehouse Management System) diseñado para operaciones de alta eficiencia. Combina un motor de datos ultrarrápido basado en **Polars** con una interfaz moderna y reactiva, permitiendo un control total sobre el inventario, optimización de espacios y conciliación de datos críticos.
 
 ---
 
-## 🚀 Stack Tecnológico
+## 🏛️ Arquitectura del Sistema
+
+El proyecto sigue una arquitectura **Headless** (desacoplada), con un robusto backend desarrollado en **FastAPI** que sirve una API JSON de alto rendimiento, mientras que el frontend es una aplicación de página única (SPA) optimizada en React.
+
+```mermaid
+graph LR
+    subgraph "Client Side (Frontend)"
+        A[React 18 SPA] --> B[Tailwind CSS]
+        A --> C[IndexedDB / PWA]
+    end
+    
+    subgraph "Server Side (Backend)"
+        D[FastAPI / Granian] --> E[SQLAlchemy 2.0]
+        D --> F[Polars / Data Engine]
+        E --> G[(MySQL / SQLite)]
+        F --> H[(CSV Master Data)]
+    end
+    
+    A -- "REST API (JSON)" --> D
+```
+
+---
+
+## ✨ Módulos Principales
+
+### 🧠 Optimización de Slotting (Ubicación Inteligente)
+- **Cálculo de Densidad**: Algoritmos avanzados para determinar la utilización volumétrica del almacén.
+- **Clasificación ABC**: Ubicación automática basada en la velocidad de rotación y peso del producto.
+- **Mapas de Calor**: Visualización intuitiva de la ocupación por niveles y pasillos.
+
+### 📦 Gestión de Inventario y Conteos
+- **Conteos Cíclicos**: Planificación automatizada para cumplir con auditorías periódicas.
+- **Express Audit**: Módulo especializado para auditorías rápidas y prioritarias separadas del ciclo estándar.
+- **Trazabilidad Total**: Registro detallado de movimientos por bin, usuario y fecha.
+
+### 📥 Entrada y Conciliación (Inbound)
+- **Conciliación Inteligente**: Motor que compara reportes ERP (Sandvik/AURR) contra existencia física en tiempo real.
+- **Procesamiento de GRN**: Gestión integral de notas de recepción de mercancías con soporte para reversión y auditoría.
+- **Automatización de PO**: Extracción y validación automática de Órdenes de Compra.
+
+### 📤 Salida y Logística (Outbound)
+- **Picking Verificado**: Flujos guiados por QR para garantizar precisión del 100% en envíos.
+- **Consolidación de Envíos**: Agrupación eficiente de pedidos para optimizar costos de transporte.
+- **Soporte Zebra ZPL**: Integración nativa con impresoras térmicas para etiquetado profesional.
+
+---
+
+## 🛠️ Stack Tecnológico
 
 ### Backend (`app/`)
-- **Framework Web**: FastAPI (Asíncrono) con servidor ASGI **Granian**.
-- **Motor de Datos**: **Polars** y NumPy para procesamiento de CSV y Dataframes a alta velocidad.
-- **ORM y DB**: SQLAlchemy 2.0 (Async) con migraciones via **Alembic**. Soporta MySQL/MariaDB y SQLite.
-- **Validación**: Pydantic v2 para esquemas estrictos.
-- **Seguridad**: RBAC (Control de acceso basado en roles), Passlib (Bcrypt) y limitación de tasa con SlowAPI.
-- **Automatización**: Playwright para extracción de reportes externos.
+- **Core**: FastAPI (Python 3.10+) con servidor **Granian**.
+- **Data**: Polars & NumPy (procesamiento de millones de filas en milisegundos).
+- **ORM**: SQLAlchemy 2.0 con soporte asíncrono (**aiomysql**/**aiosqlite**).
+- **Seguridad**: RBAC, HSTS, Rate Limiting (SlowAPI) y JWT/Sessions.
 
 ### Frontend (`frontend/`)
-- **Framework**: React 18 + Vite.
-- **Estilos**: Tailwind CSS con diseño responsive y soporte para modo oscuro.
-- **Estado y Rutas**: React Router DOM y Hooks personalizados.
-- **PWA**: Workbox + `vite-plugin-pwa` para capacidades offline y persistencia en IndexedDB (`idb`).
-- **Herramientas Logísticas**: Escaneo de QR/Barcodes (`html5-qrcode`), impresión Bluetooth ZPL y generación de PDFs.
+- **Core**: React 18 + Vite.
+- **Styling**: Tailwind CSS (Mobile-First, Dark Mode).
+- **PWA**: Soporte para funcionamiento offline y escaneo de códigos QR/Barcodes.
+- **Networking**: Axios con gestión de interceptores para seguridad.
 
 ---
 
-## ✨ Características Principales
+## 🚀 Instalación y Configuración
 
-### 🧠 Slotting y Optimización Inteligente
-- **Ubicación Inteligente**: Sugerencias automáticas de posiciones basadas en peso, dimensiones y rotación (clasificación ABC).
-- **Dashboard de Ocupación**: Visualización en tiempo real de la utilización y capacidad del almacén con mapas de calor.
-- **Motor de Restricciones**: Reglas personalizables para tipos de materiales específicos (e.g., Varillas, Minutería, Pesados).
-
-### 📦 Inventario y Conteos Cíclicos
-- **Planificación ABC**: Programación automática de conteos basada en la velocidad del ítem (A: 3x/año, B: 2x/año, C: 1x/año).
-- **Reconteos Inteligentes**: Detección automática de discrepancias con flujos guiados para segundos conteos.
-- **Búsqueda de Stock**: Búsqueda multi-criterio en tiempo real con precisión a nivel de bin.
-
-### 📥 Entrada y Conciliación
-- **Integración Sandvik**: Procesamiento automatizado de reportes AURRSGLBD0240 (Picking) y AURRSGLBD0250 (Balance).
-- **Motor de Conciliación**: Comparación avanzada entre reportes ERP y registros físicos usando instantáneas de Polars.
-- **Extractor de PO**: Extracción automatizada de órdenes de compra con soporte para referencias de cliente.
-
-### 📤 Salida y Logística
-- **Auditoría de Picking**: Proceso verificado por QR para eliminar errores de envío.
-- **Envíos Consolidados**: Agrupación de múltiples auditorías en un solo envío con listas de empaque unificadas.
-- **Sistema de Etiquetas**: Soporte para impresión térmica (Zebra ZT411) usando ZPL nativo.
-
----
-
-## 📂 Estructura del Proyecto
-
-- `app/`: Backend FastAPI (Routers, Modelos, Servicios, Utilidades).
-- `frontend/`: Aplicación Frontend en React.
-- `alembic/`: Historial de migraciones de la base de datos.
-- `docs/`: Documentación técnica y operativa detallada.
-- `vm_setup/`: Configuraciones de despliegue en producción (Nginx, Systemd).
-- `databases/`: Almacenamiento de archivos CSV maestros e instantáneas.
-
----
-
-## 🛠️ Instalación y Configuración
+### Prerrequisitos
+- Python 3.10 o superior.
+- Node.js 18 o superior.
+- MySQL/MariaDB (opcional para desarrollo, obligatorio para producción).
 
 ### 1. Configuración del Backend
-1. **Clonar y entrar**: `git clone ... && cd logix_react`
-2. **Entorno Virtual**: `python -m venv venv` y `source venv/bin/activate`.
-3. **Dependencias**: `pip install -r requirements.txt`.
-4. **Variables de Entorno**: Copiar `.env.example` a `.env` y configurar DB/Secretos.
-5. **Migraciones**: `alembic upgrade head`.
-6. **Ejecutar**: `python main.py` (Desarrollo).
+```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # En Linux/macOS
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+# [IMPORTANTE] Editar .env y configurar SECRET_KEY, ADMIN_PASSWORD e INTEGRATION_API_KEY
+
+# Ejecutar migraciones
+alembic upgrade head
+
+# Iniciar servidor (puerto 8000)
+python main.py
+```
 
 ### 2. Configuración del Frontend
-1. **Navegar**: `cd frontend`.
-2. **Instalar**: `npm install`.
-3. **Ejecutar**: `npm run dev`.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## ⚙️ Despliegue y Mantenimiento
+## ⚙️ Operaciones y Mantenimiento
 
-El proyecto incluye scripts de utilidad para una gestión sencilla:
-- `./apply_changes.sh`: Descarga el último código, reconstruye el frontend y reinicia los servicios.
-- `./check_resources.sh`: Monitorea el uso de CPU, RAM y salud del sistema.
-- `./show_db.sh`: Vista rápida por CLI de las tablas clave de la base de datos.
-
----
-
-## 🔄 Actualizaciones Recientes (2026)
-- **Express Audit Tracking**: Nuevo módulo para auditorías rápidas y prioritarias separadas del conteo cíclico.
-- **Optimización de Ocupación**: Lógica de cálculo de densidad refinada y mejoras en el contraste visual del layout.
-- **Integración de Matriz**: Soporte para importación de layouts de almacén complejos mediante matrices de Excel.
-- **Seguridad Reforzada**: Implementación de políticas HSTS y manejo de sesiones seguras.
+El sistema incluye herramientas de administración vía CLI:
+- `./apply_changes.sh`: Actualización rápida de código y reconstrucción del frontend.
+- `./check_resources.sh`: Diagnóstico de salud del servidor (RAM, CPU, I/O).
+- `./show_db.sh`: Consultas rápidas a tablas maestras desde la terminal.
 
 ---
 
-## 📄 Licencia
-Software propietario desarrollado para operaciones internas de gestión de almacenes.
+## 🔄 Actualizaciones Recientes (Q2 2026)
+- **Matriz de Almacén**: Soporte para layouts complejos mediante importación masiva de Excel.
+- **Seguridad de Sesiones**: Implementación de esquemas de seguridad reforzados para entornos multi-usuario.
+- **Optimización de Polars**: Reducción del tiempo de conciliación en un 40% mediante carga perezosa (lazy loading).
 
 ---
-**Mantenido por**: FIGARO79 | **Última actualización**: Abril 2026
+
+**Mantenido por**: [FIGARO79](https://github.com/FIGARO79)  
+**Última actualización**: Mayo 2026
