@@ -150,21 +150,21 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#fcfcfc] text-black font-sans font-normal">
+        <div className="flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
             <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                     <div className="space-y-0.5">
-                        <h1 className="text-lg tracking-tight text-black">Conciliación de Inventario</h1>
+                        <h1 className="text-lg tracking-tight text-zinc-900 font-semibold">Conciliación de Inventario</h1>
                         <div className="flex items-center gap-2">
-                            <p className="text-[8px] uppercase tracking-[0.2em] text-black">Auditoría de Diferencias</p>
+                            <p className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-medium">Auditoría de Diferencias</p>
                             <span className="text-zinc-200"></span>
                             {isOfflineData ? (
-                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
+                                <span className="text-[8px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
                                     Offline
                                 </span>
                             ) : (
-                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
-                                    
+                                <span className="text-[8px] text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+
                                 </span>
                             )}
                         </div>
@@ -193,7 +193,7 @@ const Reconciliation = () => {
                             <input
                                 type="text"
                                 placeholder="BUSCAR REGISTRO..."
-                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider"
+                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium uppercase tracking-wider"
                                 style={{ paddingLeft: '32px', paddingRight: filterText ? '30px' : '12px' }}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
@@ -234,7 +234,7 @@ const Reconciliation = () => {
                         <select
                             value={currentVersion}
                             onChange={handleVersionChange}
-                            className="w-full h-9 px-2 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 px-2 text-[9px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">LOGS ACTUALES</option>
                             {archiveVersions.map(v => (
@@ -247,7 +247,7 @@ const Reconciliation = () => {
                         <select
                             value={currentSnapshot}
                             onChange={handleSnapshotChange}
-                            className="w-full h-9 px-2 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 px-2 text-[9px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">INSTANTÁNEAS</option>
                             {snapshotVersions.map(v => (
@@ -265,7 +265,7 @@ const Reconciliation = () => {
                                 params.append('timezone_offset', new Date().getTimezoneOffset());
                                 window.location.href = `/api/export_reconciliation?${params.toString()}`;
                             }}
-                            className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background='#1e4a74'} onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                         >
                             Exportar
                         </button>
@@ -273,7 +273,7 @@ const Reconciliation = () => {
                         {!currentSnapshot && (
                             <button
                                 onClick={handleArchiveSnapshot}
-                                className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background='#1e4a74'} onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                                className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                             >
                                 Snapshot
                             </button>
@@ -285,7 +285,7 @@ const Reconciliation = () => {
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
                 <div className="bg-white border border-zinc-200 rounded-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
                     {loading ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-black">
+                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-zinc-400 text-sm font-medium">
                             Cargando...
                         </div>
                     ) : (
@@ -310,7 +310,7 @@ const Reconciliation = () => {
                                                 <th
                                                     key={head.id}
                                                     onClick={() => requestSort(head.id)}
-                                                    className="px-3 py-2 text-[10px] font-semibold text-white cursor-pointer select-none whitespace-nowrap uppercase tracking-wider"
+                                                    className="px-3 py-2.5 text-[10px] font-bold text-white/90 cursor-pointer select-none whitespace-nowrap uppercase tracking-wider transition-colors"
                                                     style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
                                                     onMouseEnter={e => e.currentTarget.style.background = '#2a3c4e'}
                                                     onMouseLeave={e => e.currentTarget.style.background = ''}
@@ -328,24 +328,24 @@ const Reconciliation = () => {
                                             filteredData.map((row, idx) => (
                                                 <tr
                                                     key={idx}
-                                                    className="transition-colors"
-                                                    style={{ background: idx % 2 === 0 ? '#fff' : '#f8f9fa' }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = '#eef3f8'}
-                                                    onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#f8f9fa'}
+                                                    className="transition-colors hover:z-10 relative"
+                                                    style={{ background: idx % 2 === 0 ? '#fff' : '#fcfcfc' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fcfcfc'}
                                                 >
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Import_Reference}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Waybill}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.GRN}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] font-medium" style={{ borderBottom: '1px solid #f0f0f0', color: '#285f94' }}>{row.Codigo_Item}</td>
-                                                    <td className="px-3 py-1.5 truncate max-w-[300px] text-[11px] text-zinc-700 uppercase" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Descripcion}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Ubicacion || '-'}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Reubicado || '-'}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-center text-zinc-700" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Cant_Esperada}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-center font-bold text-zinc-900" style={{ borderBottom: '1px solid #f0f0f0' }}>{row.Cant_Recibida}</td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-center text-[11px] font-bold" style={{ borderBottom: '1px solid #f0f0f0', color: row.Diferencia > 0 ? '#285f94' : row.Diferencia < 0 ? '#dc2626' : '#030303ff' }}>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-900 font-semibold tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-700 font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-700 font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] font-semibold tracking-tight" style={{ borderBottom: '1px solid #f1f1f1', color: '#1e4a74' }}>{row.Codigo_Item}</td>
+                                                    <td className="px-3 py-2 truncate max-w-[300px] text-[12px] text-zinc-900 font-semibold uppercase tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-600" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-600" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Reubicado || '-'}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-center text-zinc-900 font-semibold" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Esperada}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-center font-semibold text-zinc-950" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Recibida}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-center text-[12px] font-extrabold" style={{ borderBottom: '1px solid #f1f1f1', color: row.Diferencia > 0 ? '#1e4a74' : row.Diferencia < 0 ? '#dc2626' : '#18181b' }}>
                                                         {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                     </td>
-                                                    <td className="px-3 py-1.5 whitespace-nowrap text-[11px] text-zinc-500" style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-[11px] text-zinc-500 font-medium" style={{ borderBottom: '1px solid #f1f1f1' }}>
                                                         {formatDateShort(row.Timestamp)}
                                                     </td>
                                                 </tr>
