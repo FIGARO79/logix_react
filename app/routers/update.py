@@ -199,6 +199,10 @@ async def run_po_robot_api(
     if not isinstance(username, str):
         return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
+    # Evitar múltiples ejecuciones concurrentes
+    if po_robot_status["status"] == "running":
+        return ORJSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
+
     async def execute_robot_task():
         global po_robot_status
         po_robot_status["status"] = "running"
