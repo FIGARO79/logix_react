@@ -7,7 +7,7 @@
 cd "$(dirname "$0")"
 
 # Configuración de ruta del entorno virtual (Estándar local)
-VENV_PATH=".venv_linux"
+VENV_PATH="venv"
 
 # 1. Verificar Python
 if command -v python3 &> /dev/null; then
