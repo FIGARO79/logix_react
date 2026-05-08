@@ -67,6 +67,12 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
             const ctx = canvas.getContext('2d', { alpha: false });
 
             if (video.readyState >= 2) {
+                // Ajustar dimensiones del canvas dinámicamente para evitar distorsión
+                if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 // --- Lógica de Calibración QR ---
@@ -130,7 +136,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
     return (
         <div className="fixed inset-0 bg-black z-[9999] flex flex-col font-sans overflow-hidden">
             {/* Header con Estado de Calibración */}
-            <div className="h-16 bg-slate-900 flex items-center justify-between px-4 border-b border-white/10">
+            <div className="h-16 flex-shrink-0 bg-slate-900 flex items-center justify-between px-4 border-b border-white/10">
                 <div className="flex flex-col">
                     <span className="text-white font-bold text-sm tracking-tight flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isCalibrated ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-orange-500 animate-pulse'}`}></div>
@@ -144,7 +150,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
             </div>
 
             {/* Viewport */}
-            <div className="relative flex-grow bg-black flex items-center justify-center">
+            <div className="relative flex-grow min-h-0 bg-black flex items-center justify-center overflow-hidden">
                 <video ref={videoRef} playsInline muted style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0 }} />
                 <canvas ref={canvasRef} width="1280" height="720" className="w-full h-full object-contain" />
                 
@@ -157,7 +163,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
             </div>
 
             {/* Dashboard Medidas */}
-            <div className="bg-slate-900 p-5 border-t border-white/10 shadow-2xl">
+            <div className="bg-slate-900 p-5 flex-shrink-0 border-t border-white/10 shadow-2xl">
                 <div className="grid grid-cols-3 gap-3 mb-6">
                     <div className="bg-slate-800/80 p-3 rounded-xl text-center border border-white/5">
                         <span className="text-[8px] text-slate-500 block font-bold uppercase mb-1">Largo</span>
