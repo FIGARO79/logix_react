@@ -281,6 +281,22 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
         )
         items = result.scalars().all()
         
+        # Obtener dimensiones de bultos
+        from app.models.sql_models import PickingPackage
+        result = await db.execute(
+            select(PickingPackage).where(PickingPackage.audit_id == audit_id)
+        )
+        packages_dimensions = [
+            {
+                "package_number": pd.package_number,
+                "length": float(pd.length or 0),
+                "width": float(pd.width or 0),
+                "height": float(pd.height or 0),
+                "weight": float(pd.weight or 0)
+            }
+            for pd in result.scalars().all()
+        ]
+
         # Construir respuesta
         response = {
             "id": audit.id,
@@ -289,6 +305,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             "customer_code": audit.customer_code,
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
+            "packages_dimensions": packages_dimensions,
             "items": [
                 {
                     "code": item.item_code,
@@ -357,6 +374,22 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
                 packages_assignment[key] = {}
             packages_assignment[key][str(pi.package_number)] = pi.qty_scan
 
+        # Obtener dimensiones de bultos
+        from app.models.sql_models import PickingPackage
+        result = await db.execute(
+            select(PickingPackage).where(PickingPackage.audit_id == audit_id)
+        )
+        packages_dimensions = [
+            {
+                "package_number": pd.package_number,
+                "length": float(pd.length or 0),
+                "width": float(pd.width or 0),
+                "height": float(pd.height or 0),
+                "weight": float(pd.weight or 0)
+            }
+            for pd in result.scalars().all()
+        ]
+
         # Construir respuesta
         response = {
             "id": audit.id,
@@ -366,6 +399,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
             "packages_assignment": packages_assignment,
+            "packages_dimensions": packages_dimensions,
             "items": [
                 {
                     "code": item.item_code,
@@ -448,6 +482,24 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                 db_item.difference = difference
                 db_item.edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
         
+        # [NUEVO] Actualizar dimensiones de bultos
+        if audit_data.packages_dimensions is not None:
+            from app.models.sql_models import PickingPackage
+            from sqlalchemy import delete
+            await db.execute(
+                delete(PickingPackage).where(PickingPackage.audit_id == audit_id)
+            )
+            for dim in audit_data.packages_dimensions:
+                new_pkg_dim = PickingPackage(
+                    audit_id=audit_id,
+                    package_number=dim.package_number,
+                    length=dim.length,
+                    width=dim.width,
+                    height=dim.height,
+                    weight=dim.weight
+                )
+                db.add(new_pkg_dim)
+
         # 3. [NUEVO] Actualizar asignación de bultos
         if audit_data.packages_assignment is not None:
             # Primero eliminar asignaciones previas
@@ -556,7 +608,21 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
             )
             db.add(new_item)
         
-        # 3. [NUEVO] Insertar asignación de bultos
+        # 3. [NUEVO] Insertar dimensiones de bultos
+        if audit_data.packages_dimensions:
+            from app.models.sql_models import PickingPackage
+            for dim in audit_data.packages_dimensions:
+                new_pkg_dim = PickingPackage(
+                    audit_id=new_audit.id,
+                    package_number=dim.package_number,
+                    length=dim.length,
+                    width=dim.width,
+                    height=dim.height,
+                    weight=dim.weight
+                )
+                db.add(new_pkg_dim)
+        
+        # 4. [NUEVO] Insertar asignación de bultos
         if audit_data.packages_assignment:
             # Ahora la llave puede ser "item_code" o "item_code:order_line"
             for key, assignments in audit_data.packages_assignment.items():

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Plantilla de Calibración LOGIX - 10cm</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .instructions {
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        h2 { color: #1e4a74; margin-top: 0; }
+        li { margin-bottom: 10px; font-size: 14px; }
+        
+        .qr-page {
+            background: white;
+            width: 210mm; /* A4 width */
+            height: 297mm; /* A4 height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .qr-box {
+            width: 10cm;
+            height: 10cm;
+            border: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .qr-image {
+            width: 9cm;
+            height: 9cm;
+        }
+
+        .label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .ruler-check {
+            margin-top: 20px;
+            color: #666;
+            font-style: italic;
+            font-size: 11px;
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .instructions, .print-btn { display: none; }
+            .qr-page { box-shadow: none; margin: 0; }
+        }
+
+        .print-btn {
+            background: #285f94;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .print-btn:hover { background: #1e4a74; }
+    </style>
+</head>
+<body>
+
+    <div class="instructions">
+        <h2>Instrucciones de Impresión</h2>
+        <ol>
+            <li>Use papel <b>A4</b> blanco estándar.</li>
+            <li>En los ajustes de impresión, seleccione <b>"Tamaño Real"</b> o <b>"Escala: 100%"</b>.</li>
+            <li><b>IMPORTANTE:</b> No use la opción "Ajustar al área de impresión".</li>
+            <li>Una vez impreso, verifique con una regla física que el borde negro exterior mida exactamente <b>10.0 cm x 10.0 cm</b>.</li>
+            <li>Si la medida no es exacta, ajuste el porcentaje de escala en su impresora.</li>
+        </ol>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="print-btn" onclick="window.print()">Imprimir QR de Calibración</button>
+        </div>
+    </div>
+
+    <div class="qr-page">
+        <div class="qr-box">
+            <img class="qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=LOGIX-CALIBRATION-10CM" alt="Calibration QR">
+            <div class="label">Logix Calibration Reference<br>10cm x 10cm</div>
+        </div>
+        <div class="ruler-check">← El cuadro superior debe medir 10cm →</div>
+    </div>
+
+</body>
+</html>

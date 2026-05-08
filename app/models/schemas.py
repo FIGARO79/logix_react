@@ -23,6 +23,14 @@ class PickingAuditItem(BaseModel):
     qty_req: int
     qty_scan: int
 
+class PackageDimension(BaseModel):
+    """Modelo para dimensiones físicas de un bulto."""
+    package_number: int
+    length: float
+    width: float
+    height: float
+    weight: Optional[float] = 0
+
 class PickingAudit(BaseModel):
     """Modelo para auditoría completa de picking."""
     order_number: str
@@ -33,6 +41,7 @@ class PickingAudit(BaseModel):
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
+    packages_dimensions: Optional[List[PackageDimension]] = [] # Dimensiones de cada bulto
 
 class CountExecutionItem(BaseModel):
     item_code: str

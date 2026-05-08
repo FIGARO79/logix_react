@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
+import DimensionScanner from '../components/DimensionScanner';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -61,6 +62,8 @@ const PickingAudit = () => {
     const [packagesCount, setPackagesCount] = useState('1');
     const [activePackage, setActivePackage] = useState(1);
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
+    const [dimensionScannerOpen, setDimensionScannerOpen] = useState(false);
+    const [packageDimensions, setPackageDimensions] = useState({}); // { 1: {length, width, height, weight} }
 
     useEffect(() => {
         setTitle("Packing");
@@ -134,6 +137,7 @@ const PickingAudit = () => {
         setCustomerName('');
         setShowAssignmentModal(false);
         setPackageAssignments({});
+        setPackageDimensions({});
         setPackagesCount('1');
         setActivePackage(1);
         loadTrackingData();
@@ -248,7 +252,8 @@ const PickingAudit = () => {
         setShowQtyModal(false);
         setScannedItem(null);
 
-        if (anyOver) {
+        const hasOver = newItems.some(i => i.qty_scan > i.qty_req);
+        if (hasOver) {
             playError();
         }
     };
@@ -278,7 +283,11 @@ const PickingAudit = () => {
                 qty_scan: i.qty_scan
             })),
             packages: parseInt(packagesCount || 0),
-            packages_assignment: packageAssignments
+            packages_assignment: packageAssignments,
+            packages_dimensions: Object.entries(packageDimensions).map(([num, dims]) => ({
+                package_number: parseInt(num),
+                ...dims
+            }))
         };
 
         try {
@@ -323,15 +332,28 @@ const PickingAudit = () => {
                         <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Bulto Activo:</span>
                         <div className="flex gap-1.5 flex-wrap">
                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                <button
-                                    key={i + 1}
-                                    onClick={() => setActivePackage(i + 1)}
-                                    className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
-                                        ? 'bg-[#285f94] text-white shadow-sm'
-                                        : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
-                                >
-                                    {i + 1}
-                                </button>
+                                <div key={i + 1} className="relative">
+                                    <button
+                                        onClick={() => setActivePackage(i + 1)}
+                                        className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
+                                            ? 'bg-[#285f94] text-white shadow-sm'
+                                            : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                    {activePackage === i + 1 && (
+                                        <button 
+                                            onClick={() => setDimensionScannerOpen(true)}
+                                            className="absolute -top-1.5 -right-1.5 bg-white border border-[#285f94] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
+                                            title="Medir Dimensiones"
+                                        >
+                                            📏
+                                        </button>
+                                    )}
+                                    {packageDimensions[i + 1] && (
+                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                                    )}
+                                </div>
                             ))}
 
                             <div className="flex gap-1">
@@ -714,6 +736,20 @@ const PickingAudit = () => {
                             </div>
                         </div>
                     </div>
+                )}
+                {/* Dimension Scanner Modal */}
+                {dimensionScannerOpen && (
+                    <DimensionScanner
+                        packageNumber={activePackage}
+                        onConfirm={(dims) => {
+                            setPackageDimensions(prev => ({
+                                ...prev,
+                                [activePackage]: dims
+                            }));
+                            setDimensionScannerOpen(false);
+                        }}
+                        onClose={() => setDimensionScannerOpen(false)}
+                    />
                 )}
             </div>
         );

@@ -136,6 +136,7 @@ class PickingAudit(Base):
 
     items = relationship("PickingAuditItem", back_populates="audit", cascade="all, delete-orphan")
     package_items = relationship("PickingPackageItem", back_populates="audit", cascade="all, delete-orphan")
+    packages_metadata = relationship("PickingPackage", back_populates="audit", cascade="all, delete-orphan")
     shipment_links = relationship("ShipmentAudit", back_populates="audit")
 
 class PickingAuditItem(Base):
@@ -166,6 +167,19 @@ class PickingPackageItem(Base):
     qty_scan: Mapped[int] = mapped_column(Integer, nullable=False)
 
     audit = relationship("PickingAudit", back_populates="package_items")
+
+class PickingPackage(Base):
+    __tablename__ = "picking_packages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    package_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    length: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    width: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    height: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    weight: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+
+    audit = relationship("PickingAudit", back_populates="packages_metadata")
 
 
 class Shipment(Base):
