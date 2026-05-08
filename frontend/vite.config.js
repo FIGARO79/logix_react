@@ -103,6 +103,7 @@ export default defineConfig({
                     'react-vendor': ['react', 'react-dom', 'react-router-dom'],
                     'ui-vendor': ['react-toastify', 'react-to-print'],
                     'scanner-vendor': ['html5-qrcode', 'qrcode', 'react-barcode-scanner'],
+                    'ai-vendor': ['@mediapipe/tasks-vision', '@mediapipe/camera_utils', '@mediapipe/drawing_utils'],
                     'http-vendor': ['axios']
                 }
             }
