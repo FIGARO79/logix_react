@@ -55,77 +55,88 @@ def decode_qr_corners(img: np.ndarray) -> tuple[np.ndarray | None, float]:
     return qr_pts, float(qr_width_px)
 
 
-def detect_box_contour(img: np.ndarray, qr_area: float) -> np.ndarray | None:
+def detect_box_contour(img: np.ndarray, qr_pts: np.ndarray) -> np.ndarray | None:
     """
-    Detecta el contorno rectangular más grande en la imagen que sea significativamente
-    mayor que el QR (para no confundir el QR con la caja).
+    Segmentación avanzada estilo 'Google Lens / Magic Wand' usando GrabCut.
+    Separa el objeto central (caja) del fondo (sofá/suelo) ignorando el QR y su papel.
     """
-    # Preprocesamiento
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    h, w = img.shape[:2]
+    
+    # 1. Escalar la imagen para que GrabCut sea ultra-rápido (<0.2 seg)
+    max_dim = 640.0
+    scale = 1.0
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        work_img = cv2.resize(img, (int(w * scale), int(h * scale)))
+        if qr_pts is not None:
+            qr_scaled = qr_pts * scale
+        else:
+            qr_scaled = None
+    else:
+        work_img = img.copy()
+        qr_scaled = qr_pts
 
-    # Aplicar CLAHE para mejorar contraste en diferentes condiciones de iluminación
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
+    work_h, work_w = work_img.shape[:2]
+    
+    # 2. Inicializar máscara (todo como probable fondo = GC_PR_BGD)
+    mask = np.full((work_h, work_w), cv2.GC_PR_BGD, dtype=np.uint8)
+    
+    # 3. Definir el centro (la caja) como probable foreground (GC_PR_FGD)
+    # Asumimos que la caja ocupa la parte central (dejamos 15% de margen)
+    margin_x = int(work_w * 0.15)
+    margin_y = int(work_h * 0.15)
+    mask[margin_y:work_h-margin_y, margin_x:work_w-margin_x] = cv2.GC_PR_FGD
+    
+    # 4. Definir bordes seguros como background (GC_BGD)
+    border = int(min(work_w, work_h) * 0.05)
+    mask[0:border, :] = cv2.GC_BGD
+    mask[work_h-border:work_h, :] = cv2.GC_BGD
+    mask[:, 0:border] = cv2.GC_BGD
+    mask[:, work_w-border:work_w] = cv2.GC_BGD
+    
+    # 5. Tapar el QR explícitamente como background
+    if qr_scaled is not None:
+        qr_poly = np.int32([qr_scaled])
+        # Rellenar el QR en la máscara
+        cv2.fillPoly(mask, qr_poly, cv2.GC_BGD)
+        # Expandir la zona para tapar el papel blanco entero que rodea al QR
+        M = cv2.moments(qr_poly)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            # Un círculo amplio alrededor del QR para borrar el papel
+            radius = int(work_w * 0.15)
+            cv2.circle(mask, (cx, cy), radius, cv2.GC_BGD, -1)
 
-    # Blur para reducir ruido
-    blurred = cv2.GaussianBlur(enhanced, (5, 5), 0)
-
-    # Detección de bordes con Canny (doble umbral)
-    edges = cv2.Canny(blurred, 30, 120)
-
-    # Dilatar bordes para cerrar brechas
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    dilated = cv2.dilate(edges, kernel, iterations=2)
-
-    # Encontrar contornos
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    best_box = None
-    max_area = 0
-    min_box_area = qr_area * 1.5  # La caja debe ser al menos 1.5x el área del QR
-
-    for cnt in contours:
-        # Aproximar a polígono
-        peri = cv2.arcLength(cnt, True)
-        approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
-
-        # Filtrar: solo contornos con 4 vértices (rectangulares)
-        if len(approx) != 4:
-            continue
-
-        area = cv2.contourArea(approx)
-
-        # Filtrar por tamaño mínimo (mayor que el QR)
-        if area < min_box_area:
-            continue
-
-        # Verificar que sea convexo (las cajas suelen serlo)
-        if not cv2.isContourConvex(approx):
-            continue
-
-        # Verificar que los ángulos sean aproximadamente rectos
-        angles_ok = True
-        for i in range(4):
-            p1 = approx[i][0].astype(float)
-            p2 = approx[(i + 1) % 4][0].astype(float)
-            p3 = approx[(i + 2) % 4][0].astype(float)
-
-            v1 = p1 - p2
-            v2 = p3 - p2
-            cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-6)
-            angle_deg = np.degrees(np.arccos(np.clip(cos_angle, -1, 1)))
-
-            if angle_deg < 60 or angle_deg > 120:
-                angles_ok = False
-                break
-
-        if not angles_ok:
-            continue
-
-        if area > max_area:
-            max_area = area
-            best_box = approx
-
+    # 6. Ejecutar GrabCut
+    bgdModel = np.zeros((1, 65), np.float64)
+    fgdModel = np.zeros((1, 65), np.float64)
+    
+    # Usar GC_INIT_WITH_MASK (5 iteraciones son suficientes)
+    cv2.grabCut(work_img, mask, None, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_MASK)
+    
+    # 7. Extraer la máscara final
+    bin_mask = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype('uint8')
+    
+    # 8. Limpiar ruido
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    bin_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    bin_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    
+    # 9. Encontrar el contorno mayor
+    contours, _ = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
+        return None
+        
+    best_cnt_scaled = max(contours, key=cv2.contourArea)
+    
+    # 10. Re-escalar a dimensiones originales
+    if scale != 1.0:
+        best_box = (best_cnt_scaled / scale).astype(np.int32)
+    else:
+        best_box = best_cnt_scaled
+        
     return best_box
 
 
@@ -162,8 +173,8 @@ async def measure_box_v2(request: MeasureRequest):
 
         logger.info(f"QR detectado: {qr_width_px:.1f}px de ancho → {px_per_cm:.2f} px/cm")
 
-        # 3. Detectar contorno de la caja
-        box_contour = detect_box_contour(img, qr_area)
+        # 3. Detectar contorno de la caja (usando segmentación por color/textura)
+        box_contour = detect_box_contour(img, qr_pts)
 
         if box_contour is None:
             return MeasureResponse(
