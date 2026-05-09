@@ -1,4 +1,4 @@
-# Implementación de Dimensionamiento 3D de Cajas (Alta Precisión)
+22221# Implementación de Dimensionamiento 3D de Cajas (Alta Precisión)
 
 Este documento detalla la arquitectura evolucionada para el sistema de medición de **Logix**, migrando de MediaPipe Objectron (legacy) hacia un sistema de **Homografía por Referencia**, optimizado para CPUs y dispositivos móviles.
 
