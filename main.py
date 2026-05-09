@@ -43,6 +43,7 @@ from app.routers import grn
 from app.routers import shipment
 from app.routers import express_audit
 from app.routers import spot_check
+from app.routers import measurement
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
@@ -134,6 +135,7 @@ app.include_router(integrations.router)
 app.include_router(sync.router)
 app.include_router(express_audit.router)
 app.include_router(spot_check.router)
+app.include_router(measurement.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
