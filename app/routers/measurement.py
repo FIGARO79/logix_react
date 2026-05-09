@@ -109,40 +109,36 @@ async def measure_box_v2(request: MeasureRequest):
         qr_pts, qr_width_px = decode_qr_corners(img)
         if qr_pts is None: return MeasureResponse(error="No se detectó el QR")
 
-        # --- MEJORA: HOMOGRAFÍA PARA CORRECCIÓN DE PERSPECTIVA ---
-        # Definimos el QR real como un cuadrado de 10x10cm en un plano Z=0
-        # Orden de puntos de QRCodeDetector: suele ser TL, TR, BR, BL
-        side = 100.0 # 100 píxeles virtuales = 10cm (10px = 1cm)
-        dst_pts = np.array([[0, 0], [side, 0], [side, side], [0, side]], dtype=np.float32)
-        
-        # Calcular matriz de transformación (Pasar de "suelo inclinado" a "plano")
-        H, _ = cv2.findHomography(qr_pts, dst_pts)
-        
-        # 3. Detectar caja en la imagen original
+        px_per_cm = qr_width_px / request.qr_real_size
+        logger.info(f"QR detectado: {qr_width_px:.1f}px de ancho → {px_per_cm:.2f} px/cm")
+
+        # 3. Detectar contorno de la caja
         box_contour = detect_box_contour(img, qr_pts)
         if box_contour is None: return MeasureResponse(error="Caja no detectada")
 
-        # 4. Proyectar los puntos de la caja al plano del suelo usando la Homografía
-        # Esto corrige automáticamente que la parte de arriba parezca más grande
-        box_pts = box_contour.reshape(-1, 2).astype(np.float32)
-        warped_box_pts = cv2.perspectiveTransform(box_pts.reshape(-1, 1, 2), H)
+        # 4. Calcular dimensiones reales con minAreaRect estándar
+        rect = cv2.minAreaRect(box_contour)
+        (center_x, center_y), (w_px, h_px), angle = rect
         
-        # Obtener el rectángulo de área mínima en el espacio "plano" (cm)
-        rect = cv2.minAreaRect(warped_box_pts)
-        (cx, cy), (w_scaled, h_scaled), angle = rect
-        
-        # Como 100px = 10cm -> escala es 0.1
-        length_cm = round(max(w_scaled, h_scaled) * 0.1, 1)
-        width_cm = round(min(w_scaled, h_scaled) * 0.1, 1)
+        # Convertir a cm
+        raw_length = max(w_px, h_px) / px_per_cm
+        raw_width = min(w_px, h_px) / px_per_cm
 
-        # 5. Estimación de Altura (Experimental)
-        # Comparamos el punto más alto del contorno original con el punto más bajo
-        # La diferencia de perspectiva nos da una pista del alto
+        # Factor de corrección de perspectiva:
+        # La parte superior de la caja está más cerca de la lente, por lo que aparenta ser 
+        # más ancha que la base (que está al lado del QR). Reducimos un 15% para compensar.
+        length_cm = round(raw_length * 0.85, 1)
+        width_cm = round(raw_width * 0.85, 1)
+
+        # 5. Estimación de Altura
+        # Diferencia entre el punto más alto y más bajo del contorno
+        box_pts = box_contour.reshape(-1, 2)
         y_min = np.min(box_pts[:, 1])
         y_max = np.max(box_pts[:, 1])
         height_px = y_max - y_min
-        # Factor de corrección empírico para la altura basada en inclinación estándar
-        est_height = round((height_px / qr_width_px) * request.qr_real_size * 0.6, 1)
+        
+        # Factor empírico para la altura
+        est_height = round((height_px / px_per_cm) * 0.65, 1)
 
         return MeasureResponse(
             length=length_cm,
@@ -150,10 +146,6 @@ async def measure_box_v2(request: MeasureRequest):
             height=est_height,
             confidence=85
         )
-
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        return MeasureResponse(error=str(e))
 
     except Exception as e:
         logger.error(f"Error inesperado en measure_box_v2: {e}", exc_info=True)
