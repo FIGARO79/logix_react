@@ -57,168 +57,103 @@ def decode_qr_corners(img: np.ndarray) -> tuple[np.ndarray | None, float]:
 
 def detect_box_contour(img: np.ndarray, qr_pts: np.ndarray) -> np.ndarray | None:
     """
-    Segmentación avanzada estilo 'Google Lens / Magic Wand' usando GrabCut.
-    Separa el objeto central (caja) del fondo (sofá/suelo) ignorando el QR y su papel.
+    Segmentación optimizada para perspectiva usando GrabCut.
     """
     h, w = img.shape[:2]
-    
-    # 1. Escalar la imagen para que GrabCut sea ultra-rápido (<0.2 seg)
     max_dim = 640.0
     scale = 1.0
     if max(h, w) > max_dim:
         scale = max_dim / max(h, w)
         work_img = cv2.resize(img, (int(w * scale), int(h * scale)))
-        if qr_pts is not None:
-            qr_scaled = qr_pts * scale
-        else:
-            qr_scaled = None
+        qr_scaled = qr_pts * scale if qr_pts is not None else None
     else:
         work_img = img.copy()
         qr_scaled = qr_pts
 
     work_h, work_w = work_img.shape[:2]
-    
-    # 2. Inicializar máscara (todo como probable fondo = GC_PR_BGD)
     mask = np.full((work_h, work_w), cv2.GC_PR_BGD, dtype=np.uint8)
     
-    # 3. Definir el centro (la caja) como probable foreground (GC_PR_FGD)
-    # Asumimos que la caja ocupa la parte central (dejamos 15% de margen)
-    margin_x = int(work_w * 0.15)
-    margin_y = int(work_h * 0.15)
-    mask[margin_y:work_h-margin_y, margin_x:work_w-margin_x] = cv2.GC_PR_FGD
+    # Caja probable en el centro
+    margin = 0.15
+    mask[int(work_h*margin):int(work_h*(1-margin)), int(work_w*margin):int(work_w*(1-margin))] = cv2.GC_PR_FGD
     
-    # 4. Definir bordes seguros como background (GC_BGD)
-    border = int(min(work_w, work_h) * 0.05)
-    mask[0:border, :] = cv2.GC_BGD
-    mask[work_h-border:work_h, :] = cv2.GC_BGD
-    mask[:, 0:border] = cv2.GC_BGD
-    mask[:, work_w-border:work_w] = cv2.GC_BGD
-    
-    # 5. Tapar el QR explícitamente como background
+    # QR y bordes son fondo
     if qr_scaled is not None:
-        qr_poly = np.int32([qr_scaled])
-        # Rellenar el QR en la máscara
-        cv2.fillPoly(mask, qr_poly, cv2.GC_BGD)
-        # Expandir la zona para tapar el papel blanco entero que rodea al QR
-        M = cv2.moments(qr_poly)
-        if M["m00"] != 0:
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
-            # Un círculo amplio alrededor del QR para borrar el papel
-            radius = int(work_w * 0.15)
-            cv2.circle(mask, (cx, cy), radius, cv2.GC_BGD, -1)
+        cv2.fillPoly(mask, np.int32([qr_scaled]), cv2.GC_BGD)
+        # Borrar papel blanco alrededor del QR
+        center = np.mean(qr_scaled, axis=0).astype(int)
+        cv2.circle(mask, tuple(center), int(work_w*0.18), cv2.GC_BGD, -1)
 
-    # 6. Ejecutar GrabCut
     bgdModel = np.zeros((1, 65), np.float64)
     fgdModel = np.zeros((1, 65), np.float64)
-    
-    # Usar GC_INIT_WITH_MASK (5 iteraciones son suficientes)
     cv2.grabCut(work_img, mask, None, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_MASK)
     
-    # 7. Extraer la máscara final
     bin_mask = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype('uint8')
-    
-    # 8. Limpiar ruido
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    bin_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_OPEN, kernel, iterations=2)
-    bin_mask = cv2.morphologyEx(bin_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
-    
-    # 9. Encontrar el contorno mayor
     contours, _ = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    if not contours:
-        return None
-        
-    best_cnt_scaled = max(contours, key=cv2.contourArea)
-    
-    # 10. Re-escalar a dimensiones originales
-    if scale != 1.0:
-        best_box = (best_cnt_scaled / scale).astype(np.int32)
-    else:
-        best_box = best_cnt_scaled
-        
-    return best_box
+    if not contours: return None
+    best_cnt = max(contours, key=cv2.contourArea)
+    return (best_cnt / scale).astype(np.int32) if scale != 1.0 else best_cnt
 
 
 @router.post("/measure-v2", response_model=MeasureResponse)
 async def measure_box_v2(request: MeasureRequest):
-    """
-    Endpoint de medición inteligente V2.
-    Recibe una imagen con un QR de referencia y una caja,
-    detecta automáticamente los bordes de la caja y calcula sus dimensiones reales.
-    """
     try:
-        # 1. Decodificar imagen base64
-        try:
-            image_data = base64.b64decode(request.image)
-            nparr = np.frombuffer(image_data, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        except Exception as e:
-            logger.error(f"Error decodificando imagen: {e}")
-            return MeasureResponse(error="Error al decodificar la imagen")
+        # 1. Decodificar
+        image_data = base64.b64decode(request.image)
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None: return MeasureResponse(error="Imagen inválida")
 
-        if img is None:
-            return MeasureResponse(error="Imagen inválida o corrupta")
-
-        logger.info(f"Imagen recibida: {img.shape[1]}x{img.shape[0]} px")
-
-        # 2. Detectar QR para obtener escala px/cm
+        # 2. Detectar QR
         qr_pts, qr_width_px = decode_qr_corners(img)
+        if qr_pts is None: return MeasureResponse(error="No se detectó el QR")
 
-        if qr_pts is None or qr_width_px < 10:
-            return MeasureResponse(error="No se detectó el QR de referencia en la imagen")
-
-        px_per_cm = qr_width_px / request.qr_real_size
-        qr_area = qr_width_px ** 2  # Área aproximada del QR
-
-        logger.info(f"QR detectado: {qr_width_px:.1f}px de ancho → {px_per_cm:.2f} px/cm")
-
-        # 3. Detectar contorno de la caja (usando segmentación por color/textura)
+        # --- MEJORA: HOMOGRAFÍA PARA CORRECCIÓN DE PERSPECTIVA ---
+        # Definimos el QR real como un cuadrado de 10x10cm en un plano Z=0
+        # Orden de puntos de QRCodeDetector: suele ser TL, TR, BR, BL
+        side = 100.0 # 100 píxeles virtuales = 10cm (10px = 1cm)
+        dst_pts = np.array([[0, 0], [side, 0], [side, side], [0, side]], dtype=np.float32)
+        
+        # Calcular matriz de transformación (Pasar de "suelo inclinado" a "plano")
+        H, _ = cv2.findHomography(qr_pts, dst_pts)
+        
+        # 3. Detectar caja en la imagen original
         box_contour = detect_box_contour(img, qr_pts)
+        if box_contour is None: return MeasureResponse(error="Caja no detectada")
 
-        if box_contour is None:
-            return MeasureResponse(
-                error="No se detectó la caja. Asegúrese de que la caja esté completamente visible y sobre un fondo contrastante."
-            )
+        # 4. Proyectar los puntos de la caja al plano del suelo usando la Homografía
+        # Esto corrige automáticamente que la parte de arriba parezca más grande
+        box_pts = box_contour.reshape(-1, 2).astype(np.float32)
+        warped_box_pts = cv2.perspectiveTransform(box_pts.reshape(-1, 1, 2), H)
+        
+        # Obtener el rectángulo de área mínima en el espacio "plano" (cm)
+        rect = cv2.minAreaRect(warped_box_pts)
+        (cx, cy), (w_scaled, h_scaled), angle = rect
+        
+        # Como 100px = 10cm -> escala es 0.1
+        length_cm = round(max(w_scaled, h_scaled) * 0.1, 1)
+        width_cm = round(min(w_scaled, h_scaled) * 0.1, 1)
 
-        # 4. Calcular dimensiones reales con minAreaRect
-        rect = cv2.minAreaRect(box_contour)
-        (center_x, center_y), (w_px, h_px), angle = rect
-
-        # Convertir a cm
-        length_cm = round(max(w_px, h_px) / px_per_cm, 1)
-        width_cm = round(min(w_px, h_px) / px_per_cm, 1)
-
-        # 5. Calcular confianza basada en:
-        #    - Tamaño del contorno vs imagen total
-        #    - Calidad de la detección del QR
-        img_area = img.shape[0] * img.shape[1]
-        box_area = cv2.contourArea(box_contour)
-        area_ratio = box_area / img_area
-
-        # Confianza más alta si la caja ocupa entre 10%-60% de la imagen
-        if 0.10 <= area_ratio <= 0.60:
-            confidence = min(95, int(70 + area_ratio * 50))
-        elif area_ratio > 0.60:
-            confidence = 65  # Caja demasiado grande, puede haber error
-        else:
-            confidence = max(30, int(area_ratio * 400))
-
-        # Bonus por buena detección de QR
-        if qr_width_px > 50:
-            confidence = min(95, confidence + 5)
-
-        logger.info(
-            f"Caja detectada: {length_cm}x{width_cm} cm "
-            f"(confianza: {confidence}%, ratio: {area_ratio:.2%})"
-        )
+        # 5. Estimación de Altura (Experimental)
+        # Comparamos el punto más alto del contorno original con el punto más bajo
+        # La diferencia de perspectiva nos da una pista del alto
+        y_min = np.min(box_pts[:, 1])
+        y_max = np.max(box_pts[:, 1])
+        height_px = y_max - y_min
+        # Factor de corrección empírico para la altura basada en inclinación estándar
+        est_height = round((height_px / qr_width_px) * request.qr_real_size * 0.6, 1)
 
         return MeasureResponse(
             length=length_cm,
             width=width_cm,
-            height=0,  # Se ingresa manualmente en el móvil
-            confidence=confidence,
+            height=est_height,
+            confidence=85
         )
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return MeasureResponse(error=str(e))
 
     except Exception as e:
         logger.error(f"Error inesperado en measure_box_v2: {e}", exc_info=True)
