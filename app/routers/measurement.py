@@ -47,6 +47,49 @@ def get_homography_matrix(qr_pts, real_size):
     H, _ = cv2.findHomography(qr_pts, dst_pts)
     return H
 
+def decode_qr_robust(img: np.ndarray) -> tuple[np.ndarray | None, float]:
+    """Detector de QR ultra-robusto con pre-procesamiento extremo."""
+    detector = cv2.QRCodeDetector()
+    
+    # 1. Intentar con imagen original
+    retval, _, points, _ = detector.detectAndDecodeMulti(img)
+    if retval and points is not None:
+        return points[0].astype(np.float32)
+
+    # 2. Pre-procesamiento: Grayscale + CLAHE (Contraste Adaptativo)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    enhanced = clahe.apply(gray)
+    
+    # 3. Intentar con diferentes escalas
+    h, w = img.shape[:2]
+    for scale in [1.0, 0.75, 0.5]:
+        if scale != 1.0:
+            work_img = cv2.resize(enhanced, (int(w * scale), int(h * scale)))
+        else:
+            work_img = enhanced
+            
+        retval, _, points, _ = detector.detectAndDecodeMulti(work_img)
+        if retval and points is not None:
+            return points[0].astype(np.float32) / scale
+
+    # 4. Umbralización Adaptativa (Elimina brillos de papel blanco)
+    thresh = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    retval, _, points, _ = detector.detectAndDecodeMulti(thresh)
+    if retval and points is not None:
+        return points[0].astype(np.float32)
+
+    # 5. Buscar específicamente en la mitad inferior de la imagen (donde suele estar el QR)
+    crop_h = int(h * 0.5)
+    bottom_half = enhanced[crop_h:, :]
+    retval, _, points, _ = detector.detectAndDecodeMulti(bottom_half)
+    if retval and points is not None:
+        pts = points[0].astype(np.float32)
+        pts[:, 1] += crop_h # Ajustar offset de Y
+        return pts
+
+    return None
+
 @router.post("/measure-v2", response_model=MeasureResponse)
 async def measure_box_v2(request: MeasureRequest):
     try:
@@ -57,13 +100,12 @@ async def measure_box_v2(request: MeasureRequest):
         
         h, w = img.shape[:2]
 
-        # 1. Detectar QR para Calibración
-        detector = cv2.QRCodeDetector()
-        retval, _, points, _ = detector.detectAndDecodeMulti(img)
-        if not retval or points is None:
-            return MeasureResponse(error="No se detectó el QR de referencia.")
-
-        qr_pts = points[0].astype(np.float32)
+        # 1. Detectar QR con el nuevo método robusto
+        qr_pts = decode_qr_robust(img)
+        if qr_pts is None:
+            # Si falla, loguear para debug pero avisar al usuario
+            logger.error("Detección de QR fallida tras múltiples intentos")
+            return MeasureResponse(error="El servidor no pudo validar el QR en la foto. Evite reflejos sobre el papel.")
         
         # 2. Calcular Matriz de Homografía (Mapeo Píxel -> CM en el suelo)
         H = get_homography_matrix(qr_pts, request.qr_real_size)
@@ -101,17 +143,27 @@ async def measure_box_v2(request: MeasureRequest):
             dist_z_px = np.linalg.norm(p_z_px[0][0] - p_origin_px[0][0])
             
             # Corrección por inclinación de cámara
+            # Aislamos el componente vertical puro. A 45°, dist_z_px es H * sin(45).
             pitch_rad = math.radians(request.camera_pitch)
             sin_pitch = math.sin(pitch_rad)
-            if sin_pitch < 0.2: sin_pitch = 0.707 # Fallback 45°
+            if sin_pitch < 0.2: sin_pitch = 0.707 # Fallback
+            
+            # Factor de corrección dinámico basado en la escala (distancia relativa)
+            # Para objetos lejanos (escala baja), la distorsión es ligeramente distinta
+            correction_factor = 0.90
+            if local_px_per_cm < 8.0: # Objetos a más de ~1.5m
+                correction_factor = 0.93
             
             height_cm = (dist_z_px / local_px_per_cm) / sin_pitch
+            height_cm = height_cm * correction_factor
 
-            # Aplicar factor de seguridad por distorsión de lente (5%)
+            logger.info(f"Medición: L={length_cm:.1f}, W={width_cm:.1f}, H={height_cm:.1f} (Escala: {local_px_per_cm:.2f}, Factor: {correction_factor})")
+
+            # Retornar números ENTEROS (redondeo estándar: 0.5 sube al siguiente)
             return MeasureResponse(
-                length=round(length_cm * 0.95, 1),
-                width=round(width_cm * 0.95, 1),
-                height=round(height_cm * 0.95, 1),
+                length=int(round(length_cm * 0.96)), # Ajuste fino de 0.95 -> 0.96
+                width=int(round(width_cm * 0.96)),
+                height=int(round(height_cm)),
                 confidence=100
             )
 
