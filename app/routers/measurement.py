@@ -4,18 +4,15 @@ import numpy as np
 import cv2
 import math
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["measurement"])
 
-
 class Point(BaseModel):
     x: float
     y: float
-
 
 class Gizmo(BaseModel):
     origin: Point
@@ -23,49 +20,36 @@ class Gizmo(BaseModel):
     y: Point
     z: Point
 
-
 class MeasureRequest(BaseModel):
-    """Esquema de entrada para medición de caja."""
-    image: str  # Imagen en base64
-    qr_real_size: float = 10.0  # Tamaño real del QR en cm (lado)
-    gizmo: Gizmo | None = None  # Puntos marcados por el usuario
-    camera_pitch: float = 45.0  # Inclinación en grados
-
+    image: str
+    qr_real_size: float = 10.0
+    gizmo: Gizmo | None = None
+    camera_pitch: float = 45.0
 
 class MeasureResponse(BaseModel):
-    """Esquema de salida con las dimensiones detectadas."""
     length: float = 0
     width: float = 0
     height: float = 0
     confidence: int = 0
     error: str | None = None
 
-
-def decode_qr_corners(img: np.ndarray) -> tuple[np.ndarray | None, float]:
-    """
-    Detecta el QR en la imagen y retorna sus esquinas y el ancho en píxeles.
-    """
-    detector = cv2.QRCodeDetector()
-    retval, decoded_info, points, straight_qr = detector.detectAndDecodeMulti(img)
-
-    if not retval or points is None or len(points) == 0:
-        return None, 0.0
-
-    qr_pts = points[0].astype(np.float32)
-    side_lengths = []
-    for i in range(4):
-        p1 = qr_pts[i]
-        p2 = qr_pts[(i + 1) % 4]
-        side_lengths.append(np.linalg.norm(p1 - p2))
-
-    qr_width_px = np.mean(side_lengths)
-    return qr_pts, float(qr_width_px)
-
+def get_homography_matrix(qr_pts, real_size):
+    """Calcula la matriz que convierte píxeles del suelo en centímetros."""
+    # Puntos reales del QR en el suelo (cm)
+    dst_pts = np.array([
+        [0, 0],
+        [real_size, 0],
+        [real_size, real_size],
+        [0, real_size]
+    ], dtype="float32")
+    
+    # QR_pts suelen venir en orden TL, TR, BR, BL
+    H, _ = cv2.findHomography(qr_pts, dst_pts)
+    return H
 
 @router.post("/measure-v2", response_model=MeasureResponse)
 async def measure_box_v2(request: MeasureRequest):
     try:
-        # 1. Decodificar Imagen
         image_data = base64.b64decode(request.image)
         nparr = np.frombuffer(image_data, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -73,61 +57,66 @@ async def measure_box_v2(request: MeasureRequest):
         
         h, w = img.shape[:2]
 
-        # 2. Detectar QR para Calibración de Escala
-        qr_pts, qr_width_px = decode_qr_corners(img)
-        if qr_pts is None:
-            return MeasureResponse(error="No se detectó el QR de referencia. Colóquelo en la base.")
+        # 1. Detectar QR para Calibración
+        detector = cv2.QRCodeDetector()
+        retval, _, points, _ = detector.detectAndDecodeMulti(img)
+        if not retval or points is None:
+            return MeasureResponse(error="No se detectó el QR de referencia.")
 
-        px_per_cm = qr_width_px / request.qr_real_size
-        logger.info(f"Escala: {px_per_cm:.2f} px/cm (Basado en QR de {request.qr_real_size}cm)")
+        qr_pts = points[0].astype(np.float32)
+        
+        # 2. Calcular Matriz de Homografía (Mapeo Píxel -> CM en el suelo)
+        H = get_homography_matrix(qr_pts, request.qr_real_size)
+        if H is None: return MeasureResponse(error="Error en calibración 3D.")
 
-        # 3. Lógica de Medición (Gizmo vs Automático)
         if request.gizmo:
-            logger.info("Procesando medición con GIZMO 3D")
-            
-            # Helper para convertir % a px
+            # 3. Convertir puntos del Gizmo de % a Píxeles
             def to_px(p: Point):
-                return np.array([p.x * w / 100, p.y * h / 100])
+                return np.array([[[p.x * w / 100, p.y * h / 100]]], dtype="float32")
 
-            p_origin = to_px(request.gizmo.origin)
-            p_x = to_px(request.gizmo.x)
-            p_y = to_px(request.gizmo.y)
-            p_z = to_px(request.gizmo.z)
+            p_origin_px = to_px(request.gizmo.origin)
+            p_x_px = to_px(request.gizmo.x)
+            p_y_px = to_px(request.gizmo.y)
+            p_z_px = to_px(request.gizmo.z)
 
-            # Cálculo de distancias en píxeles
-            dist_x = np.linalg.norm(p_x - p_origin)
-            dist_y = np.linalg.norm(p_y - p_origin)
-            dist_z = np.linalg.norm(p_z - p_origin)
+            # 4. Proyectar puntos X e Y al plano métrico (CM)
+            p_origin_cm = cv2.perspectiveTransform(p_origin_px, H)[0][0]
+            p_x_cm = cv2.perspectiveTransform(p_x_px, H)[0][0]
+            p_y_cm = cv2.perspectiveTransform(p_y_px, H)[0][0]
 
-            # Conversión a CM
-            # Largo y Ancho están en el plano del suelo (mismo que el QR)
-            length_cm = dist_x / px_per_cm
-            width_cm = dist_y / px_per_cm
+            # Largo y Ancho reales en cm
+            length_cm = np.linalg.norm(p_x_cm - p_origin_cm)
+            width_cm = np.linalg.norm(p_y_cm - p_origin_cm)
 
-            # El Alto (Z) necesita corrección por inclinación de cámara
-            # Si la cámara está a 45°, la altura vertical en imagen es H * sin(45)
+            # 5. Cálculo de Altura (Z) con corrección de Pitch
+            # Calculamos la escala local (px/cm) en el punto de origen
+            # Medimos cuánto mide 1cm en píxeles justo donde está la caja
+            # Usamos la inversa de H para ver cuánto es 1cm en la imagen
+            H_inv = np.linalg.inv(H)
+            p_test_cm = np.array([[[p_origin_cm[0], p_origin_cm[1] + 1]]], dtype="float32")
+            p_test_px = cv2.perspectiveTransform(p_test_cm, H_inv)[0][0]
+            local_px_per_cm = np.linalg.norm(p_test_px - p_origin_px[0][0])
+
+            # Altura en píxeles (vertical pura en la imagen)
+            dist_z_px = np.linalg.norm(p_z_px[0][0] - p_origin_px[0][0])
+            
+            # Corrección por inclinación de cámara
             pitch_rad = math.radians(request.camera_pitch)
             sin_pitch = math.sin(pitch_rad)
+            if sin_pitch < 0.2: sin_pitch = 0.707 # Fallback 45°
             
-            # Evitar división por cero
-            if sin_pitch < 0.1: sin_pitch = 0.707 # Default a 45° si falla
+            height_cm = (dist_z_px / local_px_per_cm) / sin_pitch
 
-            height_cm = (dist_z / px_per_cm) / sin_pitch
-
-            # Redondear y retornar
+            # Aplicar factor de seguridad por distorsión de lente (5%)
             return MeasureResponse(
-                length=round(length_cm, 1),
-                width=round(width_cm, 1),
-                height=round(height_cm, 1),
-                confidence=100 # Medición manual supervisada
+                length=round(length_cm * 0.95, 1),
+                width=round(width_cm * 0.95, 1),
+                height=round(height_cm * 0.95, 1),
+                confidence=100
             )
-        else:
-            # FALLBACK: Lógica automática anterior (GrabCut)
-            logger.info("Procesando medición AUTOMÁTICA (GrabCut)")
-            # ... (se mantiene la lógica anterior de segmentación por brevedad o se simplifica)
-            # Por ahora, si no hay gizmo, retornamos error pidiendo ajuste
-            return MeasureResponse(error="Ajuste los puntos del Gizmo sobre la caja para medir.")
+
+        return MeasureResponse(error="Use el Gizmo para marcar la caja.")
 
     except Exception as e:
-        logger.error(f"Error en medición: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error 3D: {e}", exc_info=True)
+        return MeasureResponse(error=f"Error matemático: {str(e)}")
