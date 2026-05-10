@@ -150,9 +150,9 @@ async def measure_box_v2(request: MeasureRequest):
             
             # Factor de corrección dinámico basado en la escala (distancia relativa)
             # Para objetos lejanos (escala baja), la distorsión es ligeramente distinta
-            correction_factor = 0.90
-            if local_px_per_cm < 8.0: # Objetos a más de ~1.5m
-                correction_factor = 0.93
+            correction_factor = 0.95
+            if local_px_per_cm < 8.0: # Objetos a más de ~1.5m (Pallets)
+                correction_factor = 0.97
             
             height_cm = (dist_z_px / local_px_per_cm) / sin_pitch
             height_cm = height_cm * correction_factor
@@ -161,8 +161,8 @@ async def measure_box_v2(request: MeasureRequest):
 
             # Retornar números ENTEROS (redondeo estándar: 0.5 sube al siguiente)
             return MeasureResponse(
-                length=int(round(length_cm * 0.96)), # Ajuste fino de 0.95 -> 0.96
-                width=int(round(width_cm * 0.96)),
+                length=int(round(length_cm * 0.98)), # Ajustado de 0.96 -> 0.98
+                width=int(round(width_cm * 0.98)),
                 height=int(round(height_cm)),
                 confidence=100
             )
