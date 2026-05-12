@@ -12,8 +12,8 @@ const Update = () => {
 
     // Robot Date States
     const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(today.getDate() - 60);
 
     const formatDateForInput = (date) => {
         const d = new Date(date);
@@ -25,7 +25,7 @@ const Update = () => {
         return [year, month, day].join('-');
     };
 
-    const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(thirtyDaysAgo));
+    const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(sixtyDaysAgo));
     const [robotEndDate, setRobotEndDate] = useState(formatDateForInput(today));
     const [clearPassword, setClearPassword] = useState('');
 const [backupPassword, setBackupPassword] = useState('');
