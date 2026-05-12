@@ -282,10 +282,10 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
             
             # Aplicar el desfase (timezone_offset viene en minutos)
             local_dt = dt_obj - datetime.timedelta(minutes=timezone_offset)
-            formatted_date = local_dt.strftime('%d/%m/%Y %H:%M')
+            formatted_date = local_dt.replace(tzinfo=None) # Excel no soporta tzinfo en datetime objects fácilmente
         except Exception as e:
-            print(f"Error formateando fecha en export: {e}")
-            pass
+            print(f"Error procesando fecha en export: {e}")
+            formatted_date = ts_raw
         
         enriched.append({
             **log,
@@ -316,12 +316,22 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     # Filas
     for row in df_export.iter_rows():
         ws.append(list(row))
+    
+    # Aplicar formato de fecha a la columna "Fecha"
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            if isinstance(cell.value, datetime.datetime):
+                cell.number_format = 'DD/MM/YYYY HH:MM'
         
     # Auto-ajustar ancho de columnas
     for i, col_name in enumerate(df_export.columns, start=1):
         col_letter = get_column_letter(i)
-        col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-        max_data = col_data.str.len_chars().max() or 0
+        try:
+            col_data = df_export[col_name].cast(pl.Utf8, strict=False)
+            max_data = col_data.str.len_chars().max() or 0
+        except:
+            # Fallback para tipos Object (datetime)
+            max_data = max([len(str(v)) for v in df_export[col_name]]) if len(df_export) > 0 else 0
         ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
     output = BytesIO()
@@ -355,11 +365,21 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         for row in df.iter_rows():
             ws.append(list(row))
 
+        # Aplicar formato de fecha a las celdas que contienen datetime
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if isinstance(cell.value, datetime.datetime):
+                    cell.number_format = 'DD/MM/YYYY HH:MM'
+
         # Auto-ajustar ancho de columnas
         for i, col_name in enumerate(df.columns, start=1):
             col_letter = get_column_letter(i)
-            col_data = df[col_name].cast(pl.Utf8, strict=False)
-            max_data = col_data.str.len_chars().max() or 0
+            try:
+                col_data = df[col_name].cast(pl.Utf8, strict=False)
+                max_data = col_data.str.len_chars().max() or 0
+            except:
+                # Fallback para tipos Object (datetime)
+                max_data = max([len(str(v)) for v in df[col_name]]) if len(df) > 0 else 0
             ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
         output = BytesIO()
@@ -388,7 +408,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Cant. Esperada":     int(r.qty_expected or 0),
                 "Cant. Recibida":     int(r.qty_received or 0),
                 "Diferencia":         int(r.difference or 0),
-                "Fecha":              (datetime.datetime.fromisoformat(str(r.timestamp).replace('Z', '')) - datetime.timedelta(minutes=timezone_offset)).strftime('%d/%m/%Y %H:%M') if r.timestamp else ''
+                "Fecha":              (datetime.datetime.fromisoformat(str(r.timestamp).replace('Z', '')) - datetime.timedelta(minutes=timezone_offset)).replace(tzinfo=None) if r.timestamp else None
             } for r in rows], infer_schema_length=None)
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
@@ -431,12 +451,12 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                     clean_ts = str(val).replace(' ', 'T').replace('Z', '')
                     dt = datetime.datetime.fromisoformat(clean_ts)
                     local_dt = dt - datetime.timedelta(minutes=timezone_offset)
-                    return local_dt.strftime('%d/%m/%Y %H:%M')
+                    return local_dt.replace(tzinfo=None)
                 except:
-                    return str(val)
+                    return None
 
             df_for_export = df_for_export.with_columns(
-                pl.col("Fecha_ISO").map_elements(_adjust_tz, return_dtype=pl.Utf8).alias("Fecha")
+                pl.col("Fecha_ISO").map_elements(_adjust_tz, return_dtype=pl.Object).alias("Fecha")
             ).drop("Fecha_ISO")
 
             utc_now = datetime.datetime.now(datetime.timezone.utc)
