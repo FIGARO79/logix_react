@@ -505,8 +505,8 @@ async def get_packing_list_data(
 
 @router.get('/occupancy_stats', response_model=Dict[str, Any])
 async def get_occupancy_stats(
-    request: Request, 
-    username: str = Depends(login_required), 
+    request: Request,
+    username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
     """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
@@ -518,3 +518,16 @@ async def get_occupancy_stats(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get('/occupancy_detail', response_model=List[Dict[str, Any]])
+async def get_occupancy_detail(
+    zone: str,
+    level: int,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene el detalle de cada bin para una zona y nivel específicos."""
+    try:
+        details = await slotting_service.get_detailed_occupancy(db, zone, level)
+        return details
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

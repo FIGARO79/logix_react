@@ -12,7 +12,9 @@ const Update = () => {
 
     // Robot Date States
     const today = new Date();
-    const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
     const formatDateForInput = (date) => {
         const d = new Date(date);
         let month = '' + (d.getMonth() + 1);
@@ -23,10 +25,10 @@ const Update = () => {
         return [year, month, day].join('-');
     };
 
-    const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(firstDayOfYear));
+    const [robotStartDate, setRobotStartDate] = useState(formatDateForInput(thirtyDaysAgo));
     const [robotEndDate, setRobotEndDate] = useState(formatDateForInput(today));
     const [clearPassword, setClearPassword] = useState('');
-    const [backupPassword, setBackupPassword] = useState('');
+const [backupPassword, setBackupPassword] = useState('');
     const [deleteMaestroPassword, setDeleteMaestroPassword] = useState('');
 
     // GRN Selection State

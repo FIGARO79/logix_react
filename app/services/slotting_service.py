@@ -290,9 +290,15 @@ class SlottingService:
             }
         }
         
+        def _to_int(v):
+            try:
+                return int(float(str(v).strip()))
+            except:
+                return 0
+
         for bin_code, info in storage.items():
             zone = info.get('zone', 'Unknown')
-            level = info.get('level', 0)
+            level = _to_int(info.get('level', 0))
             aisle = info.get('aisle', 'N/A')
             
             if zone not in report["zones"]:
@@ -333,5 +339,46 @@ class SlottingService:
         report["analytics"]["bins_by_zone"] = dict(sorted(report["analytics"]["bins_by_zone"].items(), key=lambda x: x[1], reverse=True))
                 
         return report
+
+    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: int) -> List[Dict[str, Any]]:
+        """Obtiene el detalle de cada bin para una zona y nivel específicos."""
+        occupancy = await self._get_bins_occupancy(db)
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
+        
+        def _to_int(v):
+            try:
+                return int(float(str(v).strip()))
+            except:
+                return 0
+
+        details = []
+        # Normalizar para comparación robusta (quitar espacios, todo mayúsculas)
+        target_zone = str(zone).strip().upper()
+        target_level = int(level)
+
+        for bin_code, info in storage.items():
+            lvl = _to_int(info.get('level', 0))
+            current_zone = str(info.get('zone', 'Unknown')).strip().upper()
+            
+            # Comparación flexible de zona y nivel
+            if current_zone == target_zone and lvl == target_level:
+                skus = occupancy.get(bin_code.upper(), 0)
+                details.append({
+                    "bin_code": bin_code,
+                    "aisle": info.get('aisle', 'N/A'),
+                    "spot": info.get('spot', 'Cold'),
+                    "score": info.get('score', 0),
+                    "skus": skus,
+                    "occupancy_pct": min(100, round((skus / (3 if target_zone == "MINUTERIA" else 4)) * 100))
+                })
+        
+        # DEBUG: Si no hay nada, añadir un registro falso para verificar que el frontend renderiza
+        if not details:
+            print(f"DEBUG: No bins found for Zone: '{target_zone}', Level: {target_level}")
+            # Solo para pruebas, remover en prod
+            # details.append({"bin_code": "DEBUG-01", "aisle": "0", "spot": "Hot", "score": 10, "skus": 0, "occupancy_pct": 0})
+        
+        return sorted(details, key=lambda x: (str(x.get('aisle', '0')), str(x.get('bin_code', ''))))
 
 slotting_service = SlottingService()
