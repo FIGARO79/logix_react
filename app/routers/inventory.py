@@ -16,7 +16,6 @@ from sqlalchemy import select, func, delete, insert, update, text
 
 from app.core.config import ASYNC_DB_URL
 from app.core.db import get_db
-from app.core.templates import templates
 from app.services import db_counts, csv_handler
 from app.utils.auth import login_required, admin_login_required, permission_required
 from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation, MasterItem
@@ -129,42 +128,6 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
 
 
 # ===== RUTAS DE ADMIN INVENTORY =====
-
-@router.get('/admin_inventory', response_class=RedirectResponse)
-async def redirect_admin_inventory():
-    """Redirección legacy."""
-    return RedirectResponse(url='/admin/inventory')
-
-
-@router.get('/admin/inventory', response_class=HTMLResponse, name='admin_inventory')
-async def admin_inventory_get(request: Request, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
-    """Página principal de administración de inventario."""
-    # admin middleware check replaced by permission_required
-    
-    result = await db.execute(select(AppState).where(AppState.key == 'current_inventory_stage'))
-    stage = result.scalar_one_or_none()
-    
-    if not stage:
-        # Si no existe, inicializamos a etapa 0 (inactivo)
-        new_stage = AppState(key='current_inventory_stage', value='0')
-        db.add(new_stage)
-        await db.commit()
-        await db.refresh(new_stage)
-        stage = new_stage
-
-    message = request.query_params.get('message')
-    error = request.query_params.get('error')
-    
-    summary_stats = await get_inventory_summary_stats(db)
-
-    return templates.TemplateResponse('admin_inventory.html', {
-        "request": request, 
-        "stage": stage,
-        "message": message,
-        "error": error,
-        "summary": summary_stats
-    })
-
 
 @router.post('/admin/inventory/start_stage_1', name='start_inventory_stage_1')
 async def start_inventory_stage_1(request: Request, user: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
@@ -502,16 +465,3 @@ async def finalize_inventory_api(user: str = Depends(permission_required("invent
         stage_state.value = '0' 
         await db.commit()
     return ORJSONResponse(content={"message": "Inventario finalizado correctamente", "stage": 0})
-
-
-# ===== RUTAS DE MANAGE COUNTS =====
-
-@router.get('/manage_counts', response_class=HTMLResponse, name='manage_counts_page')
-async def manage_counts_page(request: Request, username: str = Depends(permission_required("inventory")), db: AsyncSession = Depends(get_db)):
-    """Página de gestión de conteos."""
-    if not isinstance(username, str):
-        return username
-    
-    counts = await db_counts.load_all_counts_db_async(db)
-    
-    return templates.TemplateResponse('manage_counts.html', {"request": request, "counts": counts})

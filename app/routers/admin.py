@@ -2,7 +2,7 @@
 Router para endpoints administrativos simplificado y unificado.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, ORJSONResponse, Response
+from fastapi.responses import ORJSONResponse, Response
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,6 @@ from app.utils.auth import (
 from app.models.sql_models import User, BinLocation, SlottingRule
 from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT, SLOTTING_PARAMS_PATH
-from app.core.templates import templates
 from app.services.csv_handler import load_csv_data
 from app.core.limiter import limiter
 import orjson
@@ -347,6 +346,3 @@ async def update_user_permissions_api(user_id: int, data: dict = Body(...), db: 
     if result.rowcount > 0:
         return ORJSONResponse(content={"success": True, "message": "Permisos actualizados"})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-# Creamos un router vacío para compatibilidad con main.py si fuera necesario
-api_router = APIRouter()

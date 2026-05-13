@@ -27,7 +27,6 @@ from app.core.config import (
 from app.services.csv_handler import load_csv_data
 from app.services.csv_to_db import sync_master_csv_to_db
 from app.utils.auth import login_required
-from app.core.templates import templates
 
 def np_encoder(obj):
     if isinstance(obj, np.generic):
@@ -38,18 +37,6 @@ router = APIRouter(
     prefix="",
     tags=["update"]
 )
-
-# --- Endpoint para la página de actualización (GET) ---
-@router.get('/update', response_class=HTMLResponse)
-async def update_files_get(request: Request, username: str = Depends(login_required)):
-    if not isinstance(username, str):
-        return username  # Devuelve la redirección si el login falla
-    
-    return templates.TemplateResponse("update.html", {
-        "request": request,
-        "error": request.query_params.get('error'),
-        "message": request.query_params.get('message')
-    })
 
 async def process_po_extractor_logic(file_path: str):
     """
@@ -410,15 +397,6 @@ async def clear_database_api(request: Request, password: str = Form(...), db: As
     await db.execute(delete(Log))
     await db.commit()
     return ORJSONResponse(content={"message": "Base de datos de logs limpiada"})
-
-@router.post('/clear_database')
-async def clear_database(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
-    redirect_url = request.url_for('update_files_get')
-    if password != ADMIN_PASSWORD:
-        return RedirectResponse(url=f"{redirect_url}?error=Contraseña+incorrecta", status_code=302)
-    await db.execute(delete(Log))
-    await db.commit()
-    return RedirectResponse(url=f"{redirect_url}?message=Base+de+datos+limpiada", status_code=302)
 
 @router.post('/api/export_all_log')
 async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):

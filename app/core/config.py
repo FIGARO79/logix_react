@@ -20,7 +20,6 @@ JSON_FOLDER = os.path.join(PROJECT_ROOT, 'static', 'json')
 
 GRN_JSON_DATA_PATH = os.path.join(JSON_FOLDER, 'grn_master_data.json')
 PO_LOOKUP_JSON_PATH = os.path.join(JSON_FOLDER, 'po_lookup.json')
-AI_SLOTTING_MEMORY_PATH = os.path.join(JSON_FOLDER, 'ai_slotting_memory.json')
 PLANNER_CONFIG_PATH = os.path.join(JSON_FOLDER, 'planner_config.json')
 PLANNER_DATA_PATH = os.path.join(JSON_FOLDER, 'planner_data.json')
 SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
