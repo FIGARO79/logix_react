@@ -28,16 +28,15 @@ if [ -d "$VENV_PATH" ] && [ ! -f "$VENV_PATH/bin/python" ]; then
 fi
 
 if [ ! -d "$VENV_PATH" ]; then
-    echo "[INFO] Creando entorno virtual en $VENV_PATH..."
-    $PYTHON_CMD -m venv --copies "$VENV_PATH"
+    echo "[INFO] Creando entorno virtual en $VENV_PATH con uv..."
+    $HOME/.local/bin/uv venv "$VENV_PATH"
 else
     echo "[INFO] Entorno virtual válido en $VENV_PATH."
 fi
 
 # 3. Actualizar pip e instalar requerimientos
-echo "[INFO] Instalando librerías desde requirements.txt..."
-"$VENV_PATH/bin/python" -m pip install --upgrade pip
-"$VENV_PATH/bin/python" -m pip install -r requirements.txt
+echo "[INFO] Sincronizando librerías desde requirements.txt con uv..."
+$HOME/.local/bin/uv pip sync requirements.txt --python "$VENV_PATH"
 
 if [ $? -eq 0 ]; then
     echo ""

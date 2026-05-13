@@ -22,8 +22,8 @@ echo "🐍 [1/3] Actualizando Backend..."
 cd "$PROJECT_DIR"
 
 if [ -d "$PROJECT_DIR/venv" ]; then
-    echo "   Instalando dependencias de Python..."
-    "$PROJECT_DIR/venv/bin/pip" install -r requirements.txt --quiet
+    echo "   Sincronizando dependencias de Python con uv..."
+    $HOME/.local/bin/uv pip sync requirements.txt --python "$PROJECT_DIR/venv"
     
     echo "   Verificando migraciones de base de datos..."
     # Correr migraciones manualmente para asegurar que la DB esté al día
