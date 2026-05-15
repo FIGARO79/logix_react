@@ -94,20 +94,23 @@ const resolveComponent = (path) => {
 };
 
 const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
-    const [initialized, setInitialized] = useState(false);
+    const [initialized, setInitialized] = useState(isActive);
+    const lastRefreshKey = useRef(tab.refreshKey || 0);
     const resolved = useMemo(() => resolveComponent(tab.path), [tab.path]);
 
-    // Activar inicialización solo cuando la pestaña sea la activa
+    // Activar inicialización si la pestaña se vuelve activa y no lo estaba
     useEffect(() => {
         if (isActive && !initialized) {
             setInitialized(true);
         }
     }, [isActive, initialized]);
 
-    // Escuchar cambios en refreshKey para forzar un remontaje
+    // Manejar el refresco forzado solo si el refreshKey aumenta (evita disparos en el mount si ya era > 0)
     useEffect(() => {
-        if (tab.refreshKey > 0) {
+        if (tab.refreshKey > lastRefreshKey.current) {
             setInitialized(false);
+            // El useEffect de arriba se encargará de volver a ponerlo en true si isActive es true
+            lastRefreshKey.current = tab.refreshKey;
         }
     }, [tab.refreshKey]);
 
@@ -164,7 +167,11 @@ const Layout = () => {
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const savedActive = localStorage.getItem('logix_active_tab');
-        return savedActive || (tabs.length > 0 ? tabs[0].id : null);
+        // Validar que el ID guardado realmente exista en la lista de pestañas cargada
+        if (savedActive && tabs.some(t => t.id === savedActive)) {
+            return savedActive;
+        }
+        return tabs.length > 0 ? tabs[0].id : null;
     });
 
     useEffect(() => {
