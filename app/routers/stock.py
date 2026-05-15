@@ -3,12 +3,14 @@ Router para endpoints de stock/inventario.
 """
 from typing import List, Tuple, Dict
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import ORJSONResponse
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.services import csv_handler, db_logs, measurement_service
 from app.utils.auth import login_required, permission_required
+from app.models.sql_models import MasterItem
 
 router = APIRouter(prefix="/api", tags=["stock"])
 
@@ -16,6 +18,44 @@ class MeasurementRequest(BaseModel):
     qr_corners: List[Tuple[float, float]]
     box_corners: List[Tuple[float, float]]
     qr_real_size: float = 10.0
+
+@router.get('/search_items')
+async def search_items(
+    q: str = Query(..., min_length=1), 
+    db: AsyncSession = Depends(get_db), 
+    username: str = Depends(permission_required("stock"))
+):
+    """Busca items por código o descripción con coincidencia parcial."""
+    query_str = q.strip().upper()
+    if not query_str:
+        return []
+
+    # Búsqueda en Base de Datos
+    stmt = select(MasterItem).where(
+        or_(
+            MasterItem.item_code.ilike(f"%{query_str}%"),
+            MasterItem.description.ilike(f"%{query_str}%")
+        )
+    ).limit(20)
+    
+    result = await db.execute(stmt)
+    items = result.scalars().all()
+    
+    return [
+        {
+            "itemCode": item.item_code,
+            "description": item.description,
+            "binLocation": item.bin_1,
+            "physicalQty": item.physical_qty,
+            "frozenQty": item.frozen_qty,
+            "aditionalBins": item.additional_bin,
+            "weight": item.weight_per_unit,
+            "sicCode": item.sic_code_stockroom,
+            "itemType": item.abc_code,
+            "dateLastReceived": item.date_last_received,
+            "supersededBy": item.superseded_by
+        } for item in items
+    ]
 
 @router.post('/measure')
 async def measure_dimensions(data: MeasurementRequest, username: str = Depends(login_required)):

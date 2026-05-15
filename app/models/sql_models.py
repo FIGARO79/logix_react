@@ -233,6 +233,7 @@ class MasterItem(Base):
     description: Mapped[Optional[str]] = mapped_column(String(255))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10), index=True)
     physical_qty: Mapped[int] = mapped_column(Integer, default=0)
+    frozen_qty: Mapped[int] = mapped_column(Integer, default=0)
     bin_1: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     additional_bin: Mapped[Optional[str]] = mapped_column(String(100))
     weight_per_unit: Mapped[Optional[str]] = mapped_column(String(50))

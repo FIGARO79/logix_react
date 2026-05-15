@@ -20,7 +20,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
     try:
         # 0. Pre-procesamiento: Resetear stock a 0 para items que podrían no venir en el CSV
         print("   Resetear cantidades a 0 antes de la carga...")
-        await db.execute(update(MasterItem).values(physical_qty=0))
+        await db.execute(update(MasterItem).values(physical_qty=0, frozen_qty=0))
         await db.commit()
     except Exception as e:
         print(f"⚠️ Error al resetear cantidades: {e}")
@@ -32,6 +32,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
             'Item_Description': 'description',
             'ABC_Code_stockroom': 'abc_code',
             'Physical_Qty': 'physical_qty',
+            'Frozen_Qty': 'frozen_qty',
             'Bin_1': 'bin_1',
             'Aditional_Bin_Location': 'additional_bin',
             'Weight_per_Unit': 'weight_per_unit',
@@ -55,6 +56,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
                 null_values=['', 'nan', 'NAN', 'NaN', 'None'],
                 schema_overrides={
                     "Physical_Qty": pl.String,
+                    "Frozen_Qty": pl.String,
                     "Cost_per_Unit": pl.String,
                     "Item_Code": pl.String,
                     "Date_Last_Received": pl.String,
@@ -65,6 +67,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
             .with_columns([
                 pl.col('Item_Code').str.strip_chars().str.to_uppercase(),
                 pl.col('Physical_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
+                pl.col('Frozen_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
                 pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False),
             ])
             .filter(pl.col('Item_Code').is_not_null() & (pl.col('Item_Code') != ""))

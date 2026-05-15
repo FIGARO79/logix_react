@@ -252,7 +252,7 @@ const Layout = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
-            {/* Header Sincronizado a 48px */}
+            {/* Header / Shell Bar */}
             <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden border-none">
                 <button
                     className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"

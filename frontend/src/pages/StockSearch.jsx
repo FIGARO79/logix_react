@@ -10,6 +10,7 @@ const StockSearch = () => {
     const navigate = useNavigate();
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -42,25 +43,33 @@ const StockSearch = () => {
         oscillator.stop(audioCtx.currentTime + 0.15);
     };
 
-    // Función para ejecutar búsqueda directamente (usada por el scanner)
-    const executeSearch = async (code) => {
-        if (!code.trim()) return;
+    // Función para ejecutar búsqueda directamente (usada por el scanner o botón)
+    const executeSearch = async (query) => {
+        if (!query.trim()) return;
 
         setLoading(true);
         setError('');
         setItemData(null);
+        setSearchResults([]);
 
         try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(code)}/NA`);
+            const res = await fetch(`/api/search_items?q=${encodeURIComponent(query)}`);
             const data = await res.json();
 
             if (res.ok) {
-                setItemData(data);
-                playBeep(); // Beep on success
-                setItemCode(''); // Clear input on success
+                if (data.length === 0) {
+                    setError('Item no encontrado');
+                    toast.error('Item no encontrado');
+                } else if (data.length === 1) {
+                    setItemData(data[0]);
+                    playBeep(); // Beep on success
+                    setItemCode(''); // Clear input on success
+                } else {
+                    setSearchResults(data);
+                }
             } else {
-                setError(data.error || 'Item no encontrado');
-                toast.error(data.error || 'Item no encontrado');
+                setError(data.error || 'Error en la búsqueda');
+                toast.error(data.error || 'Error en la búsqueda');
             }
         } catch (err) {
             console.error(err);
@@ -69,6 +78,13 @@ const StockSearch = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectResult = (item) => {
+        setItemData(item);
+        setSearchResults([]);
+        setItemCode('');
+        playBeep();
     };
 
     const handleScan = (code) => {
@@ -86,6 +102,7 @@ const StockSearch = () => {
     const clearSearch = () => {
         setItemCode('');
         setItemData(null);
+        setSearchResults([]);
         setError('');
     };
 
@@ -113,13 +130,13 @@ const StockSearch = () => {
                 <div className="p-6">
                     <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
                         <div className="flex-grow">
-                            <label className="form-label mb-1">Código de Item</label>
+                            <label className="form-label mb-1">Código o Descripción</label>
                             <input
                                 type="text"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full uppercase"
-                                placeholder=""
+                                placeholder="Escribe código o descripción..."
                                 autoFocus
                             />
                         </div>
@@ -154,6 +171,33 @@ const StockSearch = () => {
                 </div>
             </div>
 
+            {/* Selection Results */}
+            {searchResults.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
+                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-700">Múltiples resultados encontrados ({searchResults.length}):</h3>
+                    </div>
+                    <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
+                        {searchResults.map((item) => (
+                            <li 
+                                key={item.itemCode}
+                                onClick={() => handleSelectResult(item)}
+                                className="px-6 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center"
+                            >
+                                <div>
+                                    <div className="font-bold text-[#1e4a74]">{item.itemCode}</div>
+                                    <div className="text-sm text-gray-600 truncate max-w-md">{item.description}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-gray-400 uppercase">Stock</div>
+                                    <div className="font-bold text-gray-800">{item.physicalQty}</div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* Results Card */}
             {itemData && (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-fade-in">
@@ -169,23 +213,23 @@ const StockSearch = () => {
 
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="col-span-1 md:col-span-2">
-                            <label className="form-label text-gray-500">Descripción</label>
-                            <div className="text-gray-900 font-medium text-lg">{itemData.description}</div>
+                            <label className="form-label text-gray-700 font-bold">Descripción</label>
+                            <div className="text-gray-900 font-bold text-lg">{itemData.description}</div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-500">Ubicación Principal</label>
+                            <label className="form-label text-gray-700 font-bold">Ubicación Principal</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.binLocation || 'N/A'}
                                 </span>
                             </div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-500">Stock Físico</label>
+                            <label className="form-label text-gray-700 font-bold">Stock Físico</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-black bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.physicalQty}
                                 </span>
                             </div>
@@ -193,11 +237,11 @@ const StockSearch = () => {
 
                         {itemData.aditionalBins && (
                             <div className="col-span-1 md:col-span-2">
-                                <label className="form-label text-gray-500">Ubicaciones Adicionales</label>
+                                <label className="form-label text-gray-700 font-bold">Ubicaciones Adicionales</label>
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold bg-blue-50 text-[#1e4a74] border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )
@@ -208,24 +252,30 @@ const StockSearch = () => {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 col-span-1 md:col-span-2 border-t pt-4 mt-2">
                             <div>
-                                <label className="form-label text-gray-500">Peso (kg)</label>
-                                <div>{itemData.weight || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Peso (kg)</label>
+                                <div className="text-gray-900 font-semibold">{itemData.weight || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">Última Fecha Ingreso</label>
-                                <div>{itemData.dateLastReceived || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Última Fecha Ingreso</label>
+                                <div className="text-gray-900 font-semibold">{itemData.dateLastReceived || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">Reemplazado Por</label>
-                                <div>{itemData.supersededBy || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Reemplazado Por</label>
+                                <div className="text-gray-900 font-semibold">{itemData.supersededBy || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">SIC Code</label>
-                                <div className="font-medium text-gray-700">{itemData.sicCode || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">SIC Code</label>
+                                <div className="font-bold text-gray-900">{itemData.sicCode || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">ABC Code</label>
-                                <div className="font-medium text-gray-700">{itemData.itemType || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">ABC Code</label>
+                                <div className="font-bold text-gray-900">{itemData.itemType || '-'}</div>
+                            </div>
+                            <div>
+                                <label className="form-label text-gray-700 font-bold">Frozen Qty</label>
+                                <div className={`font-bold ${parseFloat(String(itemData.frozenQty || '0')) > 0 ? 'text-red-700 bg-red-50 inline-block px-2 py-0.5 rounded' : 'text-gray-900'}`}>
+                                    {itemData.frozenQty || '0'}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -233,9 +283,9 @@ const StockSearch = () => {
             )}
 
             {/* Empty State / Intro */}
-            {!itemData && !error && (
+            {!itemData && searchResults.length === 0 && !error && (
                 <div className="text-center text-gray-500 mt-12">
-                    <p>Ingrese un código de item para consultar su disponibilidad y ubicación.</p>
+                    <p>Ingrese un código de item o parte de su descripción para consultar.</p>
                 </div>
             )}
 

@@ -547,8 +547,8 @@ const Inbound = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
-                            <div className="bg-white text-gray-900 px-2 py-0 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-normal tracking-tight">Inbound - Recepción</h1>
+                            <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
+                                <h1 className="text-base font-black tracking-tight uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
@@ -564,17 +564,17 @@ const Inbound = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                    <label className="form-label">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." required />
+                                    <label className="form-label font-bold text-gray-800">Import Reference</label>
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-semibold text-black" required />
                                 </div>
                                 <div>
-                                    <label className="form-label">Waybill</label>
-                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." required />
+                                    <label className="form-label font-bold text-gray-800">Waybill</label>
+                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-semibold text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="form-label">Item Code</label>
+                                    <label className="form-label font-bold text-gray-800">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" required disabled={!!editId} />
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-bold text-black" required disabled={!!editId} />
                                         <button 
                                             type="button" 
                                             className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
@@ -601,73 +601,73 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-4"><label className="form-label">Item Description</label><div className="data-field">{itemData?.description || ''}</div></div>
+                            <div className="mb-4"><label className="form-label font-bold text-gray-800">Item Description</label><div className="data-field font-bold text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" /></div>
-                                <div><label className="form-label">Bin (Original)</label><div className="data-field">{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-bold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-black text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-bold text-gray-800">Bin (Original)</label><div className="data-field font-bold text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-bold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-bold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
-                                            <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">XDOCK</h4>
-                                                <div className="flex flex-col gap-0.5 text-black">
-                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-red-600"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
+                                                <h4 className="text-[10px] font-black uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                                <div className="flex flex-col gap-0.5 text-black font-bold">
+                                                    <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
+                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-black"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
 
                                         {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                            <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">RESERVAS:</h4>
-                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1">
+                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
+                                                <h4 className="text-[10px] font-black uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-bold">
                                                     {itemData.xdockCustomers.map((c, idx) => (
                                                         <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                            <div className="pr-2 text-black uppercase truncate"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                            <span className="text-red-600 whitespace-nowrap">{c?.qty || 0} UN</span>
+                                                            <div className="pr-2 text-black uppercase truncate font-bold"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                            <span className="text-red-700 whitespace-nowrap font-black">{c?.qty || 0} UN</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-400 italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-bold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
                                         {itemData?.suggestedBin ? (
-                                            <div className={`rounded p-2 shadow-sm cursor-pointer border ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-300 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
+                                            <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
                                                 <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
-                                                    <span className="text-[10px] font-bold uppercase">
+                                                    <span className={`text-[10px] font-black uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                                                         {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
                                                     </span>
-                                                    <span className="text-[8px] italic text-gray-500">Tap usar</span>
+                                                    <span className="text-[8px] italic text-zinc-600 font-bold">Tap usar</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-600' : 'text-emerald-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                         <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                         <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     </svg>
-                                                    <span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span>
+                                                    <span className="text-base font-mono font-black text-black">{itemData.suggestedBin}</span>
                                                     {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
-                                                        <span className="ml-auto text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded">XDOCK</span>
+                                                        <span className="ml-auto text-[10px] font-black bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
                                                     )}
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>
                                 )}
-                                <div><label className="form-label">Aditional Bins</label><div className="data-field text-xs">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label">ABC Type</label><div className="data-field">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label">SIC Code</label><div className="data-field">{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-bold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-bold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-bold text-gray-800">ABC Type</label><div className="data-field font-bold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-bold text-gray-800">SIC Code</label><div className="data-field font-bold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
                             </div>
 
-                            <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
-                                <h3 className="text-xs font-medium uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen</h3>
+                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
+                                <h3 className="text-[11px] font-black uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' :
-                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                    <div><label className="form-label font-bold text-gray-800">Recibido</label><div className="data-field font-black text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-bold text-gray-800">Esperado</label><div className="data-field font-black text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-bold text-gray-800">Diferencia</label><div className={`data-field font-black text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
@@ -731,7 +731,7 @@ const Inbound = () => {
 
                 <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
                     <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
-                        <h2 className="text-base font-normal tracking-tight">Registros</h2>
+                        <h2 className="text-base font-black text-black tracking-tight uppercase">Registros de Sesión</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
@@ -795,28 +795,38 @@ const Inbound = () => {
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-0 z-20">
-                                <tr style={{ background: '#354a5f' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Acc</th>
+                                <tr style={{ background: '#111827' }} className="text-white">
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Item</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">New</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-black uppercase tracking-wider">User</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider">Acc</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
-                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-0.5">{log.importReference}</td><td className="px-2 py-0.5">{log.waybill}</td><td className="px-2 py-0.5 font-mono">{log.itemCode}</td><td className="px-2 py-0.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-0.5">{log.binLocation}</td><td className="px-2 py-0.5">{log.relocatedBin}</td><td className="px-2 py-0.5 text-center">{log.qtyReceived}</td><td className="px-2 py-0.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-0.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
-                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
-                                            }`}>{log.difference || 0}</td><td className="px-2 py-0.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-0.5 uppercase">{log.username}</td>
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
+                                        <td className="px-2 py-1 font-normal text-gray-900">{log.importReference}</td>
+                                        <td className="px-2 py-1 font-normal text-gray-900">{log.waybill}</td>
+                                        <td className="px-2 py-1 font-normal text-black font-mono">{log.itemCode}</td>
+                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-gray-800">{log.itemDescription}</td>
+                                        <td className="px-2 py-1 font-normal text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-emerald-900">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-gray-700">{log.expected_qty || 0}</td>
+                                        <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
+                                            (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
+                                            }`}>{log.difference || 0}</td>
+                                        <td className="px-2 py-1 whitespace-nowrap text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1 uppercase font-normal text-gray-800">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">

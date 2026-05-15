@@ -17,6 +17,7 @@ const SpotCheck = () => {
     const [binLocation, setBinLocation] = useState('');
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
     const [physicalQty, setPhysicalQty] = useState('');
     const [loading, setLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -43,27 +44,47 @@ const SpotCheck = () => {
         } catch (e) { console.error("Error al cargar historial", e); }
     };
 
-    const handleSearchItem = async (codeToSearch) => {
-        const code = (codeToSearch || itemCode || '').trim().toUpperCase();
-        if (!code) return;
+    const handleSearchItem = async (query) => {
+        const q = (query || itemCode || '').trim().toUpperCase();
+        if (!q) return;
 
         setLoading(true);
+        setItemData(null);
+        setSearchResults([]);
+        
         try {
-            const res = await fetch(`/api/spot_check/find/${encodeURIComponent(code)}`);
+            // Usamos el nuevo endpoint de búsqueda general que permite descripción
+            const res = await fetch(`/api/search_items?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 const data = await res.json();
-                setItemData({
-                    item_code: data.item_code,
-                    description: data.description
-                });
-                setItemCode(data.item_code);
-                setTimeout(() => qtyRef.current?.focus(), 100);
+                if (data.length === 0) {
+                    toast.warn("Item no encontrado");
+                } else if (data.length === 1) {
+                    const item = data[0];
+                    setItemData({
+                        item_code: item.itemCode,
+                        description: item.description
+                    });
+                    setItemCode(item.itemCode);
+                    setTimeout(() => qtyRef.current?.focus(), 100);
+                } else {
+                    setSearchResults(data);
+                }
             } else {
-                toast.warn("Item no encontrado");
-                setItemData(null);
+                toast.error("Error en la búsqueda");
             }
-        } catch (e) { toast.error("Error de búsqueda"); }
+        } catch (e) { toast.error("Error de conexión"); }
         finally { setLoading(false); }
+    };
+
+    const selectItemFromResult = (item) => {
+        setItemData({
+            item_code: item.itemCode,
+            description: item.description
+        });
+        setItemCode(item.itemCode);
+        setSearchResults([]);
+        setTimeout(() => qtyRef.current?.focus(), 100);
     };
 
     const handleSave = async (e) => {
@@ -152,12 +173,12 @@ const SpotCheck = () => {
 
             <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-[16px] font-normal text-black uppercase">Conteo por Ubicación</h1>
-                    <p className="text-[10px] uppercase tracking-[0.15em] font-normal text-zinc-500 mt-1">Hallazgos registrados en tiempo real</p>
+                    <h1 className="text-[18px] font-bold text-black uppercase tracking-tight">Conteo por Ubicación</h1>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-zinc-900 mt-1">Hallazgos registrados en tiempo real</p>
                 </div>
                 <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-normal uppercase tracking-widest px-6 h-9 flex items-center"
+                    className="btn-sap btn-secondary text-[11px] font-bold uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
                 >
                     Stock
                 </button>
@@ -165,11 +186,11 @@ const SpotCheck = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1">
-                    <div className="bg-white border border-zinc-200 shadow-sm p-6 rounded-lg space-y-6 sticky top-24">
+                    <div className="bg-white border border-zinc-300 shadow-sm p-6 rounded-lg space-y-6 sticky top-24">
                         <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}`}</style>
 
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Ubicación (BIN)</label>
+                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Ubicación (BIN)</label>
                             <div className="flex">
                                 <input
                                     ref={binRef}
@@ -178,13 +199,13 @@ const SpotCheck = () => {
                                     onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0"
+                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-mono font-bold text-black text-lg outline-none focus:border-zinc-900 transition-colors py-0"
                                     placeholder="BIN"
                                 />
                                 <button
                                     onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
                                     style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
                                     {scannerIcon}
                                 </button>
@@ -192,7 +213,7 @@ const SpotCheck = () => {
                         </div>
 
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Artículo (SKU)</label>
+                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Código o Descripción</label>
                             <div className="flex">
                                 <input
                                     ref={itemRef}
@@ -201,26 +222,48 @@ const SpotCheck = () => {
                                     onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-300 border-r-0 rounded-l font-mono font-bold outline-none focus:border-zinc-900 transition-colors py-0"
-                                    placeholder="SKU"
+                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-bold text-black outline-none focus:border-zinc-900 transition-colors py-0"
+                                    placeholder="SKU o DESCRIPCIÓN"
                                 />
                                 <button
                                     onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
                                     style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-300 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
                                 >
                                     {scannerIcon}
                                 </button>
                             </div>
                         </div>
 
-                        <div className="p-3 bg-zinc-50 border border-zinc-200 rounded text-[11px] font-bold text-zinc-800 uppercase leading-relaxed">
-                            {loading ? 'Buscando...' : (itemData?.description || '— ESPERANDO ARTÍCULO —')}
+                        {/* Lista de Resultados de Búsqueda */}
+                        {searchResults.length > 0 && (
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
+                                <div className="p-2 bg-blue-100 text-[10px] font-bold text-blue-800 uppercase">Seleccione un ítem:</div>
+                                {searchResults.map((item) => (
+                                    <div 
+                                        key={item.itemCode}
+                                        onClick={() => selectItemFromResult(item)}
+                                        className="p-3 border-b border-blue-100 hover:bg-white cursor-pointer transition-colors"
+                                    >
+                                        <div className="font-bold text-zinc-900">{item.itemCode}</div>
+                                        <div className="text-[10px] text-zinc-600 truncate">{item.description}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="p-3 bg-zinc-100 border border-zinc-300 rounded text-[12px] font-black text-black uppercase leading-tight shadow-inner">
+                            {loading ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    Buscando...
+                                </div>
+                            ) : (itemData?.description || '— ESPERANDO ARTÍCULO —')}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase mb-2 block">Cantidad</label>
+                                <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Cantidad</label>
                                 <input
                                     ref={qtyRef}
                                     type="number"
@@ -228,7 +271,7 @@ const SpotCheck = () => {
                                     onChange={(e) => setPhysicalQty(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                                     style={{ height: '40px' }}
-                                    className="w-full px-3 border border-zinc-300 rounded text-center font-bold text-lg outline-none focus:border-zinc-900 py-0"
+                                    className="w-full px-3 border border-zinc-400 rounded text-center font-black text-2xl text-black outline-none focus:border-zinc-900 py-0"
                                     placeholder="0"
                                 />
                             </div>
@@ -236,9 +279,9 @@ const SpotCheck = () => {
                                 onClick={handleSave}
                                 disabled={isSaving || !itemData}
                                 style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-bold uppercase text-[10px] tracking-widest hover:bg-black disabled:bg-zinc-200 transition-colors"
+                                className="w-full bg-zinc-900 text-white rounded font-bold uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
                             >
-                                {isSaving ? 'OK...' : 'REGISTRAR'}
+                                {isSaving ? '...' : 'REGISTRAR'}
                             </button>
                         </div>
                     </div>
@@ -251,13 +294,13 @@ const SpotCheck = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-bold uppercase text-[#285f94] hover:text-blue-800 flex items-center gap-1 border border-[#285f94]/20 px-2 py-1 rounded hover:bg-blue-50 transition-all"
+                                    className="text-[10px] font-bold uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
                                 >
                                     Excel
                                 </button>
                                 <button
                                     onClick={handleClearTable}
-                                    className="text-[10px] font-bold uppercase text-red-600 hover:text-red-800 flex items-center gap-1 border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-all"
+                                    className="text-[10px] font-bold uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
                                 >
                                     Limpiar
                                 </button>
@@ -280,14 +323,14 @@ const SpotCheck = () => {
                                     ) : (
                                         recentChecks.map((check) => (
                                             <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                <td className="px-4 py-3 text-zinc-500 font-mono">{formatDate(check.timestamp)}</td>
-                                                <td className="px-4 py-3 font-bold text-black">{check.bin_location}</td>
+                                                <td className="px-4 py-3 text-zinc-600 font-bold font-mono">{formatDate(check.timestamp)}</td>
+                                                <td className="px-4 py-3 font-black text-black text-sm">{check.bin_location}</td>
                                                 <td className="px-4 py-3">
-                                                    <div className="font-bold text-[#285f94]">{check.item_code}</div>
-                                                    <div className="text-[8px] text-zinc-400 truncate max-w-[200px]">{check.item_description}</div>
+                                                    <div className="font-bold text-[#1e4a74] text-sm">{check.item_code}</div>
+                                                    <div className="text-[9px] text-zinc-800 font-medium truncate max-w-[250px]">{check.item_description}</div>
                                                 </td>
-                                                <td className="px-4 py-3 text-center font-black text-base">{check.quantity}</td>
-                                                <td className="px-4 py-3 uppercase text-zinc-500">{check.username}</td>
+                                                <td className="px-4 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
+                                                <td className="px-4 py-3 uppercase text-zinc-600 font-bold">{check.username}</td>
                                             </tr>
                                         ))
                                     )}

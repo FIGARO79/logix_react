@@ -110,6 +110,7 @@ async def find_item(
         "defaultQtyGrn": expected_quantity,
         "itemType": item_details.get('ABC_Code_stockroom', 'N/A'),
         "sicCode": item_details.get('SIC_Code_stockroom', 'N/A'),
+        "frozenQty": item_details.get('Frozen_Qty', 0),
         "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
         "supersededBy": item_details.get('SupersededBy', 'N/A'),
         "latestRelocatedBin": latest_relocated_bin

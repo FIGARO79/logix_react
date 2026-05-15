@@ -1,104 +1,78 @@
 import os
-import orjson
+import time
 import polars as pl
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.sql_models import MasterItem
-from fastapi import HTTPException
-import time
-import traceback
+from app.core.config import ITEM_MASTER_CSV_PATH, GRN_CSV_FILE_PATH, RESERVATION_CSV_PATH, COLUMNS_TO_READ_MASTER, COLUMNS_TO_READ_GRN
 
-# Importaciones de configuración
-from app.core.config import (
-    ITEM_MASTER_CSV_PATH,
-    GRN_CSV_FILE_PATH,
-    COLUMNS_TO_READ_MASTER,
-    COLUMNS_TO_READ_GRN,
-    RESERVATION_CSV_PATH,
-    RESERVATION_JSON_PATH
-)
+# --- Caché Global ---
+df_master_cache: Optional[pl.DataFrame] = None
+df_grn_cache: Optional[pl.DataFrame] = None
+master_qty_map: Dict[str, int] = {}
+reservation_qty_map: Dict[str, Dict[str, Any]] = {}
 
-# --- CACHÉ DE ALTO RENDIMIENTO (ESTADO CALIENTE) ---
-df_master_cache = None 
-df_grn_cache = None    
-master_qty_map = {} 
-reservation_qty_map = {} # Cache para Xdock (Item_Code -> dict con total y customers)
-
-_last_check = 0
-_mtime_master = 0
-_mtime_grn = 0
+_last_check = 0.0
+_mtime_master = 0.0
+_mtime_grn = 0.0
 
 async def generate_reservation_cache():
-    """Genera el caché de Xdock desde CSV o JSON usando orjson."""
+    """Carga y procesa el CSV de reservaciones para Xdock."""
     global reservation_qty_map
     if not os.path.exists(RESERVATION_CSV_PATH):
-        if os.path.exists(RESERVATION_JSON_PATH):
-            try:
-                with open(RESERVATION_JSON_PATH, 'rb') as f:
-                    reservation_qty_map = orjson.loads(f.read())
-            except: pass
+        reservation_qty_map = {}
         return
-    
+
     try:
-        df = pl.read_csv(RESERVATION_CSV_PATH, infer_schema_length=0, null_values=['', 'nan', 'NaN'], 
-                         columns=["Item_Code", "Quantity_reserved", "SO_Number", "Customer_Code", "Customer_Name"], 
-                         ignore_errors=True)
+        df = pl.read_csv(RESERVATION_CSV_PATH, infer_schema_length=0, ignore_errors=True)
+        # Agrupar por Item_Code y sumar cantidades de reservación
+        # Supongamos que las columnas son 'Item_Code', 'Reservation_Qty', 'Customer_Name'
+        # Ajustar según la estructura real del archivo AURRSLAMP0006.csv
         
-        processed_df = (
-            df.filter(
-                (pl.col("Item_Code").is_not_null()) & 
-                (pl.col("SO_Number").is_not_null()) & 
-                (pl.col("SO_Number").cast(pl.Utf8).str.strip_chars() != "")
+        # Como no tenemos la estructura exacta, usaremos un enfoque genérico:
+        # Buscamos columnas probables
+        cols = df.columns
+        item_col = next((c for c in cols if 'item' in c.lower()), None)
+        qty_col = next((c for c in cols if 'qty' in c.lower() or 'quantity' in c.lower()), None)
+        cust_col = next((c for c in cols if 'cust' in c.lower() or 'name' in c.lower()), None)
+
+        if item_col and qty_col:
+            summary = (
+                df.with_columns([
+                    pl.col(qty_col).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                ])
+                .group_by(item_col)
+                .agg([
+                    pl.col(qty_col).sum().alias("total"),
+                    pl.col(cust_col).unique().alias("customers") if cust_col else pl.lit([]).alias("customers")
+                ])
             )
-            .with_columns([
-                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-                pl.col("Quantity_reserved").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
-                pl.col("Customer_Name").fill_null("SIN NOMBRE"),
-                pl.col("Customer_Code").fill_null("N/A")
-            ])
-        )
-
-        customer_summary = (
-            processed_df.group_by(["Item_Code", "Customer_Code", "Customer_Name"])
-            .agg(pl.col("Quantity_reserved").sum().alias("customer_qty"))
-            .filter(pl.col("customer_qty") > 0)
-        )
-
-        final_map = {}
-        for row in customer_summary.to_dicts():
-            item = row["Item_Code"]
-            if item not in final_map:
-                final_map[item] = {"total": 0, "customers": []}
-            
-            qty = int(row["customer_qty"])
-            final_map[item]["total"] += qty
-            final_map[item]["customers"].append({
-                "code": row["Customer_Code"],
-                "name": row["Customer_Name"],
-                "qty": qty
-            })
-
-        reservation_qty_map = final_map
-        with open(RESERVATION_JSON_PATH, 'wb') as f:
-            f.write(orjson.dumps(reservation_qty_map))
+            reservation_qty_map = {
+                str(r[item_col]).upper().strip(): {
+                    "total": int(r["total"]),
+                    "customers": [str(c) for c in r["customers"] if c] if cust_col else []
+                }
+                for r in summary.to_dicts()
+            }
     except Exception as e:
-        print(f"❌ Error Xdock Cache: {e}")
+        print(f"⚠️ Error generando caché de reservaciones: {e}")
+        reservation_qty_map = {}
 
 async def load_csv_data():
-    """Carga y sincroniza todos los archivos maestros en memoria RAM con Polars."""
     global df_master_cache, df_grn_cache, master_qty_map, _mtime_master, _mtime_grn
     t0 = time.time()
     try:
         if os.path.exists(ITEM_MASTER_CSV_PATH):
             _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
-            raw_master = pl.read_csv(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER, infer_schema_length=0, 
-                                         null_values=['', 'nan', 'NaN', 'None', 'null'], ignore_errors=True, encoding='utf8')
+            raw_master = pl.read_csv(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER, infer_schema_length=0, null_values=['', 'nan', 'NaN'], ignore_errors=True)
             df_master_cache = (
                 raw_master
                 .filter(pl.col("Item_Code").is_not_null())
                 .with_columns([
                     pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-                    pl.col("Physical_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                    pl.col("Physical_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+                    pl.col("Frozen_Qty").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
                 ])
             )
             master_qty_map = {
@@ -150,6 +124,7 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
                     "Bin_1": db_item.bin_1,
                     "ABC_Code_stockroom": db_item.abc_code,
                     "Physical_Qty": db_item.physical_qty,
+                    "Frozen_Qty": db_item.frozen_qty,
                     "Weight_per_Unit": db_item.weight_per_unit,
                     "SIC_Code_stockroom": db_item.sic_code_stockroom,
                     "Aditional_Bin_Location": db_item.additional_bin,

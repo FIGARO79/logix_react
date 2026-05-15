@@ -23,22 +23,16 @@ const PackingListPrint = () => {
             }
         };
         fetchData();
-
-        // 2. Disable SAP Fiori Styles (Conflicts with printing)
-        const sapLink = document.querySelector('link[href*="sap_fiori_3"]');
-        if (sapLink) {
-            sapLink.disabled = true;
-            console.log("SAP Theme disabled for printing");
-        }
-
-        // Cleanup: Re-enable on exit
-        return () => {
-            if (sapLink) {
-                sapLink.disabled = false;
-                console.log("SAP Theme re-enabled");
-            }
-        };
     }, [id]);
+
+    useEffect(() => {
+        // Desactivar temporalmente estilos de SAP Fiori para evitar interferencias con el print
+        const fioriLink = document.querySelector('link[href*="sap_fiori_3"]');
+        if (fioriLink) fioriLink.disabled = true;
+        return () => {
+            if (fioriLink) fioriLink.disabled = false;
+        };
+    }, []);
 
     const handlePrint = () => {
         // Timeout para dar tiempo al navegador a aplicar el reset de estilos global y asentar el DOM
