@@ -3,9 +3,13 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import { useOffline } from '../hooks/useOffline';
+import { getDB, savePendingSync } from '../utils/offlineDb';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
+    const { isOnline, pendingCount, syncPendingData } = useOffline();
+
     useEffect(() => { setTitle("Inventario W2W"); }, [setTitle]);
 
     // Session State
@@ -43,12 +47,27 @@ const CycleCounts = () => {
     const checkActiveSession = async () => {
         setCheckingSession(true);
         try {
-            const res = await fetch('/api/sessions/active');
-            if (res.ok) {
-                const session = await res.json();
-                setActiveSession(session);
+            if (isOnline) {
+                const res = await fetch('/api/sessions/active');
+                if (res.ok) {
+                    const session = await res.json();
+                    setActiveSession(session);
+                    // Guardar en caché
+                    const db = await getDB();
+                    await db.put('active_sessions', { type: 'cycle_count', ...session });
+                } else {
+                    setActiveSession(null);
+                }
             } else {
-                setActiveSession(null);
+                // Modo Offline: buscar en caché
+                const db = await getDB();
+                const cached = await db.get('active_sessions', 'cycle_count');
+                if (cached) {
+                    setActiveSession(cached);
+                    toast.info("Cargada sesión activa de caché local");
+                } else {
+                    setActiveSession(null);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -59,11 +78,17 @@ const CycleCounts = () => {
     };
 
     const startSession = async () => {
+        if (!isOnline) {
+            toast.error("Debe estar online para iniciar una nueva sesión");
+            return;
+        }
         try {
             const res = await fetch('/api/sessions/start', { method: 'POST' });
             if (res.ok) {
                 const session = await res.json();
                 setActiveSession(session);
+                const db = await getDB();
+                await db.put('active_sessions', { type: 'cycle_count', ...session });
                 toast.success("Sesión de inventario iniciada");
             } else {
                 toast.error("Error iniciando sesión");
@@ -77,10 +102,17 @@ const CycleCounts = () => {
         if (!activeSession) return;
         if (!confirm("¿Seguro que desea finalizar la sesión de inventario?")) return;
 
+        if (!isOnline) {
+            toast.error("Debe estar online para finalizar la sesión oficialmente");
+            return;
+        }
+
         try {
             const res = await fetch(`/api/sessions/${activeSession.id}/close`, { method: 'POST' });
             if (res.ok) {
                 setActiveSession(null);
+                const db = await getDB();
+                await db.delete('active_sessions', 'cycle_count');
                 clearForm();
                 toast.success("Sesión finalizada");
             } else {
@@ -94,20 +126,37 @@ const CycleCounts = () => {
     const updateSidebarData = async () => {
         if (!activeSession) return;
 
-        // Fetch Session Locations
-        try {
-            const res = await fetch(`/api/sessions/${activeSession.id}/locations`);
-            if (res.ok) setSessionLocations(await res.json());
-        } catch (e) { console.error(e); }
-
-        // Fetch Counts for Current Location
-        if (countedLocation) {
+        // Offline compatibility: solo fetch si estamos online
+        if (isOnline) {
+            // Fetch Session Locations
             try {
-                const res = await fetch(`/api/sessions/${activeSession.id}/counts/${encodeURIComponent(countedLocation)}`);
-                if (res.ok) setLocationCounts(await res.json());
+                const res = await fetch(`/api/sessions/${activeSession.id}/locations`);
+                if (res.ok) setSessionLocations(await res.json());
             } catch (e) { console.error(e); }
+
+            // Fetch Counts for Current Location
+            if (countedLocation) {
+                try {
+                    const res = await fetch(`/api/sessions/${activeSession.id}/counts/${encodeURIComponent(countedLocation)}`);
+                    if (res.ok) setLocationCounts(await res.json());
+                } catch (e) { console.error(e); }
+            } else {
+                setLocationCounts([]);
+            }
         } else {
-            setLocationCounts([]);
+            // En modo offline no mostramos historial actualizado de otras terminales, 
+            // pero podríamos mostrar los pendientes locales que coincidan
+            const db = await getDB();
+            const allPending = await db.getAll('pending_sync');
+            const localMatches = allPending
+                .filter(p => p.collection === 'counts' && p.payload.counted_location === countedLocation)
+                .map(p => ({
+                    id: p.id,
+                    item_code: p.payload.item_code,
+                    counted_qty: p.payload.counted_qty,
+                    is_pending: true
+                }));
+            setLocationCounts(localMatches);
         }
     };
 
@@ -118,16 +167,29 @@ const CycleCounts = () => {
         setBinSys('');
 
         try {
-            const res = await fetch(`/api/get_item_for_counting/${encodeURIComponent(code)}`);
-            if (res.ok) {
-                const data = await res.json();
-                setItemCode(data.item_code);
-                setDescription(data.description);
-                setBinSys(data.bin_location || 'N/A');
-                // Focus qty input
-                document.getElementById('counted_qty')?.focus();
+            if (isOnline) {
+                const res = await fetch(`/api/get_item_for_counting/${encodeURIComponent(code)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setItemCode(data.item_code);
+                    setDescription(data.description);
+                    setBinSys(data.bin_location || 'N/A');
+                    document.getElementById('counted_qty')?.focus();
+                } else {
+                    toast.error("Item no encontrado");
+                }
             } else {
-                toast.error("Item no encontrado o no requerido en esta etapa");
+                // Offline: buscar en maestro local
+                const db = await getDB();
+                const localItem = await db.get('master_items', code.trim().toUpperCase());
+                if (localItem) {
+                    setItemCode(localItem.Item_Code);
+                    setDescription(localItem.Item_Description);
+                    setBinSys(localItem.Bin_1 || 'N/A');
+                    document.getElementById('counted_qty')?.focus();
+                } else {
+                    toast.error("Item no encontrado en maestro local");
+                }
             }
         } catch (e) {
             toast.error("Error buscando item");
@@ -149,36 +211,55 @@ const CycleCounts = () => {
             counted_qty: parseInt(countedQty),
             counted_location: countedLocation,
             description: description,
-            bin_location_system: binSys
+            bin_location_system: binSys,
+            timestamp: new Date().toISOString()
         };
 
         try {
-            const res = await fetch('/api/save_count', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            if (isOnline) {
+                const res = await fetch('/api/save_count', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                toast.success("Conteo guardado");
-                setItemCode('');
-                setDescription('');
-                setBinSys('');
-                setCountedQty('');
-                updateSidebarData(); // Refresh list
-                document.getElementById('itemCode')?.focus();
-            } else {
-                const err = await res.json();
-                toast.error(err.detail || "Error guardando");
+                if (res.ok) {
+                    toast.success("Conteo guardado");
+                    clearFormAfterSave();
+                    return;
+                }
             }
+
+            // Guardar offline si falla o no hay conexión
+            await savePendingSync('counts', payload);
+            toast.info("Guardado localmente (Offline)");
+            clearFormAfterSave();
+
         } catch (e) {
-            toast.error("Error de conexión");
+            console.error(e);
+            await savePendingSync('counts', payload);
+            toast.info("Guardado localmente (Offline)");
+            clearFormAfterSave();
         }
+    };
+
+    const clearFormAfterSave = () => {
+        setItemCode('');
+        setDescription('');
+        setBinSys('');
+        setCountedQty('');
+        updateSidebarData(); 
+        document.getElementById('itemCode')?.focus();
     };
 
     const closeLocation = async () => {
         if (!activeSession || !countedLocation) return;
         if (!confirm(`¿Cerrar ubicación ${countedLocation}?`)) return;
+
+        if (!isOnline) {
+            toast.error("Debe estar online para cerrar ubicaciones");
+            return;
+        }
 
         try {
             const res = await fetch('/api/locations/close', {
@@ -199,6 +280,23 @@ const CycleCounts = () => {
 
     const deleteCount = async (id) => {
         if (!confirm("¿Eliminar este conteo?")) return;
+        
+        if (typeof id === 'string' && id.includes('-')) {
+            // Es un registro pendiente en IndexedDB
+            try {
+                const db = await getDB();
+                await db.delete('pending_sync', id);
+                toast.success("Eliminado (Local)");
+                updateSidebarData();
+                return;
+            } catch (e) { console.error(e); }
+        }
+
+        if (!isOnline) {
+            toast.error("No se pueden eliminar registros del servidor en modo offline");
+            return;
+        }
+
         try {
             const res = await fetch(`/api/counts/${id}`, { method: 'DELETE' });
             if (res.ok) {
@@ -233,16 +331,17 @@ const CycleCounts = () => {
     };
 
 
-    if (checkingSession) return <div className="p-8 text-center">Cargando sesión...</div>;
+    if (checkingSession) return <div className="p-8 text-center text-slate-500 uppercase tracking-widest text-xs">Cargando sesión...</div>;
 
     if (!activeSession) {
         return (
-            <div className="container-wrapper max-w-lg mx-auto px-4 py-8 text-center bg-white rounded shadow mt-8">
-                <h2 className="text-xl font-bold text-gray-700 mb-4">Inventario General (W2W)</h2>
-                <p className="mb-6 text-gray-500">Inicie una sesión para comenzar el conteo masivo wall-to-wall.</p>
-                <button onClick={startSession} className="btn-sap btn-primary w-full py-3 font-bold uppercase tracking-widest">
+            <div className="container-wrapper max-w-lg mx-auto px-4 py-8 text-center bg-white rounded-xl shadow-lg border border-slate-100 mt-8">
+                <h2 className="text-xl font-bold text-gray-800 mb-2 uppercase tracking-tight">Inventario General (W2W)</h2>
+                <p className="mb-6 text-slate-500 text-sm">Inicie una sesión para comenzar el conteo masivo wall-to-wall.</p>
+                <button onClick={startSession} className="btn-sap btn-primary w-full py-4 font-bold uppercase tracking-[0.2em] shadow-md active:scale-95 transition-all">
                     Iniciar Sesión de Inventario
                 </button>
+                {!isOnline && <p className="mt-4 text-red-500 text-[10px] font-bold uppercase animate-pulse">Se requiere conexión para iniciar sesión</p>}
             </div>
         );
     }
@@ -257,8 +356,11 @@ const CycleCounts = () => {
                 <div className="md:col-span-2 bg-white p-6 rounded-lg shadow border border-gray-200">
                     <div className="flex justify-between items-center mb-6 border-b pb-2">
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800 uppercase tracking-tight">Inventario W2W #S{activeSession.id}</h1>
-                            <p className="text-[10px] text-gray-500 uppercase font-bold">Responsable: {activeSession.user_username}</p>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-xl font-bold text-gray-800 uppercase tracking-tight">Inventario W2W #S{activeSession.id}</h1>
+                                {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-bold">OFFLINE</span>}
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase font-bold">Responsable: {activeSession.user_username || activeSession.username}</p>
                         </div>
                         <button onClick={endSession} className="btn-sap btn-secondary text-xs font-bold uppercase">Finalizar Sesión</button>
                     </div>
@@ -346,7 +448,7 @@ const CycleCounts = () => {
                         <div className="max-h-60 overflow-y-auto space-y-1">
                             {locationCounts.length === 0 ? <p className="text-[10px] text-gray-400 text-center py-4 uppercase font-bold tracking-tighter">Sin registros en esta ubicación</p> :
                                 locationCounts.map(c => (
-                                    <div key={c.id} className="flex justify-between items-center text-[11px] p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                    <div key={c.id} className={`flex justify-between items-center text-[11px] p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${c.is_pending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <span className="font-mono font-bold text-[#1e4a74]">{c.item_code}</span>
                                         <div className="flex items-center gap-3">
                                             <span className="font-bold text-gray-900">{c.counted_qty}</span>
@@ -372,8 +474,8 @@ const CycleCounts = () => {
                             ))}
                         </div>
                         {countedLocation && (
-                            <button onClick={closeLocation} className="btn-sap btn-primary w-full text-[10px] font-bold uppercase tracking-widest py-3">
-                                Cerrar {countedLocation}
+                            <button onClick={closeLocation} disabled={!isOnline} className={`w-full text-[10px] font-bold uppercase tracking-widest py-3 rounded ${isOnline ? 'btn-sap btn-primary' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                                {isOnline ? `Cerrar ${countedLocation}` : '(Cerrar requiere red)'}
                             </button>
                         )}
                     </div>

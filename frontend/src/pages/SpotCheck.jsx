@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import { useOffline } from '../hooks/useOffline';
+import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
 
 const SpotCheck = () => {
     const context = useTabContext();
     const setTitle = context ? context.setTitle : null;
     const navigate = useNavigate();
+    const { isOnline } = useOffline();
 
     useEffect(() => {
         if (setTitle) setTitle("Conteo por Ubicación");
@@ -36,10 +39,16 @@ const SpotCheck = () => {
 
     const fetchRecentChecks = async () => {
         try {
-            const res = await fetch('/api/spot_check/list');
-            if (res.ok) {
-                const data = await res.json();
-                setRecentChecks(data);
+            if (isOnline) {
+                const res = await fetch('/api/spot_check/list');
+                if (res.ok) {
+                    const data = await res.json();
+                    setRecentChecks(data);
+                    await cacheData('recent_spot_checks', data);
+                }
+            } else {
+                const cached = await getCachedData('recent_spot_checks');
+                if (cached) setRecentChecks(cached);
             }
         } catch (e) { console.error("Error al cargar historial", e); }
     };
@@ -53,25 +62,63 @@ const SpotCheck = () => {
         setSearchResults([]);
         
         try {
-            // Usamos el nuevo endpoint de búsqueda general que permite descripción
-            const res = await fetch(`/api/search_items?q=${encodeURIComponent(q)}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.length === 0) {
-                    toast.warn("Item no encontrado");
-                } else if (data.length === 1) {
-                    const item = data[0];
-                    setItemData({
-                        item_code: item.itemCode,
-                        description: item.description
-                    });
-                    setItemCode(item.itemCode);
-                    setTimeout(() => qtyRef.current?.focus(), 100);
+            if (isOnline) {
+                const res = await fetch(`/api/search_items?q=${encodeURIComponent(q)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.length === 0) {
+                        toast.warn("Item no encontrado");
+                    } else if (data.length === 1) {
+                        const item = data[0];
+                        setItemData({
+                            item_code: item.itemCode,
+                            description: item.description
+                        });
+                        setItemCode(item.itemCode);
+                        setTimeout(() => qtyRef.current?.focus(), 100);
+                    } else {
+                        setSearchResults(data);
+                    }
                 } else {
-                    setSearchResults(data);
+                    toast.error("Error en la búsqueda");
                 }
             } else {
-                toast.error("Error en la búsqueda");
+                // Modo Offline: buscar en IndexedDB master_items
+                const db = await getDB();
+                const tx = db.transaction('master_items', 'readonly');
+                const store = tx.objectStore('master_items');
+                
+                const exactMatch = await store.get(q);
+                if (exactMatch) {
+                    setItemData({
+                        item_code: exactMatch.Item_Code,
+                        description: exactMatch.Item_Description
+                    });
+                    setItemCode(exactMatch.Item_Code);
+                    setTimeout(() => qtyRef.current?.focus(), 100);
+                } else {
+                    const allItems = await store.getAll();
+                    const filtered = allItems.filter(i => 
+                        i.Item_Code.includes(q) || 
+                        (i.Item_Description && i.Item_Description.toUpperCase().includes(q))
+                    ).slice(0, 10);
+
+                    if (filtered.length === 0) {
+                        toast.warn("Item no encontrado en maestro local");
+                    } else if (filtered.length === 1) {
+                        setItemData({
+                            item_code: filtered[0].Item_Code,
+                            description: filtered[0].Item_Description
+                        });
+                        setItemCode(filtered[0].Item_Code);
+                        setTimeout(() => qtyRef.current?.focus(), 100);
+                    } else {
+                        setSearchResults(filtered.map(f => ({
+                            itemCode: f.Item_Code,
+                            description: f.Item_Description
+                        })));
+                    }
+                }
             }
         } catch (e) { toast.error("Error de conexión"); }
         finally { setLoading(false); }
@@ -94,26 +141,49 @@ const SpotCheck = () => {
             return;
         }
 
+        const payload = {
+            bin_location: binLocation.toUpperCase(),
+            item_code: itemData.item_code,
+            item_description: itemData.description,
+            quantity: parseInt(physicalQty),
+            timestamp: new Date().toISOString()
+        };
+
         setIsSaving(true);
         try {
-            const res = await fetch('/api/spot_check/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    bin_location: binLocation.toUpperCase(),
-                    item_code: itemData.item_code,
-                    item_description: itemData.description,
-                    quantity: parseInt(physicalQty)
-                })
-            });
+            if (isOnline) {
+                const res = await fetch('/api/spot_check/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                toast.success("Hallazgo registrado");
-                setItemCode(''); setItemData(null); setPhysicalQty('');
-                fetchRecentChecks();
-                setTimeout(() => itemRef.current?.focus(), 100);
+                if (res.ok) {
+                    toast.success("Hallazgo registrado");
+                    clearForm();
+                    fetchRecentChecks();
+                    return;
+                }
             }
-        } catch (e) { toast.error("Error al guardar"); }
+
+            // Guardar Offline
+            await savePendingSync('spot_check', payload);
+            toast.info("Registrado localmente (Offline)");
+            clearForm();
+            // Actualizar vista local
+            setRecentChecks(prev => [{
+                id: `local_${Date.now()}`,
+                ...payload,
+                username: 'TÚ (Offline)',
+                is_pending: true
+            }, ...prev]);
+
+        } catch (e) { 
+            console.error(e);
+            await savePendingSync('spot_check', payload);
+            toast.info("Registrado localmente (Offline)");
+            clearForm();
+        }
         finally { setIsSaving(false); }
     };
 
@@ -174,7 +244,10 @@ const SpotCheck = () => {
             <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-[18px] font-bold text-black uppercase tracking-tight">Conteo por Ubicación</h1>
-                    <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-zinc-900 mt-1">Hallazgos registrados en tiempo real</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-zinc-900">Hallazgos registrados</p>
+                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-bold animate-pulse">MODO OFFLINE</span>}
+                    </div>
                 </div>
                 <button
                     onClick={() => navigate('/stock')}

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
 import DimensionScanner from '../components/DimensionScanner';
+import { useOffline } from '../hooks/useOffline';
+import { getDB, savePendingSync } from '../utils/offlineDb';
+import { downloadPickingTracking, downloadPickingOrder } from '../utils/syncManager';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -31,6 +34,7 @@ const playError = () => createBeep(200, 0.2);
 
 const PickingAudit = () => {
     const { setTitle } = useOutletContext();
+    const { isOnline, pendingCount, syncPendingData } = useOffline();
 
     // -- State --
     // Load Section
@@ -78,9 +82,14 @@ const PickingAudit = () => {
     const loadTrackingData = async () => {
         setLoadingTracking(true);
         try {
-            const res = await fetch('/api/picking/tracking', { credentials: 'include' });
-            if (res.ok) {
-                setTrackingData(await res.json());
+            const data = await downloadPickingTracking();
+            if (data) {
+                setTrackingData(data);
+            } else {
+                // Si falla (offline y no hay caché), intentar leer lo que haya en el store
+                const db = await getDB();
+                const cached = await db.getAll('picking_tracking');
+                setTrackingData(cached || []);
             }
         } catch (e) {
             console.error(e);
@@ -93,33 +102,43 @@ const PickingAudit = () => {
         if (!orderNumber || !despatchNumber) return;
         setLoadingOrder(true);
         try {
-            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`, { credentials: 'include' }); 
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    setCustomerCode(data[0]['Customer Code'] || '');
-                    setCustomerName(data[0]['Customer Name']);
-                    const items = data.map(row => ({
-                        code: row['Item Code'],
-                        description: row['Item Description'],
-                        order_line: row['Order Line'],
-                        qty_req: parseInt(row['Qty'] || 0),
-                        qty_scan: 0,
-                        difference: 0
-                    }));
-                    setOrderItems(items);
+            let data = await downloadPickingOrder(orderNumber, despatchNumber);
 
-                    const initialAssignments = {};
-                    items.forEach(item => {
-                        const itemKey = `${item.code}:${item.order_line || ''}`;
-                        initialAssignments[itemKey] = { 1: 0 };
-                    });
-                    setPackageAssignments(initialAssignments);
-                    setPackagesCount('1');
-                    setActivePackage(1);
-
-                    setAuditActive(true);
+            if (!data) {
+                // Buscar en caché local
+                const db = await getDB();
+                const cached = await db.get('picking_orders', `${orderNumber}_${despatchNumber}`);
+                if (cached) {
+                    data = cached.data;
+                    console.log("Cargado pedido de caché local");
                 }
+            }
+
+            if (data && data.length > 0) {
+                setCustomerCode(data[0]['Customer Code'] || '');
+                setCustomerName(data[0]['Customer Name']);
+                const items = data.map(row => ({
+                    code: row['Item Code'],
+                    description: row['Item Description'],
+                    order_line: row['Order Line'],
+                    qty_req: parseInt(row['Qty'] || 0),
+                    qty_scan: 0,
+                    difference: 0
+                }));
+                setOrderItems(items);
+
+                const initialAssignments = {};
+                items.forEach(item => {
+                    const itemKey = `${item.code}:${item.order_line || ''}`;
+                    initialAssignments[itemKey] = { 1: 0 };
+                });
+                setPackageAssignments(initialAssignments);
+                setPackagesCount('1');
+                setActivePackage(1);
+
+                setAuditActive(true);
+            } else {
+                alert("No se pudo cargar el pedido. Verifique la conexión o si fue cacheado previamente.");
             }
         } catch (e) {
             console.error(e);
@@ -291,27 +310,41 @@ const PickingAudit = () => {
         };
 
         try {
-            const res = await fetch('/api/save_picking_audit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(payload)
-            });
+            if (isOnline) {
+                const res = await fetch('/api/save_picking_audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                handleReset();
-                setShowConfirmModal(false);
-                setShowAssignmentModal(false);
-                setPackagesCount('1');
+                if (res.ok) {
+                    handleReset();
+                    setShowConfirmModal(false);
+                    setShowAssignmentModal(false);
+                    setPackagesCount('1');
+                    return;
+                }
             }
+
+            // Guardar offline si falla o no hay conexión
+            await savePendingSync('picking', payload);
+            alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+            handleReset();
+            setShowConfirmModal(false);
+            setShowAssignmentModal(false);
+            setPackagesCount('1');
+
         } catch (e) {
             console.error(e);
+            // Reintento offline forzado
+            await savePendingSync('picking', payload);
+            handleReset();
+            setShowConfirmModal(false);
+            setShowAssignmentModal(false);
         }
     };
 
-    // -- Scanner Effect --
-    // -- Scanner Effect --
-    // -- Scanner Logic --
     // -- Render --
     if (auditActive) {
         return (
@@ -324,7 +357,10 @@ const PickingAudit = () => {
                             <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
                             <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerCode} - {customerName}</span></p>
                         </div>
-                        <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
+                        <div className="flex flex-col items-end gap-2">
+                            <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
+                            {!isOnline && <span className="text-[9px] font-bold text-red-500 animate-pulse">MODO OFFLINE</span>}
+                        </div>
                     </div>
 
                     {/* Active Package Selector Compact */}
@@ -759,7 +795,10 @@ const PickingAudit = () => {
         <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h1 className="text-[16px] font-normal text-gray-800 mb-6">Cargar Pedido Picking</h1>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-[16px] font-normal text-gray-800">Cargar Pedido Picking</h1>
+                    {!isOnline && <span className="text-[9px] font-bold text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>

@@ -89,7 +89,7 @@ export const downloadMasterData = async () => {
 };
 
 /**
- * Sincroniza los registros pendientes hacia el servidor (Inbound, Planner, etc).
+ * Sincroniza los registros pendientes hacia el servidor (Inbound, Planner, Picking, Counts).
  */
 export const syncPendingData = async () => {
     if (!navigator.onLine) return;
@@ -112,6 +112,15 @@ export const syncPendingData = async () => {
                 method = record.editId ? 'PUT' : 'POST';
             } else if (record.collection === 'planner') {
                 url = '/api/planner/execution/save';
+                method = 'POST';
+            } else if (record.collection === 'picking') {
+                url = '/api/save_picking_audit';
+                method = 'POST';
+            } else if (record.collection === 'counts') {
+                url = '/api/save_count';
+                method = 'POST';
+            } else if (record.collection === 'spot_check') {
+                url = '/api/spot_check/save';
                 method = 'POST';
             } else {
                 continue; // Desconocido
@@ -139,6 +148,54 @@ export const syncPendingData = async () => {
             console.error(`Error de red al sincronizar ${record.id}:`, error);
             break; // Detener si hay fallo de red real
         }
+    }
+};
+
+/**
+ * Descarga y cachea los pedidos recientes de picking.
+ */
+export const downloadPickingTracking = async () => {
+    if (!navigator.onLine) return null;
+    try {
+        const res = await fetch('/api/picking/tracking', { credentials: 'include' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const db = await getDB();
+        const tx = db.transaction('picking_tracking', 'readwrite');
+        const store = tx.objectStore('picking_tracking');
+        await store.clear();
+        for (const t of data) {
+            await store.put(t);
+        }
+        await tx.done;
+        return data;
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/**
+ * Descarga y cachea el detalle de un pedido de picking.
+ */
+export const downloadPickingOrder = async (order, despatch) => {
+    if (!navigator.onLine) return null;
+    try {
+        const res = await fetch(`/api/picking/order/${order}/${despatch}`, { credentials: 'include' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const db = await getDB();
+        await db.put('picking_orders', {
+            id: `${order}_${despatch}`,
+            order,
+            despatch,
+            data,
+            timestamp: Date.now()
+        });
+        return data;
+    } catch (e) {
+        console.error(e);
+        return null;
     }
 };
 

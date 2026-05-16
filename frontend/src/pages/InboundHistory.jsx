@@ -158,7 +158,6 @@ const InboundHistory = () => {
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>
-                                <th className="px-2 py-1.5 text-left font-medium">ID</th>
                                 <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
                                 <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>
                                 <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
@@ -177,7 +176,6 @@ const InboundHistory = () => {
                             {!loading && filteredLogs.length === 0 && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600 uppercase">{log.username}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
