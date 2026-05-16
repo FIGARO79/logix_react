@@ -240,7 +240,7 @@ const PickingAuditHistory = () => {
                     <h1 className="text-base font-normal tracking-tight">Pickings Empacados</h1>
                     <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
                 </div>
-                <div className="text-[9px] font-bold text-black uppercase tracking-widest">
+                <div className="text-[9px] font-semibold text-black uppercase tracking-widest">
                     {audits.length} Registros Encontrados
                 </div>
             </div>
@@ -252,7 +252,7 @@ const PickingAuditHistory = () => {
             )}
 
             {error && (
-                <div className="mb-6 bg-red-50 text-red-600 px-4 py-3 border border-red-100 text-[10px] font-bold uppercase tracking-widest">
+                <div className="mb-6 bg-red-50 text-red-600 px-4 py-3 border border-red-100 text-[10px] font-semibold uppercase tracking-widest">
                     {error}
                 </div>
             )}
@@ -263,16 +263,16 @@ const PickingAuditHistory = () => {
                         <table className="min-w-full leading-normal">
                             <thead>
                                 <tr className="bg-zinc-50 border-b border-zinc-200">
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center w-10">Envío</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-center w-10">Envío</th>
                                     <th className="px-4 py-1.5 text-center w-8"></th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">ID</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Orden</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Despacho</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Cliente</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Usuario</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-left">Fecha</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-4 py-1.5 text-[9px] font-bold text-white uppercase tracking-widest text-center">Acciones</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">ID</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">Orden</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">Despacho</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">Cliente</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">Usuario</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-left">Fecha</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-semibold text-white uppercase tracking-widest text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -294,25 +294,25 @@ const PickingAuditHistory = () => {
                                             </td>
                                             <td className="px-4 py-1.5 text-center">
                                                 <svg
-                                                    className={`w-3 h-3 text-zinc-500 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
+                                                    className={`w-3 h-3 text-zinc-700 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 >
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-4 py-1.5 text-[11px] font-bold text-zinc-900">{audit.id}</td>
-                                            <td className="px-4 py-1.5 text-[11px] font-bold text-[#285f94]">{audit.order_number}</td>
+                                            <td className="px-4 py-1.5 text-[11px] font-semibold text-zinc-900">{audit.id}</td>
+                                            <td className="px-4 py-1.5 text-[11px] font-semibold text-[#285f94]">{audit.order_number}</td>
                                             <td className="px-4 py-1.5 text-[11px] text-zinc-600 font-mono uppercase">{audit.despatch_number}</td>
-                                            <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-bold">
+                                            <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-semibold">
                                                  {audit.customer_code && audit.customer_code.trim() !== "" && (
-                                                     <span className="text-zinc-500 mr-2">[{audit.customer_code}]</span>
+                                                     <span className="text-zinc-700 mr-2">[{audit.customer_code}]</span>
                                                  )}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
                                             <td className="px-4 py-1.5 text-[10px] text-zinc-700 uppercase font-medium">{audit.username}</td>
                                             <td className="px-4 py-1.5 text-[10px] text-zinc-600 font-mono">{formatDate(audit.timestamp)}</td>
                                             <td className="px-4 py-1.5 text-center">
-                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-bold uppercase tracking-tight rounded border ${
+                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-semibold uppercase tracking-tight rounded border ${
                                                     audit.status === 'Completado' || audit.status === 'Completo'
                                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
                                                 }`}>
@@ -324,7 +324,7 @@ const PickingAuditHistory = () => {
                                                     {isToday(audit.timestamp) && (
                                                         <button
                                                             onClick={() => handleEditClick(audit)}
-                                                            className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors leading-none"
+                                                            className="text-[9px] font-semibold uppercase tracking-widest text-zinc-700 hover:text-zinc-900 transition-colors leading-none"
                                                             title="Editar"
                                                         >
                                                             Editar
@@ -332,7 +332,7 @@ const PickingAuditHistory = () => {
                                                     )}
                                                     <Link
                                                         to={`/packing_list/print/${audit.id}`}
-                                                        className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#285f94] transition-colors leading-none"
+                                                        className="text-[9px] font-semibold uppercase tracking-widest text-zinc-700 hover:text-[#285f94] transition-colors leading-none"
                                                         title="Imprimir"
                                                     >
                                                         Print
@@ -345,10 +345,10 @@ const PickingAuditHistory = () => {
                                             <tr className="bg-zinc-50/50">
                                                 <td colSpan="10" className="px-10 py-4 border-b border-zinc-100">
                                                     <div className="bg-white border border-zinc-200 p-4 shadow-sm">
-                                                        <h4 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4 border-b border-zinc-50 pb-2">Detalle de Contenido</h4>
+                                                        <h4 className="text-[9px] font-semibold text-zinc-600 uppercase tracking-[0.2em] mb-4 border-b border-zinc-50 pb-2">Detalle de Contenido</h4>
                                                         <table className="w-full">
                                                             <thead>
-                                                                <tr className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">
+                                                                <tr className="text-[8px] font-semibold text-zinc-600 uppercase tracking-widest">
                                                                     <th className="pb-2 text-left w-12">Lín.</th>
                                                                     <th className="pb-2 text-left">SKU</th>
                                                                     <th className="pb-2 text-left">Descripción</th>
@@ -360,12 +360,12 @@ const PickingAuditHistory = () => {
                                                             <tbody className="text-[10px]">
                                                                 {audit.items.map((item, idx) => (
                                                                     <tr key={idx} className="border-t border-zinc-50 hover:bg-zinc-50/30">
-                                                                        <td className="py-2 font-mono text-zinc-400">{item.order_line}</td>
-                                                                        <td className="py-2 font-bold text-zinc-800">{item.item_code}</td>
-                                                                        <td className="py-2 text-zinc-500 uppercase text-[9px]">{item.description}</td>
+                                                                        <td className="py-2 font-mono text-zinc-600">{item.order_line}</td>
+                                                                        <td className="py-2 font-semibold text-zinc-800">{item.item_code}</td>
+                                                                        <td className="py-2 text-zinc-700 uppercase text-[9px]">{item.description}</td>
                                                                         <td className="py-2 text-right font-mono">{item.qty_req}</td>
-                                                                        <td className="py-2 text-right font-mono font-bold">{item.qty_scan}</td>
-                                                                        <td className={`py-2 text-right font-mono font-bold ${item.difference !== 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                        <td className="py-2 text-right font-mono font-semibold">{item.qty_scan}</td>
+                                                                        <td className={`py-2 text-right font-mono font-semibold ${item.difference !== 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                                                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                                                         </td>
                                                                     </tr>
@@ -388,23 +388,23 @@ const PickingAuditHistory = () => {
                             <div key={audit.id} className="bg-white border border-zinc-200 p-4 shadow-sm" onClick={() => toggleExpand(audit.id)}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
-                                        <span className="text-[12px] font-bold text-[#285f94] tracking-tight">{audit.order_number}</span>
-                                        <span className="text-[8px] text-zinc-400 uppercase tracking-widest">{audit.despatch_number}</span>
+                                        <span className="text-[12px] font-semibold text-[#285f94] tracking-tight">{audit.order_number}</span>
+                                        <span className="text-[8px] text-zinc-600 uppercase tracking-widest">{audit.despatch_number}</span>
                                     </div>
-                                    <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-tight rounded border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700'}`}>
+                                    <span className={`px-2 py-0.5 text-[8px] font-semibold uppercase tracking-tight rounded border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700'}`}>
                                         {audit.status}
                                     </span>
                                 </div>
-                                <div className="text-[10px] font-bold text-zinc-700 uppercase mb-3 truncate">
+                                <div className="text-[10px] font-semibold text-zinc-700 uppercase mb-3 truncate">
                                     {audit.customer_code && audit.customer_code.trim() !== "" && (
-                                         <span className="text-zinc-400 mr-1">[{audit.customer_code}]</span>
+                                         <span className="text-zinc-600 mr-1">[{audit.customer_code}]</span>
                                      )}
                                     {audit.customer_name}
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
-                                    <span className="text-[8px] font-mono text-zinc-400">{formatDate(audit.timestamp)}</span>
+                                    <span className="text-[8px] font-mono text-zinc-600">{formatDate(audit.timestamp)}</span>
                                     <div className="flex gap-4">
-                                        <Link to={`/packing_list/print/${audit.id}`} className="text-[9px] font-bold uppercase text-zinc-400 hover:text-zinc-900" onClick={e => e.stopPropagation()}>Print</Link>
+                                        <Link to={`/packing_list/print/${audit.id}`} className="text-[9px] font-semibold uppercase text-zinc-600 hover:text-zinc-900" onClick={e => e.stopPropagation()}>Print</Link>
                                     </div>
                                 </div>
                                 {expandedAuditId === audit.id && (
@@ -412,13 +412,13 @@ const PickingAuditHistory = () => {
                                         {audit.items.map((item, idx) => (
                                             <div key={idx} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-zinc-800">{item.item_code}</span>
-                                                    <span className="text-zinc-400 text-[8px]">L: {item.order_line}</span>
+                                                    <span className="font-semibold text-zinc-800">{item.item_code}</span>
+                                                    <span className="text-zinc-600 text-[8px]">L: {item.order_line}</span>
                                                 </div>
                                                 <div className="font-mono">
-                                                    <span className="text-zinc-400">{item.qty_req}</span>
+                                                    <span className="text-zinc-600">{item.qty_req}</span>
                                                     <span className="mx-1">/</span>
-                                                    <span className="font-bold">{item.qty_scan}</span>
+                                                    <span className="font-semibold">{item.qty_scan}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -433,14 +433,14 @@ const PickingAuditHistory = () => {
             {/* Selection Bar */}
             {selectedIds.size > 0 && (
                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-zinc-900 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-4 duration-300">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{selectedIds.size} Auditorías</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">{selectedIds.size} Auditorías</span>
                     <button 
                         onClick={() => setShowShipmentModal(true)} 
-                        className="bg-white text-zinc-900 px-6 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                        className="bg-white text-zinc-900 px-6 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
                     >
                         Consolidar Envío
                     </button>
-                    <button onClick={() => setSelectedIds(new Set())} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-zinc-700 hover:text-white transition-colors">✕</button>
                 </div>
             )}
 
@@ -448,20 +448,20 @@ const PickingAuditHistory = () => {
             {showShipmentModal && (
                 <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md p-8">
-                        <h3 className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight mb-6">Crear Envío Consolidado</h3>
+                        <h3 className="text-[12px] font-semibold text-zinc-900 uppercase tracking-tight mb-6">Crear Envío Consolidado</h3>
                         <div className="space-y-6">
                             <div className="space-y-1">
-                                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Transportadora</label>
+                                <label className="text-[9px] font-semibold text-zinc-600 uppercase tracking-widest">Transportadora</label>
                                 <input type="text" value={shipmentCarrier} onChange={e => setShipmentCarrier(e.target.value)} className="w-full h-10 border border-zinc-200 px-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Observaciones</label>
+                                <label className="text-[9px] font-semibold text-zinc-600 uppercase tracking-widest">Observaciones</label>
                                 <textarea value={shipmentNote} onChange={e => setShipmentNote(e.target.value)} className="w-full border border-zinc-200 p-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" rows={3} />
                             </div>
                         </div>
                         <div className="mt-8 flex justify-end gap-4">
-                            <button onClick={() => setShowShipmentModal(false)} className="px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cancelar</button>
-                            <button onClick={handleCreateShipment} className="px-8 py-2 bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800">
+                            <button onClick={() => setShowShipmentModal(false)} className="px-6 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600 hover:text-zinc-900">Cancelar</button>
+                            <button onClick={handleCreateShipment} className="px-8 py-2 bg-zinc-900 text-white text-[10px] font-semibold uppercase tracking-widest hover:bg-zinc-800">
                                 {creatingShipment ? 'Procesando...' : 'Confirmar'}
                             </button>
                         </div>
@@ -475,33 +475,32 @@ const PickingAuditHistory = () => {
                     <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-5xl p-8 flex flex-col max-h-[90vh]">
                         <div className="flex justify-between items-start mb-8 border-b border-zinc-100 pb-6">
                             <div className="flex flex-col gap-1">
-                                <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-tight">Editar Auditoría ID #{editingAudit.id}</h3>
-                                <div className="text-[9px] text-zinc-400 uppercase tracking-widest flex items-center gap-4">
-                                    <span>Orden: <span className="text-zinc-900 font-bold">{editingAudit.order_number}</span></span>
-                                    <span>Cliente: <span className="text-zinc-900 font-bold">{editingAudit.customer_name}</span></span>
+                                <h3 className="text-sm font-semibold text-zinc-900 uppercase tracking-tight">Editar Auditoría ID #{editingAudit.id}</h3>
+                                <div className="text-[9px] text-zinc-600 uppercase tracking-widest flex items-center gap-4">
+                                    <span>Orden: <span className="text-zinc-900 font-semibold">{editingAudit.order_number}</span></span>
+                                    <span>Cliente: <span className="text-zinc-900 font-semibold">{editingAudit.customer_name}</span></span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-6">
                                 <div className="flex items-center gap-4 bg-zinc-50 px-4 py-2 rounded border border-zinc-100">
-                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bultos: {editingAudit.packages || 0}</span>
+                                    <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">Bultos: {editingAudit.packages || 0}</span>
                                     <div className="flex gap-2">
-                                        <button onClick={handleRemoveLastPackage} className="w-6 h-6 flex items-center justify-center bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded text-sm font-bold transition-all shadow-sm">−</button>
-                                        <button onClick={handleAddNewPackage} className="w-6 h-6 flex items-center justify-center bg-zinc-900 text-white hover:bg-zinc-800 rounded text-sm font-bold transition-all shadow-sm">+</button>
+                                        <button onClick={handleRemoveLastPackage} className="w-6 h-6 flex items-center justify-center bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded text-sm font-semibold transition-all shadow-sm">−</button>
+                                        <button onClick={handleAddNewPackage} className="w-6 h-6 flex items-center justify-center bg-zinc-900 text-white hover:bg-zinc-800 rounded text-sm font-semibold transition-all shadow-sm">+</button>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-300 hover:text-zinc-900 text-xl transition-colors px-2">✕</button>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-500 hover:text-zinc-900 text-xl transition-colors px-2">✕</button>
                             </div>
                         </div>
 
                         <div className="overflow-y-auto mb-8 pr-2">
                             <table className="min-w-full">
                                 <thead>
-                                    <tr className="bg-zinc-50 border-b border-zinc-100 text-[8px] font-bold text-zinc-400 uppercase tracking-widest">
+                                    <tr className="bg-[#4A5D73] text-white text-[10px] font-semibold uppercase tracking-widest">
                                         <th className="p-4 text-left w-12">Lín.</th>
                                         <th className="p-4 text-left w-32">Código</th>
                                         <th className="p-4 text-left">Descripción</th>
                                         <th className="p-4 text-center w-20">Req.</th>
-                                        <th className="p-4 text-center w-32">Escaneado</th>
                                         <th className="p-4 text-left">Distribución en Bultos</th>
                                     </tr>
                                 </thead>
@@ -514,22 +513,10 @@ const PickingAuditHistory = () => {
 
                                         return (
                                             <tr key={idx} className="border-b border-zinc-50 hover:bg-zinc-50/20 transition-colors">
-                                                <td className="p-4 font-mono text-[9px] text-zinc-400">{item.order_line}</td>
-                                                <td className="p-4 text-[11px] font-bold text-zinc-900">{item.item_code}</td>
-                                                <td className="p-4 text-[9px] text-zinc-500 uppercase truncate max-w-xs">{item.description}</td>
-                                                <td className="p-4 text-center text-[11px] font-mono text-zinc-400">{item.qty_req}</td>
-                                                <td className="p-4 text-center">
-                                                    <div className="inline-flex items-center border border-zinc-200 bg-white rounded-md overflow-hidden">
-                                                        <button onClick={() => handleQtyChange(idx, Math.max(0, item.qty_scan - 1))} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 text-lg font-light transition-colors">−</button>
-                                                        <input
-                                                            type="text" inputMode="numeric"
-                                                            value={item.qty_scan}
-                                                            onChange={(e) => handleQtyChange(idx, e.target.value.replace(/\D/g, ''))}
-                                                            className="h-8 w-12 text-center text-[12px] font-bold text-zinc-900 bg-transparent border-x border-zinc-100 focus:outline-none"
-                                                        />
-                                                        <button onClick={() => handleQtyChange(idx, item.qty_scan + 1)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 text-lg font-light transition-colors">+</button>
-                                                    </div>
-                                                </td>
+                                                <td className="p-4 font-mono text-[10px] text-zinc-600">{item.order_line}</td>
+                                                <td className="p-4 text-[12px] font-semibold text-zinc-900">{item.item_code}</td>
+                                                <td className="p-4 text-[10px] text-zinc-800 uppercase truncate max-w-xs">{item.description}</td>
+                                                <td className="p-4 text-center text-[12px] font-mono text-zinc-800">{item.qty_req}</td>
                                                 <td className="p-4">
                                                     {isUsingPackages ? (
                                                         <div className="flex flex-wrap items-center gap-3">
@@ -539,18 +526,18 @@ const PickingAuditHistory = () => {
                                                                     const qty = parseInt(assignments[pkgNum]) || 0;
                                                                     return (
                                                                         <div key={pkgNum} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 p-1.5 rounded">
-                                                                            <span className="text-[8px] font-bold text-zinc-400 uppercase px-1">B{pkgNum}</span>
+                                                                            <span className="text-[9px] font-semibold text-zinc-700 uppercase px-1">B{pkgNum}</span>
                                                                             <div className="flex items-center border border-zinc-200 bg-white rounded overflow-hidden h-6">
-                                                                                <button onClick={() => qty - 1 <= 0 ? removePackageAssignment(idx, pkgNum) : handlePkgQtyChange(idx, pkgNum, qty - 1)} className="w-6 h-full flex items-center justify-center text-zinc-400 hover:bg-zinc-50 transition-colors text-sm">−</button>
-                                                                                <span className="w-8 text-center text-[10px] font-bold font-mono">{qty}</span>
-                                                                                <button onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)} className="w-6 h-full flex items-center justify-center text-zinc-400 hover:bg-zinc-50 transition-colors text-sm">+</button>
+                                                                                <button onClick={() => qty - 1 <= 0 ? removePackageAssignment(idx, pkgNum) : handlePkgQtyChange(idx, pkgNum, qty - 1)} className="w-6 h-full flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-sm">−</button>
+                                                                                <span className="w-8 text-center text-[12px] font-semibold font-mono text-zinc-900">{qty}</span>
+                                                                                <button onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)} className="w-6 h-full flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-sm">+</button>
                                                                             </div>
                                                                         </div>
                                                                     );
                                                                 })}
                                                             <select
                                                                 onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
-                                                                className="h-9 px-3 text-[9px] font-bold uppercase tracking-widest bg-white border border-dashed border-zinc-300 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-400"
+                                                                className="h-9 px-3 text-[10px] font-semibold uppercase tracking-widest bg-white border border-dashed border-zinc-400 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-700"
                                                                 defaultValue=""
                                                             >
                                                                 <option value="" disabled>+ Añadir Bulto</option>
@@ -562,7 +549,7 @@ const PickingAuditHistory = () => {
                                                             </select>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-[9px] text-zinc-300 uppercase italic tracking-widest">Sin asignación de bultos</span>
+                                                        <span className="text-[10px] text-zinc-600 uppercase italic tracking-widest">Sin asignación de bultos</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -572,8 +559,8 @@ const PickingAuditHistory = () => {
                             </table>
                         </div>
                         <div className="flex justify-end gap-4 pt-8 border-t border-zinc-100">
-                            <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-2 text-[11px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="px-10 py-2 bg-zinc-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-zinc-800 disabled:bg-zinc-100" disabled={isSubmitting}>
+                            <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 hover:text-zinc-900">Cancelar</button>
+                            <button onClick={handleSaveEdit} className="px-10 py-2 bg-zinc-900 text-white text-[11px] font-semibold uppercase tracking-widest hover:bg-zinc-800 disabled:bg-zinc-100" disabled={isSubmitting}>
                                 {isSubmitting ? 'Guardando...' : 'Publicar Cambios'}
                             </button>
                         </div>
