@@ -40,7 +40,7 @@ class SlottingService:
         
         storage = {}
         if bins_sql:
-            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot} for b in bins_sql}
+            storage = {b.bin_code: {"zone": b.zone, "aisle": b.aisle, "level": b.level, "spot": b.spot, "score": b.score} for b in bins_sql}
         
         # 2. Intentar obtener de SQL (Reglas de Rotación)
         res_rules = await db.execute(select(SlottingRule))
@@ -50,23 +50,36 @@ class SlottingService:
         if rules_sql:
             turnover = {r.sic_code: {"range": r.description, "spot": r.ideal_spot} for r in rules_sql}
 
-        # 3. Fallback al JSON si SQL está vacío (Migración inicial)
-        if not storage and os.path.exists(self.params_path):
+        # 3. Extraer reglas de negocio dinámicas siempre desde JSON
+        zone_rules = {}
+        mix_limits = {}
+        if os.path.exists(self.params_path):
             try:
                 with open(self.params_path, 'rb') as f:
                     config = orjson.loads(f.read())
-                    storage = config.get("storage", {})
+                    zone_rules = config.get("zone_rules", {})
+                    mix_limits = config.get("mix_limits", {})
+                    
+                    if not storage:
+                        storage = config.get("storage", {})
                     if not turnover:
                         turnover = config.get("turnover", {})
             except: pass
             
-        return {"storage": storage, "turnover": turnover}
+        return {
+            "storage": storage, 
+            "turnover": turnover,
+            "zone_rules": zone_rules,
+            "mix_limits": mix_limits
+        }
 
     async def get_suggested_bin(self, db: AsyncSession, item_details: Dict[str, Any]) -> Optional[str]:
-        """Calcula la mejor ubicación disponible basada en el mapa de slotting y reglas de negocio."""
+        """Calcula la mejor ubicación disponible basada en el mapa de slotting, scores y reglas de negocio."""
         config = await self._get_layout_config(db)
         storage = config.get('storage', {})
         turnover_map = config.get('turnover', {})
+        zone_rules = config.get('zone_rules', {})
+        mix_limits = config.get('mix_limits', {})
         
         current_bin = str(item_details.get('Bin_1', '')).strip().upper()
         item_code = str(item_details.get('Item_Code', '')).strip()
@@ -85,18 +98,31 @@ class SlottingService:
 
         # Determinar el spot ideal basado en el SIC Code
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        if sic_code in ['W', 'X', 'Y']: 
+        if sic_code in ['W', 'X']: 
             ideal_spot = 'hot'
-        elif sic_code in ['K', 'L', 'Z', '0']:
+        elif sic_code in ['Y', 'K']:
+            ideal_spot = 'warm'
+        elif sic_code in ['L', 'Z', '0']:
             ideal_spot = 'cold'
 
         # Reubicación Proactiva: Si el ítem ya está en una ubicación válida en el maestro...
         if current_bin in storage:
-            current_spot = str(storage[current_bin].get('spot', 'cold')).lower()
-            # Si el spot actual coincide con el ideal, NO sugerimos nada nuevo (se queda ahí)
+            info = storage[current_bin]
+            current_spot = str(info.get('spot', 'cold')).lower()
+            current_score = info.get('score', 0)
+            
+            # Si el spot actual coincide con el ideal...
             if current_spot == ideal_spot:
-                return None
-            # Si NO coincide (ej. está en cold y ahora es hot), el algoritmo continuará y sugerirá un nuevo bin
+                # Si es un ítem HOT y ya tiene un score excelente (>=8), se queda.
+                if ideal_spot == 'hot' and current_score >= 8:
+                    return None
+                # Si es un ítem COLD y ya está en una zona de exilio o baja prioridad (score <= exile_max_score), se queda.
+                exile_max_score = int(zone_rules.get("exile_max_score", 3))
+                if ideal_spot == 'cold' and current_score <= exile_max_score:
+                    return None
+                # En otros casos (ej. ítem warm en score medio), se queda si no hay una mejor opción obvia.
+                if ideal_spot == 'warm':
+                    return None
 
         occupancy = await self._get_bins_occupancy(db)
         
@@ -111,21 +137,58 @@ class SlottingService:
             weight = float(str(weight_val).replace(',', '')) if weight_val else 0.0
         except: pass
 
+        # --- PARÁMETROS DINÁMICOS ---
+        cantilever_kw = [k.strip().upper() for k in zone_rules.get("cantilever_keywords", "ROD, INTEGRAL STEEL").split(",") if k.strip()]
+        minuteria_weight_max = float(zone_rules.get("minuteria_weight_max", 0.1))
+        heavy_weight_min = float(zone_rules.get("heavy_weight_min", 10))
+        heavy_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("heavy_levels", "3, 4, 5")).split(",") if lvl.strip().isdigit()]
+        high_rotation_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("high_rotation_levels", "0, 1")).split(",") if lvl.strip().isdigit()]
+        high_rotation_min_score = int(zone_rules.get("high_rotation_min_score", 1))
+        high_rotation_max_score = int(zone_rules.get("high_rotation_max_score", 10))
+        
+        medium_rotation_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("medium_rotation_levels", "1, 2")).split(",") if lvl.strip().isdigit()]
+        medium_rotation_min_score = int(zone_rules.get("medium_rotation_min_score", 4))
+        medium_rotation_max_score = int(zone_rules.get("medium_rotation_max_score", 6))
+        
+        default_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("default_levels", "2")).split(",") if lvl.strip().isdigit()]
+        exile_levels = [int(lvl.strip()) for lvl in str(zone_rules.get("exile_rack_levels", "2, 3")).split(",") if lvl.strip().isdigit()]
+        exile_sics = [s.strip().upper() for s in str(zone_rules.get("exile_sic_codes", "0, Z, L")).split(",") if s.strip()]
+        minuteria_zone = zone_rules.get("minuteria_zone", "Minuteria")
+
+        limit_minuteria = int(mix_limits.get("minuteria_max_skus", 3))
+        limit_n2 = int(mix_limits.get("nivel2_max_skus", 6))
+        limit_others = int(mix_limits.get("otros_niveles_max_skus", 4))
+
         # --- REGLAS DE NEGOCIO POR ATRIBUTOS ---
-        if "ROD" in description or "INTEGRAL STEEL" in description:
+        is_cantilever = any(kw in description for kw in cantilever_kw)
+        
+        target_score_min = None
+        target_score_max = None
+
+        if is_cantilever:
             target_zone = "Cantilever"
-        elif 0 < weight < 0.1:
-            target_zone = "Minuteria"
-        elif weight > 10:
+        elif 0 < weight < minuteria_weight_max:
+            target_zone = minuteria_zone
+        elif weight > heavy_weight_min:
             target_zone = "Rack"
-            target_levels = [3, 4, 5]
+            target_levels = heavy_levels
         elif sic_code in ['W', 'X']:
             target_zone = "Rack"
-            target_levels = [0, 1]
-        else:
-            # Todo lo demás <= 10kg (especialmente Y, K, L, Z, 0) va al segundo nivel
+            target_levels = high_rotation_levels
+            target_score_min = high_rotation_min_score
+            target_score_max = high_rotation_max_score
+        elif sic_code in ['Y', 'K']:
             target_zone = "Rack"
-            target_levels = [2]
+            target_levels = medium_rotation_levels
+            target_score_min = medium_rotation_min_score
+            target_score_max = medium_rotation_max_score
+        elif sic_code in exile_sics:
+            target_zone = "Rack"
+            target_levels = exile_levels
+        else:
+            # Todo lo demás
+            target_zone = "Rack"
+            target_levels = default_levels
         
         if target_zone is None:
             forbidden_zones = ["Cantilever", "Minuteria"]
@@ -135,43 +198,48 @@ class SlottingService:
         for bin_code, info in storage.items():
             zone = info.get('zone')
             level = info.get('level')
+            score = info.get('score', 0)
             if zone in forbidden_zones: continue
             if target_zone and zone != target_zone: continue
             if target_levels and level not in target_levels: continue
+            if target_score_min is not None and score < target_score_min: continue
+            if target_score_max is not None and score > target_score_max: continue
 
             current_items = occupancy.get(bin_code.upper(), 0)
             
-            # Dinámica de límites: Nivel 2 tiene capacidad extendida
-            if zone == "Minuteria":
-                limit = 3
+            # Dinámica de límites configurables
+            if zone == "Minuteria" or zone == minuteria_zone:
+                limit = limit_minuteria
             elif level == 2:
-                limit = 6
+                limit = limit_n2
             else:
-                limit = 4
+                limit = limit_others
             
             if current_items < limit:
                 candidates.append({
                     'bin': bin_code,
                     'occupancy': current_items,
-                    'spot': str(info.get('spot', 'Cold')).lower()
+                    'spot': str(info.get('spot', 'Cold')).lower(),
+                    'score': score
                 })
 
-        # --- FILTRADO POR ROTACIÓN (HOT/COLD) ---
-        # Nueva organización: W, X, Y son HOT. K, L, Z, 0 son COLD.
-        ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
-        if sic_code in ['W', 'X', 'Y']: 
-            ideal_spot = 'hot'
-        elif sic_code in ['K', 'L', 'Z', '0']:
-            ideal_spot = 'cold'
+        if not candidates:
+            return None
 
-        # Filtrar candidatos que coincidan con el spot ideal
-        matches = [c for c in candidates if c['spot'] == ideal_spot]
-        if matches:
-            candidates = matches
+        # --- ORDENAMIENTO POR SCORE Y ROTACIÓN ---
+        # Prioridad: 
+        # 1. Que coincida el SPOT (Hot/Cold)
+        # 2. Si es HOT, mayor SCORE físico. Si es COLD, menor SCORE físico.
+        # 3. Menor OCUPACIÓN.
 
-        # Ordenar por afinidad de spot y luego por menor ocupación
-        candidates.sort(key=lambda x: (x['spot'] != ideal_spot, x['occupancy']))
-        return candidates[0]['bin'] if candidates else None
+        if ideal_spot == 'hot':
+            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy']))
+        elif ideal_spot == 'warm':
+            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy']))
+        else:
+            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy']))
+
+        return candidates[0]['bin']
 
     async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
         """Calcula cuántos SKUs hay en cada bin (Cruza maestro + reubicaciones activas)."""
@@ -222,9 +290,15 @@ class SlottingService:
             }
         }
         
+        def _to_int(v):
+            try:
+                return int(float(str(v).strip()))
+            except:
+                return 0
+
         for bin_code, info in storage.items():
             zone = info.get('zone', 'Unknown')
-            level = info.get('level', 0)
+            level = _to_int(info.get('level', 0))
             aisle = info.get('aisle', 'N/A')
             
             if zone not in report["zones"]:
@@ -265,5 +339,46 @@ class SlottingService:
         report["analytics"]["bins_by_zone"] = dict(sorted(report["analytics"]["bins_by_zone"].items(), key=lambda x: x[1], reverse=True))
                 
         return report
+
+    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: int) -> List[Dict[str, Any]]:
+        """Obtiene el detalle de cada bin para una zona y nivel específicos."""
+        occupancy = await self._get_bins_occupancy(db)
+        config = await self._get_layout_config(db)
+        storage = config.get('storage', {})
+        
+        def _to_int(v):
+            try:
+                return int(float(str(v).strip()))
+            except:
+                return 0
+
+        details = []
+        # Normalizar para comparación robusta (quitar espacios, todo mayúsculas)
+        target_zone = str(zone).strip().upper()
+        target_level = int(level)
+
+        for bin_code, info in storage.items():
+            lvl = _to_int(info.get('level', 0))
+            current_zone = str(info.get('zone', 'Unknown')).strip().upper()
+            
+            # Comparación flexible de zona y nivel
+            if current_zone == target_zone and lvl == target_level:
+                skus = occupancy.get(bin_code.upper(), 0)
+                details.append({
+                    "bin_code": bin_code,
+                    "aisle": info.get('aisle', 'N/A'),
+                    "spot": info.get('spot', 'Cold'),
+                    "score": info.get('score', 0),
+                    "skus": skus,
+                    "occupancy_pct": min(100, round((skus / (3 if target_zone == "MINUTERIA" else 4)) * 100))
+                })
+        
+        # DEBUG: Si no hay nada, añadir un registro falso para verificar que el frontend renderiza
+        if not details:
+            print(f"DEBUG: No bins found for Zone: '{target_zone}', Level: {target_level}")
+            # Solo para pruebas, remover en prod
+            # details.append({"bin_code": "DEBUG-01", "aisle": "0", "spot": "Hot", "score": 10, "skus": 0, "occupancy_pct": 0})
+        
+        return sorted(details, key=lambda x: (str(x.get('aisle', '0')), str(x.get('bin_code', ''))))
 
 slotting_service = SlottingService()

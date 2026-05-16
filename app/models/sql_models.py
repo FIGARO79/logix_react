@@ -53,9 +53,7 @@ class Log(Base):
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     username: Mapped[Optional[str]] = mapped_column(String(100))
     client_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
-    # Nota: observaciones NO existe en tabla logs en producción (MySQL)
-    # observaciones: Mapped[Optional[str]] = mapped_column(String(500))
-    archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # Para SQLite/MySQL (String o DateTime según config)
+    archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
 class AppState(Base):
     __tablename__ = "app_state"
@@ -138,6 +136,7 @@ class PickingAudit(Base):
 
     items = relationship("PickingAuditItem", back_populates="audit", cascade="all, delete-orphan")
     package_items = relationship("PickingPackageItem", back_populates="audit", cascade="all, delete-orphan")
+    packages_metadata = relationship("PickingPackage", back_populates="audit", cascade="all, delete-orphan")
     shipment_links = relationship("ShipmentAudit", back_populates="audit")
 
 class PickingAuditItem(Base):
@@ -168,6 +167,19 @@ class PickingPackageItem(Base):
     qty_scan: Mapped[int] = mapped_column(Integer, nullable=False)
 
     audit = relationship("PickingAudit", back_populates="package_items")
+
+class PickingPackage(Base):
+    __tablename__ = "picking_packages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    package_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    length: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    width: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    height: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    weight: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+
+    audit = relationship("PickingAudit", back_populates="packages_metadata")
 
 
 class Shipment(Base):
@@ -211,6 +223,7 @@ class CycleCountRecording(Base):
     difference: Mapped[int] = mapped_column(Integer, default=0)
     username: Mapped[str] = mapped_column(String(100))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
+    source: Mapped[Optional[str]] = mapped_column(String(50), default="planner")
 
 
 class MasterItem(Base):
@@ -220,6 +233,7 @@ class MasterItem(Base):
     description: Mapped[Optional[str]] = mapped_column(String(255))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10), index=True)
     physical_qty: Mapped[int] = mapped_column(Integer, default=0)
+    frozen_qty: Mapped[int] = mapped_column(Integer, default=0)
     bin_1: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     additional_bin: Mapped[Optional[str]] = mapped_column(String(100))
     weight_per_unit: Mapped[Optional[str]] = mapped_column(String(50))
@@ -295,9 +309,10 @@ class BinLocation(Base):
     __tablename__ = "bin_locations"
     bin_code: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
     zone: Mapped[str] = mapped_column(String(100), index=True)
-    level: Mapped[int] = mapped_column(Integer, default=0)
+    level: Mapped[str] = mapped_column(String(50), default="0")
     aisle: Mapped[Optional[str]] = mapped_column(String(50))
     spot: Mapped[str] = mapped_column(String(50), default="Cold") # Hot, Cold, etc.
+    score: Mapped[int] = mapped_column(Integer, default=0)
 
 class SlottingRule(Base):
     """Reglas de rotación y afinidad (Turnover mapping)."""
@@ -306,9 +321,13 @@ class SlottingRule(Base):
     ideal_spot: Mapped[str] = mapped_column(String(50), default="cold")
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-class PlannerHoliday(Base):
-    """Días feriados para el planificador."""
-    __tablename__ = "planner_holidays"
-    date: Mapped[str] = mapped_column(String(50), primary_key=True)
-    description: Mapped[Optional[str]] = mapped_column(String(255))
-
+class SpotCheck(Base):
+    """Verificaciones de saldo independientes (no afectan conteos cíclicos)."""
+    __tablename__ = "spot_checks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bin_location: Mapped[str] = mapped_column(String(100), index=True)
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    item_description: Mapped[Optional[str]] = mapped_column(String(255))
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    username: Mapped[str] = mapped_column(String(100))

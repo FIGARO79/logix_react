@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: /home/debian/logix_cl)
+# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: /home/debian/logix)
 # ==============================================================================
 # Ejecuta este script después de hacer cambios en el código para aplicarlos.
 # Uso: ./apply_changes.sh
@@ -22,8 +22,8 @@ echo "🐍 [1/3] Actualizando Backend..."
 cd "$PROJECT_DIR"
 
 if [ -d "$PROJECT_DIR/venv" ]; then
-    echo "   Instalando dependencias de Python..."
-    "$PROJECT_DIR/venv/bin/pip" install -r requirements.txt --quiet
+    echo "   Sincronizando dependencias de Python con uv..."
+    $HOME/.local/bin/uv pip sync requirements.txt --python "$PROJECT_DIR/venv"
     
     echo "   Verificando migraciones de base de datos..."
     # Correr migraciones manualmente para asegurar que la DB esté al día
@@ -65,5 +65,5 @@ echo ""
 echo "========================================================"
 echo "✅ ACTUALIZACIÓN COMPLETADA EN EL ENTORNO UNIFICADO"
 echo "========================================================"
-echo "Los cambios están activos en /home/debian/logix_cl"
+echo "Los cambios están activos en /home/debian/logix"
 echo "Refresca tu navegador para ver los cambios."

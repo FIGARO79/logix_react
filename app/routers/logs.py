@@ -87,14 +87,11 @@ async def find_item(
     already_received = await db_logs.get_total_received_for_item_async(db, item_code)
     xdock_pending = max(0, total_reserved - already_received)
 
-    # 5. PRIORIDAD XDOCK: Si hay saldo pendiente, la sugerencia es XDOCK en el badge
-    if xdock_pending > 0:
-        final_suggested_bin = "XDOCK"
-        is_ai_prediction = True
+    # 5. ELIMINADO: Ya no sobreescribimos final_suggested_bin con "XDOCK" aquí.
+    # El frontend manejará el indicador visual de XDOCK basado en xdock_pending.
 
     # 6. LIMPIEZA: No sugerir si el ítem ya está en la ubicación sugerida (comparando con el maestro)
-    # NUEVA REGLA: No sugerir slotting de nuevo si el ítem ya fue reubicado (excepto si es XDOCK)
-    if final_suggested_bin == effective_bin_location or (latest_relocated_bin and final_suggested_bin != "XDOCK"):
+    if final_suggested_bin == effective_bin_location:
         final_suggested_bin = None
         is_ai_prediction = False
 
@@ -113,6 +110,7 @@ async def find_item(
         "defaultQtyGrn": expected_quantity,
         "itemType": item_details.get('ABC_Code_stockroom', 'N/A'),
         "sicCode": item_details.get('SIC_Code_stockroom', 'N/A'),
+        "frozenQty": item_details.get('Frozen_Qty', 0),
         "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
         "supersededBy": item_details.get('SupersededBy', 'N/A'),
         "latestRelocatedBin": latest_relocated_bin
@@ -137,7 +135,9 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     
     entry_data = data.dict()
     entry_data['username'] = username
-    entry_data['timestamp'] = datetime.datetime.now().isoformat()
+    # Usar timestamp del frontend si viene, sino el del servidor (como fallback)
+    if not entry_data.get('timestamp'):
+        entry_data['timestamp'] = datetime.datetime.now().isoformat()
     entry_data['qtyGrn'] = expected_qty
     entry_data['qtyReceived'] = data.quantity
     entry_data['difference'] = data.quantity - expected_qty
@@ -208,7 +208,7 @@ async def get_log_versions(username: str = Depends(login_required), db: AsyncSes
     return ORJSONResponse(content=versions)
 
 @router.get('/export_log')
-async def export_log(version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
+async def export_log(timezone_offset: int = 0, version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Exporta los registros de log a Excel con lógica de diferencia idéntica al frontend."""
     if version_date:
         logs = await db_logs.load_archived_log_data_db_async(db, version_date)
@@ -269,16 +269,24 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
         expected = expected_map.get(code, 0)
         total_rec = totals_map.get(code, 0)
 
-        # Formatear fecha para que coincida con la pantalla (DD/MM/YYYY HH:MM)
+        # Formatear fecha aplicando el desfase del cliente
         ts_raw = log.get('timestamp', '')
         formatted_date = ts_raw
         try:
             # Limpiar posibles variaciones de formato ISO
             clean_ts = str(ts_raw).replace(' ', 'T').replace('Z', '')
             dt_obj = datetime.datetime.fromisoformat(clean_ts)
-            formatted_date = dt_obj.strftime('%d/%m/%Y %H:%M')
-        except:
-            pass
+            
+            # Si no tiene zona horaria, asumimos UTC para poder aplicar el offset
+            if dt_obj.tzinfo is None:
+                dt_obj = dt_obj.replace(tzinfo=datetime.timezone.utc)
+            
+            # Aplicar el desfase (timezone_offset viene en minutos)
+            local_dt = dt_obj - datetime.timedelta(minutes=timezone_offset)
+            formatted_date = local_dt.replace(tzinfo=None) # Excel no soporta tzinfo en datetime objects fácilmente
+        except Exception as e:
+            print(f"Error procesando fecha en export: {e}")
+            formatted_date = ts_raw
         
         enriched.append({
             **log,
@@ -289,8 +297,7 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
             'difference': (total_rec - expected) if is_latest else 0
         })
     # ─────────────────────────────────────────────────────────────────────────
-
-    df_pl = pl.DataFrame(enriched)
+    df_pl = pl.DataFrame(enriched, infer_schema_length=None)
 
     # Renombrar y seleccionar columnas
     available_cols = {k: v for k, v in col_map.items() if k in df_pl.columns}
@@ -310,12 +317,22 @@ async def export_log(version_date: Optional[str] = None, username: str = Depends
     # Filas
     for row in df_export.iter_rows():
         ws.append(list(row))
+    
+    # Aplicar formato de fecha a la columna "Fecha"
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            if isinstance(cell.value, datetime.datetime):
+                cell.number_format = 'DD/MM/YYYY HH:MM'
         
     # Auto-ajustar ancho de columnas
     for i, col_name in enumerate(df_export.columns, start=1):
         col_letter = get_column_letter(i)
-        col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-        max_data = col_data.str.len_chars().max() or 0
+        try:
+            col_data = df_export[col_name].cast(pl.Utf8, strict=False)
+            max_data = col_data.str.len_chars().max() or 0
+        except:
+            # Fallback para tipos Object (datetime)
+            max_data = max([len(str(v)) for v in df_export[col_name]]) if len(df_export) > 0 else 0
         ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
     output = BytesIO()
@@ -349,11 +366,21 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
         for row in df.iter_rows():
             ws.append(list(row))
 
+        # Aplicar formato de fecha a las celdas que contienen datetime
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if isinstance(cell.value, datetime.datetime):
+                    cell.number_format = 'DD/MM/YYYY HH:MM'
+
         # Auto-ajustar ancho de columnas
         for i, col_name in enumerate(df.columns, start=1):
             col_letter = get_column_letter(i)
-            col_data = df[col_name].cast(pl.Utf8, strict=False)
-            max_data = col_data.str.len_chars().max() or 0
+            try:
+                col_data = df[col_name].cast(pl.Utf8, strict=False)
+                max_data = col_data.str.len_chars().max() or 0
+            except:
+                # Fallback para tipos Object (datetime)
+                max_data = max([len(str(v)) for v in df[col_name]]) if len(df) > 0 else 0
             ws.column_dimensions[col_letter].width = float(max(int(max_data), len(col_name)) + 2)
 
         output = BytesIO()
@@ -382,7 +409,8 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 "Cant. Esperada":     int(r.qty_expected or 0),
                 "Cant. Recibida":     int(r.qty_received or 0),
                 "Diferencia":         int(r.difference or 0),
-            } for r in rows])
+                "Fecha":              (datetime.datetime.fromisoformat(str(r.timestamp).replace('Z', '')) - datetime.timedelta(minutes=timezone_offset)).replace(tzinfo=None) if r.timestamp else None
+            } for r in rows], infer_schema_length=None)
 
             filename = f"snapshot_reconciliacion_{snapshot_date.replace(':', '-')}.xlsx"
             return Response(
@@ -400,7 +428,7 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
             if not result_data:
                 raise HTTPException(status_code=404, detail="No hay datos de conciliación para exportar")
 
-            final_df = pl.DataFrame(result_data)
+            final_df = pl.DataFrame(result_data, infer_schema_length=None)
 
             # Seleccionar y renombrar para el reporte Excel (manteniendo nombres de columnas del reporte)
             df_for_export = final_df.select([
@@ -414,7 +442,23 @@ async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional
                 pl.col("Cant_Esperada").alias("Cant. Esperada"),
                 pl.col("Cant_Recibida").alias("Cant. Recibida"),
                 pl.col("Diferencia").alias("Diferencia"),
+                pl.col("Timestamp").alias("Fecha_ISO")
             ])
+
+            # Ajustar la zona horaria en la columna Fecha usando Polars o mapeo manual
+            def _adjust_tz(val):
+                if not val: return ""
+                try:
+                    clean_ts = str(val).replace(' ', 'T').replace('Z', '')
+                    dt = datetime.datetime.fromisoformat(clean_ts)
+                    local_dt = dt - datetime.timedelta(minutes=timezone_offset)
+                    return local_dt.replace(tzinfo=None)
+                except:
+                    return None
+
+            df_for_export = df_for_export.with_columns(
+                pl.col("Fecha_ISO").map_elements(_adjust_tz, return_dtype=pl.Object).alias("Fecha")
+            ).drop("Fecha_ISO")
 
             utc_now = datetime.datetime.now(datetime.timezone.utc)
             client_time = utc_now - datetime.timedelta(minutes=timezone_offset)

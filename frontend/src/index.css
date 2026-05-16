@@ -1,20 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --sap-font-family: 'Roboto', sans-serif;
+    --sap-font-family: 'Inter', 'Roboto', sans-serif;
+    --sap-font-heading: 'Inter', sans-serif;
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
-    --sap-text: #32363a;
+    --sap-text: #111827; /* Gray-900 para contraste máximo */
+    --sap-text-header: #030712; /* Gray-950 para títulos */
 }
 
 body {
     font-family: var(--sap-font-family);
     color: var(--sap-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -23,9 +28,10 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: var(--sap-font-family);
-    font-weight: 500;
-    /* Usually SAP headers are not super bold */
+    font-family: var(--sap-font-heading);
+    color: var(--sap-text-header);
+    font-weight: 700; /* Incrementado de 500 a 700 para mayor jerarquía */
+    letter-spacing: -0.02em; /* Ajuste tipográfico profesional */
 }
 
 .header-title {
@@ -76,4 +82,13 @@ h6 {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
+}
+
+/* Ocultar barras de desplazamiento manteniendo funcionalidad */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }

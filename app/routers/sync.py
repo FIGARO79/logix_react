@@ -2,7 +2,7 @@ import os
 import time
 import orjson
 from fastapi import APIRouter, Depends, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from typing import Dict, Any
 
 from app.core.config import (
@@ -60,30 +60,28 @@ async def get_master_sync_data(user: str = Depends(login_required)):
         import polars as pl
         summary = (
             csv_handler.df_grn_cache
-            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase())
+            .filter(pl.col("Item_Code").is_not_null())
+            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Code"))
             .agg(pl.col("Quantity").sum().alias("total_expected"))
         )
-        grn_data = {row["Item_Code"]: int(row["total_expected"]) for row in summary.to_dicts()}
+        grn_data = {str(row["Item_Code"]): int(row["total_expected"]) for row in summary.to_dicts() if row["Item_Code"]}
 
-    # 3. Xdock (Reservations) - Ya está en memoria
+    # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
     xdock_data = csv_handler.reservation_qty_map
 
     # 4. PO Lookup (Waybill <-> Import Ref)
     po_lookup = {}
     if os.path.exists(PO_LOOKUP_JSON_PATH):
-        import orjson
         try:
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 po_lookup = orjson.loads(f.read())
         except: pass
 
-    return Response(
-        content=orjson.dumps({
-            "timestamp": time.time(),
-            "master_items": master_items,
-            "grn_pending": grn_data,
-            "xdock_reservations": xdock_data,
-            "po_lookup": po_lookup
-        }),
-        media_type="application/json"
-    )
+    # Retornamos ORJSONResponse para mejor integración con middlewares y performance
+    return ORJSONResponse({
+        "timestamp": time.time(),
+        "master_items": master_items,
+        "grn_pending": grn_data,
+        "xdock_reservations": xdock_data,
+        "po_lookup": po_lookup
+    })

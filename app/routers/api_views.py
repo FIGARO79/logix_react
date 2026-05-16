@@ -1,5 +1,4 @@
-import orjson
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text, select, desc, distinct, func
 from sqlalchemy.orm import selectinload
@@ -116,44 +115,49 @@ async def get_reconciliation_data(
                 "Diferencia": r.difference
             } for r in rows]
 
-            return Response(
-                content=orjson.dumps({
-                    "data": result_data,
-                    "archive_versions": archive_versions,
-                    "snapshot_versions": snapshot_versions,
-                    "current_snapshot_date": snapshot_date
-                }),
-                media_type="application/json"
-            )
+            return {
+                "data": result_data,
+                "archive_versions": archive_versions,
+                "snapshot_versions": snapshot_versions,
+                "current_snapshot_date": snapshot_date
+            }
 
         # 2. Lógica de cálculo (Tiempo real o logs archivados) usando el servicio
         result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
         
-        return Response(
-            content=orjson.dumps({
-                "data": result_data,
-                "archive_versions": archive_versions,
-                "snapshot_versions": snapshot_versions,
-                "current_archive_date": archive_date
-            }),
-            media_type="application/json"
-        )
+        return {
+            "data": result_data,
+            "archive_versions": archive_versions,
+            "snapshot_versions": snapshot_versions,
+            "current_archive_date": archive_date
+        }
 
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+class ReconciliationArchiveRequest(BaseModel):
+    data: List[dict]
+    client_timestamp: Optional[str] = None
+
 @router.post("/reconciliation/archive")
 async def archive_reconciliation_snapshot(
-    data: List[dict], 
+    payload: ReconciliationArchiveRequest, 
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        archive_date = await reconciliation_service.create_snapshot(db, data, username)
+        archive_date = await reconciliation_service.create_snapshot(
+            db, 
+            payload.data, 
+            username, 
+            client_timestamp=payload.client_timestamp
+        )
         return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
     except Exception as e:
@@ -325,6 +329,32 @@ async def get_cycle_count_recordings(
         # Valores por defecto si no se encuentra
         cost = 0.0
         weight = 0.0
+        
+        if master_item:
+            try:
+                # Convertir Numeric a float de forma segura
+                cost = float(master_item.cost_per_unit) if master_item.cost_per_unit is not None else 0.0
+                # Intentar extraer peso numérico
+                weight_str = str(master_item.weight_per_unit or "0").replace(" KG", "").replace(",", ".")
+                weight = float(weight_str) if weight_str else 0.0
+            except (ValueError, TypeError):
+                pass
+
+        data.append({
+            "id": rec.id,
+            "planned_date": rec.planned_date,
+            "executed_date": rec.executed_date,
+            "item_code": rec.item_code,
+            "item_description": rec.item_description or (master_item.description if master_item else "N/A"),
+            "bin_location": rec.bin_location,
+            "system_qty": rec.system_qty,
+            "physical_qty": rec.physical_qty,
+            "difference": rec.difference,
+            "username": rec.username or "N/A",
+            "abc_code": rec.abc_code or (master_item.abc_code if master_item else "C"),
+            "unit_cost": cost,
+            "unit_weight": weight
+        })
         stockroom = ""
         item_type = ""
         item_class = ""
@@ -407,10 +437,7 @@ async def get_inbound_logs(
              "quantity": int(log.get('Quantity')) if str(log.get('Quantity')).isdigit() else 0, # Case insensitive fix
         })
         
-    return Response(
-        content=orjson.dumps(cleaned_logs),
-        media_type="application/json"
-    )
+    return cleaned_logs
 
 
 @router.get('/packing_list/{audit_id}', response_model=PackingListResponse)
@@ -478,8 +505,8 @@ async def get_packing_list_data(
 
 @router.get('/occupancy_stats', response_model=Dict[str, Any])
 async def get_occupancy_stats(
-    request: Request, 
-    username: str = Depends(login_required), 
+    request: Request,
+    username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
     """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
@@ -491,3 +518,16 @@ async def get_occupancy_stats(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get('/occupancy_detail', response_model=List[Dict[str, Any]])
+async def get_occupancy_detail(
+    zone: str,
+    level: int,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene el detalle de cada bin para una zona y nivel específicos."""
+    try:
+        details = await slotting_service.get_detailed_occupancy(db, zone, level)
+        return details
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

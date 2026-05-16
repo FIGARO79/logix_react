@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Calibración Logix - 10x10cm</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f4f8;
+        }
+
+        .print-container {
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .qr-frame {
+            width: 100mm;
+            height: 100mm;
+            border: 2px dashed #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 20px auto;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+
+        .logo-text span {
+            color: #0891b2;
+        }
+
+        .instructions {
+            font-size: 12px;
+            color: #64748b;
+            max-width: 300px;
+            margin-top: 20px;
+            line-height: 1.4;
+        }
+
+        .measure-guide {
+            position: absolute;
+            bottom: -25px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: bold;
+            color: #94a3b8;
+        }
+
+        @media print {
+            body { background: white; height: auto; }
+            .print-container { box-shadow: none; padding: 0; }
+            .no-print { display: none; }
+            .qr-frame { border: 1px solid #eee; }
+        }
+
+        .btn-print {
+            background-color: #0891b2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <div class="logo-text">LOGIX<span>3D</span></div>
+        <div style="font-size: 10px; font-weight: bold; color: #64748b; margin-bottom: 20px; letter-spacing: 2px;">SISTEMA DE MEDICIÓN MÉTRICA</div>
+        <div class="qr-frame">
+            <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=LOGIX_METRIC_ANCHOR_10CM&choe=UTF-8" 
+                 alt="QR de Calibración 10x10cm" 
+                 style="width: 90mm; height: 90mm;">
+            <div class="measure-guide">
+                <span>0cm</span>
+                <span>CALIBRACIÓN ESTÁNDAR</span>
+                <span>10cm</span>
+            </div>
+        </div>
+        <div class="instructions">
+            <strong>INSTRUCCIONES DE IMPRESIÓN:</strong><br>
+            1. Imprima en escala 100% (sin "ajustar a página").<br>
+            2. Verifique con una regla que el recuadro mida exactamente 10cm.<br>
+            3. Coloque en el suelo para iniciar la medición.
+        </div>
+        <button class="btn-print no-print" onclick="window.print()">IMPRIMIR AHORA</button>
+    </div>
+</body>
+</html>

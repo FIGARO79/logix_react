@@ -52,10 +52,29 @@ const InboundHistory = () => {
             const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
             const res = await fetch(url, { credentials: 'include' });
             if (!res.ok) throw new Error("Error loading logs");
-            const data = await res.json();
+            const serverData = await res.json();
+
+            // --- Cargar registros pendientes de IndexedDB ---
+            let pendingLogs = [];
+            if (!version) { // Solo mostrar pendientes en la versión actual
+                try {
+                    const db = await getDB();
+                    const allPending = await db.getAll('pending_sync');
+                    pendingLogs = allPending
+                        .filter(p => p.collection === 'inbound')
+                        .map(p => ({
+                            id: p.id,
+                            ...p.payload,
+                            username: 'TÚ (Pendiente)',
+                            is_pending: true
+                        }));
+                } catch (e) { console.error("Error loading pending logs", e); }
+            }
+
+            const combinedData = [...pendingLogs, ...serverData];
 
             // Ordenar por fecha (más reciente primero)
-            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const sortedData = combinedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             // Obtener datos del reporte 280 desde IndexedDB (Cache local)
             const grnMap = {};
@@ -98,7 +117,15 @@ const InboundHistory = () => {
         }
     };
 
-    useEffect(() => { loadLogs(); }, []);
+    useEffect(() => { 
+        loadLogs(); 
+        // Intervalo para refrescar y ver si los pendientes ya se sincronizaron
+        const interval = setInterval(() => {
+            // Solo si no estamos viendo una versión archivada
+            if (!currentVersion) loadLogs();
+        }, 15000);
+        return () => clearInterval(interval);
+    }, [currentVersion]);
 
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -158,7 +185,6 @@ const InboundHistory = () => {
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-slate-700 text-white sticky top-0 z-10">
                             <tr>
-                                <th className="px-2 py-1.5 text-left font-medium">ID</th>
                                 <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
                                 <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>
                                 <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
@@ -176,10 +202,9 @@ const InboundHistory = () => {
                             {loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
                             {!loading && filteredLogs.length === 0 && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
-                                <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-500">{log.id}</td>
+                                <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600 uppercase">{log.username}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap font-bold ${log.is_pending ? 'text-amber-700' : 'text-gray-600'} uppercase`}>{log.username}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>

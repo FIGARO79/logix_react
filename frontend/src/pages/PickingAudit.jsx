@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import DimensionScanner from '../components/DimensionScanner';
+import { useOffline } from '../hooks/useOffline';
+import { getDB, savePendingSync } from '../utils/offlineDb';
+import { downloadPickingTracking, downloadPickingOrder } from '../utils/syncManager';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -32,6 +34,7 @@ const playError = () => createBeep(200, 0.2);
 
 const PickingAudit = () => {
     const { setTitle } = useOutletContext();
+    const { isOnline, pendingCount, syncPendingData } = useOffline();
 
     // -- State --
     // Load Section
@@ -63,6 +66,8 @@ const PickingAudit = () => {
     const [packagesCount, setPackagesCount] = useState('1');
     const [activePackage, setActivePackage] = useState(1);
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
+    const [dimensionScannerOpen, setDimensionScannerOpen] = useState(false);
+    const [packageDimensions, setPackageDimensions] = useState({}); // { 1: {length, width, height, weight} }
 
     useEffect(() => {
         setTitle("Packing");
@@ -77,63 +82,66 @@ const PickingAudit = () => {
     const loadTrackingData = async () => {
         setLoadingTracking(true);
         try {
-            const res = await fetch('/api/picking/tracking', { credentials: 'include' });
-            if (res.ok) {
-                setTrackingData(await res.json());
-                toast.success("Lista actualizada");
+            const data = await downloadPickingTracking();
+            if (data) {
+                setTrackingData(data);
+            } else {
+                // Si falla (offline y no hay caché), intentar leer lo que haya en el store
+                const db = await getDB();
+                const cached = await db.getAll('picking_tracking');
+                setTrackingData(cached || []);
             }
         } catch (e) {
             console.error(e);
-            toast.error("Error actualizando lista");
         } finally {
             setLoadingTracking(false);
         }
     };
 
     const handleLoadOrder = async () => {
-        if (!orderNumber || !despatchNumber) {
-            toast.error("Ingrese Order y Despatch Number");
-            return;
-        }
+        if (!orderNumber || !despatchNumber) return;
         setLoadingOrder(true);
         try {
-            const res = await fetch(`/api/picking/order/${orderNumber}/${despatchNumber}`, { credentials: 'include' }); // Matches picking.py endpoint
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    setCustomerCode(data[0]['Customer Code'] || '');
-                    setCustomerName(data[0]['Customer Name']);
-                    // Map CSV columns to internal state
-                    const items = data.map(row => ({
-                        code: row['Item Code'],
-                        description: row['Item Description'],
-                        order_line: row['Order Line'],
-                        qty_req: parseInt(row['Qty'] || 0),
-                        qty_scan: 0,
-                        difference: 0
-                    }));
-                    setOrderItems(items);
+            let data = await downloadPickingOrder(orderNumber, despatchNumber);
 
-                    // Initialize assignments for dynamic allocation using unique key (code:order_line)
-                    const initialAssignments = {};
-                    items.forEach(item => {
-                        const itemKey = `${item.code}:${item.order_line || ''}`;
-                        initialAssignments[itemKey] = { 1: 0 };
-                    });
-                    setPackageAssignments(initialAssignments);
-                    setPackagesCount('1');
-                    setActivePackage(1);
-
-                    setAuditActive(true);
-                    toast.success("Pedido cargado");
-                } else {
-                    toast.error("Pedido vacio o no encontrado");
+            if (!data) {
+                // Buscar en caché local
+                const db = await getDB();
+                const cached = await db.get('picking_orders', `${orderNumber}_${despatchNumber}`);
+                if (cached) {
+                    data = cached.data;
+                    console.log("Cargado pedido de caché local");
                 }
+            }
+
+            if (data && data.length > 0) {
+                setCustomerCode(data[0]['Customer Code'] || '');
+                setCustomerName(data[0]['Customer Name']);
+                const items = data.map(row => ({
+                    code: row['Item Code'],
+                    description: row['Item Description'],
+                    order_line: row['Order Line'],
+                    qty_req: parseInt(row['Qty'] || 0),
+                    qty_scan: 0,
+                    difference: 0
+                }));
+                setOrderItems(items);
+
+                const initialAssignments = {};
+                items.forEach(item => {
+                    const itemKey = `${item.code}:${item.order_line || ''}`;
+                    initialAssignments[itemKey] = { 1: 0 };
+                });
+                setPackageAssignments(initialAssignments);
+                setPackagesCount('1');
+                setActivePackage(1);
+
+                setAuditActive(true);
             } else {
-                toast.error("Pedido no encontrado");
+                alert("No se pudo cargar el pedido. Verifique la conexión o si fue cacheado previamente.");
             }
         } catch (e) {
-            toast.error("Error de conexión");
+            console.error(e);
         } finally {
             setLoadingOrder(false);
         }
@@ -148,6 +156,7 @@ const PickingAudit = () => {
         setCustomerName('');
         setShowAssignmentModal(false);
         setPackageAssignments({});
+        setPackageDimensions({});
         setPackagesCount('1');
         setActivePackage(1);
         loadTrackingData();
@@ -204,7 +213,6 @@ const PickingAudit = () => {
             playSuccess();
         } else {
             playError();
-            toast.error(`Item NO pertenece al pedido: ${cleanCode}`);
             setItemCodeInput('');
         }
     };
@@ -263,12 +271,9 @@ const PickingAudit = () => {
         setShowQtyModal(false);
         setScannedItem(null);
 
-        const anyOver = newItems.filter(i => i.code === scannedItem.code).some(i => i.qty_scan > i.qty_req);
-        if (!anyOver) {
-            toast.success(`Leído: ${scannedItem.code} (+${totalAdding})`);
-        } else {
+        const hasOver = newItems.some(i => i.qty_scan > i.qty_req);
+        if (hasOver) {
             playError();
-            toast.warning(`Exceso: ${scannedItem.code} (+${totalAdding})`);
         }
     };
 
@@ -297,44 +302,54 @@ const PickingAudit = () => {
                 qty_scan: i.qty_scan
             })),
             packages: parseInt(packagesCount || 0),
-            packages_assignment: packageAssignments
+            packages_assignment: packageAssignments,
+            packages_dimensions: Object.entries(packageDimensions).map(([num, dims]) => ({
+                package_number: parseInt(num),
+                ...dims
+            }))
         };
 
         try {
-            const res = await fetch('/api/save_picking_audit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(payload)
-            });
+            if (isOnline) {
+                const res = await fetch('/api/save_picking_audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                toast.success("Auditoría Finalizada Correctamente");
-                handleReset();
-                setShowConfirmModal(false);
-                setShowAssignmentModal(false);
-                setPackagesCount('1');
-            } else {
-                const err = await res.json();
-                toast.error(err.detail || "Error al guardar");
+                if (res.ok) {
+                    handleReset();
+                    setShowConfirmModal(false);
+                    setShowAssignmentModal(false);
+                    setPackagesCount('1');
+                    return;
+                }
             }
+
+            // Guardar offline si falla o no hay conexión
+            await savePendingSync('picking', payload);
+            alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+            handleReset();
+            setShowConfirmModal(false);
+            setShowAssignmentModal(false);
+            setPackagesCount('1');
+
         } catch (e) {
-            toast.error("Error de conexión");
+            console.error(e);
+            // Reintento offline forzado
+            await savePendingSync('picking', payload);
+            handleReset();
+            setShowConfirmModal(false);
+            setShowAssignmentModal(false);
         }
     };
 
-    // -- Scanner Effect --
-    // -- Scanner Effect --
-    // -- Scanner Logic --
-    // The previous manual useEffect is removed in favor of ScannerModal
-
-
     // -- Render --
-
     if (auditActive) {
         return (
             <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
-                <ToastContainer position="top-right" autoClose={2000} />
+
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
@@ -342,7 +357,10 @@ const PickingAudit = () => {
                             <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
                             <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerCode} - {customerName}</span></p>
                         </div>
-                        <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
+                        <div className="flex flex-col items-end gap-2">
+                            <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
+                            {!isOnline && <span className="text-[9px] font-bold text-red-500 animate-pulse">MODO OFFLINE</span>}
+                        </div>
                     </div>
 
                     {/* Active Package Selector Compact */}
@@ -350,15 +368,28 @@ const PickingAudit = () => {
                         <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Bulto Activo:</span>
                         <div className="flex gap-1.5 flex-wrap">
                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                <button
-                                    key={i + 1}
-                                    onClick={() => setActivePackage(i + 1)}
-                                    className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
-                                        ? 'bg-[#285f94] text-white shadow-sm'
-                                        : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
-                                >
-                                    {i + 1}
-                                </button>
+                                <div key={i + 1} className="relative">
+                                    <button
+                                        onClick={() => setActivePackage(i + 1)}
+                                        className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
+                                            ? 'bg-[#285f94] text-white shadow-sm'
+                                            : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                    {activePackage === i + 1 && (
+                                        <button 
+                                            onClick={() => setDimensionScannerOpen(true)}
+                                            className="absolute -top-1.5 -right-1.5 bg-white border border-[#285f94] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
+                                            title="Medir Dimensiones"
+                                        >
+                                            📏
+                                        </button>
+                                    )}
+                                    {packageDimensions[i + 1] && (
+                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                                    )}
+                                </div>
                             ))}
 
                             <div className="flex gap-1">
@@ -372,10 +403,7 @@ const PickingAudit = () => {
                                                 if (itemPkgs[currentTotal] > 0) hasAssignments = true;
                                             });
 
-                                            if (hasAssignments) {
-                                                toast.warning("El último bulto no está vacío");
-                                                return;
-                                            }
+                                            if (hasAssignments) return;
 
                                             const newCount = currentTotal - 1;
                                             setPackagesCount(newCount.toString());
@@ -568,10 +596,6 @@ const PickingAudit = () => {
                                     <span className="block text-gray-500 text-[10px] uppercase">Línea</span>
                                     <span className="font-bold text-lg">{scannedItem.order_line}</span>
                                 </div>
-                                <div>
-                                    <span className="block text-gray-500 text-[10px] uppercase">Requerido</span>
-                                    <span className="font-bold text-lg">{scannedItem.qty_req}</span>
-                                </div>
                                 <div className="text-right">
                                     <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
                                     <span className="font-bold text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
@@ -749,17 +773,32 @@ const PickingAudit = () => {
                         </div>
                     </div>
                 )}
+                {/* Dimension Scanner Modal */}
+                {dimensionScannerOpen && (
+                    <DimensionScanner
+                        packageNumber={activePackage}
+                        onConfirm={(dims) => {
+                            setPackageDimensions(prev => ({
+                                ...prev,
+                                [activePackage]: dims
+                            }));
+                            setDimensionScannerOpen(false);
+                        }}
+                        onClose={() => setDimensionScannerOpen(false)}
+                    />
+                )}
             </div>
         );
     }
 
-    // Load Order View
     return (
         <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
-            <ToastContainer position="top-right" autoClose={3000} />
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h1 className="text-[16px] font-normal text-gray-800 mb-6">Cargar Pedido Picking</h1>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-[16px] font-normal text-gray-800">Cargar Pedido Picking</h1>
+                    {!isOnline && <span className="text-[9px] font-bold text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
@@ -797,9 +836,15 @@ const PickingAudit = () => {
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
-                            className={`text-sm ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
+                            className={`flex items-center gap-2 text-sm transition-all ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
                         >
-                            {loadingTracking ? 'Actualizando...' : 'Actualizar'}
+                            <span>Actualizar</span>
+                            {loadingTracking && (
+                                <svg className="animate-spin h-3.5 w-3.5 text-[#285f94]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            )}
                         </button>
                     </div>
                     {/* Desktop View */}

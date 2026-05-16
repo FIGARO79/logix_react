@@ -2,7 +2,7 @@
 Router para endpoints de autenticación y gestión de contraseñas (API ONLY).
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.utils.auth import (
@@ -30,42 +30,49 @@ router = APIRouter(tags=["auth"])
 async def register_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Procesa el registro de un nuevo usuario."""
     if not is_strong_password(password):
-        return JSONResponse(status_code=400, content={"error": "La contraseña no cumple con los requisitos de seguridad."})
+        return ORJSONResponse(status_code=400, content={"error": "La contraseña no cumple con los requisitos de seguridad."})
 
     success = await create_user(db, username, password, is_approved=0)
     if success:
-        return JSONResponse(content={"message": "Registro exitoso. Espera la aprobación del administrador."})
+        return ORJSONResponse(content={"message": "Registro exitoso. Espera la aprobación del administrador."})
     else:
-        return JSONResponse(status_code=400, content={"error": "El nombre de usuario ya existe."})
+        return ORJSONResponse(status_code=400, content={"error": "El nombre de usuario ya existe."})
 
 
 @router.post('/api/login')
 @limiter.limit("5/minute")
 async def login_api(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
     """API: Procesa el login de un usuario y retorna JSON."""
-    valid, status_msg = await verify_user(db, username, password)
-    
-    if status_msg == "approved":
-        # Prevenir Session Fixation: Limpiar sesión previa
-        request.session.clear()
-        request.session['user'] = username
-        # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
-        result = await db.execute(select(User).where(User.username == username))
-        user_obj = result.scalar_one_or_none()
-        user_data = user_obj.to_dict() if user_obj else {"username": username, "permissions": ""}
+    try:
+        valid, status_msg = await verify_user(db, username, password)
         
-        return JSONResponse(content={"message": "Login successful", "user": user_data})
-    elif status_msg == "pending":
-        return JSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
-    else:
-        return JSONResponse(status_code=401, content={"error": "Nombre de usuario o contraseña incorrectos."})
+        if status_msg == "approved":
+            # Prevenir Session Fixation: Limpiar sesión previa
+            request.session.clear()
+            request.session['user'] = username
+            # Obtener detalles del usuario para enviarlos al frontend (frontend permissions)
+            result = await db.execute(select(User).where(User.username == username))
+            user_obj = result.scalar_one_or_none()
+            user_data = user_obj.to_dict() if user_obj else {"username": username, "permissions": ""}
+            
+            return ORJSONResponse(content={"message": "Login successful", "user": user_data})
+        elif status_msg == "pending":
+            return ORJSONResponse(status_code=403, content={"error": "Tu cuenta está pendiente de aprobación por el administrador."})
+        else:
+            return ORJSONResponse(status_code=401, content={"error": "Nombre de usuario o contraseña incorrectos."})
+    except Exception as e:
+        import traceback
+        error_msg = f"Error interno en login_api: {str(e)}"
+        print(f"ERROR: {error_msg}")
+        print(traceback.format_exc())
+        return ORJSONResponse(status_code=500, content={"error": error_msg, "traceback": traceback.format_exc()})
 
 
 @router.post('/api/logout')
 async def logout_api(request: Request):
     """API: Cierra la sesión del usuario."""
     user = request.session.pop('user', None)
-    return JSONResponse(content={"message": "Logout successful", "username": user})
+    return ORJSONResponse(content={"message": "Logout successful", "username": user})
 
 
 @router.post('/api/set_password')
@@ -74,20 +81,20 @@ async def set_password_api(token: str = Form(...), new_password: str = Form(...)
     token_data = await get_token_data(db, token)
 
     if not token_data or token_data.used or datetime.datetime.fromisoformat(token_data.expires_at) < datetime.datetime.now(datetime.timezone.utc):
-        return JSONResponse(status_code=400, content={"error": "Token inválido o expirado."})
+        return ORJSONResponse(status_code=400, content={"error": "Token inválido o expirado."})
 
     if new_password != confirm_password:
-        return JSONResponse(status_code=400, content={"error": "Las contraseñas no coinciden."})
+        return ORJSONResponse(status_code=400, content={"error": "Las contraseñas no coinciden."})
 
     if not is_strong_password(new_password):
-        return JSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos."})
+        return ORJSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres, incluir letras y dígitos."})
     
     success = await reset_user_password(db, token_data.user_id, new_password)
     if success:
         await mark_token_as_used(db, token)
-        return JSONResponse(content={"message": "Contraseña actualizada con éxito."})
+        return ORJSONResponse(content={"message": "Contraseña actualizada con éxito."})
     
-    return JSONResponse(status_code=500, content={"error": "Ocurrió un error al actualizar la contraseña."})
+    return ORJSONResponse(status_code=500, content={"error": "Ocurrió un error al actualizar la contraseña."})
 
 
 @router.post('/api/admin/generate_reset_token/{user_id}')
@@ -102,7 +109,7 @@ async def admin_generate_reset_token_api(request: Request, user_id: int, admin: 
 
     token = await generate_password_reset_token(db, user_id)
     
-    return JSONResponse(content={
+    return ORJSONResponse(content={
         "message": f"Token generado correctamente.",
         "reset_token": token,
         "reset_user": user['username'],

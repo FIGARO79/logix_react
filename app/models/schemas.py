@@ -1,9 +1,5 @@
-"""
-Modelos Pydantic para la aplicación.
-"""
 from typing import Optional, List
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
 
 class LogEntry(BaseModel):
     """Modelo para registros de entrada de mercancía."""
@@ -12,31 +8,12 @@ class LogEntry(BaseModel):
     itemCode: str
     quantity: int
     relocatedBin: Optional[str] = ''
-    observaciones: Optional[str] = ''
-
-
-class Count(BaseModel):
-    """Modelo para conteos básicos."""
-    item_code: str
-    quantity: int
-    location: Optional[str] = 'N/A'
-
-
-class StockCount(BaseModel):
-    """Modelo para conteos de inventario con sesión."""
-    session_id: int
-    item_code: str
-    counted_qty: int
-    counted_location: str
-    description: Optional[str] = ''
-    bin_location_system: Optional[str] = ''
-
+    client_id: Optional[str] = None
 
 class CloseLocationRequest(BaseModel):
     """Modelo para cerrar una ubicación en conteo."""
     session_id: int
     location_code: str
-
 
 class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
@@ -46,6 +23,13 @@ class PickingAuditItem(BaseModel):
     qty_req: int
     qty_scan: int
 
+class PackageDimension(BaseModel):
+    """Modelo para dimensiones físicas de un bulto."""
+    package_number: int
+    length: float
+    width: float
+    height: float
+    weight: Optional[float] = 0
 
 class PickingAudit(BaseModel):
     """Modelo para auditoría completa de picking."""
@@ -57,9 +41,7 @@ class PickingAudit(BaseModel):
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
-
-
-from pydantic import BaseModel, Field
+    packages_dimensions: Optional[List[PackageDimension]] = [] # Dimensiones de cada bulto
 
 class CountExecutionItem(BaseModel):
     item_code: str
@@ -106,9 +88,13 @@ class GRNMasterResponse(GRNMasterBase):
     class Config:
         from_attributes = True
 
-
 class ShipmentCreate(BaseModel):
     """Modelo para crear un envío consolidado."""
     audit_ids: List[int]
     note: Optional[str] = None
     carrier: Optional[str] = None
+
+class GRNBulkDeleteRequest(BaseModel):
+    """Modelo para la eliminación masiva de GRNs."""
+    grn_numbers: List[str]
+    password: str

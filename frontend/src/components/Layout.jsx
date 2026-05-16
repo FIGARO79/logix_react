@@ -12,6 +12,8 @@ import StockSearch from '../pages/StockSearch';
 import PickingAuditHistory from '../pages/PickingAuditHistory';
 import Inbound from '../pages/Inbound';
 import CycleCounts from '../pages/CycleCounts';
+import ExpressAudit from '../pages/ExpressAudit';
+import SpotCheck from '../pages/SpotCheck';
 import LabelPrinting from '../pages/LabelPrinting';
 import Planner from '../pages/Planner';
 import PlannerExecution from '../pages/PlannerExecution';
@@ -26,7 +28,7 @@ import EditCount from '../pages/EditCount';
 import InboundHistory from '../pages/InboundHistory';
 import Update from '../pages/Update';
 import CycleCountHistory from '../pages/CycleCountHistory';
-import DashboardInventario from '../pages/DashboardInventario';
+import DashboardInventario from './../pages/DashboardInventario';
 import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
@@ -38,6 +40,7 @@ const ROUTE_MAP = [
     { path: '/inbound', component: Inbound },
     { path: '/reconciliation', component: Reconciliation },
     { path: '/stock', component: StockSearch },
+    { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
     { path: '/label', component: LabelPrinting },
     { path: '/planner', component: Planner },
@@ -46,6 +49,7 @@ const ROUTE_MAP = [
     { path: '/picking', component: PickingAudit },
     { path: '/view_logs', component: InboundHistory },
     { path: '/counts', component: CycleCounts },
+    { path: '/express-audit', component: ExpressAudit },
     { path: '/counts/manage', component: ManageCounts },
     { path: '/view_counts', component: ViewCounts },
     { path: '/counts/manage_differences', component: ManageCountDifferences },
@@ -90,32 +94,38 @@ const resolveComponent = (path) => {
 };
 
 const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
-    const [initialized, setInitialized] = useState(false);
-    const resolved = resolveComponent(tab.path);
+    const [initialized, setInitialized] = useState(isActive);
+    const lastRefreshKey = useRef(tab.refreshKey || 0);
+    const resolved = useMemo(() => resolveComponent(tab.path), [tab.path]);
 
-    // Activar inicialización solo cuando la pestaña sea la activa
+    // Activar inicialización si la pestaña se vuelve activa y no lo estaba
     useEffect(() => {
         if (isActive && !initialized) {
             setInitialized(true);
         }
     }, [isActive, initialized]);
 
-    // Escuchar cambios en refreshKey para forzar un remontaje
+    // Manejar el refresco forzado solo si el refreshKey aumenta (evita disparos en el mount si ya era > 0)
     useEffect(() => {
-        if (tab.refreshKey > 0) {
+        if (tab.refreshKey > lastRefreshKey.current) {
             setInitialized(false);
+            // El useEffect de arriba se encargará de volver a ponerlo en true si isActive es true
+            lastRefreshKey.current = tab.refreshKey;
         }
     }, [tab.refreshKey]);
-
-    if (!resolved) return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
-
-    const { Component } = resolved;
 
     const tabSetTitle = useCallback((newTitle) => {
         onTitleChange(tab.id, newTitle);
     }, [tab.id, onTitleChange]);
 
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
+    // Retorno anticipado DESPUÉS de que todos los hooks han sido declarados
+    if (!resolved) {
+        return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
+    }
+
+    const { Component } = resolved;
 
     return (
         <div
@@ -157,7 +167,11 @@ const Layout = () => {
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const savedActive = localStorage.getItem('logix_active_tab');
-        return savedActive || (tabs.length > 0 ? tabs[0].id : null);
+        // Validar que el ID guardado realmente exista en la lista de pestañas cargada
+        if (savedActive && tabs.some(t => t.id === savedActive)) {
+            return savedActive;
+        }
+        return tabs.length > 0 ? tabs[0].id : null;
     });
 
     useEffect(() => {
@@ -245,7 +259,7 @@ const Layout = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
-            {/* Header Sincronizado a 48px */}
+            {/* Header / Shell Bar */}
             <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden border-none">
                 <button
                     className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
@@ -331,14 +345,15 @@ const Layout = () => {
                         <MenuItem to="/inventory-dashboard" label="Métricas" onClick={toggleMenu} />
                         <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
                         <MenuItem to="/planner/manage_differences" label="Diferencias" onClick={toggleMenu} />
-                        <MenuItem to="/counts" label="Conteo W2W" onClick={toggleMenu} />
+                        <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
-                        <MenuItem to="/occupancy" label="Slotting" onClick={toggleMenu} />
+                        <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-8">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
                         <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
+                        <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
                         <button
                             className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-bold tracking-widest text-left"

@@ -32,6 +32,7 @@ const Inbound = () => {
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+        const [validBins, setValidBins] = useState(new Set());
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
@@ -103,6 +104,7 @@ const Inbound = () => {
     useEffect(() => {
         loadLogs();
         loadVersions();
+        loadSlottingBins();
 
         // Check inicial
         runAutoSync();
@@ -121,6 +123,20 @@ const Inbound = () => {
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
+
+    const loadSlottingBins = async () => {
+        try {
+            const res = await fetch('/static/json/slotting_parameters.json');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.storage) {
+                    setValidBins(new Set(Object.keys(data.storage).map(b => b.toUpperCase())));
+                }
+            }
+        } catch (e) {
+            console.error("Error loading slotting bins", e);
+        }
+    };
 
     // Filter logs based on search term
     const filteredLogs = logs.filter(log =>
@@ -346,10 +362,10 @@ const Inbound = () => {
                     const xdockRemanente = Math.max(0, totalRes - localCumulative);
 
                     let offlineSuggestedBin = null;
-                    if (xdockRemanente > 0) {
-                        offlineSuggestedBin = 'XDOCK';
-                    } else if (recentRelocation) {
+                    if (recentRelocation) {
                         offlineSuggestedBin = recentRelocation.payload.relocatedBin;
+                    } else {
+                        offlineSuggestedBin = localItem.Bin_1;
                     }
 
                     setItemData({
@@ -387,6 +403,16 @@ const Inbound = () => {
     const handleSaveLog = async (e) => {
         e.preventDefault();
         if (!itemData) return alert("Busque un item primero");
+
+        // Validación de Ubicación (Slotting)
+        if (relocatedBin.trim()) {
+            const normalizedBin = relocatedBin.trim().toUpperCase();
+            if (validBins.size > 0 && normalizedBin !== 'XDOCK' && !validBins.has(normalizedBin)) {
+                alert(`La ubicación "${normalizedBin}" no existe.`);
+                return;
+            }
+        }
+
         if (isSaving) return; // Bloquear doble clic
         setIsSaving(true);
 
@@ -401,7 +427,8 @@ const Inbound = () => {
             relocatedBin: relocatedBin.trim().toUpperCase(),
             binLocation: itemData.binLocation,
             qtyGrn: itemData.defaultQtyGrn,
-            client_id: targetClientId
+            client_id: targetClientId,
+            timestamp: new Date().toISOString()
         };
 
         try {
@@ -438,8 +465,15 @@ const Inbound = () => {
 
             // Guardar offline
             await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
+            if (navigator.onLine) {
+                syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
+            }
             if (!hasWarnedOffline) {
-                alert("Guardado localmente (Offline).");
+                if (!navigator.onLine) {
+                    alert("Guardado localmente (Offline).");
+                } else {
+                    console.log("Logix: Requerimiento encolado localmente por fallo temporal de red.");
+                }
                 setHasWarnedOffline(true);
             }
             loadLogs(); resetForm();
@@ -520,8 +554,8 @@ const Inbound = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
-                            <div className="bg-white text-gray-900 px-2 py-0 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-normal tracking-tight">Inbound - Recepción</h1>
+                            <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
+                                <h1 className="text-base font-semibold tracking-tight uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
@@ -537,18 +571,23 @@ const Inbound = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                    <label className="form-label">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." required />
+                                    <label className="form-label font-semibold text-gray-800">Import Reference</label>
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-semibold text-black" required />
                                 </div>
                                 <div>
-                                    <label className="form-label">Waybill</label>
-                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." required />
+                                    <label className="form-label font-semibold text-gray-800">Waybill</label>
+                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-semibold text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="form-label">Item Code</label>
+                                    <label className="form-label font-semibold text-gray-800">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" required disabled={!!editId} />
-                                        <button type="button" className="btn-sap btn-secondary" onClick={findItem} disabled={loading}>
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-semibold text-black" required disabled={!!editId} />
+                                        <button 
+                                            type="button" 
+                                            className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
+                                            onClick={findItem} 
+                                            disabled={loading}
+                                        >
                                             {loading ? '...' : (
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -556,67 +595,86 @@ const Inbound = () => {
                                             )}
                                         </button>
                                         {!editId && (
-                                            <button type="button" className="btn-sap btn-secondary" onClick={() => setScannerOpen(true)} title="Escanear">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
+                                            <button 
+                                                type="button" 
+                                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
+                                                onClick={() => setScannerOpen(true)} 
+                                                title="Escanear"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 26 26" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mb-4"><label className="form-label">Item Description</label><div className="data-field">{itemData?.description || ''}</div></div>
+                            <div className="mb-4"><label className="form-label font-semibold text-gray-800">Item Description</label><div className="data-field font-semibold text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} required min="1" /></div>
-                                <div><label className="form-label">Bin (Original)</label><div className="data-field">{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-semibold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
-                                            <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">XDOCK</h4>
-                                                <div className="flex flex-col gap-0.5 text-black">
-                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase font-normal text-red-600"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
+                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                                <div className="flex flex-col gap-0.5 text-black font-semibold">
+                                                    <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
+                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-semibold"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
 
                                         {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                            <div className="bg-gray-50 border border-red-200 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-normal uppercase text-red-600 mb-1 border-b border-red-100 pb-0.5">RESERVAS:</h4>
-                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1">
+                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
+                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-semibold">
                                                     {itemData.xdockCustomers.map((c, idx) => (
                                                         <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                            <div className="pr-2 text-black uppercase truncate"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                            <span className="text-red-600 whitespace-nowrap">{c?.qty || 0} UN</span>
+                                                            <div className="pr-2 text-black uppercase truncate font-semibold"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                            <span className="text-red-700 whitespace-nowrap font-semibold">{c?.qty || 0} UN</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-400 italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-semibold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
                                         {itemData?.suggestedBin ? (
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded p-2 shadow-sm cursor-pointer hover:bg-emerald-100" onClick={() => setRelocatedBin(itemData.suggestedBin)}>
-                                                <div className="flex justify-between border-b border-emerald-100 pb-0.5 mb-1"><span className="text-[10px] font-normal uppercase text-emerald-700">Sugerida</span><span className="text-[8px] italic text-gray-500">Tap usar</span></div>
-                                                <div className="flex items-center gap-2"><svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span className="text-sm font-mono font-bold text-gray-800">{itemData.suggestedBin}</span></div>
+                                            <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
+                                                <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
+                                                    <span className={`text-[10px] font-semibold uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+                                                        {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
+                                                    </span>
+                                                    <span className="text-[8px] italic text-zinc-600 font-semibold">Tap usar</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="text-base font-mono font-semibold text-black">{itemData.suggestedBin}</span>
+                                                    {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
+                                                        <span className="ml-auto text-[10px] font-semibold bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>
                                 )}
-                                <div><label className="form-label">Aditional Bins</label><div className="data-field text-xs">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label">ABC Type</label><div className="data-field">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label">SIC Code</label><div className="data-field">{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
                             </div>
 
-                            <div className="bg-gray-50 p-4 border border-gray-300 rounded mb-4">
-                                <h3 className="text-xs font-medium uppercase text-gray-700 border-b-2 border-[#285f94] pb-1 mb-3">Resumen</h3>
+                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
+                                <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label">Total Recibido</label><div className="data-field font-bold text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label">Esperado</label><div className="data-field font-bold text-gray-700">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label">Diferencia</label><div className={`data-field font-bold ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-600' :
-                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-600' : 'text-gray-900'
+                                    <div><label className="form-label font-semibold text-gray-800">Recibido</label><div className="data-field font-semibold text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-semibold text-gray-800">Esperado</label><div className="data-field font-semibold text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-semibold text-gray-800">Diferencia</label><div className={`data-field font-semibold text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                                        (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
@@ -624,7 +682,10 @@ const Inbound = () => {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className={`btn-sap btn-primary w-60 h-10 flex items-center justify-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background='#1e4a74')}
+                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background='#285f94')}
                                 >
                                     {isSaving ? (
                                         <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
@@ -632,7 +693,15 @@ const Inbound = () => {
                                         editId ? 'Guardar Cambios' : 'Añadir Registro'
                                     )}
                                 </button>
-                                {editId && <button type="button" onClick={resetForm} className="btn-sap btn-secondary w-60 h-10">Cancelar</button>}
+                                {editId && (
+                                    <button 
+                                        type="button" 
+                                        onClick={resetForm} 
+                                        className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
                             </div>
 
                         </div>
@@ -650,38 +719,121 @@ const Inbound = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="w-full flex justify-center mt-4"><button type="button" onClick={handlePrint} className="btn-sap btn-primary btn-print-label h-10" disabled={!itemData}>Imprimir</button></div>
+                            <div className="w-full flex justify-center mt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={handlePrint} 
+                                    className="h-9 px-8 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background='#1e4a74')}
+                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background='#285f94')}
+                                    disabled={!itemData}
+                                >
+                                    Imprimir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
 
-                <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
-                    <div className="bg-gray-50 text-gray-900 px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0">
-                        <h2 className="text-base font-normal tracking-tight">Registros</h2>
-                        <div className="flex gap-2 items-center">
-                            <div className="relative w-full sm:w-72">
-                                <input type="text" placeholder="Buscar..." className="h-8 pl-3 pr-8 text-xs border border-gray-300 rounded w-full outline-none focus:border-[var(--sap-primary)]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
+                    <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
+                        <h2 className="text-base font-semibold text-black tracking-tight uppercase">Registros de Sesión</h2>
+                        <div className="flex flex-wrap gap-2 items-center justify-end">
+                            <div className="relative w-full sm:w-64">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    placeholder="BUSCAR..." 
+                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all" 
+                                    style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                />
                                 {searchTerm && (
-                                    <button type="button" onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none bg-transparent">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setSearchTerm('')} 
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-semibold"
+                                        title="Limpiar búsqueda"
+                                    >
+                                        ✕
                                     </button>
                                 )}
                             </div>
-                            <button onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'} className="h-8 px-4 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-all">Exportar</button>
-                            <select onChange={(e) => loadLogs(e.target.value)} className="h-8 px-3 text-xs bg-white border border-gray-300 rounded outline-none focus:border-[var(--sap-primary)] w-full sm:w-40"><option value="">-- Actual --</option>{versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}</select>
-                            <button onClick={handleArchive} className="h-8 px-4 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-all">Archivar</button>
+                            
+                            <select 
+                                onChange={(e) => loadLogs(e.target.value)} 
+                                className="h-9 px-3 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
+                            >
+                                <option value="">ACTUAL</option>
+                                {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
+                            </select>
+
+                            <button 
+                                onClick={() => {
+                                    const offset = new Date().getTimezoneOffset();
+                                    const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
+                                    window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
+                                }} 
+                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#285f94' }}
+                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            >
+                                Exportar
+                            </button>
+                            
+                            <button 
+                                onClick={handleArchive} 
+                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#285f94' }}
+                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                            >
+                                Archivar
+                            </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-700 text-white sticky top-0 z-20"><tr><th className="px-2 py-0.5 text-left">Ref</th><th className="px-2 py-0.5 text-left">Waybill</th><th className="px-2 py-0.5 text-left">Item</th><th className="px-2 py-0.5 text-left">Desc</th><th className="px-2 py-0.5 text-left">Orig</th><th className="px-2 py-0.5 text-left">New</th><th className="px-2 py-0.5 text-center">Qty</th><th className="px-2 py-0.5 text-center">Esp.</th><th className="px-2 py-0.5 text-center">Dif.</th><th className="px-2 py-0.5 text-left">Fecha</th><th className="px-2 py-0.5 text-left">User</th><th className="px-2 py-0.5 text-center">Acc</th></tr></thead>
+                            <thead className="sticky top-0 z-20">
+                                <tr style={{ background: '#111827' }} className="text-white">
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Item</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">New</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">User</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Acc</th>
+                                </tr>
+                            </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
-                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-0.5">{log.importReference}</td><td className="px-2 py-0.5">{log.waybill}</td><td className="px-2 py-0.5 font-mono">{log.itemCode}</td><td className="px-2 py-0.5 truncate max-w-[180px]">{log.itemDescription}</td><td className="px-2 py-0.5">{log.binLocation}</td><td className="px-2 py-0.5">{log.relocatedBin}</td><td className="px-2 py-0.5 text-center">{log.qtyReceived}</td><td className="px-2 py-0.5 text-center">{log.expected_qty || 0}</td><td className={`px-2 py-0.5 text-center font-semibold ${(log.difference || 0) > 0 ? 'text-blue-600' :
-                                            (log.difference || 0) < 0 ? 'text-red-600' : 'text-gray-900'
-                                            }`}>{log.difference || 0}</td><td className="px-2 py-0.5 whitespace-nowrap">{formatDate(log.timestamp)}</td><td className="px-2 py-0.5 uppercase">{log.username}</td>
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
+                                        <td className="px-2 py-1 font-normal text-gray-900">{log.importReference}</td>
+                                        <td className="px-2 py-1 font-normal text-gray-900">{log.waybill}</td>
+                                        <td className="px-2 py-1 font-normal text-black font-mono">{log.itemCode}</td>
+                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-gray-800">{log.itemDescription}</td>
+                                        <td className="px-2 py-1 font-normal text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-emerald-900">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-gray-700">{log.expected_qty || 0}</td>
+                                        <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
+                                            (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
+                                            }`}>{log.difference || 0}</td>
+                                        <td className="px-2 py-1 whitespace-nowrap text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1 uppercase font-normal text-gray-800">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">

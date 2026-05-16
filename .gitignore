@@ -45,11 +45,12 @@ mysql.txt
 *.backup
 VPS_ubuntu.md
 dev.sh
+dev.ps1
+dev.bat
 *.conf
 *.jpg
-*.png
 *.jpeg
-
+*.png
 
 
 # Mantener archivos importantes aunque sean txt o md
@@ -64,7 +65,7 @@ databases/*.csv
 
 # Ignorar archivos de caché generados automáticamente
 databases/*.json
-static/json_cache/*.json
+static/json/*.json
 
 # Certificados SSL locales
 certs/
@@ -79,4 +80,17 @@ frontend/node_modules/
 # Guía de despliegue con claves
 vm_setup/GUIA_DESPLIEGUE_OVH.md
 
-static/json/*.json
+reservation_cache.json
+planner_config.json
+ai_slotting_memory.json
+po_lookup.json
+grn_master_data.json
+
+# Scripts de inicio locales
+start_backend.ps1
+start_backend.bat
+start_wsl.sh
+.venv_wsl/
+
+# Agentes IA y herramientas locales
+.agents/

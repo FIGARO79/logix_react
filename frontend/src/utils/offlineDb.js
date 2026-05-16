@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
@@ -45,6 +45,17 @@ export const initDB = async () => {
             // --- Nuevas tablas Versión 3 ---
             if (!db.objectStoreNames.contains('planner_daily_items')) {
                 db.createObjectStore('planner_daily_items', { keyPath: 'id' }); // id será date_itemcode
+            }
+
+            // --- Nuevas tablas Versión 4 (Picking & Counts) ---
+            if (!db.objectStoreNames.contains('picking_tracking')) {
+                db.createObjectStore('picking_tracking', { keyPath: 'order_number' });
+            }
+            if (!db.objectStoreNames.contains('picking_orders')) {
+                db.createObjectStore('picking_orders', { keyPath: 'id' }); // id será order_despatch
+            }
+            if (!db.objectStoreNames.contains('active_sessions')) {
+                db.createObjectStore('active_sessions', { keyPath: 'type' }); // type: 'cycle_count'
             }
         },
     });

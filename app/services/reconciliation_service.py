@@ -50,6 +50,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         ])
 
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill
+        # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
         grn_to_ir_list = []
 
         # A. Desde grn_master_data.json
@@ -106,6 +107,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         ])
 
         # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
+        # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
         df_expected_with_ir = df_280.join(
             df_grn_master,
             left_on="GRN_Number",
@@ -131,7 +133,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             how="left"
         )
 
-        # 8. Manejo de ítems "Invasores"
+        # 8. Manejo de ítems "Invasores" (Recibidos en una IR pero no en el GRN de esa IR)
         logs_sin_grn = logs_grouped.join(
             df_expected_with_ir.select(["ir_map", "Item_Code"]).unique(),
             left_on=["importReference", "itemCode"], right_on=["ir_map", "Item_Code"],
@@ -165,6 +167,12 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("relocatedBin").fill_null("")
         ])
 
+        # Extraer el timestamp de los logs (el más reciente para el grupo)
+        df_timestamps = logs_pl.group_by(["importReference", "itemCode"]).agg([
+            pl.col("timestamp").last().alias("timestamp_log")
+        ])
+        final = final.join(df_timestamps, left_on=["ir_map", "Item_Code"], right_on=["importReference", "itemCode"], how="left")
+
         # Ocultar diferencias duplicadas en la vista
         final = final.sort(["ir_map", "Item_Code", "GRN_Number"])
         final = final.with_columns([
@@ -187,7 +195,8 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("relocatedBin").alias("Reubicado"),
             pl.col("Cant_Linea").alias("Cant_Esperada"),
             pl.col("Cant_Recibida"),
-            pl.col("Diferencia")
+            pl.col("Diferencia"),
+            pl.col("timestamp_log").alias("Timestamp")
         ]).sort(["Import_Reference", "GRN"]).to_dicts()
 
     except Exception as e:
@@ -196,11 +205,20 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         print(traceback.format_exc())
         return []
 
-async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False):
+async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False, client_timestamp: Optional[str] = None):
     """Guarda un snapshot de conciliación en la DB."""
     prefix = "AUTO-" if is_auto else ""
-    archive_date = f"{prefix}{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     
+    # Priorizar el timestamp del cliente si viene (ej: para respetar la hora de la bodega)
+    base_time_str = client_timestamp if client_timestamp else datetime.datetime.now().isoformat()
+    
+    try:
+        # Formatear el archive_date (ID del lote) para que sea legible
+        dt_obj = datetime.datetime.fromisoformat(base_time_str.replace('Z', ''))
+        archive_date = f"{prefix}{dt_obj.strftime('%Y-%m-%d %H:%M:%S')}"
+    except:
+        archive_date = f"{prefix}{base_time_str}"
+
     records = [
         ReconciliationHistory(
             archive_date=archive_date,
@@ -214,7 +232,8 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
             qty_expected=int(row.get('Cant_Esperada', 0)),
             qty_received=int(row.get('Cant_Recibida', 0)),
             difference=int(row.get('Diferencia', 0)),
-            username=username
+            username=username,
+            timestamp=row.get('Timestamp') or base_time_str
         ) for row in data
     ]
     

@@ -14,6 +14,7 @@ if ASYNC_DB_URL.startswith("sqlite"):
 # Argumentos base del motor asíncrono
 engine_kwargs = {
     "echo": False, # Cambiar a True para ver las consultas SQL en consola
+    "future": True,
     "pool_recycle": 280,
     "connect_args": connect_args
 }

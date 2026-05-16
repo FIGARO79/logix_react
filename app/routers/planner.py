@@ -16,7 +16,7 @@ from app.models.schemas import CountExecutionRequest
 from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
 from app.services import csv_handler
 from app.utils.auth import login_required, permission_required
-from app.services.db_logs import add_log
+
 import orjson
 import os
 from pydantic import BaseModel
@@ -282,16 +282,36 @@ async def update_count_plan(start_date: str = Query(...), end_date: str = Query(
 
 @router.get("/execution/daily_items")
 async def get_daily_items_for_execution(date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    # 1. Verificar siempre conteos previos en la base de datos para esta fecha
+    res_prev = await db.execute(select(CycleCountRecording).where(CycleCountRecording.planned_date == date))
+    prev_counts = res_prev.scalars().all()
+
+    has_previous_counts = len(prev_counts) > 0
+    items_with_diff_count = len([r for r in prev_counts if r.difference != 0])
+    previous_count_total = len(prev_counts)
+
+    # 2. Intentar cargar ítems planificados
     plan_data = load_plan_data()
-    if not plan_data or "details" not in plan_data:
-        return {"items": [], "has_previous_counts": False}
-    
-    daily_items = [item for item in plan_data["details"] if item.get("Planned Date") == date]
+    daily_items = []
+
+    if plan_data and "details" in plan_data:
+        daily_items = [item for item in plan_data["details"] if item.get("Planned Date") == date]
+
+    # Si no hay plan para hoy y tampoco hay conteos previos, retornar vacío rápido
+    if not daily_items and not has_previous_counts:
+        return {
+            "items": [], 
+            "has_previous_counts": False,
+            "previous_count": 0,
+            "items_with_diff_count": 0
+        }
+
     item_codes = [item.get("Item Code") for item in daily_items]
-    
+
+    # Obtener info maestra para los ítems del plan
     res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
     master_map = {m.item_code: m for m in res_master.scalars().all()}
-    
+
     enriched = []
     for item in daily_items:
         m = master_map.get(item.get("Item Code"))
@@ -304,7 +324,46 @@ async def get_daily_items_for_execution(date: str = Query(...), username: str = 
             "system_qty": m.physical_qty if m else 0,
             "planned_date": date
         })
-    return {"items": sorted(enriched, key=lambda x: x["bin_location"])}
+
+    return {
+        "items": sorted(enriched, key=lambda x: x["bin_location"]),
+        "has_previous_counts": has_previous_counts,
+        "previous_count": previous_count_total,
+        "items_with_diff_count": items_with_diff_count
+    }
+@router.get("/execution/items_with_differences")
+async def get_items_with_differences(date: str = Query(...), username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
+    """Carga solo los ítems que tuvieron diferencias en conteos previos para reconteo."""
+    res_prev = await db.execute(select(CycleCountRecording).where(
+        CycleCountRecording.planned_date == date,
+        CycleCountRecording.difference != 0
+    ))
+    prev_items = res_prev.scalars().all()
+    
+    if not prev_items:
+        return {"items": [], "total_items_with_diff": 0}
+        
+    item_codes = [r.item_code for r in prev_items]
+    res_master = await db.execute(select(MasterItem).where(MasterItem.item_code.in_(item_codes)))
+    master_map = {m.item_code: m for m in res_master.scalars().all()}
+    
+    enriched = []
+    for prev in prev_items:
+        m = master_map.get(prev.item_code)
+        enriched.append({
+            "item_code": prev.item_code,
+            "description": prev.item_description,
+            "abc_code": prev.abc_code or (m.abc_code if m else "C"),
+            "bin_location": m.bin_1 if m else (prev.bin_location or "N/A"),
+            "additional_locations": m.additional_bin if m and m.additional_bin else "",
+            "system_qty": m.physical_qty if m else prev.system_qty,
+            "planned_date": date
+        })
+        
+    return {
+        "items": sorted(enriched, key=lambda x: x["bin_location"]),
+        "total_items_with_diff": len(enriched)
+    }
 
 @router.post("/execution/save")
 async def save_daily_execution(execution_data: CountExecutionRequest, username: str = Depends(permission_required("planner")), db: AsyncSession = Depends(get_db)):
@@ -327,8 +386,6 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
             existing = res_exist.scalar_one_or_none()
             
             if existing:
-                if existing.physical_qty != physical:
-                    await add_log(db, username, "PLANNER", f"Update {item.item_code}: {existing.physical_qty}->{physical}")
                 existing.physical_qty, existing.system_qty = physical, system
                 existing.difference, existing.username, existing.executed_date = physical - system, username, today_iso
                 updated += 1
@@ -350,7 +407,7 @@ async def save_daily_execution(execution_data: CountExecutionRequest, username: 
                     abc_code=m_item.abc_code
                 ))
                 saved += 1
-                await add_log(db, username, "PLANNER", f"New count: {item.item_code}={physical}")
+
 
         await db.commit()
         return {"message": f"Guardados: {saved} nuevos, {updated} actualizados."}

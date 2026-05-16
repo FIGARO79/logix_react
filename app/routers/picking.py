@@ -5,7 +5,7 @@ import os
 import datetime
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
@@ -25,9 +25,15 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
-        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER", "CUSTOMER_NAME", "ORDER_LINE"]
-        if not all(col in df.columns for col in required_columns):
-            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+        # Limpiar BOM si existe en los nombres de las columnas
+        df.columns = [c.lstrip('\ufeff') for c in df.columns]
+        
+        # Identificar la columna de código de cliente disponible
+        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
+        
+        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
+        if not all(col in df.columns for col in required_columns) or not customer_col:
+            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas (Falta CUSTOMER o CUSTOMER_CODE).")
 
         # Limpiar espacios en blanco en columnas clave y comas de miles en QTY
         df = df.with_columns([
@@ -49,20 +55,32 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
         if order_data.height == 0:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
 
-        order_data = order_data.rename({
+        # customer_col ya fue identificado arriba
+        
+        # Renombrar columnas para consistencia interna
+        rename_map = {
             "ORDER_": "Order Number",
             "DESPATCH_": "Despatch Number",
             "ITEM": "Item Code",
             "DESCRIPTION": "Item Description",
             "QTY": "Qty",
-            "CUSTOMER": "Customer Code",
             "CUSTOMER_NAME": "Customer Name",
             "ORDER_LINE": "Order Line"
-        })
+        }
+        if customer_col:
+            rename_map[customer_col] = "Customer Code"
+            
+        order_data = order_data.rename(rename_map)
+
+        # Limpiar espacios en blanco en los resultados
+        order_data = order_data.with_columns([
+            pl.col("Customer Code").cast(pl.Utf8).str.strip_chars() if "Customer Code" in order_data.columns else pl.lit(""),
+            pl.col("Customer Name").cast(pl.Utf8).str.strip_chars()
+        ])
 
         order_data = order_data.fill_null("")
         
-        return JSONResponse(content=order_data.to_dicts())
+        return ORJSONResponse(content=order_data.to_dicts())
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -79,28 +97,36 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
         # Leer CSV
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
         
+        # Limpiar BOM si existe en los nombres de las columnas
+        df.columns = [c.lstrip('\ufeff') for c in df.columns]
+
         # [CORRECCIÓN] Filtrar líneas vacías o nulas de ORDER_ antes de procesar
         df = df.filter(
             (pl.col("ORDER_").is_not_null()) & 
             (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() != "")
         )
 
-        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
+        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
         if not all(col in df.columns for col in required_columns):
-            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+            # Verificar si existe al menos CUSTOMER o CUSTOMER_CODE
+            if "CUSTOMER" not in df.columns and "CUSTOMER_CODE" not in df.columns:
+                raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+
+        # Identificar columna de cliente
+        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else "CUSTOMER_CODE"
 
         # Limpiar datos clave antes de agrupar
         df = df.with_columns([
             pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
             pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
-            pl.col("CUSTOMER").cast(pl.Utf8).fill_null(""),
+            pl.col(customer_col).cast(pl.Utf8).fill_null(""),
             pl.col("CUSTOMER_NAME").cast(pl.Utf8).fill_null(""),
             pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars().fill_null(""),
             pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars().fill_null("")
         ])
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
-        grouped = df.group_by(["ORDER_", "DESPATCH_", "CUSTOMER", "CUSTOMER_NAME"]).agg([
+        grouped = df.group_by(["ORDER_", "DESPATCH_", customer_col, "CUSTOMER_NAME"]).agg([
             pl.col("ORDER_").len().alias("total_lines"),
             pl.col("PICK_LIST_PRINTED_TIME").filter(pl.col("PICK_LIST_PRINTED_TIME") != "").first().alias("print_time"),
             pl.col("Time_Zone_Hours").filter(pl.col("Time_Zone_Hours") != "").first().alias("time_zone")
@@ -161,14 +187,14 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
             tracking_data.append({
                 "order_number": order_num,
                 "despatch_number": despatch_num,
-                "customer_code": str(row["CUSTOMER"] or "").strip(),
+                "customer_code": str(row[customer_col] or "").strip(),
                 "customer_name": str(row["CUSTOMER_NAME"] or "").strip(),
                 "total_lines": int(row["total_lines"]),
                 "print_date": format_local_print_time(row["print_time"], row["time_zone"]),
                 "is_audited": (order_num, despatch_num) in audited_pairs
             })
         
-        return JSONResponse(content=tracking_data)
+        return ORJSONResponse(content=tracking_data)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -231,7 +257,7 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
             "total_packages": total_packages,
             "packages": packages
         }
-        return JSONResponse(content=response)
+        return ORJSONResponse(content=response)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
@@ -255,6 +281,22 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
         )
         items = result.scalars().all()
         
+        # Obtener dimensiones de bultos
+        from app.models.sql_models import PickingPackage
+        result = await db.execute(
+            select(PickingPackage).where(PickingPackage.audit_id == audit_id)
+        )
+        packages_dimensions = [
+            {
+                "package_number": pd.package_number,
+                "length": float(pd.length or 0),
+                "width": float(pd.width or 0),
+                "height": float(pd.height or 0),
+                "weight": float(pd.weight or 0)
+            }
+            for pd in result.scalars().all()
+        ]
+
         # Construir respuesta
         response = {
             "id": audit.id,
@@ -263,6 +305,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             "customer_code": audit.customer_code,
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
+            "packages_dimensions": packages_dimensions,
             "items": [
                 {
                     "code": item.item_code,
@@ -276,7 +319,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             ]
         }
         
-        return JSONResponse(content=response)
+        return ORJSONResponse(content=response)
         
     except Exception as e:
         print(f"Database error in get_picking_audit_for_print: {e}")
@@ -331,6 +374,22 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
                 packages_assignment[key] = {}
             packages_assignment[key][str(pi.package_number)] = pi.qty_scan
 
+        # Obtener dimensiones de bultos
+        from app.models.sql_models import PickingPackage
+        result = await db.execute(
+            select(PickingPackage).where(PickingPackage.audit_id == audit_id)
+        )
+        packages_dimensions = [
+            {
+                "package_number": pd.package_number,
+                "length": float(pd.length or 0),
+                "width": float(pd.width or 0),
+                "height": float(pd.height or 0),
+                "weight": float(pd.weight or 0)
+            }
+            for pd in result.scalars().all()
+        ]
+
         # Construir respuesta
         response = {
             "id": audit.id,
@@ -340,6 +399,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             "customer_name": audit.customer_name,
             "packages": audit.packages if audit.packages else 0,
             "packages_assignment": packages_assignment,
+            "packages_dimensions": packages_dimensions,
             "items": [
                 {
                     "code": item.item_code,
@@ -353,7 +413,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             ]
         }
         
-        return JSONResponse(content=response)
+        return ORJSONResponse(content=response)
         
     except Exception as e:
         print(f"Database error in get_picking_audit: {e}")
@@ -422,6 +482,24 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                 db_item.difference = difference
                 db_item.edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
         
+        # [NUEVO] Actualizar dimensiones de bultos
+        if audit_data.packages_dimensions is not None:
+            from app.models.sql_models import PickingPackage
+            from sqlalchemy import delete
+            await db.execute(
+                delete(PickingPackage).where(PickingPackage.audit_id == audit_id)
+            )
+            for dim in audit_data.packages_dimensions:
+                new_pkg_dim = PickingPackage(
+                    audit_id=audit_id,
+                    package_number=dim.package_number,
+                    length=dim.length,
+                    width=dim.width,
+                    height=dim.height,
+                    weight=dim.weight
+                )
+                db.add(new_pkg_dim)
+
         # 3. [NUEVO] Actualizar asignación de bultos
         if audit_data.packages_assignment is not None:
             # Primero eliminar asignaciones previas
@@ -463,7 +541,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
         
         await db.commit()
         
-        return JSONResponse(content={
+        return ORJSONResponse(content={
             "message": "Auditoría actualizada con éxito",
             "audit_id": audit_id,
             "status": new_status
@@ -479,12 +557,34 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
 async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
     """Guarda una auditoría de picking en la base de datos."""
     try:
+        # Fallback para customer_code y name si vienen vacíos
+        if not audit_data.customer_code or not audit_data.customer_name or audit_data.customer_name == "N/A":
+             try:
+                 from app.core.config import PICKING_CSV_PATH
+                 if os.path.exists(PICKING_CSV_PATH):
+                     df_lookup = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
+                     df_lookup.columns = [c.lstrip('\ufeff') for c in df_lookup.columns]
+                     # Identificar columna
+                     c_col = "CUSTOMER" if "CUSTOMER" in df_lookup.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df_lookup.columns else None)
+                     
+                     match = df_lookup.filter(
+                         (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() == audit_data.order_number.strip()) &
+                         (pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars() == audit_data.despatch_number.strip())
+                     )
+                     if match.height > 0:
+                         if not audit_data.customer_code:
+                             audit_data.customer_code = str(match[0, c_col] or "").strip()
+                         if not audit_data.customer_name or audit_data.customer_name == "N/A":
+                             audit_data.customer_name = str(match[0, "CUSTOMER_NAME"] or "").strip()
+             except Exception as lookup_err:
+                 print(f"Fallback lookup failed: {lookup_err}")
+
         # 1. Crear la auditoría principal
         new_audit = PickingAuditModel(
-            order_number=audit_data.order_number,
-            despatch_number=audit_data.despatch_number,
-            customer_code=audit_data.customer_code,
-            customer_name=audit_data.customer_name,
+            order_number=audit_data.order_number.strip(),
+            despatch_number=audit_data.despatch_number.strip(),
+            customer_code=audit_data.customer_code.strip() if audit_data.customer_code else None,
+            customer_name=audit_data.customer_name.strip() if audit_data.customer_name else "N/A",
             username=username,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
             status=audit_data.status,
@@ -508,7 +608,21 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
             )
             db.add(new_item)
         
-        # 3. [NUEVO] Insertar asignación de bultos
+        # 3. [NUEVO] Insertar dimensiones de bultos
+        if audit_data.packages_dimensions:
+            from app.models.sql_models import PickingPackage
+            for dim in audit_data.packages_dimensions:
+                new_pkg_dim = PickingPackage(
+                    audit_id=new_audit.id,
+                    package_number=dim.package_number,
+                    length=dim.length,
+                    width=dim.width,
+                    height=dim.height,
+                    weight=dim.weight
+                )
+                db.add(new_pkg_dim)
+        
+        # 4. [NUEVO] Insertar asignación de bultos
         if audit_data.packages_assignment:
             # Ahora la llave puede ser "item_code" o "item_code:order_line"
             for key, assignments in audit_data.packages_assignment.items():
@@ -540,7 +654,7 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
 
         await db.commit()
         
-        return JSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
+        return ORJSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
 
     except Exception as e:
         await db.rollback()

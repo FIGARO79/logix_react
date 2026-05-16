@@ -2,9 +2,15 @@
 Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
 import os
+import mimetypes
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+
+# Asegurar que los archivos .wasm se sirvan con el tipo MIME correcto
+mimetypes.add_type('application/wasm', '.wasm')
+from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -13,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 
 # Importar configuración
-from app.core.config import PROJECT_ROOT, SECRET_KEY
+from app.core.config import PROJECT_ROOT, SECRET_KEY, ENVIRONMENT
 from app.middleware.security import SchemeMiddleware, HSTSMiddleware
 from app.middleware.csv_cache_reload import CSVCacheReloadMiddleware
 
@@ -21,8 +27,23 @@ from app.middleware.csv_cache_reload import CSVCacheReloadMiddleware
 from app.services.database import run_migrations
 from app.services.csv_handler import load_csv_data
 
-# Importar routers existentes (que ya eran JSON o mixtos)
-from app.routers import sessions, logs, stock, counts, auth, admin, update, picking, inventory, planner, inbound, grn, shipment
+# Importar routers existentes
+from app.routers import sessions
+from app.routers import logs
+from app.routers import stock
+from app.routers import counts
+from app.routers import auth
+from app.routers import admin
+from app.routers import update
+from app.routers import picking
+from app.routers import inventory
+from app.routers import planner
+from app.routers import inbound
+from app.routers import grn
+from app.routers import shipment
+from app.routers import express_audit
+from app.routers import spot_check
+from app.routers import measurement
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
@@ -46,7 +67,12 @@ app = FastAPI(
     title="Logix API V2",
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse,
+    # [SEGURIDAD] Deshabilitar docs en producción
+    docs_url=None if ENVIRONMENT == 'production' else "/docs",
+    redoc_url=None if ENVIRONMENT == 'production' else "/redoc",
+    openapi_url=None if ENVIRONMENT == 'production' else "/openapi.json"
 )
 # Forzar recarga completa de rutas para instantáneas de conciliación
 app.state.limiter = limiter
@@ -58,9 +84,12 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "https://localhost:5173",
-    "https://logixapp.online",
-    "https://www.logixapp.online"
+    "https://logixapp.dev",
+    "https://www.logixapp.dev"
 ]
+
+# --- Middlewares [ORDEN CRÍTICO] ---
+app.add_middleware(GZipMiddleware, minimum_size=1000) # Comprime si > 1KB
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,16 +101,14 @@ app.add_middleware(
 )
 
 # --- Middlewares de seguridad ---
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.online", "www.logixapp.online", "localhost", "127.0.0.1"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["logixapp.dev", "www.logixapp.dev", "localhost", "127.0.0.1"])
 app.add_middleware(SchemeMiddleware)
 app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
-    session_cookie="logix_chile_session",
     max_age=None,
-    https_only=False,
-    same_site="lax"
+    https_only=True if ENVIRONMENT == 'production' else False # En producción forzar cookies seguras
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
@@ -106,6 +133,9 @@ app.include_router(grn.router)
 app.include_router(shipment.router)
 app.include_router(integrations.router)
 app.include_router(sync.router)
+app.include_router(express_audit.router)
+app.include_router(spot_check.router)
+app.include_router(measurement.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")
@@ -128,4 +158,5 @@ async def root():
 if __name__ == "__main__":
     import granian
     # loop="uvloop" asegura el uso del bucle de eventos de alto rendimiento
-    granian.Granian("main:app", address="127.0.0.1", port=8000, reload=True, loop="uvloop", interface="asgi", reload_ignore_dirs=["instance"]).serve()
+    # [SUEGURIDAD] Solo escuchar en 127.0.0.1 para que solo Nginx pueda acceder
+    granian.Granian("main:app", address="127.0.0.1", port=8000, reload=True, interface="asgi", loop="uvloop").serve()

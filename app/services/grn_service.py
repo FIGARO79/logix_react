@@ -19,13 +19,12 @@ async def seed_grn_from_excel(db: AsyncSession):
     if os.path.exists(GRN_JSON_DATA_PATH):
         try:
             print(f"📄 [POLARS] Cargando GRN desde JSON: {GRN_JSON_DATA_PATH}", flush=True)
-            # Polars lee JSON directamente si es una lista de objetos
-            df = pl.read_json(GRN_JSON_DATA_PATH)
+            with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                df = pl.from_dicts(orjson.loads(f.read()))
         except Exception as e:
-            print(f"⚠️ Error leyendo JSON GRN con Polars: {e}, intentando vía buffer...")
+            print(f"⚠️ Error leyendo JSON GRN con orjson: {e}")
             try:
-                with open(GRN_JSON_DATA_PATH, 'rb') as f:
-                    df = pl.from_dicts(orjson.loads(f.read()))
+                df = pl.read_json(GRN_JSON_DATA_PATH)
             except: pass
 
     # 2. Si no hay JSON viable, cargar desde Excel (Puente vía Pandas por compatibilidad)
@@ -89,13 +88,10 @@ async def seed_grn_from_excel(db: AsyncSession):
             chunk = insert_data[i:i + chunk_size]
             
             if is_sqlite:
-                # SQLite: Uso de Merge (Insert or Replace)
                 for item in chunk:
                     await db.merge(GRNMaster(**item))
             else:
-                # MySQL: Upsert masivo nativo
                 stmt = insert(GRNMaster).values(chunk)
-                # Definir columnas a actualizar (excluyendo llaves primarias/uniques)
                 update_dict = {k: getattr(stmt.inserted, k) for k in chunk[0].keys() if k not in ['import_reference', 'waybill']}
                 await db.execute(stmt.on_duplicate_key_update(update_dict))
             
@@ -119,29 +115,27 @@ async def seed_grn_from_excel(db: AsyncSession):
 
 async def export_grn_to_json(db: AsyncSession):
     """
-    Exporta el maestro GRN de la base de datos a un archivo JSON optimizado.
+    Exporta el maestro GRN de la base de datos a un archivo JSON optimizado con orjson.
     """
     try:
         stmt = select(GRNMaster)
         result = await db.execute(stmt)
         records = result.scalars().all()
         
-        # Mapeo invertido para mantener compatibilidad con el JSON original
         data = []
         for r in records:
             data.append({
-                "IMPORT REFERENCE": r.import_reference,
-                "WAYBILL": r.waybill,
-                "GRN1NUMBER": r.grn_number,
-                "PACKS": float(r.packs) if r.packs is not None else 0,
-                "LINES": r.lines,
-                "AAF Date": r.aaf_date,
-                "GRN1 Date": r.grn1_date,
+                "Import_Reference": r.import_reference,
+                "Waybill": r.waybill,
+                "GRN_Number": r.grn_number,
+                "Packs": float(r.packs) if r.packs is not None else 0,
+                "Lines": r.lines,
+                "AAF_Date": r.aaf_date,
+                "GRN1_Date": r.grn1_date,
                 "CT": r.ct
             })
             
         with open(GRN_JSON_DATA_PATH, 'wb') as f:
-            # orjson.OPT_INDENT_2 para mantener cierta legibilidad
             f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
         return True
     except Exception as e:

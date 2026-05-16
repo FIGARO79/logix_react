@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/objectron": "^0.4.1675468480",
+    "@mediapipe/tasks-vision": "^0.10.35",
     "axios": "^1.6.5",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
@@ -18,10 +22,9 @@
     "react-barcode-scanner": "^4.0.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.3",
-    "react-to-print": "^3.2.0",
+    "react-to-print": "^3.3.0",
     "react-toastify": "^11.0.5",
-    "workbox-window": "^7.4.0",
-    "lucide-react": "^0.344.0"
+    "workbox-window": "^7.4.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

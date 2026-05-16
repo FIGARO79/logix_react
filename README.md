@@ -1,159 +1,128 @@
-# Logix WMS (Warehouse Management System)
+# Logix WMS 🚀
 
-A comprehensive Warehouse Management System featuring a high-performance **Headless FastAPI backend** and a modern **React SPA frontend**. Specialized in inventory control, logistics operations, and stock management.
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/Frontend-React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![Polars](https://img.shields.io/badge/Engine-Polars-CD792C?style=for-the-badge)](https://www.pola.rs/)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](https://github.com/FIGARO79/logix_react)
 
-> **Architecture Note**: This project uses a decoupled architecture. The Backend serves a JSON API (no HTML rendering), and the Frontend is a single-page application built with React/Vite.
-
-## 🚀 Technology Stack
-
-### Backend (`/home/fabio/logix_chile`)
-
-| Categoría | Tecnología | Versión |
-|---|---|---|
-| **Framework Web** | FastAPI | ≥ 0.124.0 |
-| **Servidor ASGI** | Granian | ≥ 1.2.0 |
-| **ORM** | SQLAlchemy (Async) | ≥ 2.0.44 |
-| **Migraciones** | Alembic | ≥ 1.17.2 |
-| **BD Producción** | MySQL / MariaDB | via `aiomysql` ≥ 0.2.0 |
-| **BD Desarrollo** | SQLite | via `aiosqlite` ≥ 0.20.0 |
-| **Motor de Datos** | Polars | ≥ 1.39.3 |
-| **Numérico** | NumPy | ≥ 2.1.0 |
-| **Excel** | openpyxl / fastexcel | ≥ 3.1.5 / ≥ 0.19.0 |
-| **Validación** | Pydantic v2 | ≥ 2.10.0 |
-| **Autenticación** | Passlib + Bcrypt | ≥ 1.7.4 / ≥ 4.2.0 |
-| **Sesiones** | Itsdangerous + Starlette | ≥ 2.2.0 / ≥ 0.45.2 |
-| **Rate Limiting** | SlowAPI | ≥ 0.1.9 |
-| **Event Loop** | uvloop | ≥ 0.19.0 |
-| **JSON Ops** | orjson / native FastAPI | — |
-| **Despliegue** | Systemd + Nginx | — |
-
-### Frontend (`/home/fabio/logix_chile/frontend`)
-
-| Categoría | Tecnología | Versión |
-|---|---|---|
-| **Framework UI** | React | ^18.2.0 |
-| **Build Tool** | Vite | ^5.0.8 |
-| **Estilos** | Tailwind CSS | ^3.4.1 |
-| **Routing** | React Router DOM | ^6.21.3 |
-| **HTTP Client** | Axios | ^1.6.5 |
-| **QR Scanning** | html5-qrcode | ^2.3.8 |
-| **Notificaciones** | react-toastify | ^11.0.5 |
-| **PWA** | vite-plugin-pwa + Workbox | ^1.2.0 / ^7.4.0 |
-
-## 🛠️ Entornos y Rutas
-
-| Entorno | Ruta de Proyecto | Usuario |
-|---|---|---|
-| **Local (Desarrollo)** | `/home/fabio/logix_chile` | `fabio` |
-| **Producción (VPS)** | `/home/debian/logix_cl` | `debian` |
+**Logix WMS** es un sistema integral de gestión de almacenes (Warehouse Management System) diseñado para operaciones de alta eficiencia. Combina un motor de datos ultrarrápido basado en **Polars** con una interfaz moderna y reactiva, permitiendo un control total sobre el inventario, optimización de espacios y conciliación de datos críticos.
 
 ---
 
-## 🛠️ Instalación y Configuración
+## 🏛️ Arquitectura del Sistema
 
-### 📦 1. Configuración Local (Desarrollo)
+El proyecto sigue una arquitectura **Headless** (desacoplada), con un robusto backend desarrollado en **FastAPI** que sirve una API JSON de alto rendimiento, mientras que el frontend es una aplicación de página única (SPA) optimizada en React.
 
-1.  **Directorio de trabajo:**
-    ```bash
-    cd /home/fabio/logix_chile
-    ```
-
-2.  **Entorno virtual y dependencias:**
-    ```bash
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
-
-3.  **Ejecución en desarrollo:**
-    ```bash
-    # Backend
-    venv/bin/python main.py
-    # Frontend (en carpeta /frontend)
-    npm run dev
-    ```
-
-### 🚀 2. Despliegue en Producción (VPS)
-
-1.  **Directorio de Producción:**
-    ```bash
-    cd /home/debian/logix_cl
-    ```
-
-2.  **Actualización rápida:**
-    Si usas el script de automatización:
-    ```bash
-    sudo ./apply_changes.sh
-    ```
-
-3.  **Configuración de Servicio Systemd:**
-    El archivo `vm_setup/logix.service` ya está pre-configurado para la ruta `/home/debian/logix`. Para activarlo en el VPS:
-    ```bash
-    sudo cp vm_setup/logix.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable logix
-    sudo systemctl start logix
-    ```
-
-## 📂 Estructura del Proyecto
-
-- `app/`: Código fuente del Backend (FastAPI)
-- `frontend/`: Aplicación Frontend (React + Vite)
-- `vm_setup/`: Archivos de configuración para **Producción** (`nginx`, `systemd`)
-- `instance/`: Base de datos SQLite local
-- `static/json/`: Respaldos de configuración (Slotting/SIC)
-
-## ✨ Key Features
-
-### 📦 Slotting & Strategy
-- **SQL Persistent Slotting**: Las 879 ubicaciones y reglas de rotación ahora residen en la base de datos SQL para integridad superior.
-- **Dynamic SIC Mapping**: Sincronización automática de descripciones de rotación desde el JSON maestro a la DB.
-
-### 📥 Inbound Operations
-- **Reconciliation Persistence**: Historial de recibos almacenado en base de datos para consultas históricas y auditoría.
-- **Auto-Snapshot**: Generación automática de instantáneas de conciliación antes de actualizaciones críticas.
-
-### 🔐 Security 
-- **RBAC (Role Based Access Control)**: Control granular de permisos para inventario, inbound y administración.
-
-## ⚙️ Configuración (.env)
-
-El sistema detecta automáticamente el entorno. En producción, asegúrate de configurar:
-
-```env
-DB_TYPE=sqlite  # O 'mysql' en el servidor final
-SECRET_KEY=tu_llave_secreta
-SESSION_COOKIE_SECURE=True  # NECESARIO para HTTPS en el VPS
+```mermaid
+graph LR
+    subgraph "Client Side (Frontend)"
+        A[React 18 SPA] --> B[Tailwind CSS]
+        A --> C[IndexedDB / PWA]
+    end
+    
+    subgraph "Server Side (Backend)"
+        D[FastAPI / Granian] --> E[SQLAlchemy 2.0]
+        D --> F[Polars / Data Engine]
+        E --> G[(MySQL / SQLite)]
+        F --> H[(CSV Master Data)]
+    end
+    
+    A -- "REST API (JSON)" --> D
 ```
 
-## 🔄 Recent Updates
+---
 
-### v2.8.0 (2026-04-08)
-- 🚀 **Robot PO Chile**: Robot de Playwright optimizado para el portal de Sandvik Chile (Índice de país corregido).
-- 🚀 **Reconciliation Engine Pro**: Motor de conciliación evolucionado con validación por `Order_Number` y lógica de asociación IR-GRN robusta.
-- ✅ **Refactor de Actualización**: Lógica de actualización alineada con el estándar React, eliminando disparos automáticos innecesarios y optimizando el flujo de trabajo manual.
+## ✨ Módulos Principales
 
-### v2.7.0 (2026-04-07)
-... (resto del historial)
+### 🧠 Optimización de Slotting (Ubicación Inteligente)
+- **Cálculo de Densidad**: Algoritmos avanzados para determinar la utilización volumétrica del almacén.
+- **Clasificación ABC**: Ubicación automática basada en la velocidad de rotación y peso del producto.
+- **Mapas de Calor**: Visualización intuitiva de la ocupación por niveles y pasillos.
 
-### v2.6.0 (2026-04-03)
-- 🚀 **Migración SQL Core**: El módulo de **Slotting** ha sido migrado de JSON a SQL, permitiendo la gestión centralizada de 879 ubicaciones y reglas de rotación.
-- 🚀 **Optimización de API**: Eliminada la dependencia de `ORJSONResponse` a favor de la serialización nativa de FastAPI (Pydantic V2), reduciendo advertencias y mejorando la compatibilidad.
-- ✅ **SIC Sync**: Implementada la sincronización de descripciones de códigos de rotación directamente desde archivos maestros.
+### 📦 Gestión de Inventario y Conteos
+- **Conteos Cíclicos**: Planificación automatizada para cumplir con auditorías periódicas.
+- **Express Audit**: Módulo especializado para auditorías rápidas y prioritarias separadas del ciclo estándar.
+- **Trazabilidad Total**: Registro detallado de movimientos por bin, usuario y fecha.
 
-### v2.5.0 (2026-04-02)
-- ✅ **Documentación de Stack**: README actualizado con el stack tecnológico completo y versiones reales.
-- ✅ **Performance Backend**: Confirmado uso de `uvloop` y `Polars` para máximo rendimiento.
+### 📥 Entrada y Conciliación (Inbound)
+- **Conciliación Inteligente**: Motor que compara reportes ERP (Sandvik/AURR) contra existencia física en tiempo real.
+- **Procesamiento de GRN**: Gestión integral de notas de recepción de mercancías con soporte para reversión y auditoría.
+- **Automatización de PO**: Extracción y validación automática de Órdenes de Compra.
 
-## 📝 API Documentation
+### 📤 Salida y Logística (Outbound)
+- **Picking Verificado**: Flujos guiados por QR para garantizar precisión del 100% en envíos.
+- **Consolidación de Envíos**: Agrupación eficiente de pedidos para optimizar costos de transporte.
+- **Soporte Zebra ZPL**: Integración nativa con impresoras térmicas para etiquetado profesional.
 
-Once the backend is running, visit:
-- **Swagger UI**: `https://logix_chile.dev/docs` (o tu IP local)
+---
 
-## 📄 License
+## 🛠️ Stack Tecnológico
 
-Proprietary software - Internal Use Only.
+### Backend (`app/`)
+- **Core**: FastAPI (Python 3.10+) con servidor **Granian**.
+- **Data**: Polars & NumPy (procesamiento de millones de filas en milisegundos).
+- **ORM**: SQLAlchemy 2.0 con soporte asíncrono (**aiomysql**/**aiosqlite**).
+- **Seguridad**: RBAC, HSTS, Rate Limiting (SlowAPI) y JWT/Sessions.
 
-## 👥 Contact
+### Frontend (`frontend/`)
+- **Core**: React 18 + Vite.
+- **Styling**: Tailwind CSS (Mobile-First, Dark Mode).
+- **PWA**: Soporte para funcionamiento offline y escaneo de códigos QR/Barcodes.
+- **Networking**: Axios con gestión de interceptores para seguridad.
 
-Project Maintainer: FIGARO79
-Repository: [https://github.com/FIGARO79/logix_react](https://github.com/FIGARO79/logix_react)
+---
+
+## 🚀 Instalación y Configuración
+
+### Prerrequisitos
+- Python 3.10 o superior.
+- Node.js 18 o superior.
+- MySQL/MariaDB (opcional para desarrollo, obligatorio para producción).
+
+### 1. Configuración del Backend
+```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # En Linux/macOS
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+# [IMPORTANTE] Editar .env y configurar SECRET_KEY, ADMIN_PASSWORD e INTEGRATION_API_KEY
+
+# Ejecutar migraciones
+alembic upgrade head
+
+# Iniciar servidor (puerto 8000)
+python main.py
+```
+
+### 2. Configuración del Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## ⚙️ Operaciones y Mantenimiento
+
+El sistema incluye herramientas de administración vía CLI:
+- `./apply_changes.sh`: Actualización rápida de código y reconstrucción del frontend.
+- `./check_resources.sh`: Diagnóstico de salud del servidor (RAM, CPU, I/O).
+- `./show_db.sh`: Consultas rápidas a tablas maestras desde la terminal.
+
+---
+
+## 🔄 Actualizaciones Recientes (Q2 2026)
+- **Matriz de Almacén**: Soporte para layouts complejos mediante importación masiva de Excel.
+- **Seguridad de Sesiones**: Implementación de esquemas de seguridad reforzados para entornos multi-usuario.
+- **Optimización de Polars**: Reducción del tiempo de conciliación en un 40% mediante carga perezosa (lazy loading).
+
+---
+
+**Mantenido por**: [FIGARO79](https://github.com/FIGARO79)  
+**Última actualización**: Mayo 2026

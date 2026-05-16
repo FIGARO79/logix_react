@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
+    const navigate = useNavigate();
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -40,25 +43,33 @@ const StockSearch = () => {
         oscillator.stop(audioCtx.currentTime + 0.15);
     };
 
-    // Función para ejecutar búsqueda directamente (usada por el scanner)
-    const executeSearch = async (code) => {
-        if (!code.trim()) return;
+    // Función para ejecutar búsqueda directamente (usada por el scanner o botón)
+    const executeSearch = async (query) => {
+        if (!query.trim()) return;
 
         setLoading(true);
         setError('');
         setItemData(null);
+        setSearchResults([]);
 
         try {
-            const res = await fetch(`/api/find_item/${encodeURIComponent(code)}/NA`);
+            const res = await fetch(`/api/search_items?q=${encodeURIComponent(query)}`);
             const data = await res.json();
 
             if (res.ok) {
-                setItemData(data);
-                playBeep(); // Beep on success
-                setItemCode(''); // Clear input on success
+                if (data.length === 0) {
+                    setError('Item no encontrado');
+                    toast.error('Item no encontrado');
+                } else if (data.length === 1) {
+                    setItemData(data[0]);
+                    playBeep(); // Beep on success
+                    setItemCode(''); // Clear input on success
+                } else {
+                    setSearchResults(data);
+                }
             } else {
-                setError(data.error || 'Item no encontrado');
-                toast.error(data.error || 'Item no encontrado');
+                setError(data.error || 'Error en la búsqueda');
+                toast.error(data.error || 'Error en la búsqueda');
             }
         } catch (err) {
             console.error(err);
@@ -67,6 +78,13 @@ const StockSearch = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectResult = (item) => {
+        setItemData(item);
+        setSearchResults([]);
+        setItemCode('');
+        playBeep();
     };
 
     const handleScan = (code) => {
@@ -84,6 +102,7 @@ const StockSearch = () => {
     const clearSearch = () => {
         setItemCode('');
         setItemData(null);
+        setSearchResults([]);
         setError('');
     };
 
@@ -93,25 +112,31 @@ const StockSearch = () => {
 
             {/* Search Card */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
-                <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200">
+                <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         Búsqueda de Stock
                     </h2>
+                    <button
+                        onClick={() => navigate('/spot-check')}
+                        className="btn-sap btn-secondary text-[9px] uppercase font-normal tracking-wider px-4 flex items-center"
+                    >
+                        Verificar Saldo
+                    </button>
                 </div>
 
                 <div className="p-6">
                     <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
                         <div className="flex-grow">
-                            <label className="form-label mb-1">Código de Item</label>
+                            <label className="form-label mb-1">Código o Descripción</label>
                             <input
                                 type="text"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full uppercase"
-                                placeholder=""
+                                placeholder="Escribe código o descripción..."
                                 autoFocus
                             />
                         </div>
@@ -119,11 +144,12 @@ const StockSearch = () => {
                             <button
                                 type="button"
                                 onClick={() => setScannerOpen(true)}
-                                className="btn-sap btn-secondary h-[38px] px-3"
+                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
                                 title="Escanear Código"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                                 </svg>
                             </button>
                             <button
@@ -145,6 +171,33 @@ const StockSearch = () => {
                 </div>
             </div>
 
+            {/* Selection Results */}
+            {searchResults.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
+                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-700">Múltiples resultados encontrados ({searchResults.length}):</h3>
+                    </div>
+                    <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
+                        {searchResults.map((item) => (
+                            <li 
+                                key={item.itemCode}
+                                onClick={() => handleSelectResult(item)}
+                                className="px-6 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center"
+                            >
+                                <div>
+                                    <div className="font-bold text-[#1e4a74]">{item.itemCode}</div>
+                                    <div className="text-sm text-gray-600 truncate max-w-md">{item.description}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-gray-400 uppercase">Stock</div>
+                                    <div className="font-bold text-gray-800">{item.physicalQty}</div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* Results Card */}
             {itemData && (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-fade-in">
@@ -160,23 +213,23 @@ const StockSearch = () => {
 
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="col-span-1 md:col-span-2">
-                            <label className="form-label text-gray-500">Descripción</label>
-                            <div className="text-gray-900 font-medium text-lg">{itemData.description}</div>
+                            <label className="form-label text-gray-700 font-bold">Descripción</label>
+                            <div className="text-gray-900 font-bold text-lg">{itemData.description}</div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-500">Ubicación Principal</label>
+                            <label className="form-label text-gray-700 font-bold">Ubicación Principal</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.binLocation || 'N/A'}
                                 </span>
                             </div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-500">Stock Físico</label>
+                            <label className="form-label text-gray-700 font-bold">Stock Físico</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-black bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.physicalQty}
                                 </span>
                             </div>
@@ -184,11 +237,11 @@ const StockSearch = () => {
 
                         {itemData.aditionalBins && (
                             <div className="col-span-1 md:col-span-2">
-                                <label className="form-label text-gray-500">Ubicaciones Adicionales</label>
+                                <label className="form-label text-gray-700 font-bold">Ubicaciones Adicionales</label>
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold bg-blue-50 text-[#1e4a74] border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )
@@ -199,24 +252,30 @@ const StockSearch = () => {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 col-span-1 md:col-span-2 border-t pt-4 mt-2">
                             <div>
-                                <label className="form-label text-gray-500">Peso (kg)</label>
-                                <div>{itemData.weight || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Peso (kg)</label>
+                                <div className="text-gray-900 font-semibold">{itemData.weight || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">Última Fecha Ingreso</label>
-                                <div>{itemData.dateLastReceived || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Última Fecha Ingreso</label>
+                                <div className="text-gray-900 font-semibold">{itemData.dateLastReceived || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">Reemplazado Por</label>
-                                <div>{itemData.supersededBy || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">Reemplazado Por</label>
+                                <div className="text-gray-900 font-semibold">{itemData.supersededBy || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">SIC Code</label>
-                                <div className="font-medium text-gray-700">{itemData.sicCode || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">SIC Code</label>
+                                <div className="font-bold text-gray-900">{itemData.sicCode || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-500">ABC Code</label>
-                                <div className="font-medium text-gray-700">{itemData.itemType || '-'}</div>
+                                <label className="form-label text-gray-700 font-bold">ABC Code</label>
+                                <div className="font-bold text-gray-900">{itemData.itemType || '-'}</div>
+                            </div>
+                            <div>
+                                <label className="form-label text-gray-700 font-bold">Frozen Qty</label>
+                                <div className={`font-bold ${parseFloat(String(itemData.frozenQty || '0')) > 0 ? 'text-red-700 bg-red-50 inline-block px-2 py-0.5 rounded' : 'text-gray-900'}`}>
+                                    {itemData.frozenQty || '0'}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -224,12 +283,9 @@ const StockSearch = () => {
             )}
 
             {/* Empty State / Intro */}
-            {!itemData && !error && (
+            {!itemData && searchResults.length === 0 && !error && (
                 <div className="text-center text-gray-500 mt-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                    </svg>
-                    <p>Ingrese un código de item para consultar su disponibilidad y ubicación.</p>
+                    <p>Ingrese un código de item o parte de su descripción para consultar.</p>
                 </div>
             )}
 
