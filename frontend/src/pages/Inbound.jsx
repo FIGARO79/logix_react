@@ -465,8 +465,15 @@ const Inbound = () => {
 
             // Guardar offline
             await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
+            if (navigator.onLine) {
+                syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
+            }
             if (!hasWarnedOffline) {
-                alert("Guardado localmente (Offline).");
+                if (!navigator.onLine) {
+                    alert("Guardado localmente (Offline).");
+                } else {
+                    console.log("Logix: Requerimiento encolado localmente por fallo temporal de red.");
+                }
                 setHasWarnedOffline(true);
             }
             loadLogs(); resetForm();

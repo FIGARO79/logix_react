@@ -101,6 +101,9 @@ export const syncPendingData = async () => {
     
     console.log(`Logix: Intentando sincronizar ${allPending.length} registros pendientes...`);
     
+    let successCount = 0;
+    let failCount = 0;
+
     for (const record of allPending) {
         try {
             // Determinar endpoint según la colección
@@ -123,7 +126,8 @@ export const syncPendingData = async () => {
                 url = '/api/spot_check/save';
                 method = 'POST';
             } else {
-                continue; // Desconocido
+                console.warn(`Colección desconocida en sync: ${record.collection}`);
+                continue;
             }
 
             const payload = {
@@ -139,15 +143,32 @@ export const syncPendingData = async () => {
             
             if (res.ok) {
                 await db.delete('pending_sync', record.id);
-                console.log(`Registro ${record.id} (${record.collection}) sincronizado.`);
+                console.log(`✅ Registro ${record.id} (${record.collection}) sincronizado.`);
+                successCount++;
             } else if (res.status === 409) {
                 // Conflicto: borrar localmente y dejar que el servidor gane
                 await db.delete('pending_sync', record.id);
+                console.log(`⚠️ Conflicto detectado (409) para ${record.id}. Registro local eliminado.`);
+                successCount++;
+            } else if (res.status >= 400 && res.status < 500) {
+                // Error de cliente (400 Bad Request, etc): probablemente datos inválidos
+                console.error(`❌ Error de validación/cliente (${res.status}) para ${record.id}:`, await res.text());
+                failCount++;
+                // En Inbound, si el error es permanente (ej. datos inválidos), 
+                // podríamos querer eliminarlo o marcarlo, pero por ahora lo dejamos para no perder datos.
+            } else {
+                console.error(`❌ Error de servidor (${res.status}) al sincronizar ${record.id}`);
+                failCount++;
             }
         } catch (error) {
-            console.error(`Error de red al sincronizar ${record.id}:`, error);
-            break; // Detener si hay fallo de red real
+            console.error(`🚨 Fallo crítico de red al sincronizar ${record.id}:`, error);
+            failCount++;
+            break; // Detener si hay fallo de red real para no saturar
         }
+    }
+
+    if (successCount > 0 || failCount > 0) {
+        console.log(`Logix Sync: ${successCount} exitosos, ${failCount} fallidos.`);
     }
 };
 
