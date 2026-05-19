@@ -571,17 +571,17 @@ const Inbound = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                    <label className="form-label font-semibold text-gray-800">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-semibold text-black" required />
+                                    <label className="form-label font-normal text-gray-800">Import Reference</label>
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
-                                    <label className="form-label font-semibold text-gray-800">Waybill</label>
-                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-semibold text-black" required />
+                                    <label className="form-label font-normal text-gray-800">Waybill</label>
+                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-normal text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="form-label font-semibold text-gray-800">Item Code</label>
+                                    <label className="form-label font-normal text-gray-800">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-semibold text-black" required disabled={!!editId} />
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
                                         <button 
                                             type="button" 
                                             className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
@@ -608,12 +608,11 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-4"><label className="form-label font-semibold text-gray-800">Item Description</label><div className="data-field font-semibold text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
-
+                            <div className="mb-4"><label className="form-label font-normal text-gray-800">Item Description</label><div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
-                                <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-semibold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
@@ -663,17 +662,17 @@ const Inbound = () => {
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>
                                 )}
-                                <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
                             </div>
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
-                                <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
+                                <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label font-semibold text-gray-800">Recibido</label><div className="data-field font-semibold text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Esperado</label><div className="data-field font-semibold text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Diferencia</label><div className={`data-field font-semibold text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                                    <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
