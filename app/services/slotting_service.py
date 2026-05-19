@@ -197,7 +197,10 @@ class SlottingService:
         candidates = []
         for bin_code, info in storage.items():
             zone = info.get('zone')
-            level = info.get('level')
+            try:
+                level = int(float(str(info.get('level', '0'))))
+            except (ValueError, TypeError):
+                level = 0
             score = info.get('score', 0)
             if zone in forbidden_zones: continue
             if target_zone and zone != target_zone: continue
