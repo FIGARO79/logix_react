@@ -32,7 +32,7 @@ const Inbound = () => {
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-        const [validBins, setValidBins] = useState(new Set());
+    const [validBins, setValidBins] = useState(new Set());
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
@@ -331,7 +331,7 @@ const Inbound = () => {
                     if (!editId) {
                         setQuantity('');
                         // El binLocation ya viene actualizado del backend (effective_bin_location)
-                        setRelocatedBin(''); 
+                        setRelocatedBin('');
                     }
                     quantityRef.current?.focus();
                     setLoading(false);
@@ -582,10 +582,10 @@ const Inbound = () => {
                                     <label className="form-label font-normal text-gray-800">Item Code</label>
                                     <div className="flex gap-2">
                                         <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
-                                        <button 
-                                            type="button" 
-                                            className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
-                                            onClick={findItem} 
+                                        <button
+                                            type="button"
+                                            className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
+                                            onClick={findItem}
                                             disabled={loading}
                                         >
                                             {loading ? '...' : (
@@ -595,10 +595,10 @@ const Inbound = () => {
                                             )}
                                         </button>
                                         {!editId && (
-                                            <button 
-                                                type="button" 
-                                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center" 
-                                                onClick={() => setScannerOpen(true)} 
+                                            <button
+                                                type="button"
+                                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
+                                                onClick={() => setScannerOpen(true)}
                                                 title="Escanear"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 26 26" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
@@ -683,8 +683,8 @@ const Inbound = () => {
                                     disabled={isSaving}
                                     className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
                                     style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background='#1e4a74')}
-                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background='#285f94')}
+                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background = '#1e4a74')}
+                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background = '#285f94')}
                                 >
                                     {isSaving ? (
                                         <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
@@ -693,9 +693,9 @@ const Inbound = () => {
                                     )}
                                 </button>
                                 {editId && (
-                                    <button 
-                                        type="button" 
-                                        onClick={resetForm} 
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
                                         className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
                                     >
                                         Cancelar
@@ -709,23 +709,23 @@ const Inbound = () => {
                             <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
                             <div className="flex justify-center">
                                 <div ref={labelComponentRef} className="bg-white">
-                                    <SandvikLabel 
-                                        data={itemData} 
-                                        qrImage={qrImage} 
-                                        quantity={quantity} 
-                                        relocatedBin={relocatedBin} 
-                                        totalWeight={totalWeight} 
+                                    <SandvikLabel
+                                        data={itemData}
+                                        qrImage={qrImage}
+                                        quantity={quantity}
+                                        relocatedBin={relocatedBin}
+                                        totalWeight={totalWeight}
                                     />
                                 </div>
                             </div>
                             <div className="w-full flex justify-center mt-4">
-                                <button 
-                                    type="button" 
-                                    onClick={handlePrint} 
+                                <button
+                                    type="button"
+                                    onClick={handlePrint}
                                     className="h-9 px-8 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background='#1e4a74')}
-                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background='#285f94')}
+                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
+                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
                                     disabled={!itemData}
                                 >
                                     Imprimir
@@ -745,18 +745,18 @@ const Inbound = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </span>
-                                <input 
-                                    type="text" 
-                                    placeholder="BUSCAR..." 
-                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all" 
+                                <input
+                                    type="text"
+                                    placeholder="BUSCAR..."
+                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all"
                                     style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
-                                    value={searchTerm} 
-                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                                 {searchTerm && (
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setSearchTerm('')} 
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm('')}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-semibold"
                                         title="Limpiar búsqueda"
                                     >
@@ -764,35 +764,35 @@ const Inbound = () => {
                                     </button>
                                 )}
                             </div>
-                            
-                            <select 
-                                onChange={(e) => loadLogs(e.target.value)} 
+
+                            <select
+                                onChange={(e) => loadLogs(e.target.value)}
                                 className="h-9 px-3 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
                             >
                                 <option value="">ACTUAL</option>
                                 {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
                             </select>
 
-                            <button 
+                            <button
                                 onClick={() => {
                                     const offset = new Date().getTimezoneOffset();
                                     const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
                                     window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
-                                }} 
+                                }}
                                 className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                             >
                                 Exportar
                             </button>
-                            
-                            <button 
-                                onClick={handleArchive} 
+
+                            <button
+                                onClick={handleArchive}
                                 className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background='#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background='#285f94'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                             >
                                 Archivar
                             </button>
@@ -822,7 +822,7 @@ const Inbound = () => {
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1 font-normal text-gray-900">{log.importReference}</td>
                                         <td className="px-2 py-1 font-normal text-gray-900">{log.waybill}</td>
-                                        <td className="px-2 py-1 font-normal text-black font-mono">{log.itemCode}</td>
+                                        <td className="px-2 py-1 font-normal text-black font-normal">{log.itemCode}</td>
                                         <td className="px-2 py-1 truncate max-w-[180px] font-normal text-gray-800">{log.itemDescription}</td>
                                         <td className="px-2 py-1 font-normal text-blue-900">{log.binLocation}</td>
                                         <td className="px-2 py-1 font-normal text-emerald-900">{log.relocatedBin}</td>

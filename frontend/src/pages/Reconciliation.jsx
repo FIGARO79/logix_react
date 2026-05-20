@@ -103,9 +103,34 @@ const Reconciliation = () => {
     const formatDateShort = (dateStr) => {
         if (!dateStr) return '';
         try {
-            const date = new Date(dateStr);
-            return date.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        } catch (e) { return dateStr; }
+            let cleanStr = dateStr.trim();
+            // Normalizar espacio a T para formato ISO estándar
+            if (cleanStr.includes(' ') && !cleanStr.includes('T')) {
+                cleanStr = cleanStr.replace(' ', 'T');
+            }
+            // Determinar si ya tiene zona horaria (Z o offset +/-)
+            const hasTimezone = cleanStr.endsWith('Z') || 
+                                cleanStr.includes('+') || 
+                                (cleanStr.includes('T') && cleanStr.split('T')[1].includes('-')) ||
+                                (!cleanStr.includes('T') && cleanStr.lastIndexOf('-') > 7);
+            
+            // Si es hora del servidor sin offset, forzar interpretación como UTC
+            if (!hasTimezone) {
+                cleanStr = cleanStr + 'Z';
+            }
+            
+            const date = new Date(cleanStr);
+            return date.toLocaleString('es-CO', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+        } catch (e) { 
+            return dateStr; 
+        }
     };
 
     const sortedData = useMemo(() => {
