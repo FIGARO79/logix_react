@@ -9,7 +9,9 @@ from app.core.config import (
     ITEM_MASTER_CSV_PATH, 
     GRN_CSV_FILE_PATH, 
     RESERVATION_CSV_PATH,
-    PO_LOOKUP_JSON_PATH
+    PO_LOOKUP_JSON_PATH,
+    PICKING_CSV_PATH,
+    PO_EXTRACTOR_EXCEL_PATH
 )
 from app.services import csv_handler
 from app.utils.auth import login_required
@@ -25,7 +27,9 @@ async def get_sync_status(user: str = Depends(login_required)):
         "master_items": ITEM_MASTER_CSV_PATH,
         "grn_pending": GRN_CSV_FILE_PATH,
         "xdock_reservations": RESERVATION_CSV_PATH,
-        "po_lookup": PO_LOOKUP_JSON_PATH
+        "po_lookup": PO_LOOKUP_JSON_PATH,
+        "picking": PICKING_CSV_PATH,
+        "po_extractor": PO_EXTRACTOR_EXCEL_PATH
     }
     
     for key, path in paths.items():
