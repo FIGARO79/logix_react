@@ -358,19 +358,19 @@ const Reconciliation = () => {
                                                     onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                                                     onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fcfcfc'}
                                                 >
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-900 font-semibold tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-700 font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-700 font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] font-semibold tracking-tight" style={{ borderBottom: '1px solid #f1f1f1', color: '#1e4a74' }}>{row.Codigo_Item}</td>
-                                                    <td className="px-3 py-2 truncate max-w-[300px] text-[12px] text-zinc-900 font-semibold uppercase tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-600" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-zinc-600" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Reubicado || '-'}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-center text-zinc-900 font-semibold" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Esperada}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[12px] text-center font-semibold text-zinc-950" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Recibida}</td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-center text-[12px] font-extrabold" style={{ borderBottom: '1px solid #f1f1f1', color: row.Diferencia > 0 ? '#1e4a74' : row.Diferencia < 0 ? '#dc2626' : '#18181b' }}>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal text-black tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal tracking-tight" style={{ borderBottom: '1px solid #f1f1f1', color: '#1e4a74' }}>{row.Codigo_Item}</td>
+                                                    <td className="px-3 py-2 truncate max-w-[300px] text-sm font-normal text-black tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Reubicado || '-'}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Esperada}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Recibida}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-center text-sm font-normal" style={{ borderBottom: '1px solid #f1f1f1', color: row.Diferencia > 0 ? '#1e4a74' : row.Diferencia < 0 ? '#dc2626' : '#18181b' }}>
                                                         {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                     </td>
-                                                    <td className="px-3 py-2 whitespace-nowrap text-[11px] text-zinc-500 font-medium" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-black font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>
                                                         {formatDateShort(row.Timestamp)}
                                                     </td>
                                                 </tr>

@@ -820,19 +820,19 @@ const Inbound = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1 font-normal text-gray-900">{log.importReference}</td>
-                                        <td className="px-2 py-1 font-normal text-gray-900">{log.waybill}</td>
-                                        <td className="px-2 py-1 font-normal text-black font-normal">{log.itemCode}</td>
-                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-gray-800">{log.itemDescription}</td>
-                                        <td className="px-2 py-1 font-normal text-blue-900">{log.binLocation}</td>
-                                        <td className="px-2 py-1 font-normal text-emerald-900">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.itemCode}</td>
+                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-sm text-black">{log.itemDescription}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-emerald-900">{log.relocatedBin}</td>
                                         <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1 text-center font-normal text-gray-700">{log.expected_qty || 0}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.expected_qty || 0}</td>
                                         <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
                                             (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
                                             }`}>{log.difference || 0}</td>
-                                        <td className="px-2 py-1 whitespace-nowrap text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1 uppercase font-normal text-gray-800">{log.username}</td>
+                                        <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1 uppercase font-normal text-sm text-gray-800">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">

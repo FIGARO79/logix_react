@@ -199,21 +199,21 @@ const InboundHistory = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
-                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
+                            {loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
+                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap font-bold ${log.is_pending ? 'text-amber-700' : 'text-gray-600'} uppercase`}>{log.username}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.importReference}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800">{log.waybill}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-[#285f94] font-mono font-medium">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.binLocation}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.relocatedBin}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.expected_qty}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-600">{formatDate(log.timestamp)}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-gray-600'} uppercase`}>{log.username}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.importReference}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.waybill}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800 font-normal">{log.itemCode}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800 truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.binLocation}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.relocatedBin}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-gray-500 font-normal">{log.expected_qty}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
                                 </tr>
