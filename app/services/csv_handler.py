@@ -93,8 +93,10 @@ async def generate_reservation_cache():
 async def load_csv_data():
     global df_master_cache, df_grn_cache, master_qty_map, _mtime_master, _mtime_grn
     t0 = time.time()
-    try:
-        if os.path.exists(ITEM_MASTER_CSV_PATH):
+    
+    # 1. Cargar Master Item (AURRSGLBD0250)
+    if os.path.exists(ITEM_MASTER_CSV_PATH):
+        try:
             _mtime_master = os.path.getmtime(ITEM_MASTER_CSV_PATH)
             raw_master = pl.read_csv(ITEM_MASTER_CSV_PATH, columns=COLUMNS_TO_READ_MASTER, infer_schema_length=0, null_values=['', 'nan', 'NaN'], ignore_errors=True)
             df_master_cache = (
@@ -111,8 +113,12 @@ async def load_csv_data():
                 for r in df_master_cache.select(["Item_Code", "Physical_Qty"]).to_dicts() 
                 if r["Item_Code"]
             }
+        except Exception as e:
+            print(f"❌ Error cargando Master CSV ({ITEM_MASTER_CSV_PATH}): {e}")
 
-        if os.path.exists(GRN_CSV_FILE_PATH):
+    # 2. Cargar GRN (AURRSGLBD0280)
+    if os.path.exists(GRN_CSV_FILE_PATH):
+        try:
             _mtime_grn = os.path.getmtime(GRN_CSV_FILE_PATH)
             raw_grn = pl.read_csv(GRN_CSV_FILE_PATH, columns=COLUMNS_TO_READ_GRN, infer_schema_length=0, null_values=['', 'nan', 'NaN'], ignore_errors=True)
             df_grn_cache = (
@@ -122,11 +128,16 @@ async def load_csv_data():
                     pl.col("Quantity").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
                 ])
             )
+        except Exception as e:
+            print(f"❌ Error cargando GRN CSV ({GRN_CSV_FILE_PATH}): {e}")
 
+    # 3. Cargar Reservaciones (AURRSLAMP0006)
+    try:
         await generate_reservation_cache()
-        print(f"✅ [POLARS] Sincronización RAM completa ({time.time() - t0:.3f}s)")
     except Exception as e:
-        print(f"❌ Error cargando CSVs: {e}")
+        print(f"❌ Error cargando Reservaciones: {e}")
+
+    print(f"✅ [POLARS] Sincronización RAM completa ({time.time() - t0:.3f}s)")
 
 async def reload_cache_if_needed():
     global _last_check, _mtime_master, _mtime_grn
