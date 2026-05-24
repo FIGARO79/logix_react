@@ -7,7 +7,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import ORJSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
@@ -44,7 +44,7 @@ async def find_item(
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
-    expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
+    expected_quantity = await csv_handler.get_expected_quantity_by_ir_and_item(item_code, import_reference, db=db)
     original_bin = item_details.get('Bin_1', 'N/A')
     
     # Obtenemos la última reubicación para que aparezca como ubicación base si ya se movió
@@ -112,7 +112,7 @@ async def find_item(
         "supersededBy": item_details.get('SupersededBy', 'N/A'),
         "latestRelocatedBin": latest_relocated_bin
     }
-    return ORJSONResponse(content=response_data)
+    return JSONResponse(content=response_data)
 
 @router.post('/add_log')
 async def add_log(data: LogEntry, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
@@ -124,7 +124,7 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     if not item_details:
         raise HTTPException(status_code=404, detail="El código de ítem no existe en el maestro.")
 
-    expected_qty = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
+    expected_qty = await csv_handler.get_expected_quantity_by_ir_and_item(item_code_form, data.importReference, db=db)
     
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code_form)
     original_bin = item_details.get('Bin_1', '')
@@ -152,7 +152,7 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     
     if log_id is not None and log_id > 0:
-        return ORJSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
+        return JSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
     elif log_id == 0:
         raise HTTPException(status_code=409, detail="Registro duplicado detectado (client_id).")
     else:
@@ -166,17 +166,17 @@ async def get_logs(version_date: Optional[str] = None, username: str = Depends(l
             logs = await db_logs.load_archived_log_data_db_async(db, version_date)
         else:
             logs = await db_logs.load_log_data_db_async(db)
-        return ORJSONResponse(content=logs)
+        return JSONResponse(content=logs)
     except Exception as e:
         print(f"Error cargando logs: {e}")
-        return ORJSONResponse(status_code=500, content={"error": "Error interno al cargar logs"})
+        return JSONResponse(status_code=500, content={"error": "Error interno al cargar logs"})
 
 @router.delete('/delete_log/{log_id}')
 async def delete_log(log_id: int, username: str = Depends(permission_required(["admin", "inbound"])), db: AsyncSession = Depends(get_db)):
     """Elimina un registro de log."""
     success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
-        return ORJSONResponse(content={"message": "Registro eliminado"})
+        return JSONResponse(content={"message": "Registro eliminado"})
     else:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
 
@@ -185,7 +185,7 @@ async def update_log(log_id: int, data: dict, username: str = Depends(permission
     """Actualiza un registro de log existente."""
     success = await db_logs.update_log_entry_db_async(db, log_id, data)
     if success:
-        return ORJSONResponse(content={"message": "Registro actualizado correctamente"})
+        return JSONResponse(content={"message": "Registro actualizado correctamente"})
     else:
         raise HTTPException(status_code=404, detail="Registro no encontrado o error al actualizar")
 
@@ -194,15 +194,15 @@ async def archive_logs(username: str = Depends(permission_required("inbound")), 
     """Archiva los registros actuales."""
     archive_date = await db_logs.archive_current_logs_db_async(db)
     if archive_date:
-        return ORJSONResponse(content={"message": "Registros archivados correctamente", "archive_date": archive_date})
+        return JSONResponse(content={"message": "Registros archivados correctamente", "archive_date": archive_date})
     else:
-        return ORJSONResponse(status_code=400, content={"message": "No hay registros activos para archivar"})
+        return JSONResponse(status_code=400, content={"message": "No hay registros activos para archivar"})
 
 @router.get('/logs/versions')
 async def get_log_versions(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene las fechas de las versiones archivadas."""
     versions = await db_logs.get_archived_versions_db_async(db)
-    return ORJSONResponse(content=versions)
+    return JSONResponse(content=versions)
 
 @router.get('/export_log')
 async def export_log(timezone_offset: int = 0, version_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
@@ -237,14 +237,18 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                 'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. Esperada', 'Diferencia']
 
     # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
-    # 1. Obtener cantidad esperada del GRN CSV por itemCode
-    unique_items = list({log['itemCode'] for log in logs if log.get('itemCode')})
+    # 1. Obtener cantidad esperada del GRN CSV por itemCode e importReference
     expected_map = {}
-    for item in unique_items:
-        expected_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
+    for log in logs:
+        code = log.get('itemCode')
+        ir = log.get('importReference')
+        if code and ir:
+            key = f"{code}|{ir}"
+            if key not in expected_map:
+                expected_map[key] = await csv_handler.get_expected_quantity_by_ir_and_item(code, ir, db=db)
 
-    # 2. Calcular total recibido por itemCode y encontrar el log más reciente
-    #    Ordenamos por ID descendente para marcar la "última" fila del item.
+    # 2. Calcular total recibido por (itemCode, importReference) y encontrar el log más reciente
+    #    Ordenamos por ID descendente para marcar la "última" fila del item para esa I.R.
     logs_sorted = sorted(logs, key=lambda x: (x.get('id') or 0), reverse=True)
     
     totals_map = {}
@@ -252,19 +256,23 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     
     for log in logs_sorted:
         code = log.get('itemCode')
-        if not code: continue
-        totals_map[code] = totals_map.get(code, 0) + int(log.get('qtyReceived') or 0)
-        if code not in latest_id_map:
-            latest_id_map[code] = log.get('id')
+        ir = log.get('importReference')
+        if not code or not ir: continue
+        key = f"{code}|{ir}"
+        totals_map[key] = totals_map.get(key, 0) + int(log.get('qtyReceived') or 0)
+        if key not in latest_id_map:
+            latest_id_map[key] = log.get('id')
 
     # 3. Enriquecer logs CON ALINEACIÓN Y FORMATO DE FECHA
     enriched = []
     for log in logs_sorted:
         code = log.get('itemCode')
-        is_latest = latest_id_map.get(code) == log.get('id')
+        ir = log.get('importReference')
+        key = f"{code}|{ir}" if (code and ir) else ""
+        is_latest = latest_id_map.get(key) == log.get('id') if key else False
         
-        expected = expected_map.get(code, 0)
-        total_rec = totals_map.get(code, 0)
+        expected = expected_map.get(key, 0) if key else 0
+        total_rec = totals_map.get(key, 0) if key else 0
 
         # Formatear fecha aplicando el desfase del cliente
         ts_raw = log.get('timestamp', '')

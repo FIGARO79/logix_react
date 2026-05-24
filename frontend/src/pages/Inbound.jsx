@@ -229,37 +229,46 @@ const Inbound = () => {
             return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
         });
 
-        const uniqueItems = [...new Set(allLogsSorted.map(l => l.itemCode))];
-
         const grnMap = {};
         try {
             const db = await getDB();
-            for (const itemCode of uniqueItems) {
-                const grnInfo = await db.get('grn_pending', itemCode);
-                grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
+            // Cargar lo esperado por itemCode + importReference
+            for (const log of allLogsSorted) {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                if (!(key in grnMap)) {
+                    const dbKey = `${code}_${ir}`;
+                    const grnInfo = await db.get('grn_pending', dbKey);
+                    grnMap[key] = grnInfo ? grnInfo.total_expected : 0;
+                }
             }
         } catch (e) { console.error("Error loading GRN info", e); }
 
-        // Calcular total recibido por ítem y encontrar la última entrada (por timestamp) para cada uno
+        // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
         const totalsMap = {};
-        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode (ya ordenados)
+        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode|importReference (ya ordenados)
 
         allLogsSorted.forEach(log => {
             const code = log.itemCode;
-            // Asegurar que usamos qtyReceived del payload o campo directo
+            const ir = log.importReference || log.importRef || '';
+            const key = `${code}|${ir}`;
             const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
-            totalsMap[code] = (totalsMap[code] || 0) + qty;
+            totalsMap[key] = (totalsMap[key] || 0) + qty;
 
-            if (!latestEntryMap[code]) {
-                latestEntryMap[code] = log.id;
+            if (!latestEntryMap[key]) {
+                latestEntryMap[key] = log.id;
             }
         });
 
-        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem)
+        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem en esa I.R.)
         const logsWithGRN = allLogsSorted.map(log => {
-            const expected = grnMap[log.itemCode] || 0;
-            const totalReceived = totalsMap[log.itemCode] || 0;
-            const isLatest = latestEntryMap[log.itemCode] === log.id;
+            const code = log.itemCode;
+            const ir = log.importReference || log.importRef || '';
+            const key = `${code}|${ir}`;
+            const expected = grnMap[key] || log.qtyGrn || log.quantity || 0;
+            const totalReceived = totalsMap[key] || 0;
+            const isLatest = latestEntryMap[key] === log.id;
 
 
             return {
@@ -346,7 +355,8 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
-                    const grnInfo = await db.get('grn_pending', normalizedCode);
+                    const dbKey = `${normalizedCode}_${importRef.trim().toUpperCase()}`;
+                    const grnInfo = await db.get('grn_pending', dbKey);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
                     // Buscar si ya hay reubicaciones de este ítem en la cola local
@@ -821,14 +831,14 @@ const Inbound = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1 font-normal text-gray-900">{log.importReference}</td>
-                                        <td className="px-2 py-1 font-normal text-gray-900">{log.waybill}</td>
-                                        <td className="px-2 py-1 font-normal text-black font-mono">{log.itemCode}</td>
-                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-gray-800">{log.itemDescription}</td>
-                                        <td className="px-2 py-1 font-normal text-blue-900">{log.binLocation}</td>
-                                        <td className="px-2 py-1 font-normal text-emerald-900">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1 font-normal text-xs sm:text-gray-900">{log.importReference}</td>
+                                        <td className="px-2 py-1 font-normal text-xs sm:text-gray-900">{log.waybill}</td>
+                                        <td className="px-2 py-1 font-normal text-xs sm:text-black">{log.itemCode}</td>
+                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-xs sm:text-gray-800">{log.itemDescription}</td>
+                                        <td className="px-2 py-1 font-normal text-xs sm:text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-xs sm:text-emerald-900">{log.relocatedBin}</td>
                                         <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1 text-center font-normal text-gray-700">{log.expected_qty || 0}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-sm text-gray-700">{log.expected_qty || 0}</td>
                                         <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
                                             (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
                                             }`}>{log.difference || 0}</td>

@@ -7,7 +7,6 @@ from fastapi import FastAPI
 
 # Asegurar que los archivos .wasm se sirvan con el tipo MIME correcto
 mimetypes.add_type('application/wasm', '.wasm')
-from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -67,7 +66,6 @@ app = FastAPI(
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
     lifespan=lifespan,
-    default_response_class=ORJSONResponse,
     # [SEGURIDAD] Deshabilitar docs en producción
     docs_url=None if ENVIRONMENT == 'production' else "/docs",
     redoc_url=None if ENVIRONMENT == 'production' else "/redoc",

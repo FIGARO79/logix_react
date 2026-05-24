@@ -1,11 +1,20 @@
 import os
 import time
+import orjson
 import polars as pl
 from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.sql_models import MasterItem
-from app.core.config import ITEM_MASTER_CSV_PATH, GRN_CSV_FILE_PATH, RESERVATION_CSV_PATH, COLUMNS_TO_READ_MASTER, COLUMNS_TO_READ_GRN
+from app.models.sql_models import MasterItem, GRNMaster
+from app.core.config import (
+    ITEM_MASTER_CSV_PATH, 
+    GRN_CSV_FILE_PATH, 
+    RESERVATION_CSV_PATH, 
+    COLUMNS_TO_READ_MASTER, 
+    COLUMNS_TO_READ_GRN,
+    PO_LOOKUP_JSON_PATH,
+    GRN_JSON_DATA_PATH
+)
 
 # --- Caché Global ---
 df_master_cache: Optional[pl.DataFrame] = None
@@ -150,6 +159,75 @@ async def get_total_expected_quantity_for_item(item_code: str):
     if df_grn_cache is None: return 0
     res = df_grn_cache.filter(pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code.upper().strip())
     return int(res.select(pl.col("Quantity").sum())[0,0] or 0) if res.height > 0 else 0
+
+async def get_expected_quantity_by_ir_and_item(item_code: str, import_reference: str, db: Optional[AsyncSession] = None) -> int:
+    import_reference = import_reference.strip().upper()
+    item_code = item_code.strip().upper()
+    
+    if not import_reference or not item_code:
+        return 0
+        
+    grn_to_ir = {} # grn_number -> import_reference
+    
+    # A. Desde grn_master_data.json
+    if os.path.exists(GRN_JSON_DATA_PATH):
+        try:
+            with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                for row in orjson.loads(f.read()):
+                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                    if ir and grn:
+                        grn_to_ir[grn] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando GRN JSON: {e}")
+
+    # B. Desde DB GRN Master
+    if db:
+        try:
+            db_grns = await db.execute(select(GRNMaster))
+            for g_master in db_grns.scalars().all():
+                ir = str(g_master.import_reference).strip().upper()
+                if ir and g_master.grn_number:
+                    for g in str(g_master.grn_number).split(','):
+                        if g.strip():
+                            grn_to_ir[g.strip().upper()] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando GRN Master de DB: {e}")
+
+    # C. Desde po_lookup.json
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
+                po_cache = orjson.loads(f.read())
+                for wb, data in po_cache.get("wb_to_data", {}).items():
+                    ir = str(data.get("import_ref", "")).strip().upper()
+                    for item in data.get("items", []):
+                        grn_val = str(item.get("grn", "")).strip().upper()
+                        if grn_val and ir:
+                            for g in grn_val.split(','):
+                                if g.strip():
+                                    grn_to_ir[g.strip().upper()] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando PO Lookup: {e}")
+
+    # 2. Filtrar el reporte de GRN cacheado por el código de ítem
+    global df_grn_cache
+    await reload_cache_if_needed()
+    if df_grn_cache is None:
+        return 0
+        
+    res = df_grn_cache.filter(pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
+    if res.height == 0:
+        return 0
+        
+    # 3. Sumar la cantidad únicamente de los GRN que pertenezcan a la I.R. especificada
+    expected_sum = 0
+    for row in res.to_dicts():
+        grn_num = str(row.get("GRN_Number", "")).strip().upper()
+        if grn_to_ir.get(grn_num) == import_reference:
+            expected_sum += int(row.get("Quantity") or 0)
+            
+    return expected_sum
 
 async def get_xdock_info(item_code: str):
     """Retorna dict con total y lista de clientes de Xdock."""

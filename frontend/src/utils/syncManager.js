@@ -25,9 +25,17 @@ export const downloadMasterData = async () => {
         // Cargar GRN Pending
         const grnStore = tx.objectStore('grn_pending');
         await grnStore.clear();
-        for (const [code, qty] of Object.entries(data.grn_pending)) {
-            if (code && code !== 'null' && code !== 'undefined') {
-                grnStore.put({ Item_Code: code, total_expected: qty });
+        for (const [key, qty] of Object.entries(data.grn_pending)) {
+            if (key && key !== 'null' && key !== 'undefined') {
+                const [itemCode, importRef] = key.split('|');
+                if (itemCode && importRef) {
+                    grnStore.put({ 
+                        id: `${itemCode}_${importRef}`, 
+                        Item_Code: itemCode, 
+                        Import_Reference: importRef, 
+                        total_expected: qty 
+                    });
+                }
             }
         }
         

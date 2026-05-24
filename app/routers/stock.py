@@ -4,7 +4,7 @@ Router para endpoints de stock/inventario.
 from typing import List, Tuple
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
@@ -67,7 +67,7 @@ async def measure_dimensions(data: MeasurementRequest, username: str = Depends(l
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
-    return ORJSONResponse(result)
+    return JSONResponse(result)
 
 
 @router.get('/stock')
@@ -75,7 +75,7 @@ async def get_stock(username: str = Depends(permission_required("stock"))):
     """Obtiene datos de stock desde el CSV."""
     stock_data = await csv_handler.get_stock_data()
     if stock_data is not None:
-        return ORJSONResponse(stock_data.to_dict(orient='records'))
+        return JSONResponse(stock_data.to_dict(orient='records'))
     raise HTTPException(status_code=500, detail="No se pudo cargar los datos de stock.")
 
 
@@ -85,7 +85,7 @@ async def get_stock_item(item_code: str, username: str = Depends(permission_requ
     item_details = await csv_handler.get_item_details_from_master_csv(item_code)
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado.")
-    return ORJSONResponse(item_details)
+    return JSONResponse(item_details)
 
 
 @router.get('/get_item_details/{item_code}')
@@ -107,4 +107,4 @@ async def get_item_details_for_label(item_code: str, db: AsyncSession = Depends(
         'additional_bins': item_details.get('Aditional_Bin_Location'),
         'weight_kg': item_details.get('Weight_per_Unit')
     }
-    return ORJSONResponse(content=response_data)
+    return JSONResponse(content=response_data)

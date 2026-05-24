@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 import polars as pl
 import os
 import shutil
@@ -173,7 +173,7 @@ po_robot_status = {
     "message": ""
 }
 
-@router.post('/api/run_po_robot', response_class=ORJSONResponse)
+@router.post('/api/run_po_robot', response_class=JSONResponse)
 async def run_po_robot_api(
     payload: PORobotRequest,
     background_tasks: BackgroundTasks,
@@ -183,11 +183,11 @@ async def run_po_robot_api(
     Dispara el robot de descarga de Purchase Order y luego procesa el archivo.
     """
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
     # Evitar múltiples ejecuciones concurrentes
     if po_robot_status["status"] == "running":
-        return ORJSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
+        return JSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
 
     async def execute_robot_task():
         global po_robot_status
@@ -221,18 +221,18 @@ async def run_po_robot_api(
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
     
-    return ORJSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
+    return JSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
 
 @router.get('/api/po_robot_status')
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
     # Log para depuración
     print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
-    return ORJSONResponse(content=po_robot_status)
+    return JSONResponse(content=po_robot_status)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
-@router.post('/api/update', response_class=ORJSONResponse)
+@router.post('/api/update', response_class=JSONResponse)
 async def update_files_post(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -248,7 +248,7 @@ async def update_files_post(
     username: str = Depends(login_required)
 ):
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
     files_uploaded = False
     message = ""
@@ -362,11 +362,11 @@ async def update_files_post(
         message += " Procesamiento en segundo plano iniciado."
 
     if error:
-        return ORJSONResponse(status_code=400, content={"error": error})
-    return ORJSONResponse(content={"message": message or "No se subieron archivos."})
+        return JSONResponse(status_code=400, content={"error": error})
+    return JSONResponse(content={"message": message or "No se subieron archivos."})
 
 
-@router.post('/api/reload_cache', response_class=ORJSONResponse)
+@router.post('/api/reload_cache', response_class=JSONResponse)
 async def reload_cache_api(username: str = Depends(login_required)):
     """Fuerza la recarga de los datos CSV en la memoria RAM."""
     try:
@@ -382,32 +382,32 @@ async def preview_grn_file(file: UploadFile = File(...), username: str = Depends
         contents = await file.read()
         df = pl.read_csv(contents, infer_schema_length=0)
         if GRN_COLUMN_NAME_IN_CSV not in df.columns:
-            return ORJSONResponse(status_code=400, content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"})
+            return JSONResponse(status_code=400, content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"})
         grns = sorted(df.get_column(GRN_COLUMN_NAME_IN_CSV).drop_nulls().unique().to_list())
-        return ORJSONResponse(content={"grns": grns})
+        return JSONResponse(content={"grns": grns})
     except Exception as e:
-        return ORJSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
 @router.post('/api/clear_database')
 async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     if password != ADMIN_PASSWORD:
-        return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+        return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     await db.execute(delete(Log))
     await db.commit()
-    return ORJSONResponse(content={"message": "Base de datos de logs limpiada"})
+    return JSONResponse(content={"message": "Base de datos de logs limpiada"})
 
 @router.post('/api/export_all_log')
 async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
     if password != ADMIN_PASSWORD:
-         return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+         return JSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
     try:
         from app.services import db_logs
         import polars as pl
         import openpyxl
         
         logs_data = await db_logs.load_all_logs_db_async(db)
-        if not logs_data: return ORJSONResponse(status_code=404, content={"error": "No hay datos"})
+        if not logs_data: return JSONResponse(status_code=404, content={"error": "No hay datos"})
         
         df = pl.DataFrame(logs_data)
         col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}
@@ -425,4 +425,4 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
         output.seek(0)
         return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=backup_logs.xlsx"})
     except Exception as e:
-        return ORJSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": str(e)})
