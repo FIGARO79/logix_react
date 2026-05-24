@@ -7,7 +7,7 @@ import orjson
 import os
 import polars as pl
 from typing import List, Optional, Dict, Any
-from sqlalchemy import select, func, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler

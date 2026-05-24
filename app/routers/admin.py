@@ -3,25 +3,20 @@ Router para endpoints administrativos simplificado y unificado.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body, UploadFile, File
 from fastapi.responses import ORJSONResponse, Response
-from pydantic import BaseModel
-from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select, delete
 from app.core.db import get_db
 from app.utils.auth import (
     get_all_users, approve_user_by_id, delete_user_by_id, 
-    reset_user_password, get_user_by_id, admin_login_required,
+    reset_user_password, admin_login_required,
     permission_required
 )
 from app.models.sql_models import User, BinLocation, SlottingRule
 from sqlalchemy import update
-from app.core.config import ADMIN_PASSWORD, PROJECT_ROOT, SLOTTING_PARAMS_PATH
-from app.services.csv_handler import load_csv_data
-from app.core.limiter import limiter
+from app.core.config import ADMIN_PASSWORD, SLOTTING_PARAMS_PATH
 import orjson
 import os
 
-import datetime
 from io import BytesIO
 
 # Usaremos un solo router para evitar confusiones en main.py

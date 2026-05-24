@@ -1,5 +1,4 @@
 import polars as pl
-import datetime
 import os
 import orjson
 from sqlalchemy.ext.asyncio import AsyncSession

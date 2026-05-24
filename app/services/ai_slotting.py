@@ -1,8 +1,8 @@
 import datetime
 import os
 import orjson
-from typing import Dict, Any, Optional, List
-from sqlalchemy import select, update, insert
+from typing import Optional
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.sql_models import AIItemPattern, AICategoryPattern
 from app.core.config import PROJECT_ROOT

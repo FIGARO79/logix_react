@@ -1,7 +1,6 @@
 """
 Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
-import os
 import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -19,7 +18,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 
 # Importar configuración
-from app.core.config import PROJECT_ROOT, SECRET_KEY, ENVIRONMENT
+from app.core.config import SECRET_KEY, ENVIRONMENT
 from app.middleware.security import SchemeMiddleware, HSTSMiddleware
 from app.middleware.csv_cache_reload import CSVCacheReloadMiddleware
 

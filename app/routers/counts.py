@@ -1,8 +1,6 @@
 import datetime
 
 import polars as pl
-import os
-import orjson
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
@@ -10,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import ORJSONResponse
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update
+from sqlalchemy import select
 
 from app.core.db import get_db
 from app.models.sql_models import CountSession, CycleCountRecording, MasterItem, StockCount

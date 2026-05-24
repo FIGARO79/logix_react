@@ -3,12 +3,10 @@ Router para endpoints de logs (inbound).
 """
 import datetime
 
-import os
-import orjson
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import ORJSONResponse, Response
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,10 +15,9 @@ from app.models.schemas import LogEntry
 from app.services import db_logs, csv_handler
 from app.services.slotting_service import slotting_service
 from app.utils.auth import login_required, permission_required
-from app.core.config import ASYNC_DB_URL, PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
+from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import text, select
-import numpy as np
+from sqlalchemy import select
 
 # Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
 async_engine = create_async_engine(
@@ -352,7 +349,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
 async def export_reconciliation(timezone_offset: int = 0, archive_date: Optional[str] = None, snapshot_date: Optional[str] = None, username: str = Depends(permission_required("inbound")), db: AsyncSession = Depends(get_db)):
     """Genera y exporta el reporte de conciliación (100% Polars, sin Pandas)."""
     import polars as pl
-    from app.models.sql_models import GRNMaster, ReconciliationHistory
+    from app.models.sql_models import ReconciliationHistory
 
     def _write_excel_polars(df: pl.DataFrame, sheet_name: str) -> bytes:
         """Convierte un DataFrame Polars a Excel con openpyxl, auto-ajustando anchos."""

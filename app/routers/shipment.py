@@ -3,7 +3,6 @@ Router para endpoints de envíos consolidados (Shipments).
 Permite agrupar múltiples auditorías de picking en un solo envío.
 """
 import datetime
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 from sqlalchemy import select

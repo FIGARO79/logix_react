@@ -1,7 +1,7 @@
 import os
 import time
 import polars as pl
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.sql_models import MasterItem

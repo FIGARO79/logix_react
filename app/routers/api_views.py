@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy import text, select, desc, distinct, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc, distinct
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.utils.auth import get_current_user, login_required
+from app.utils.auth import login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
-from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
+from app.models.sql_models import PickingAudit, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory
 
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
@@ -224,7 +223,6 @@ async def get_counts_data(
     username: str = Depends(login_required), 
     db: AsyncSession = Depends(get_db)
 ):
-    from app.services.csv_handler import master_qty_map
     
     all_counts = await db_counts.load_all_counts_db_async(db)
     

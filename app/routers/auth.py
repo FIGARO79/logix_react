@@ -1,7 +1,7 @@
 """
 Router para endpoints de autenticación y gestión de contraseñas (API ONLY).
 """
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
+from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
@@ -19,7 +19,6 @@ from app.utils.auth import (
 from app.models.sql_models import User
 from sqlalchemy import select
 import datetime
-from typing import Optional
 from app.core.limiter import limiter
 
 router = APIRouter(tags=["auth"])

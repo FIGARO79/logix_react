@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import cv2
 import math
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

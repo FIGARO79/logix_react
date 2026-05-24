@@ -5,20 +5,19 @@ import datetime
 
 from io import BytesIO
 from urllib.parse import urlencode
-from typing import Optional, Dict, Any, Union
-import numpy as np
+from typing import Optional, Dict, Any
 from openpyxl.utils import get_column_letter
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, ORJSONResponse, RedirectResponse, Response
+from fastapi.responses import ORJSONResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
 
 from app.core.config import ASYNC_DB_URL
 from app.core.db import get_db
-from app.services import db_counts, csv_handler
-from app.utils.auth import login_required, admin_login_required, permission_required
-from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation, MasterItem
+from app.services import csv_handler
+from app.utils.auth import permission_required
+from app.models.sql_models import AppState, StockCount, CountSession, RecountList, SessionLocation
 from app.services.csv_to_db import sync_master_csv_to_db
 
 # --- Inicialización ---

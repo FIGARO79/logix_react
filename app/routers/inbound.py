@@ -1,8 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.db import get_db
+from fastapi import APIRouter, Depends
 from app.utils.auth import permission_required
-from pydantic import BaseModel
 from typing import Optional
 import orjson
 import os

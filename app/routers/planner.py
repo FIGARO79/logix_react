@@ -6,7 +6,6 @@ import datetime
 import random
 from io import BytesIO
 import polars as pl
-import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,8 +13,7 @@ from sqlalchemy import select, func
 from app.core.db import get_db
 from app.models.schemas import CountExecutionRequest
 from app.models.sql_models import CycleCount, CycleCountRecording, MasterItem
-from app.services import csv_handler
-from app.utils.auth import login_required, permission_required
+from app.utils.auth import permission_required
 
 import orjson
 import os

@@ -1,7 +1,7 @@
 """
 Router para endpoints de stock/inventario.
 """
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import ORJSONResponse

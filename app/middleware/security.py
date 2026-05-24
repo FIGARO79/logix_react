@@ -1,10 +1,8 @@
 """
 Middlewares de seguridad para la aplicación.
 """
-import os
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi import Request, status
-from starlette.responses import RedirectResponse
+from fastapi import Request
 
 
 class SchemeMiddleware(BaseHTTPMiddleware):

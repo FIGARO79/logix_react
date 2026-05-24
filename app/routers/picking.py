@@ -4,13 +4,13 @@ Router para endpoints de picking.
 import os
 import datetime
 import polars as pl
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
 from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem, PickingPackageItem
-from app.utils.auth import login_required, api_login_required, permission_required
+from app.utils.auth import permission_required
 from app.core.db import get_db
 
 router = APIRouter(prefix="/api", tags=["picking"])
