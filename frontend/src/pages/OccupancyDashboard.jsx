@@ -27,10 +27,16 @@ const OccupancyDashboard = () => {
     };
 
     const getHeatmapStyle = (percentage) => {
-        if (percentage === 0) return 'bg-slate-50 text-slate-600 border-slate-200';
-        if (percentage < 30) return 'bg-emerald-50 text-emerald-900 border-emerald-200';
-        if (percentage < 75) return 'bg-amber-50 text-amber-900 border-amber-200';
-        return 'bg-red-50 text-red-900 border-red-200 font-medium ';
+        if (percentage === 0) {
+            return 'bg-zinc-100 text-zinc-400 border-zinc-200';
+        }
+        if (percentage < 30) {
+            return 'bg-emerald-200 text-emerald-950 border-emerald-300';
+        }
+        if (percentage < 75) {
+            return 'bg-amber-200 text-amber-950 border-amber-300';
+        }
+        return 'bg-rose-200 text-rose-950 border-rose-300 font-semibold';
     };
 
     if (loading) return (
@@ -93,9 +99,9 @@ const OccupancyDashboard = () => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="bg-zinc-950">
-                                <th className="px-6 py-3 text-left text-[11px] font-medium text-white uppercase tracking-wider border-b border-zinc-800">Identificador de Zona</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-medium text-white uppercase tracking-wider border-b border-zinc-900">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-3 text-center text-[11px] font-medium text-white uppercase tracking-wider border-b border-zinc-800">
+                                    <th key={level} className="px-2 py-3 text-center text-[12px] font-medium text-white uppercase tracking-wider border-b border-zinc-800">
                                         Nivel {level}
                                     </th>
                                 ))}
@@ -124,7 +130,6 @@ const OccupancyDashboard = () => {
                                                         <div className={`
                                                             w-full h-16 flex flex-col items-center justify-center rounded-sm border
                                                             ${getHeatmapStyle(occupancyPercent)}
-                                                            transition-all duration-200
                                                         `}>
                                                             <span className="text-lg font-mono font-medium  leading-none mb-1">{occupancyPercent}%</span>
                                                             <div className="text-[9px] uppercase tracking-tighter font-medium  opacity-90 text-center">
@@ -152,18 +157,18 @@ const OccupancyDashboard = () => {
                 {/* Legend Bar Compact */}
                 <div className="px-6 py-3 border-t border-zinc-200 bg-zinc-50 flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-emerald-50 border border-emerald-300 rounded-full"></div>
-                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Baja Utilización</span>
+                        <div className="w-3.5 h-3.5 bg-emerald-200 border border-emerald-300 rounded-sm"></div>
+                        <span className="text-[10px] font-medium text-zinc-700 uppercase tracking-wider">Baja Utilización</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-amber-50 border border-amber-300 rounded-full"></div>
-                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Carga Óptima</span>
+                        <div className="w-3.5 h-3.5 bg-amber-200 border border-amber-300 rounded-sm"></div>
+                        <span className="text-[10px] font-medium text-zinc-700 uppercase tracking-wider">Carga Óptima</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-red-50 border border-red-300 rounded-full"></div>
-                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Saturado</span>
+                        <div className="w-3.5 h-3.5 bg-rose-200 border border-rose-300 rounded-sm"></div>
+                        <span className="text-[10px] font-medium text-zinc-700 uppercase tracking-wider">Saturado</span>
                     </div>
-                    <div className="ml-auto text-[10px] font-medium  text-zinc-600 italic">
+                    <div className="ml-auto text-[10px] font-medium text-zinc-500 italic">
                         * Los valores indican bins alcanzando umbrales de capacidad configurados.
                     </div>
                 </div>
