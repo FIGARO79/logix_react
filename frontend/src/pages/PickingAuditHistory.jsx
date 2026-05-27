@@ -322,17 +322,18 @@ const PickingAuditHistory = () => {
                                             <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
                                                 <div className="flex justify-center items-center gap-4">
                                                     {isToday(audit.timestamp) && (
-                                                        <button
+                                                        <span
                                                             onClick={() => handleEditClick(audit)}
-                                                            className="text-[9px] font-medium  uppercase tracking-widest text-zinc-700 hover:text-zinc-900 transition-colors leading-none"
+                                                            className="text-[9px] font-medium uppercase tracking-widest text-zinc-700 hover:text-zinc-900 transition-colors leading-none cursor-pointer"
+                                                            role="button"
                                                             title="Editar"
                                                         >
                                                             Editar
-                                                        </button>
+                                                        </span>
                                                     )}
                                                     <Link
                                                         to={`/packing_list/print/${audit.id}`}
-                                                        className="text-[9px] font-medium  uppercase tracking-widest text-zinc-700 hover:text-[#285f94] transition-colors leading-none"
+                                                        className="text-[9px] font-medium uppercase tracking-widest text-zinc-700 hover:text-[#285f94] transition-colors leading-none"
                                                         title="Imprimir"
                                                     >
                                                         Print
@@ -537,7 +538,7 @@ const PickingAuditHistory = () => {
                                                                 })}
                                                             <select
                                                                 onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
-                                                                className="h-9 px-3 text-[10px] font-medium  uppercase tracking-widest bg-white border border-dashed border-zinc-400 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-700"
+                                                                className="w-auto min-w-[130px] h-7 px-2 text-[9px] font-medium uppercase tracking-widest bg-white border border-dashed border-zinc-400 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-700"
                                                                 defaultValue=""
                                                             >
                                                                 <option value="" disabled>+ Añadir Bulto</option>
