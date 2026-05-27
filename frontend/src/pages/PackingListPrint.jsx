@@ -56,7 +56,7 @@ const PackingListPrint = () => {
                 <h1 className="text-2xl uppercase tracking-tight mb-1 print:text-xl text-black">Packing List</h1>
                 <div className="text-[10px] text-gray-500 print:text-black flex justify-between px-2">
                     <span>{data.timestamp || ''}</span>
-                    <span className="font-bold">
+                    <span className="font-medium ">
                         PÁG {currentPage} / {totalPages}
                     </span>
                 </div>
@@ -65,7 +65,7 @@ const PackingListPrint = () => {
             <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] print:gap-1 print:mb-1">
                 <div className="pb-0.5 border-b border-gray-100 flex items-center gap-2">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black">Cliente:</span>
-                    <span className="text-sm font-bold text-black flex flex-wrap items-center gap-1 leading-tight">
+                    <span className="text-sm font-medium  text-black flex flex-wrap items-center gap-1 leading-tight">
                         {data.customer_code && data.customer_code.trim() !== "" ? (
                             <span>{data.customer_code} - {data.customer_name || 'N/A'}</span>
                         ) : (
@@ -75,11 +75,11 @@ const PackingListPrint = () => {
                 </div>
                 <div className="text-right pb-0.5 border-b border-gray-100">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Total Bultos:</span>
-                    <span className="text-lg font-bold text-[#285f94] print:text-black">{data.total_packages}</span>
+                    <span className="text-lg font-medium  text-[#285f94] print:text-black">{data.total_packages}</span>
                 </div>
                 <div className="col-span-2">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Pedido / Despacho:</span>
-                    <span className="text-sm font-bold text-black">
+                    <span className="text-sm font-medium  text-black">
                         {data.order_number} <span className="mx-1 text-gray-300">/</span> {data.despatch_number}
                     </span>
                 </div>
@@ -107,7 +107,7 @@ const PackingListPrint = () => {
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-4 py-1 font-mono text-black text-[10px] print:py-1 font-bold">{item.order_line}</td>
+                                <td className="px-4 py-1 font-mono text-black text-[10px] print:py-1 font-medium ">{item.order_line}</td>
                                 <td className="px-4 py-1 font-mono text-black text-[11px] print:py-1">{item.item_code}</td>
                                 <td className="px-4 py-1 text-black text-[11px] print:py-1">{item.description}</td>
                                 <td className="px-4 py-1 text-right text-sm print:py-1">{item.quantity}</td>
@@ -179,7 +179,7 @@ const PackingListPrint = () => {
                             <div className="mt-4 print:mt-2">
                                 <div className="border border-black rounded-lg overflow-hidden print:border-black print:rounded-none">
                                     <div className="bg-white text-black px-3 py-1 border-b border-black print:py-0.5">
-                                        <h3 className="text-base font-bold uppercase">Bulto #{key}</h3>
+                                        <h3 className="text-base font-medium  uppercase">Bulto #{key}</h3>
                                     </div>
                                     <table className="min-w-full text-base table-fixed">
                                         <thead className="bg-white text-black border-b border-black">
@@ -197,7 +197,7 @@ const PackingListPrint = () => {
                                                         <td className="px-2 py-1 font-mono text-black text-[10px] whitespace-nowrap">{item.order_line}</td>
                                                         <td className="px-2 py-1 font-mono text-black text-[11px] break-all">{item.item_code}</td>
                                                         <td className="px-2 py-1 text-black text-[11px] leading-tight break-words">{item.description}</td>
-                                                        <td className="px-2 py-1 text-right text-sm font-bold whitespace-nowrap">{item.quantity}</td>
+                                                        <td className="px-2 py-1 text-right text-sm font-medium  whitespace-nowrap">{item.quantity}</td>
                                                     </tr>
                                                 ))
                                             ) : (

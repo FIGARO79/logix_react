@@ -281,7 +281,7 @@ const PlannerExecution = () => {
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex items-center gap-2 flex-1">
-                        <label className="font-semibold text-gray-700 text-sm whitespace-nowrap">Fecha:</label>
+                        <label className="font-medium  text-gray-700 text-sm whitespace-nowrap">Fecha:</label>
                         <input
                             type="date"
                             value={selectedDate}
@@ -323,7 +323,7 @@ const PlannerExecution = () => {
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
                                 <div className="flex-1">
-                                    <p className="text-sm font-semibold text-yellow-800">
+                                    <p className="text-sm font-medium  text-yellow-800">
                                         ⚠️ Advertencia: Esta fecha ya tiene {previousCountTotal} conteo(s) previo(s)
                                         {itemsWithDiffCount > 0 && `, ${itemsWithDiffCount} con diferencias`}
                                     </p>
@@ -335,7 +335,7 @@ const PlannerExecution = () => {
                             {itemsWithDiffCount > 0 && (
                                 <button
                                     onClick={loadItemsWithDifferences}
-                                    className="flex-shrink-0 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
+                                    className="flex-shrink-0 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded text-xs font-medium  transition-colors shadow-sm flex items-center gap-1.5"
                                     title="Cargar solo los items que tuvieron diferencias"
                                 >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -351,7 +351,7 @@ const PlannerExecution = () => {
 
                 {/* Badge de modo reconteo */}
                 {isRecountMode && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-100 text-[#1e4a74] px-3 py-1 rounded-full text-xs font-bold">
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-100 text-[#1e4a74] px-3 py-1 rounded-full text-xs font-medium ">
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -377,10 +377,10 @@ const PlannerExecution = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-[#34495e] text-white">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-auto">Item</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-24">Ubicación</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">ABC</th>
-                                    <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Físico</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider w-auto">Item</th>
+                                    <th className="px-2 py-3 text-center text-xs font-medium  uppercase tracking-wider w-24">Ubicación</th>
+                                    <th className="px-2 py-3 text-center text-xs font-medium  uppercase tracking-wider w-16">ABC</th>
+                                    <th className="px-1 py-3 text-center text-xs font-medium  uppercase tracking-wider w-16">Físico</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -423,10 +423,10 @@ const PlannerExecution = () => {
                             <div key={index} className={`bg-white rounded-lg shadow-sm p-3 border ${item.saved ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <span className="text-lg font-bold text-indigo-700 block">{item.item_code}</span>
+                                        <span className="text-lg font-medium  text-indigo-700 block">{item.item_code}</span>
                                         <span className="text-xs text-gray-500">{item.description}</span>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                    <span className={`px-2 py-1 rounded text-xs font-medium  ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
                                         item.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-blue-100 text-[#1e4a74]'
                                         }`}>
@@ -436,23 +436,23 @@ const PlannerExecution = () => {
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Ubicación</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-medium  tracking-wider">Ubicación</span>
                                         <span className="text-sm font-mono font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded self-start">
                                             {item.bin_location || 'N/A'}
                                         </span>
                                         {item.additional_locations && (
                                             <span className="text-[10px] text-gray-500 mt-1 pl-1">
-                                                <span className="font-bold">Adic:</span> {item.additional_locations}
+                                                <span className="font-medium ">Adic:</span> {item.additional_locations}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-1">Cant. Física</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-medium  tracking-wider mb-1">Cant. Física</span>
                                         <input
                                             id={`qty-mobile-${index}`}
                                             type="number"
-                                            className="w-24 text-center p-2 border rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-bold shadow-sm"
+                                            className="w-24 text-center p-2 border rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-medium  shadow-sm"
                                             value={item.physical_qty}
                                             onChange={(e) => handleCountChange(index, e.target.value)}
                                             onBlur={() => calculateDifference(index)}
@@ -464,7 +464,7 @@ const PlannerExecution = () => {
                                 </div>
                                 {item.saved && (
                                     <div className="mt-2 text-right">
-                                        <span className="text-xs font-bold text-green-600 flex items-center justify-end gap-1">
+                                        <span className="text-xs font-medium  text-green-600 flex items-center justify-end gap-1">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                             Guardado
                                         </span>
@@ -477,12 +477,12 @@ const PlannerExecution = () => {
                     {/* Bulk Save Footer */}
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
                         <div className="text-sm text-gray-700">
-                            Items contados: <span className="font-bold">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
+                            Items contados: <span className="font-medium ">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
                         </div>
                         <button
                             onClick={handleBulkSave}
                             disabled={submitting || items.filter(i => i.status === 'counted').length === 0}
-                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-bold text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-medium text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
                                 }`}

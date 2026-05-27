@@ -353,25 +353,25 @@ const PickingAudit = () => {
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Auditoría en Curso</h1>
-                            <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
-                            <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerCode} - {customerName}</span></p>
+                            <h1 className="text-2xl font-medium  text-gray-800">Auditoría en Curso</h1>
+                            <p className="text-gray-600">Orden: <span className="font-mono font-medium  text-black">{orderNumber} / {despatchNumber}</span></p>
+                            <p className="text-gray-600">Cliente: <span className="font-medium  text-black">{customerCode} - {customerName}</span></p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
-                            {!isOnline && <span className="text-[9px] font-bold text-red-500 animate-pulse">MODO OFFLINE</span>}
+                            {!isOnline && <span className="text-[9px] font-medium  text-red-500 animate-pulse">MODO OFFLINE</span>}
                         </div>
                     </div>
 
                     {/* Active Package Selector Compact */}
                     <div className="mb-4 p-2 px-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Bulto Activo:</span>
+                        <span className="text-[10px] uppercase font-medium  text-slate-500 whitespace-nowrap">Bulto Activo:</span>
                         <div className="flex gap-1.5 flex-wrap">
                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
                                 <div key={i + 1} className="relative">
                                     <button
                                         onClick={() => setActivePackage(i + 1)}
-                                        className={`w-8 h-8 rounded-full font-bold text-xs transition-all ${activePackage === i + 1
+                                        className={`w-8 h-8 rounded-full font-medium  text-xs transition-all ${activePackage === i + 1
                                             ? 'bg-[#285f94] text-white shadow-sm'
                                             : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
                                     >
@@ -409,7 +409,7 @@ const PickingAudit = () => {
                                             setPackagesCount(newCount.toString());
                                             if (activePackage > newCount) setActivePackage(newCount);
                                         }}
-                                        className="w-8 h-8 rounded-full border border-red-200 bg-red-50 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                                        className="w-8 h-8 rounded-full border border-red-200 bg-red-50 text-red-500 font-medium  text-xs hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
                                         title="Eliminar Último Bulto"
                                     >
                                         −
@@ -428,7 +428,7 @@ const PickingAudit = () => {
                                             return updated;
                                         });
                                     }}
-                                    className="w-8 h-8 rounded-full border border-[#285f94] bg-white text-[#285f94] font-bold text-xs hover:bg-[#285f94] hover:text-white flex items-center justify-center transition-all"
+                                    className="w-8 h-8 rounded-full border border-[#285f94] bg-white text-[#285f94] font-medium  text-xs hover:bg-[#285f94] hover:text-white flex items-center justify-center transition-all"
                                     title="Añadir Bulto"
                                 >
                                     +
@@ -506,8 +506,8 @@ const PickingAudit = () => {
                                             </td>
                                             <td className="text-sm truncate max-w-[200px]">{item.description}</td>
                                             <td className="text-center">{item.qty_req}</td>
-                                            <td className="text-center font-bold">{item.qty_scan}</td>
-                                            <td className={`text-center font-bold ${diff !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            <td className="text-center font-medium ">{item.qty_scan}</td>
+                                            <td className={`text-center font-medium  ${diff !== 0 ? 'text-red-600' : 'text-green-600'}`}>
                                                 {diff > 0 ? `+${diff}` : diff}
                                             </td>
                                         </tr>
@@ -529,10 +529,10 @@ const PickingAudit = () => {
                                     {/* Header */}
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-lg text-gray-800">{item.code}</span>
+                                            <span className="font-medium  text-lg text-gray-800">{item.code}</span>
                                             <span className="text-[10px] font-mono text-gray-500">LÍNEA {item.order_line}</span>
                                         </div>
-                                        <span className={`px-2 py-0.5 text-xs font-bold rounded ${diff === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        <span className={`px-2 py-0.5 text-xs font-medium  rounded ${diff === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                             {diff > 0 ? `+${diff}` : diff !== 0 ? diff : 'OK'}
                                         </span>
                                     </div>
@@ -544,7 +544,7 @@ const PickingAudit = () => {
                                             .filter(([_, qty]) => qty > 0)
                                             .map(([pkg, qty]) => (
                                                 <span key={pkg} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 shadow-sm">
-                                                    B{pkg}: <span className="font-bold text-slate-800">{qty}</span>
+                                                    B{pkg}: <span className="font-medium  text-slate-800">{qty}</span>
                                                 </span>
                                             ))
                                         }
@@ -558,7 +558,7 @@ const PickingAudit = () => {
                                         </div>
                                         <div className="flex flex-col items-end">
                                             <span className="text-gray-500 text-[10px] uppercase tracking-wider">Escaneado</span>
-                                            <span className={`font-bold text-xl ${diff !== 0 ? 'text-[#285f94]' : 'text-green-600'}`}>{item.qty_scan}</span>
+                                            <span className={`font-medium  text-xl ${diff !== 0 ? 'text-[#285f94]' : 'text-green-600'}`}>{item.qty_scan}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -588,26 +588,26 @@ const PickingAudit = () => {
                 {showQtyModal && scannedItem && (
                     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
                         <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border-t-4 border-[#285f94]">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1">{scannedItem.code}</h3>
+                            <h3 className="text-xl font-medium  text-gray-800 mb-1">{scannedItem.code}</h3>
                             <p className="text-sm text-gray-500 mb-4 truncate">{scannedItem.description}</p>
 
                             <div className="bg-blue-50 p-3 rounded mb-4 flex justify-between text-sm">
                                 <div>
                                     <span className="block text-gray-500 text-[10px] uppercase">Línea</span>
-                                    <span className="font-bold text-lg">{scannedItem.order_line}</span>
+                                    <span className="font-medium  text-lg">{scannedItem.order_line}</span>
                                 </div>
                                 <div className="text-right">
                                     <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
-                                    <span className="font-bold text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
+                                    <span className="font-medium  text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
                                 </div>
                             </div>
 
-                            <label className="form-label text-center block mb-2 font-bold">CANTIDAD A SUMAR</label>
+                            <label className="form-label text-center block mb-2 font-medium ">CANTIDAD A SUMAR</label>
                             <input
                                 type="number"
                                 value={tempQty}
                                 onChange={e => setTempQty(e.target.value)}
-                                className="text-center text-3xl font-bold w-full p-4 border-2 border-[#285f94] rounded mb-6"
+                                className="text-center text-3xl font-medium  w-full p-4 border-2 border-[#285f94] rounded mb-6"
                                 autoFocus
                                 onFocus={(e) => e.target.select()}
                                 onKeyDown={e => {
@@ -619,13 +619,13 @@ const PickingAudit = () => {
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={() => setShowQtyModal(false)}
-                                    className="px-4 py-3 border border-gray-300 rounded text-gray-600 font-bold hover:bg-gray-100"
+                                    className="px-4 py-3 border border-gray-300 rounded text-gray-600 font-medium  hover:bg-gray-100"
                                 >
                                     CANCELAR
                                 </button>
                                 <button
                                     onClick={confirmQuantity}
-                                    className="px-4 py-3 bg-[#285f94] text-white rounded font-bold hover:bg-[#1e4a74] shadow-md"
+                                    className="px-4 py-3 bg-[#285f94] text-white rounded font-medium  hover:bg-[#1e4a74] shadow-md"
                                 >
                                     CONFIRMAR
                                 </button>
@@ -638,7 +638,7 @@ const PickingAudit = () => {
                 {showConfirmModal && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                         <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-lg font-bold text-yellow-600 mb-2">Diferencias Detectadas</h3>
+                            <h3 className="text-lg font-medium  text-yellow-600 mb-2">Diferencias Detectadas</h3>
                             <p className="mb-4 text-gray-700">Hay ítems con diferencias. ¿Desea finalizar con errores?</p>
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary">Cancelar</button>
@@ -652,7 +652,7 @@ const PickingAudit = () => {
                 {showAssignmentModal && (
                     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
                         <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-lg font-bold mb-4">Distribuir Ítems en Bultos</h3>
+                            <h3 className="text-lg font-medium  mb-4">Distribuir Ítems en Bultos</h3>
 
                             {/* Desktop View */}
                             <div className="hidden sm:block overflow-x-auto">
@@ -685,7 +685,7 @@ const PickingAudit = () => {
                                                         {item.code}
                                                         <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
                                                     </td>
-                                                    <td className="p-2 text-center border font-bold">{item.qty_scan}</td>
+                                                    <td className="p-2 text-center border font-medium ">{item.qty_scan}</td>
                                                     {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
                                                         <td key={i} className="p-1 border text-center">
                                                             <input
@@ -698,7 +698,7 @@ const PickingAudit = () => {
                                                             />
                                                         </td>
                                                     ))}
-                                                    <td className={`p-2 text-center border font-bold ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                    <td className={`p-2 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
                                                         {totalAssigned}
                                                     </td>
                                                 </tr>
@@ -723,7 +723,7 @@ const PickingAudit = () => {
                                         <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <div className="font-bold text-gray-800">{item.code}</div>
+                                                    <div className="font-medium  text-gray-800">{item.code}</div>
                                                     <div className="text-xs text-gray-500 truncate">{item.description}</div>
                                                 </div>
                                                 <div className="text-right">
@@ -734,11 +734,11 @@ const PickingAudit = () => {
                                             <div className="flex justify-between items-center mb-3 text-sm">
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] uppercase text-gray-500">Escaneado</span>
-                                                    <span className="font-bold text-lg">{item.qty_scan}</span>
+                                                    <span className="font-medium  text-lg">{item.qty_scan}</span>
                                                 </div>
                                                 <div className="flex flex-col items-end">
                                                     <span className="text-[10px] uppercase text-gray-500">Asignado</span>
-                                                    <span className={`font-bold text-lg ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                    <span className={`font-medium  text-lg ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
                                                         {totalAssigned}
                                                     </span>
                                                 </div>
@@ -751,7 +751,7 @@ const PickingAudit = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            className="w-full text-center border rounded p-2 text-lg font-bold bg-white focus:ring-2 focus:ring-[#285f94]"
+                                                            className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#285f94]"
                                                             value={assignments[i + 1] || 0}
                                                             onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                             onFocus={(e) => e.target.select()}
@@ -797,7 +797,7 @@ const PickingAudit = () => {
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-[16px] font-normal text-gray-800">Cargar Pedido Picking</h1>
-                    {!isOnline && <span className="text-[9px] font-bold text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
+                    {!isOnline && <span className="text-[9px] font-medium  text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -832,7 +832,7 @@ const PickingAudit = () => {
                 {/* Tracking Table */}
                 <div>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold text-gray-700">Pedidos Recientes</h3>
+                        <h3 className="font-medium  text-gray-700">Pedidos Recientes</h3>
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
@@ -852,13 +852,13 @@ const PickingAudit = () => {
                         <table className="w-full text-left text-sm sap-table">
                             <thead className="sticky top-0 z-10 bg-slate-700 text-white shadow-sm">
                                 <tr>
-                                    <th className="py-2.5 px-3 font-semibold">Order</th>
-                                    <th className="py-2.5 px-3 font-semibold">Despatch</th>
-                                    <th className="py-2.5 px-3 font-semibold">Cód. Cliente</th>
-                                    <th className="py-2.5 px-3 font-semibold">Cliente</th>
-                                    <th className="py-2.5 px-3 font-semibold text-center">Líneas</th>
+                                    <th className="py-2.5 px-3 font-medium ">Order</th>
+                                    <th className="py-2.5 px-3 font-medium ">Despatch</th>
+                                    <th className="py-2.5 px-3 font-medium ">Cód. Cliente</th>
+                                    <th className="py-2.5 px-3 font-medium ">Cliente</th>
+                                    <th className="py-2.5 px-3 font-medium  text-center">Líneas</th>
                                     <th
-                                        className="py-2.5 px-3 font-semibold cursor-pointer hover:bg-slate-600 select-none flex items-center gap-1"
+                                        className="py-2.5 px-3 font-medium  cursor-pointer hover:bg-slate-600 select-none flex items-center gap-1"
                                         onClick={() => {
                                             setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
                                         }}
@@ -896,7 +896,7 @@ const PickingAudit = () => {
                                                 <td>{t.despatch_number}</td>
                                                 <td>{t.customer_code}</td>
                                                 <td className="truncate max-w-[150px]">{t.customer_name}</td>
-                                                <td className="text-center font-bold text-[#285f94]">{t.total_lines}</td>
+                                                <td className="text-center font-medium  text-[#285f94]">{t.total_lines}</td>
                                                 <td className="text-gray-500 text-xs">{t.print_date}</td>
                                             </tr>
                                         ))
@@ -905,7 +905,7 @@ const PickingAudit = () => {
                             {trackingData.length > 0 && (
                                 <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                                     <tr>
-                                        <td colSpan="4" className="py-2.5 px-3 text-right font-bold text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
+                                        <td colSpan="4" className="py-2.5 px-3 text-right font-medium  text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
                                         <td className="py-2.5 px-3 text-center font-black text-lg text-[#285f94]">
                                             {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                         </td>
@@ -932,15 +932,15 @@ const PickingAudit = () => {
                                 >
                                     <div className="flex justify-between items-center mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`font-bold ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
+                                            <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
                                             <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
                                             {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
                                         </div>
-                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                     </div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Cliente:</span>
-                                        <span className="text-xs font-bold text-gray-700">{t.customer_code}</span>
+                                        <span className="text-[10px] font-medium  text-slate-500 uppercase">Cliente:</span>
+                                        <span className="text-xs font-medium  text-gray-700">{t.customer_code}</span>
                                     </div>
                                     <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
                                     <div className="text-right text-xs text-gray-400">
@@ -949,7 +949,7 @@ const PickingAudit = () => {
                                 </div>
                             ))}
                             <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Total Líneas:</span>
+                                <span className="text-[10px] font-medium  text-slate-500 uppercase">Total Líneas:</span>
                                 <span className="text-[12px] font-black text-[#285f94]">
                                     {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                 </span>

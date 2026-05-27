@@ -60,7 +60,7 @@ const SetPassword = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-center text-gray-800">Restablecer Contraseña</h3>
+                <h3 className="text-2xl font-medium text-gray-900 text-center text-gray-800">Restablecer Contraseña</h3>
                 <p className="mt-2 text-sm text-center text-gray-600">Establece tu nueva contraseña de acceso</p>
 
                 {message && <div className="mt-4 p-3 bg-green-100 text-green-700 rounded text-sm">{message}</div>}
@@ -69,7 +69,7 @@ const SetPassword = () => {
                 {token && !message && (
                     <form onSubmit={handleSubmit} className="mt-6">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700">Nueva Contraseña</label>
+                            <label className="block text-sm font-medium text-gray-900 text-gray-700">Nueva Contraseña</label>
                             <input
                                 type="password"
                                 name="newPassword"
@@ -80,7 +80,7 @@ const SetPassword = () => {
                             />
                         </div>
                         <div className="mt-4">
-                            <label className="block text-sm font-semibold text-gray-700">Confirmar Contraseña</label>
+                            <label className="block text-sm font-medium text-gray-900 text-gray-700">Confirmar Contraseña</label>
                             <input
                                 type="password"
                                 name="confirmPassword"

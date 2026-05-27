@@ -187,11 +187,11 @@ const Planner = () => {
     // Helper para renderizar filas de tabla Excel
     const RenderRow = ({ label, data, isTotal = false }) => (
         <tr>
-            <td className={`border border-gray-300 px-3 py-1 text-left ${isTotal ? 'font-bold bg-gray-50' : 'font-medium'}`}>{label}</td>
+            <td className={`border border-gray-300 px-3 py-1 text-left ${isTotal ? 'font-medium  bg-gray-50' : 'font-medium'}`}>{label}</td>
             {data && data.map((val, i) => (
                 <td key={i} className="border border-gray-300 px-2 py-1 text-center">{val}</td>
             ))}
-            <td className={`border border-gray-300 px-2 py-1 text-center ${isTotal ? 'font-bold bg-gray-100' : 'font-bold bg-gray-50 text-gray-900'}`}>
+            <td className={`border border-gray-300 px-2 py-1 text-center ${isTotal ? 'font-medium  bg-gray-100' : 'font-medium  bg-gray-50 '}`}>
                 {data ? data.reduce((a, b) => a + b, 0) : 0}
             </td>
         </tr>
@@ -202,10 +202,10 @@ const Planner = () => {
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Parámetros Generales</h2>
+                <h2 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Parámetros Generales</h2>
                 <div className="flex flex-wrap items-end gap-6">
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
+                        <label className="block text-xs font-medium  text-gray-700 mb-1">Fecha Inicial</label>
                         <input
                             type="date"
                             className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
@@ -214,7 +214,7 @@ const Planner = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
+                        <label className="block text-xs font-medium  text-gray-700 mb-1">Fecha Final</label>
                         <input
                             type="date"
                             className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
@@ -223,7 +223,7 @@ const Planner = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
+                        <label className="block text-xs font-medium  text-gray-700 mb-1">Festivos (Calc)</label>
                         <input readOnly className="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center"
                             value={config.holidays ? config.holidays.length : 0} />
                     </div>
@@ -251,10 +251,10 @@ const Planner = () => {
             {/* 2. Link Ejecución */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
                 <div>
-                    <h2 className="text-base font-bold text-purple-800 mb-0 border-l-4 border-purple-800 pl-2">Ejecución Diaria</h2>
+                    <h2 className="text-base font-medium  text-purple-800 mb-0 border-l-4 border-purple-800 pl-2">Ejecución Diaria</h2>
                     <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
                 </div>
-                <Link to="/planner/execution" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-bold no-underline">
+                <Link to="/planner/execution" className="bg-purple-700 text-white px-6 py-2.5 rounded shadow hover:bg-purple-800 flex items-center gap-2 font-medium  no-underline">
                     Ir a Pantalla de Conteo
                 </Link>
             </div>
@@ -263,7 +263,7 @@ const Planner = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Tabla Resumen ABC */}
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Resumen Categorías (ABC)</h3>
+                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Resumen Categorías (ABC)</h3>
                     <table className="w-full border-collapse text-xs">
                         <thead>
                             <tr className="bg-gray-200">
@@ -277,7 +277,7 @@ const Planner = () => {
                         <tbody>
                             {['A', 'B', 'C'].map(cat => (
                                 <tr key={cat}>
-                                    <td className="border border-gray-400 px-2 py-1 font-bold text-center">{cat}</td>
+                                    <td className="border border-gray-400 px-2 py-1 font-medium  text-center">{cat}</td>
                                     <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.counts[cat]}</td>
                                     <td className="border border-gray-400 px-2 py-1 text-center">{cat === 'A' ? 3 : cat === 'B' ? 2 : 1}</td>
                                     <td className="border border-gray-400 px-2 py-1 text-center bg-gray-50">{dashboardMetrics.req[cat]}</td>
@@ -285,19 +285,19 @@ const Planner = () => {
                                 </tr>
                             ))}
                             <tr className="border-t-2 border-gray-400">
-                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Días Útiles:</td>
-                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.workingDays}</td>
+                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-medium  text-right">Días Útiles:</td>
+                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-medium  bg-yellow-50 text-center">{dashboardMetrics.workingDays}</td>
                             </tr>
                             <tr>
-                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-bold text-right">Total Requerido:</td>
-                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-bold bg-yellow-50 text-center">{dashboardMetrics.totalReq}</td>
+                                <td colSpan="2" className="border border-gray-400 px-2 py-1 font-medium  text-right">Total Requerido:</td>
+                                <td colSpan="3" className="border border-gray-400 px-2 py-1 font-medium  bg-yellow-50 text-center">{dashboardMetrics.totalReq}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Leyenda / Clasificación</h3>
+                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Leyenda / Clasificación</h3>
                     <div className="flex gap-4">
                         <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
@@ -313,14 +313,14 @@ const Planner = () => {
                                     { c: 'L', h: '3-4 hits' }, { c: 'Z', h: '1-2 hits' }, { c: '0', h: 'Non moving item' }
                                 ].map(r => (
                                     <tr key={r.c}>
-                                        <td className="border border-gray-300 px-2 py-0.5 font-bold text-center bg-gray-50">{r.c}</td>
+                                        <td className="border border-gray-300 px-2 py-0.5 font-medium  text-center bg-gray-50">{r.c}</td>
                                         <td className="border border-gray-300 px-2 py-0.5 text-left whitespace-nowrap bg-white">{r.h}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                         <div className="flex-grow border border-gray-300 rounded bg-white flex flex-col shadow-sm">
-                            <div className="bg-gray-200 px-2 py-1 text-xs font-bold border-b border-gray-300 text-center text-gray-700">Festivos (YYYY-MM-DD)</div>
+                            <div className="bg-gray-200 px-2 py-1 text-xs font-medium  border-b border-gray-300 text-center text-gray-700">Festivos (YYYY-MM-DD)</div>
                             <textarea
                                 className="w-full p-2 text-xs bg-transparent outline-none resize-none font-mono flex-grow"
                                 value={holidaysText}
@@ -337,17 +337,17 @@ const Planner = () => {
                 {/* PLANEADO */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
                     <div className="border-l-4 border-[#285f94] bg-gray-50 px-4 py-2">
-                        <h3 className="text-sm font-bold text-[#1e4a74]">Planeado (Conteos Programados)</h3>
+                        <h3 className="text-sm font-medium  text-[#1e4a74]">Planeado (Conteos Programados)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -363,17 +363,17 @@ const Planner = () => {
                 {/* EJECUTADO REAL */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
                     <div className="border-l-4 border-green-600 bg-gray-50 px-4 py-2">
-                        <h3 className="text-sm font-bold text-green-800">Ejecutado (Real)</h3>
+                        <h3 className="text-sm font-medium  text-green-800">Ejecutado (Real)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">W2W</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">W2W</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -384,12 +384,12 @@ const Planner = () => {
                                         <RenderRow label="C" data={stats.executed.C || Array(12).fill(0)} />
                                         {/* Total Row Calculation */}
                                         <tr>
-                                            <td className="border border-gray-300 px-3 py-1 text-left font-bold bg-gray-50">TOTAL</td>
+                                            <td className="border border-gray-300 px-3 py-1 text-left font-medium  bg-gray-50">TOTAL</td>
                                             {Array(12).fill(0).map((_, i) => {
                                                 const sum = (stats.executed.A?.[i] || 0) + (stats.executed.B?.[i] || 0) + (stats.executed.C?.[i] || 0);
-                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-50">{sum}</td>
+                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-medium  bg-gray-50">{sum}</td>
                                             })}
-                                            <td className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-200">
+                                            <td className="border border-gray-300 px-2 py-1 text-center font-medium  bg-gray-200">
                                                 {/* Grand Total */}
                                                 {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.executed[cat] || []).reduce((a, b) => a + b, 0), 0)}
                                             </td>
@@ -409,17 +409,17 @@ const Planner = () => {
                 {/* DELTA (DIFERENCIA) */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
                     <div className="border-l-4 border-red-600 bg-gray-50 px-4 py-2">
-                        <h3 className="text-sm font-bold text-red-800">Delta (Diferencia)</h3>
+                        <h3 className="text-sm font-medium  text-red-800">Delta (Diferencia)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-bold min-w-[150px]">Categoria/Mes</th>
+                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-bold">{m}</th>
+                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-bold">TOTAL</th>
+                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -430,12 +430,12 @@ const Planner = () => {
                                         <RenderRow label="C" data={stats.delta.C || Array(12).fill(0)} />
                                         {/* Total Row Calculation */}
                                         <tr>
-                                            <td className="border border-gray-300 px-3 py-1 text-left font-bold bg-gray-50">TOTAL</td>
+                                            <td className="border border-gray-300 px-3 py-1 text-left font-medium  bg-gray-50">TOTAL</td>
                                             {Array(12).fill(0).map((_, i) => {
                                                 const sum = (stats.delta.A?.[i] || 0) + (stats.delta.B?.[i] || 0) + (stats.delta.C?.[i] || 0);
-                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-50">{sum}</td>
+                                                return <td key={i} className="border border-gray-300 px-2 py-1 text-center font-medium  bg-gray-50">{sum}</td>
                                             })}
-                                            <td className="border border-gray-300 px-2 py-1 text-center font-bold bg-gray-200">
+                                            <td className="border border-gray-300 px-2 py-1 text-center font-medium  bg-gray-200">
                                                 {/* Grand Total */}
                                                 {['A', 'B', 'C'].reduce((acc, cat) => acc + (stats.delta[cat] || []).reduce((a, b) => a + b, 0), 0)}
                                             </td>

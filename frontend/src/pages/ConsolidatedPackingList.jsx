@@ -62,7 +62,7 @@ const ConsolidatedPackingList = () => {
                 Packing List Consolidado
             </h1>
             {customerInfo && (
-                <div className="text-lg font-bold text-black mb-1 uppercase">
+                <div className="text-lg font-medium  text-black mb-1 uppercase">
                     Cliente: {customerInfo}
                 </div>
             )}
@@ -90,13 +90,13 @@ const ConsolidatedPackingList = () => {
         <div className="flex justify-between items-end mb-3 text-sm print:gap-2 print:mb-2 border-b border-zinc-100 pb-1">
             <div className="flex-1">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
-                <span className="text-lg text-black font-bold">
+                <span className="text-lg text-black font-medium ">
                     {order.order_number} <span className="mx-1 text-gray-300">/</span> {order.despatch_number}
                 </span>
             </div>
             <div className="text-right">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
-                <span className="text-2xl font-bold text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
+                <span className="text-2xl font-medium  text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
             </div>
         </div>
     );
@@ -106,7 +106,7 @@ const ConsolidatedPackingList = () => {
         <div className="border border-black overflow-hidden print:border-black mb-2 last:mb-0">
             {!hideHeader && (
                 <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                    <h3 className="text-sm font-bold uppercase">Bulto #{keyName}</h3>
+                    <h3 className="text-sm font-medium  uppercase">Bulto #{keyName}</h3>
                     <span className="text-[10px] font-mono border border-black px-1.5 rounded">BOX-{keyName.padStart(3, '0')}</span>
                 </div>
             )}
@@ -123,10 +123,10 @@ const ConsolidatedPackingList = () => {
                     {packageData && packageData.length > 0 ? (
                         packageData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-2 py-0.5 font-mono text-black text-[9px] font-bold">{item.order_line}</td>
+                                <td className="px-2 py-0.5 font-mono text-black text-[9px] font-medium ">{item.order_line}</td>
                                 <td className="px-2 py-0.5 font-mono text-black text-[9px] break-all">{item.item_code}</td>
                                 <td className="px-2 py-0.5 text-black text-[9px] leading-tight break-words">{item.description}</td>
-                                <td className="px-2 py-0.5 text-right text-[10px] font-bold whitespace-nowrap">{item.quantity}</td>
+                                <td className="px-2 py-0.5 text-right text-[10px] font-medium  whitespace-nowrap">{item.quantity}</td>
                             </tr>
                         ))
                     ) : (
@@ -236,13 +236,13 @@ const ConsolidatedPackingList = () => {
                                     {order.items && order.items.length > 0 && (
                                         <div className="border border-black overflow-hidden print:border-black mt-2">
                                             <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                                                <h3 className="text-sm font-bold uppercase leading-tight">
+                                                <h3 className="text-sm font-medium  uppercase leading-tight">
                                                     Detalle del Pedido #{order.order_number}
                                                 </h3>
                                             </div>
                                             <table className="min-w-full text-sm">
                                                 <thead>
-                                                    <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                                    <tr className="bg-slate-50 text-slate-500 font-medium  border-b border-slate-200">
                                                         <th className="p-1 px-2 text-left w-12 text-[10px]">LÍNEA</th>
                                                         <th className="p-1 px-2 text-left text-[10px]">CÓDIGO</th>
                                                         <th className="p-1 text-left text-[10px]">DESCRIPCIÓN</th>
@@ -253,11 +253,11 @@ const ConsolidatedPackingList = () => {
                                                     {order.items.map((item, idx) => (
                                                         <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                                                             <td className="p-1 px-2 font-mono text-[10px] text-gray-400">{item.order_line}</td>
-                                                            <td className="p-1 px-2 font-mono text-[11px] font-bold text-slate-700">{item.item_code}</td>
+                                                            <td className="p-1 px-2 font-mono text-[11px] font-medium  text-slate-700">{item.item_code}</td>
                                                             <td className="p-1 text-[11px] text-slate-600 truncate max-w-[150px]" title={item.description}>
                                                                 {item.description}
                                                             </td>
-                                                            <td className="p-1 text-center font-bold text-slate-800 text-[11px]">{item.quantity}</td>
+                                                            <td className="p-1 text-center font-medium  text-slate-800 text-[11px]">{item.quantity}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

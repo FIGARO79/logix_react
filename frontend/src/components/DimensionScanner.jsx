@@ -290,11 +290,11 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
             {/* Header */}
             <div className="h-16 flex-shrink-0 bg-slate-900 flex items-center justify-between px-4 border-b border-white/10">
                 <div className="flex flex-col">
-                    <span className="text-white font-bold text-sm tracking-tight flex items-center gap-2">
+                    <span className="text-white font-medium text-gray-900 text-sm tracking-tight flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isCalibrated ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-orange-500 animate-pulse'}`}></div>
                         ESCANER B{packageNumber}
                     </span>
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${flowState === STATES.ADJUSTING ? 'text-amber-400' : 'text-slate-400'}`}>
+                    <span className={`text-[9px] font-medium text-gray-900 uppercase tracking-widest ${flowState === STATES.ADJUSTING ? 'text-amber-400' : 'text-slate-400'}`}>
                         {instruction}
                     </span>
                 </div>
@@ -313,7 +313,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                         {!isCalibrated && !loading && (
                             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                                 <div className="w-64 h-64 border-2 border-dashed border-white/30 rounded-3xl flex items-center justify-center">
-                                    <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest text-center px-4">
+                                    <div className="text-white/40 text-[10px] font-medium text-gray-900 uppercase tracking-widest text-center px-4">
                                         Coloque el QR <br/> aquí (en el suelo)
                                     </div>
                                 </div>
@@ -330,7 +330,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                                         style={{ height: `${(pitch / 90) * 100}%` }}
                                     ></div>
                                 </div>
-                                <span className="text-[10px] text-white font-bold mt-2">{pitch}°</span>
+                                <span className="text-[10px] text-white font-medium text-gray-900 mt-2">{pitch}°</span>
                             </div>
 
                             {/* Distance Badge */}
@@ -392,7 +392,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                                             ${key === 'origin' ? 'bg-white' : key === 'x' ? 'bg-green-500' : key === 'y' ? 'bg-blue-500' : 'bg-red-500'}`}
                                         style={{ left: `${point.x}%`, top: `${point.y}%` }}
                                     >
-                                        <span className="text-[10px] font-bold pointer-events-none uppercase">{key[0]}</span>
+                                        <span className="text-[10px] font-medium text-gray-900 pointer-events-none uppercase">{key[0]}</span>
                                     </div>
                                 ))}
                             </div>
@@ -432,14 +432,14 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                 {loading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white">
                         <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-[10px] font-bold tracking-widest uppercase">Iniciando IA...</p>
+                        <p className="text-[10px] font-medium text-gray-900 tracking-widest uppercase">Iniciando IA...</p>
                     </div>
                 )}
 
                 {(flowState === STATES.PROCESSING || flowState === STATES.CAPTURING) && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 text-white z-20">
                         <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-xs font-bold tracking-widest uppercase animate-pulse">Procesando 3D...</p>
+                        <p className="text-xs font-medium text-gray-900 tracking-widest uppercase animate-pulse">Procesando 3D...</p>
                     </div>
                 )}
             </div>
@@ -450,20 +450,20 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                     <>
                         <div className="grid grid-cols-3 gap-3 mb-6">
                             <div className="bg-slate-800/80 p-3 rounded-xl text-center border border-white/5">
-                                <span className="text-[8px] text-slate-500 block font-bold uppercase mb-1">Largo</span>
+                                <span className="text-[8px] text-slate-500 block font-medium text-gray-900 uppercase mb-1">Largo</span>
                                 <span className="text-2xl font-black text-white">{Math.round(dimensions.length)}<small className="text-[10px] ml-0.5 text-cyan-500">cm</small></span>
                             </div>
                             <div className="bg-slate-800/80 p-3 rounded-xl text-center border border-white/5">
-                                <span className="text-[8px] text-slate-500 block font-bold uppercase mb-1">Ancho</span>
+                                <span className="text-[8px] text-slate-500 block font-medium text-gray-900 uppercase mb-1">Ancho</span>
                                 <span className="text-2xl font-black text-white">{Math.round(dimensions.width)}<small className="text-[10px] ml-0.5 text-cyan-500">cm</small></span>
                             </div>
                             <div className="bg-slate-800/80 p-3 rounded-xl text-center border border-white/5">
-                                <span className="text-[8px] text-slate-500 block font-bold uppercase mb-1">Alto</span>
+                                <span className="text-[8px] text-slate-500 block font-medium text-gray-900 uppercase mb-1">Alto</span>
                                 <span className="text-2xl font-black text-white">{Math.round(dimensions.height)}<small className="text-[10px] ml-0.5 text-cyan-500">cm</small></span>
                             </div>
                         </div>
                         <div className="flex gap-3">
-                            <button onClick={resetState} className="flex-1 py-4 bg-slate-800 text-slate-400 font-bold rounded-2xl text-xs uppercase">Repetir</button>
+                            <button onClick={resetState} className="flex-1 py-4 bg-slate-800 text-slate-400 font-medium text-gray-900 rounded-2xl text-xs uppercase">Repetir</button>
                             <button 
                                 onClick={() => onConfirm(dimensions)}
                                 className="flex-[2] py-4 bg-cyan-600 text-white font-black rounded-2xl text-xs uppercase shadow-xl shadow-cyan-900/40"
@@ -475,10 +475,10 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                 ) : flowState === STATES.ADJUSTING ? (
                     <div className="flex flex-col gap-4">
                         <div className="text-center">
-                            <p className="text-[10px] font-bold text-amber-400 uppercase tracking-tighter mb-2">Ajuste los vértices en la foto</p>
+                            <p className="text-[10px] font-medium text-gray-900 text-amber-400 uppercase tracking-tighter mb-2">Ajuste los vértices en la foto</p>
                         </div>
                         <div className="flex gap-3">
-                            <button onClick={resetState} className="flex-1 py-4 bg-slate-800 text-slate-400 font-bold rounded-2xl text-xs uppercase">Cancelar</button>
+                            <button onClick={resetState} className="flex-1 py-4 bg-slate-800 text-slate-400 font-medium text-gray-900 rounded-2xl text-xs uppercase">Cancelar</button>
                             <button 
                                 onClick={processMeasurement}
                                 className="flex-[2] py-4 bg-green-600 text-white font-black rounded-2xl text-xs uppercase shadow-xl"
@@ -489,18 +489,18 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                     </div>
                 ) : flowState === STATES.ERROR ? (
                     <div className="flex flex-col items-center gap-4">
-                        <p className="text-red-400 text-xs font-bold text-center">{error}</p>
-                        <button onClick={resetState} className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl text-xs uppercase">Reintentar</button>
+                        <p className="text-red-400 text-xs font-medium text-gray-900 text-center">{error}</p>
+                        <button onClick={resetState} className="w-full py-4 bg-slate-800 text-white font-medium text-gray-900 rounded-2xl text-xs uppercase">Reintentar</button>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
-                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase px-1">
+                        <div className="flex justify-between items-center text-[10px] font-medium text-gray-900 text-slate-500 uppercase px-1">
                             <span>Inclinación: {pitch}°</span>
                             <span className={isLevel ? 'text-green-500' : 'text-orange-500'}>
                                 {isLevel ? 'Ángulo Óptimo' : 'Ajuste Inclinación'}
                             </span>
                         </div>
-                        <button onClick={onClose} className="w-full py-4 bg-slate-800 text-slate-400 font-bold rounded-2xl text-xs uppercase">Cerrar</button>
+                        <button onClick={onClose} className="w-full py-4 bg-slate-800 text-slate-400 font-medium text-gray-900 rounded-2xl text-xs uppercase">Cerrar</button>
                     </div>
                 )}
             </div>

@@ -66,7 +66,7 @@ const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" 
     return (
         <div className="fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-lg p-4 w-full max-w-sm relative shadow-2xl overflow-hidden">
-                <h3 className="text-center font-bold text-sm mb-4 text-gray-800 uppercase">{title}</h3>
+                <h3 className="text-center font-medium text-gray-900 text-sm mb-4 text-gray-800 uppercase">{title}</h3>
 
                 <div className="relative rounded-xl overflow-hidden mb-6 bg-black aspect-square" id="reader">
                     {/* El escáner se renderiza aquí */}
@@ -74,7 +74,7 @@ const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" 
 
                 <button
                     onClick={onClose}
-                    className="w-full h-12 flex items-center justify-center bg-red-600 text-white font-bold rounded-lg transition-all"
+                    className="w-full h-12 flex items-center justify-center bg-red-600 text-white font-medium text-gray-900 rounded-lg transition-all"
                 >
                     CERRAR
                 </button>

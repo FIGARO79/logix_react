@@ -73,7 +73,7 @@ const MenuItem = ({ to, label, onClick }) => {
         <Link
             to={to}
             className={`flex items-center px-4 py-1.5 text-white transition-all border-l-[4px] 
-            ${isActive ? 'bg-white/10 border-blue-400 font-bold' : 'hover:bg-white/5 border-transparent hover:border-blue-400/40'}`}
+            ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'hover:bg-white/5 border-transparent hover:border-blue-400/40'}`}
             onClick={onClick}
         >
             <span className="text-[12px] uppercase tracking-wider">{label}</span>
@@ -304,14 +304,14 @@ const Layout = () => {
 
                 <div className="header-actions flex items-center gap-3">
                     {pendingCount > 0 && (
-                        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-amber-500/20 text-amber-200 border border-amber-500/30 rounded text-[10px] font-bold cursor-pointer" onClick={syncPendingData}>
+                        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-amber-500/20 text-white border border-amber-500/30 rounded text-[10px] font-medium cursor-pointer" onClick={syncPendingData}>
                             {pendingCount} PENDIENTES
                         </div>
                     )}
-                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 text-red-200 border-red-500/30' : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30'}`}>
+                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-widest uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 border-red-500/30' : 'bg-emerald-500/20 border-emerald-500/30'}`}>
                         {!isOnline ? 'OFFLINE' : 'ONLINE'}
                     </div>
-                    <Link to="/admin/login" className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all">Admin</Link>
+                    <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-widest px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all">Admin</Link>
                 </div>
             </header>
 
@@ -322,25 +322,25 @@ const Layout = () => {
             >
                 <nav className="py-4">
                     <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Principal</div>
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2">Principal</div>
                         <MenuItem to="/dashboard" label="Inicio" onClick={toggleMenu} />
                         <MenuItem to="/stock" label="Consultar Stock" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Inbound</div>
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Inbound</div>
                         <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>
                         <MenuItem to="/picking" label="Auditoría" onClick={toggleMenu} />
                         <MenuItem to="/view_picking_audits" label="Empaque" onClick={toggleMenu} />
                         <MenuItem to="/shipments" label="Despacho" onClick={toggleMenu} />
                         <MenuItem to="/label" label="Etiquetado" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Control Inventario</div>
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Control Inventario</div>
                         <MenuItem to="/planner" label="Plan Cíclico" onClick={toggleMenu} />
                         <MenuItem to="/inventory-dashboard" label="Métricas" onClick={toggleMenu} />
                         <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
@@ -350,13 +350,13 @@ const Layout = () => {
                         <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-8">
-                        <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
                         <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
                         <button
-                            className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-bold tracking-widest text-left"
+                            className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-medium text-gray-900 tracking-widest text-left"
                             onClick={async () => {
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } 
                                 finally { window.location.href = '/login'; }
