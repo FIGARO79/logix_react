@@ -52,7 +52,7 @@ const Register = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-center text-gray-800">Registro de Cuenta</h3>
+                <h3 className="text-2xl font-medium text-gray-900 text-center text-gray-800">Registro de Cuenta</h3>
                 <p className="mt-2 text-sm text-center text-gray-600">Únete al sistema Logix</p>
 
                 {message && <div className="mt-4 p-3 bg-green-100 text-green-700 rounded text-sm">{message}</div>}
@@ -60,7 +60,7 @@ const Register = () => {
 
                 <form onSubmit={handleSubmit} className="mt-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700">Usuario</label>
+                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Usuario</label>
                         <input
                             type="text"
                             name="username"
@@ -71,7 +71,7 @@ const Register = () => {
                         />
                     </div>
                     <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-700">Contraseña</label>
+                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Contraseña</label>
                         <input
                             type="password"
                             name="password"
@@ -82,7 +82,7 @@ const Register = () => {
                         />
                     </div>
                     <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-700">Confirmar Contraseña</label>
+                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Confirmar Contraseña</label>
                         <input
                             type="password"
                             name="confirmPassword"

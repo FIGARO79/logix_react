@@ -243,15 +243,15 @@ const SpotCheck = () => {
 
             <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-[18px] font-bold text-black uppercase tracking-tight">Conteo por Ubicación</h1>
+                    <h1 className="text-[18px] font-medium  text-black uppercase tracking-tight">Conteo por Ubicación</h1>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-zinc-900">Hallazgos registrados</p>
-                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-bold animate-pulse">MODO OFFLINE</span>}
+                        <p className="text-[10px] uppercase tracking-[0.15em] font-medium  text-zinc-900">Hallazgos registrados</p>
+                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium  animate-pulse">MODO OFFLINE</span>}
                     </div>
                 </div>
                 <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-bold uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
+                    className="btn-sap btn-secondary text-[11px] font-medium  uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
                 >
                     Stock
                 </button>
@@ -272,7 +272,7 @@ const SpotCheck = () => {
                                     onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-mono font-bold text-black text-lg outline-none focus:border-zinc-900 transition-colors py-0"
+                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-mono font-medium  text-black text-lg outline-none focus:border-zinc-900 transition-colors py-0"
                                     placeholder="BIN"
                                 />
                                 <button
@@ -295,7 +295,7 @@ const SpotCheck = () => {
                                     onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
                                     style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-bold text-black outline-none focus:border-zinc-900 transition-colors py-0"
+                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-medium  text-black outline-none focus:border-zinc-900 transition-colors py-0"
                                     placeholder="SKU o DESCRIPCIÓN"
                                 />
                                 <button
@@ -311,14 +311,14 @@ const SpotCheck = () => {
                         {/* Lista de Resultados de Búsqueda */}
                         {searchResults.length > 0 && (
                             <div className="bg-blue-50 border-2 border-blue-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
-                                <div className="p-2 bg-blue-100 text-[10px] font-bold text-blue-800 uppercase">Seleccione un ítem:</div>
+                                <div className="p-2 bg-blue-100 text-[10px] font-medium  text-blue-800 uppercase">Seleccione un ítem:</div>
                                 {searchResults.map((item) => (
                                     <div 
                                         key={item.itemCode}
                                         onClick={() => selectItemFromResult(item)}
                                         className="p-3 border-b border-blue-100 hover:bg-white cursor-pointer transition-colors"
                                     >
-                                        <div className="font-bold text-zinc-900">{item.itemCode}</div>
+                                        <div className="font-medium  text-zinc-900">{item.itemCode}</div>
                                         <div className="text-[10px] text-zinc-600 truncate">{item.description}</div>
                                     </div>
                                 ))}
@@ -352,7 +352,7 @@ const SpotCheck = () => {
                                 onClick={handleSave}
                                 disabled={isSaving || !itemData}
                                 style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-bold uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
+                                className="w-full bg-zinc-900 text-white rounded font-medium  uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
                             >
                                 {isSaving ? '...' : 'REGISTRAR'}
                             </button>
@@ -363,17 +363,17 @@ const SpotCheck = () => {
                 <div className="lg:col-span-2">
                     <div className="bg-white border border-zinc-300 shadow-md overflow-hidden rounded-lg">
                         <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-bold text-black uppercase tracking-widest">Hallazgos Recientes</h2>
+                            <h2 className="text-[11px] font-medium  text-black uppercase tracking-widest">Hallazgos Recientes</h2>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-bold uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
+                                    className="text-[10px] font-medium  uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
                                 >
                                     Excel
                                 </button>
                                 <button
                                     onClick={handleClearTable}
-                                    className="text-[10px] font-bold uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
+                                    className="text-[10px] font-medium  uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
                                 >
                                     Limpiar
                                 </button>
@@ -392,18 +392,18 @@ const SpotCheck = () => {
                                 </thead>
                                 <tbody className="text-[10px]">
                                     {recentChecks.length === 0 ? (
-                                        <tr><td colSpan="5" className="px-4 py-12 text-center text-zinc-400 font-bold uppercase">No hay registros recientes</td></tr>
+                                        <tr><td colSpan="5" className="px-4 py-12 text-center text-zinc-400 font-medium  uppercase">No hay registros recientes</td></tr>
                                     ) : (
                                         recentChecks.map((check) => (
                                             <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                <td className="px-4 py-3 text-zinc-600 font-bold font-mono">{formatDate(check.timestamp)}</td>
+                                                <td className="px-4 py-3 text-zinc-600 font-medium  font-mono">{formatDate(check.timestamp)}</td>
                                                 <td className="px-4 py-3 font-black text-black text-sm">{check.bin_location}</td>
                                                 <td className="px-4 py-3">
-                                                    <div className="font-bold text-[#1e4a74] text-sm">{check.item_code}</div>
+                                                    <div className="font-medium  text-[#1e4a74] text-sm">{check.item_code}</div>
                                                     <div className="text-[9px] text-zinc-800 font-medium truncate max-w-[250px]">{check.item_description}</div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
-                                                <td className="px-4 py-3 uppercase text-zinc-600 font-bold">{check.username}</td>
+                                                <td className="px-4 py-3 uppercase text-zinc-600 font-medium ">{check.username}</td>
                                             </tr>
                                         ))
                                     )}

@@ -159,7 +159,7 @@ const ExpressAudit = () => {
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
-                                <label className="text-[9px] font-bold text-black uppercase mb-1.5 block tracking-widest">Ubicación (BIN)</label>
+                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Ubicación (BIN)</label>
                                 <div className="flex">
                                     <input 
                                         ref={binRef}
@@ -168,7 +168,7 @@ const ExpressAudit = () => {
                                         onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                         onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
                                         style={{height:'40px'}}
-                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-bold outline-none focus:border-zinc-900 transition-colors"
+                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-medium  outline-none focus:border-zinc-900 transition-colors"
                                         placeholder="SCAN BIN"
                                     />
                                     <button 
@@ -181,7 +181,7 @@ const ExpressAudit = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-black uppercase mb-1.5 block tracking-widest">Identificación (SKU)</label>
+                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Identificación (SKU)</label>
                                 <div className="flex">
                                     <input 
                                         ref={itemRef}
@@ -190,7 +190,7 @@ const ExpressAudit = () => {
                                         onChange={(e) => handleItemChange(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearchItem(e.target.value)}
                                         style={{height:'40px'}}
-                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-bold outline-none focus:border-zinc-900 transition-colors"
+                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-medium  outline-none focus:border-zinc-900 transition-colors"
                                         placeholder="SCAN SKU"
                                     />
                                     <button 
@@ -205,15 +205,15 @@ const ExpressAudit = () => {
                         </div>
 
                         <div>
-                            <label className="text-[9px] font-bold text-black uppercase mb-1.5 block tracking-widest">Descripción del Producto</label>
-                            <div style={{height:'40px'}} className="flex items-center px-3 bg-white border border-zinc-300 rounded text-[11px] font-bold text-black uppercase tracking-wide overflow-hidden">
+                            <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Descripción del Producto</label>
+                            <div style={{height:'40px'}} className="flex items-center px-3 bg-white border border-zinc-300 rounded text-[11px] font-medium  text-black uppercase tracking-wide overflow-hidden">
                                 {itemData?.description || '— Esperando entrada —'}
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
-                                <label className="text-[9px] font-bold text-black uppercase mb-1.5 block tracking-widest">Cantidad Observada</label>
+                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Cantidad Observada</label>
                                 <input 
                                     ref={qtyRef}
                                     type="number" 
@@ -221,17 +221,17 @@ const ExpressAudit = () => {
                                     onChange={(e) => setPhysicalQty(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                                     style={{height:'40px'}}
-                                    className="w-full py-0 px-3 border border-zinc-300 rounded bg-white text-base font-bold text-center outline-none focus:border-zinc-900 transition-colors"
+                                    className="w-full py-0 px-3 border border-zinc-300 rounded bg-white text-base font-medium  text-center outline-none focus:border-zinc-900 transition-colors"
                                     placeholder="0"
                                 />
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-black uppercase mb-1.5 block tracking-widest">Acción</label>
+                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Acción</label>
                                 <button 
                                     onClick={handleSave}
                                     disabled={isSaving || !itemData}
                                     style={{height:'40px'}}
-                                    className="w-full py-0 border border-zinc-300 rounded bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.15em] hover:bg-black transition-colors active:scale-[0.98] disabled:bg-white disabled:text-black disabled:border-zinc-300"
+                                    className="w-full py-0 border border-zinc-300 rounded bg-zinc-900 text-white text-[10px] font-medium  uppercase tracking-[0.15em] hover:bg-black transition-colors active:scale-[0.98] disabled:bg-white disabled:text-black disabled:border-zinc-300"
                                 >
                                     {isSaving ? "PROCESANDO..." : "CONFIRMAR REGISTRO"}
                                 </button>
@@ -239,18 +239,18 @@ const ExpressAudit = () => {
                         </div>
 
                         <div className="pt-4 border-t border-zinc-200">
-                            <label className="text-[9px] font-bold text-black uppercase mb-3 block tracking-widest">Análisis de Inventario</label>
+                            <label className="text-[9px] font-medium  text-black uppercase mb-3 block tracking-widest">Análisis de Inventario</label>
                             <div className="grid grid-cols-3 gap-6 bg-white border border-zinc-300 rounded p-4">
                                 <div>
-                                    <p className="text-[8px] font-bold text-black uppercase mb-1">Stock Sistema</p>
+                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Stock Sistema</p>
                                     <p className="text-sm font-black text-black">{itemData?.system_qty || 0}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] font-bold text-black uppercase mb-1">Auditoría Física</p>
+                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Auditoría Física</p>
                                     <p className="text-sm font-black text-black">{physicalQty || 0}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] font-bold text-black uppercase mb-1">Diferencia</p>
+                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Diferencia</p>
                                     <p className={`text-sm font-black ${difference > 0 ? 'text-blue-600' : difference < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                                         {difference > 0 ? `+${difference}` : difference}
                                     </p>
@@ -275,7 +275,7 @@ const ExpressAudit = () => {
                                                 : 'Discrepancia de Ubicación'}
                                         </span>
                                         {binLocation.toUpperCase() !== itemData.system_bin?.toUpperCase() && (
-                                            <span className="text-[9px] font-bold opacity-75 uppercase mt-1">SISTEMA INDICA: {itemData.system_bin || 'NO DEFINIDA'}</span>
+                                            <span className="text-[9px] font-medium  opacity-75 uppercase mt-1">SISTEMA INDICA: {itemData.system_bin || 'NO DEFINIDA'}</span>
                                         )}
                                     </div>
                                 </div>
@@ -301,12 +301,12 @@ const ExpressAudit = () => {
                                 </thead>
                                 <tbody className="divide-y-2 divide-zinc-100 text-[11px]">
                                     {recentAudits.length === 0 ? (
-                                        <tr><td colSpan="6" className="px-6 py-16 text-center text-black font-bold uppercase tracking-widest">No se han registrado auditorías en esta sesión</td></tr>
+                                        <tr><td colSpan="6" className="px-6 py-16 text-center text-black font-medium  uppercase tracking-widest">No se han registrado auditorías en esta sesión</td></tr>
                                     ) : (
                                         recentAudits.map((audit) => (
                                             <tr key={audit.id} className="hover:bg-zinc-50 transition-colors border-b border-zinc-100">
-                                                <td className="px-6 py-4 text-black font-mono font-bold">{formatDate(audit.executed_date)}</td>
-                                                <td className="px-6 py-4 text-zinc-600 font-bold uppercase tracking-tighter">{audit.username || '—'}</td>
+                                                <td className="px-6 py-4 text-black font-mono font-medium ">{formatDate(audit.executed_date)}</td>
+                                                <td className="px-6 py-4 text-zinc-600 font-medium  uppercase tracking-tighter">{audit.username || '—'}</td>
                                                 <td className="px-6 py-4 font-black text-black text-center bg-zinc-50/50">{audit.bin_location}</td>
                                                 <td className="px-6 py-4 font-black text-[#285f94]">{audit.item_code}</td>
                                                 <td className="px-6 py-4 text-center font-black text-black">{audit.physical_qty}</td>
@@ -328,15 +328,15 @@ const ExpressAudit = () => {
                         <div className="space-y-6">
                             <div className="flex gap-4">
                                 <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">01</span>
-                                <p className="text-[10px] text-black font-bold leading-relaxed uppercase tracking-tight">Validar ubicación física mediante escaneo de código de bin.</p>
+                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Validar ubicación física mediante escaneo de código de bin.</p>
                             </div>
                             <div className="flex gap-4">
                                 <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">02</span>
-                                <p className="text-[10px] text-black font-bold leading-relaxed uppercase tracking-tight">Identificar SKU y confirmar descripción técnica en pantalla.</p>
+                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Identificar SKU y confirmar descripción técnica en pantalla.</p>
                             </div>
                             <div className="flex gap-4">
                                 <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">03</span>
-                                <p className="text-[10px] text-black font-bold leading-relaxed uppercase tracking-tight">Realizar conteo ciego e ingresar unidades totales observadas.</p>
+                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Realizar conteo ciego e ingresar unidades totales observadas.</p>
                             </div>
                         </div>
                     </div>

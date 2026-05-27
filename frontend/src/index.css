@@ -10,14 +10,15 @@
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
-    --sap-text: #111827; /* Gray-900 para contraste máximo */
-    --sap-text-header: #030712; /* Gray-950 para títulos */
+    --sap-text: #000000; /* Contrast maximum */
+    --sap-text-header: #000000; /* Max contrast for headers */
 }
 
 body {
     font-family: var(--sap-font-family);
     color: var(--sap-text);
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 16px; /* Mejorar legibilidad base */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -30,8 +31,8 @@ h5,
 h6 {
     font-family: var(--sap-font-heading);
     color: var(--sap-text-header);
-    font-weight: 700; /* Incrementado de 500 a 700 para mayor jerarquía */
-    letter-spacing: -0.02em; /* Ajuste tipográfico profesional */
+    font-weight: 500; /* Evitar bold, usar medium */
+    letter-spacing: -0.01em; 
 }
 
 .header-title {
@@ -91,4 +92,19 @@ h6 {
 .no-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+}
+
+/* Force white text on table headers with dark backgrounds */
+thead.bg-slate-700 th,
+thead.bg-slate-800 th,
+thead.bg-slate-900 th,
+thead.bg-zinc-800 th,
+thead.bg-zinc-900 th,
+thead.bg-black th,
+thead[class*="bg-sap-primary"] th,
+tr[style*="background: #111827"] th,
+tr[style*="background: #354a5f"] th,
+tr.text-white th,
+thead.text-white th {
+    color: #ffffff !important;
 }

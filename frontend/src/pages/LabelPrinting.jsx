@@ -147,7 +147,7 @@ const LabelPrinting = () => {
 
                 {/* Label Preview Column */}
                 <div className="lg:col-span-1">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Previa</h2>
+                    <h2 className="text-lg font-medium text-gray-900 text-gray-700 mb-3 text-center">Vista Previa</h2>
 
                     {/* Print Area Preview */}
                     <div className="flex justify-center">

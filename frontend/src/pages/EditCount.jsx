@@ -51,26 +51,26 @@ const EditCount = () => {
         <Layout title={`Editar Conteo #${id}`}>
             <div className="max-w-2xl mx-auto px-4 py-8">
                 <div className="bg-white shadow rounded-lg p-6">
-                    <h1 className="text-2xl font-bold mb-6">Editar Conteo #{id}</h1>
+                    <h1 className="text-2xl font-medium text-gray-900 mb-6">Editar Conteo #{id}</h1>
 
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-600">
                         <div>
-                            <span className="font-bold">Item:</span> {count.item_code}
+                            <span className="font-medium text-gray-900">Item:</span> {count.item_code}
                         </div>
                         <div>
-                            <span className="font-bold">Sesión:</span> {count.session_id}
+                            <span className="font-medium text-gray-900">Sesión:</span> {count.session_id}
                         </div>
                         <div className="col-span-2">
-                            <span className="font-bold">Descripción:</span> {count.item_description}
+                            <span className="font-medium text-gray-900">Descripción:</span> {count.item_description}
                         </div>
                         <div>
-                            <span className="font-bold">Ubicación:</span> {count.counted_location}
+                            <span className="font-medium text-gray-900">Ubicación:</span> {count.counted_location}
                         </div>
                     </div>
 
                     <form onSubmit={handleSave}>
                         <div className="mb-6">
-                            <label className="block text-gray-700 font-bold mb-2">Cantidad Contada</label>
+                            <label className="block text-gray-700 font-medium text-gray-900 mb-2">Cantidad Contada</label>
                             <input
                                 type="number"
                                 value={countedQty}
@@ -90,7 +90,7 @@ const EditCount = () => {
                             </button>
                             <button
                                 type="submit"
-                                className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] font-bold"
+                                className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] font-medium text-gray-900"
                             >
                                 Guardar Cambios
                             </button>

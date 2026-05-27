@@ -160,14 +160,14 @@ const AdminUsers = () => {
                             {users.map(u => (
                                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 text-center text-gray-500">{u.id}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{u.username}</td>
+                                    <td className="px-6 py-4 font-medium ">{u.username}</td>
                                     <td className="px-6 py-4 text-center">
                                         {u.is_approved ? (
-                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200/50">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-green-100 text-green-700 border border-green-200/50">
                                                 Aprobado
                                             </span>
                                         ) : (
-                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200/50">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-orange-100 text-orange-700 border border-orange-200/50">
                                                 Pendiente
                                             </span>
                                         )}

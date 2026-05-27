@@ -113,7 +113,7 @@ const StockSearch = () => {
             {/* Search Card */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
                 <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -175,7 +175,7 @@ const StockSearch = () => {
             {searchResults.length > 0 && (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
                     <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-700">Múltiples resultados encontrados ({searchResults.length}):</h3>
+                        <h3 className="text-sm font-medium text-gray-900 text-gray-700">Múltiples resultados encontrados ({searchResults.length}):</h3>
                     </div>
                     <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
                         {searchResults.map((item) => (
@@ -185,12 +185,12 @@ const StockSearch = () => {
                                 className="px-6 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center"
                             >
                                 <div>
-                                    <div className="font-bold text-[#1e4a74]">{item.itemCode}</div>
+                                    <div className="font-medium text-gray-900 text-[#1e4a74]">{item.itemCode}</div>
                                     <div className="text-sm text-gray-600 truncate max-w-md">{item.description}</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-xs font-bold text-gray-400 uppercase">Stock</div>
-                                    <div className="font-bold text-gray-800">{item.physicalQty}</div>
+                                    <div className="text-xs font-medium text-gray-900 text-gray-400 uppercase">Stock</div>
+                                    <div className="font-medium text-gray-900 text-gray-800">{item.physicalQty}</div>
                                 </div>
                             </li>
                         ))}
@@ -202,8 +202,8 @@ const StockSearch = () => {
             {itemData && (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-fade-in">
                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-bold text-gray-800 text-lg">{itemData.itemCode}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${parseFloat(String(itemData.physicalQty || '0').replace(',', '')) > 0
+                        <h3 className="font-medium text-gray-900 text-gray-800 text-lg">{itemData.itemCode}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium text-gray-900 ${parseFloat(String(itemData.physicalQty || '0').replace(',', '')) > 0
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                             }`}>
@@ -213,21 +213,21 @@ const StockSearch = () => {
 
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="col-span-1 md:col-span-2">
-                            <label className="form-label text-gray-700 font-bold">Descripción</label>
-                            <div className="text-gray-900 font-bold text-lg">{itemData.description}</div>
+                            <label className="form-label text-gray-700 font-medium text-gray-900">Descripción</label>
+                            <div className="text-gray-900 font-medium text-gray-900 text-lg">{itemData.description}</div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-700 font-bold">Ubicación Principal</label>
+                            <label className="form-label text-gray-700 font-medium text-gray-900">Ubicación Principal</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-bold bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium text-gray-900 bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.binLocation || 'N/A'}
                                 </span>
                             </div>
                         </div>
 
                         <div>
-                            <label className="form-label text-gray-700 font-bold">Stock Físico</label>
+                            <label className="form-label text-gray-700 font-medium text-gray-900">Stock Físico</label>
                             <div className="mt-1">
                                 <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-black bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
                                     {itemData.physicalQty}
@@ -237,11 +237,11 @@ const StockSearch = () => {
 
                         {itemData.aditionalBins && (
                             <div className="col-span-1 md:col-span-2">
-                                <label className="form-label text-gray-700 font-bold">Ubicaciones Adicionales</label>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">Ubicaciones Adicionales</label>
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold bg-blue-50 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-gray-900 bg-blue-50 text-[#1e4a74] border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )
@@ -252,28 +252,28 @@ const StockSearch = () => {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 col-span-1 md:col-span-2 border-t pt-4 mt-2">
                             <div>
-                                <label className="form-label text-gray-700 font-bold">Peso (kg)</label>
-                                <div className="text-gray-900 font-semibold">{itemData.weight || '-'}</div>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">Peso (kg)</label>
+                                <div className="text-gray-900 font-medium text-gray-900">{itemData.weight || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-700 font-bold">Última Fecha Ingreso</label>
-                                <div className="text-gray-900 font-semibold">{itemData.dateLastReceived || '-'}</div>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">Última Fecha Ingreso</label>
+                                <div className="text-gray-900 font-medium text-gray-900">{itemData.dateLastReceived || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-700 font-bold">Reemplazado Por</label>
-                                <div className="text-gray-900 font-semibold">{itemData.supersededBy || '-'}</div>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">Reemplazado Por</label>
+                                <div className="text-gray-900 font-medium text-gray-900">{itemData.supersededBy || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-700 font-bold">SIC Code</label>
-                                <div className="font-bold text-gray-900">{itemData.sicCode || '-'}</div>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">SIC Code</label>
+                                <div className="font-medium text-gray-900 text-gray-900">{itemData.sicCode || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-700 font-bold">ABC Code</label>
-                                <div className="font-bold text-gray-900">{itemData.itemType || '-'}</div>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">ABC Code</label>
+                                <div className="font-medium text-gray-900 text-gray-900">{itemData.itemType || '-'}</div>
                             </div>
                             <div>
-                                <label className="form-label text-gray-700 font-bold">Frozen Qty</label>
-                                <div className={`font-bold ${parseFloat(String(itemData.frozenQty || '0')) > 0 ? 'text-red-700 bg-red-50 inline-block px-2 py-0.5 rounded' : 'text-gray-900'}`}>
+                                <label className="form-label text-gray-700 font-medium text-gray-900">Frozen Qty</label>
+                                <div className={`font-medium text-gray-900 ${parseFloat(String(itemData.frozenQty || '0')) > 0 ? 'text-red-700 bg-red-50 inline-block px-2 py-0.5 rounded' : 'text-gray-900'}`}>
                                     {itemData.frozenQty || '0'}
                                 </div>
                             </div>

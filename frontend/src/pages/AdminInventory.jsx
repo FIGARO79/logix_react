@@ -159,7 +159,7 @@ const AdminInventory = () => {
                                         <button
                                             onClick={() => handleAction(item.action, `¿Confirmar transición a Fase ${item.s}?`)}
                                             disabled={loading || (item.s === 1 ? (stage !== 0 && stage !== 4) : stage !== item.s - 1)}
-                                            className={`flex-1 h-8 text-[10px] font-bold uppercase tracking-widest rounded transition-colors ${stage === item.s
+                                            className={`flex-1 h-8 text-[10px] font-medium  uppercase tracking-widest rounded transition-colors ${stage === item.s
                                                     ? 'bg-[#285f94] text-white hover:bg-[#1e4a74]'
                                                     : 'bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-100 disabled:text-gray-300'
                                                 }`}
@@ -184,8 +184,8 @@ const AdminInventory = () => {
                                 <h3 className="text-lg font-light text-black mb-2 uppercase tracking-tight">Finalización del Ejercicio</h3>
                                 <p className="text-[10px] text-black uppercase font-normal tracking-widest mb-6">Cierre definitivo de registros y consolidación de informe maestro</p>
                                 <div className="flex gap-4 w-full max-w-md">
-                                    <button onClick={() => window.location.href = `/admin/inventory/report`} disabled={stage !== 4} className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[10px] font-bold uppercase tracking-widest rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-sm">Reporte Excel</button>
-                                    <button onClick={() => handleAction('/api/admin/inventory/finalize', '¿Finalizar Inventario?')} disabled={loading || stage !== 4} className="flex-1 h-10 bg-[#285f94] text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-[#1e4a74] disabled:opacity-50 transition-all shadow-md">Cerrar Ciclo</button>
+                                    <button onClick={() => window.location.href = `/admin/inventory/report`} disabled={stage !== 4} className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-sm">Reporte Excel</button>
+                                    <button onClick={() => handleAction('/api/admin/inventory/finalize', '¿Finalizar Inventario?')} disabled={loading || stage !== 4} className="flex-1 h-10 bg-[#285f94] text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-[#1e4a74] disabled:opacity-50 transition-all shadow-md">Cerrar Ciclo</button>
                                 </div>
                             </div>
                         </div>
@@ -269,8 +269,8 @@ const AdminInventory = () => {
                                 }} className="space-y-4">
                                     <div><label className="text-[9px] font-normal text-black uppercase">ID Sesión</label><input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all" required /></div>
                                     <div><label className="text-[9px] font-normal text-black uppercase">Código Loc</label><input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white font-mono outline-none transition-all" required /></div>
-                                    <button type="submit" className="w-full h-9 bg-zinc-800 text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-zinc-900 transition-colors shadow-sm">EJECUTAR</button>
-                                    {adminMsg && <div className="text-center text-[10px] font-bold text-emerald-600 animate-pulse uppercase tracking-tight">REAPERTURA OK</div>}
+                                    <button type="submit" className="w-full h-9 bg-zinc-800 text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-zinc-900 transition-colors shadow-sm">EJECUTAR</button>
+                                    {adminMsg && <div className="text-center text-[10px] font-medium  text-emerald-600 animate-pulse uppercase tracking-tight">REAPERTURA OK</div>}
                                 </form>
                             </div>
                         </div>
@@ -295,21 +295,21 @@ const AdminInventory = () => {
                                         <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {['Auditor', 'Timestamp', 'Ítem', 'Ubicación', 'Cantidad', ''].map((h, i) => (
-                                                    <th key={i} className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wider">{h}</th>
+                                                    <th key={i} className="px-4 py-2 text-[10px] font-medium  uppercase tracking-wider">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
                                             {filteredCounts.map((c) => (
                                                 <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                    <td className="px-4 py-2 text-[11px] font-semibold text-black">{c.username}</td>
+                                                    <td className="px-4 py-2 text-[11px] font-medium  text-black">{c.username}</td>
                                                     <td className="px-4 py-2 text-[10px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="px-4 py-2 text-[11px] font-bold text-[#285f94] font-mono tracking-tight uppercase">{c.item_code}</td>
+                                                    <td className="px-4 py-2 text-[11px] font-medium  text-[#285f94] font-mono tracking-tight uppercase">{c.item_code}</td>
                                                     <td className="px-4 py-2 text-[11px] text-black font-mono uppercase">{c.counted_location}</td>
-                                                    <td className="px-4 py-2 text-xs font-bold text-black border-l border-zinc-50">{c.counted_qty}</td>
+                                                    <td className="px-4 py-2 text-xs font-medium  text-black border-l border-zinc-50">{c.counted_qty}</td>
                                                     <td className="px-4 py-2 text-right space-x-4">
-                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-[#285f94] text-[10px] font-bold uppercase transition-colors">Editar</button>
-                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[10px] font-bold uppercase transition-colors">Borrar</button>
+                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-[#285f94] text-[10px] font-medium  uppercase transition-colors">Editar</button>
+                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[10px] font-medium  uppercase transition-colors">Borrar</button>
                                                     </td>
                                                 </tr>
                                             ))}

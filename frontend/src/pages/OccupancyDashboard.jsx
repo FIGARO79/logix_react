@@ -30,12 +30,12 @@ const OccupancyDashboard = () => {
         if (percentage === 0) return 'bg-slate-50 text-slate-600 border-slate-200';
         if (percentage < 30) return 'bg-emerald-50 text-emerald-900 border-emerald-200';
         if (percentage < 75) return 'bg-amber-50 text-amber-900 border-amber-200';
-        return 'bg-red-50 text-red-900 border-red-200 font-bold';
+        return 'bg-red-50 text-red-900 border-red-200 font-medium ';
     };
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-zinc-900 text-[11px] font-bold tracking-widest uppercase">Processing spatial data...</div>
+            <div className="text-zinc-900 text-[11px] font-medium  tracking-widest uppercase">Processing spatial data...</div>
         </div>
     );
 
@@ -54,12 +54,12 @@ const OccupancyDashboard = () => {
             {/* Header / Actions Section */}
             <div className="mb-8 border-b border-zinc-300 pb-4 flex justify-between items-end">
                 <div>
-                    <h1 className="text-[18px] font-bold text-zinc-950 tracking-tight">Ocupación de Bodega</h1>
-                    <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-semibold">Mapa de Saturación y Densidad de Bins</p>
+                    <h1 className="text-[18px] font-medium  text-zinc-950 tracking-tight">Ocupación de Bodega</h1>
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-medium ">Mapa de Saturación y Densidad de Bins</p>
                 </div>
                 <button
                     onClick={fetchData}
-                    className="px-4 py-1.5 border border-zinc-900 text-zinc-900 bg-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-zinc-900 hover:text-white transition-all shadow-sm"
+                    className="px-4 py-1.5 border border-zinc-900 text-zinc-900 bg-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-zinc-900 hover:text-white transition-all shadow-sm"
                 >
                     Actualizar Datos
                 </button>
@@ -76,8 +76,8 @@ const OccupancyDashboard = () => {
                     { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-zinc-900' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white p-4 border border-zinc-200 shadow-sm">
-                        <label className="text-[10px] uppercase text-zinc-600 font-bold tracking-widest block mb-1">{s.label}</label>
-                        <p className={`text-2xl font-bold font-mono ${s.color}`}>{s.val}</p>
+                        <label className="text-[10px] uppercase text-zinc-600 font-medium  tracking-widest block mb-1">{s.label}</label>
+                        <p className={`text-2xl font-medium  font-mono ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
             </div>
@@ -85,7 +85,7 @@ const OccupancyDashboard = () => {
             {/* Heatmap Matrix Section */}
             <div className="bg-white border border-zinc-300 shadow-sm mb-8 overflow-hidden">
                 <div className="px-6 py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center">
-                    <h3 className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest">
+                    <h3 className="text-[11px] font-medium  text-zinc-900 uppercase tracking-widest">
                         Matriz de Saturación de Bins (Nivel vs Zona)
                     </h3>
                 </div>
@@ -93,9 +93,9 @@ const OccupancyDashboard = () => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="bg-zinc-950">
-                                <th className="px-6 py-3 text-left text-[11px] font-bold text-white uppercase tracking-wider border-b border-zinc-800">Identificador de Zona</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-medium text-white uppercase tracking-wider border-b border-zinc-800">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-3 text-center text-[11px] font-bold text-white uppercase tracking-wider border-b border-zinc-800">
+                                    <th key={level} className="px-2 py-3 text-center text-[11px] font-medium text-white uppercase tracking-wider border-b border-zinc-800">
                                         Nivel {level}
                                     </th>
                                 ))}
@@ -107,8 +107,8 @@ const OccupancyDashboard = () => {
                                 return (
                                     <tr key={zoneName} className="hover:bg-zinc-50/50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-bold text-zinc-900 leading-none">{zoneName}</div>
-                                            <div className="text-[10px] text-zinc-600 font-bold mt-1 uppercase tracking-tighter">
+                                            <div className="text-sm font-medium  text-zinc-900 leading-none">{zoneName}</div>
+                                            <div className="text-[10px] text-zinc-600 font-medium  mt-1 uppercase tracking-tighter">
                                                 {zoneData.total} Bins Total
                                             </div>
                                         </td>
@@ -126,11 +126,11 @@ const OccupancyDashboard = () => {
                                                             ${getHeatmapStyle(occupancyPercent)}
                                                             transition-all duration-200
                                                         `}>
-                                                            <span className="text-lg font-mono font-bold leading-none mb-1">{occupancyPercent}%</span>
-                                                            <div className="text-[9px] uppercase tracking-tighter font-bold opacity-90 text-center">
+                                                            <span className="text-lg font-mono font-medium  leading-none mb-1">{occupancyPercent}%</span>
+                                                            <div className="text-[9px] uppercase tracking-tighter font-medium  opacity-90 text-center">
                                                                 {levelData.full_bins}/{levelData.total} Bins
                                                             </div>
-                                                            <div className="text-[9px] font-bold opacity-80">
+                                                            <div className="text-[9px] font-medium  opacity-80">
                                                                 {levelData.occupied_skus} SKUs
                                                             </div>
                                                         </div>
@@ -153,17 +153,17 @@ const OccupancyDashboard = () => {
                 <div className="px-6 py-3 border-t border-zinc-200 bg-zinc-50 flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 bg-emerald-50 border border-emerald-300 rounded-full"></div>
-                        <span className="text-[10px] font-bold text-zinc-800 uppercase tracking-widest">Baja Utilización</span>
+                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Baja Utilización</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 bg-amber-50 border border-amber-300 rounded-full"></div>
-                        <span className="text-[10px] font-bold text-zinc-800 uppercase tracking-widest">Carga Óptima</span>
+                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Carga Óptima</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 bg-red-50 border border-red-300 rounded-full"></div>
-                        <span className="text-[10px] font-bold text-zinc-800 uppercase tracking-widest">Saturado</span>
+                        <span className="text-[10px] font-medium  text-zinc-800 uppercase tracking-widest">Saturado</span>
                     </div>
-                    <div className="ml-auto text-[10px] font-semibold text-zinc-600 italic">
+                    <div className="ml-auto text-[10px] font-medium  text-zinc-600 italic">
                         * Los valores indican bins alcanzando umbrales de capacidad configurados.
                     </div>
                 </div>
@@ -174,16 +174,16 @@ const OccupancyDashboard = () => {
 
                 {/* 1. Spatial Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm">
-                    <h3 className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[11px] font-medium  text-zinc-900 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
                         Distribución de Bins por Zona
                     </h3>
                     <div className="space-y-4">
                         {Object.entries(data.analytics.bins_by_zone).map(([zone, count]) => (
                             <div key={zone} className="flex justify-between items-end border-b border-zinc-50 pb-1.5">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[11px] font-bold text-zinc-900">{zone}</span>
+                                    <span className="text-[11px] font-medium  text-zinc-900">{zone}</span>
                                 </div>
-                                <span className="font-mono text-sm text-zinc-950 font-bold">{count} <span className="text-[10px] uppercase ml-0.5 text-zinc-500 font-bold">Units</span></span>
+                                <span className="font-mono text-sm text-zinc-950 font-medium ">{count} <span className="text-[10px] uppercase ml-0.5 text-zinc-500 font-medium ">Units</span></span>
                             </div>
                         ))}
                     </div>
@@ -191,7 +191,7 @@ const OccupancyDashboard = () => {
 
                 {/* 2. SKU Volume Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm">
-                    <h3 className="text-[11px] font-bold text-zinc-900 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[11px] font-medium  text-zinc-900 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
                         Densidad de SKUs por Zona
                     </h3>
                     <div className="space-y-6">
@@ -200,7 +200,7 @@ const OccupancyDashboard = () => {
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={zone}>
-                                    <div className="flex justify-between text-[11px] font-bold text-zinc-900 mb-1.5 uppercase tracking-tighter">
+                                    <div className="flex justify-between text-[11px] font-medium  text-zinc-900 mb-1.5 uppercase tracking-tighter">
                                         <span>{zone}</span>
                                         <span className="text-zinc-950 font-mono">{count}</span>
                                     </div>
@@ -215,7 +215,7 @@ const OccupancyDashboard = () => {
 
                 {/* 3. Operational Risk (Hot Aisles) */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm">
-                    <h3 className="text-[11px] font-bold text-red-800 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[11px] font-medium  text-red-800 uppercase tracking-widest mb-6 border-b border-zinc-100 pb-2">
                         Densidad Crítica (Pasillos Principales)
                     </h3>
                     <div className="space-y-6">
@@ -224,7 +224,7 @@ const OccupancyDashboard = () => {
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={aisle}>
-                                    <div className="flex justify-between text-[11px] font-bold text-zinc-900 mb-1.5 uppercase tracking-tighter">
+                                    <div className="flex justify-between text-[11px] font-medium  text-zinc-900 mb-1.5 uppercase tracking-tighter">
                                         <span>Pasillo {aisle}</span>
                                         <span className="text-zinc-950 font-mono">{count}</span>
                                     </div>

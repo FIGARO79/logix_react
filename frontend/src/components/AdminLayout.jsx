@@ -18,7 +18,7 @@ const AdminLayout = ({ children, title }) => {
                     <img src="/static/images/gear-wide-connected.svg" alt="Logo" className="h-6 w-6 opacity-80" />
 
                     {/* Title */}
-                    <h1 className="text-lg font-bold tracking-wide">Panel de Administración</h1>
+                    <h1 className="text-lg font-medium text-gray-900 tracking-wide">Panel de Administración</h1>
 
                     {/* Actions */}
                     <div className="ml-auto flex gap-4 text-sm">

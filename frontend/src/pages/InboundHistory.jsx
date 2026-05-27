@@ -138,7 +138,7 @@ const InboundHistory = () => {
         <div className="w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h1 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
+                <h1 className="text-lg font-medium  text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
@@ -213,7 +213,7 @@ const InboundHistory = () => {
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-gray-500 font-normal">{log.expected_qty}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
                                 </tr>

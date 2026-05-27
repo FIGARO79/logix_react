@@ -51,7 +51,7 @@ const Login = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
             <div className="fiori-login-card">
-                <h2 className="text-2xl font-bold mb-6 text-center text-[#2c3e50]">Iniciar Sesión</h2>
+                <h2 className="text-2xl font-medium text-gray-900 mb-6 text-center text-[#2c3e50]">Iniciar Sesión</h2>
 
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">

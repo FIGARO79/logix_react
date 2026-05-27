@@ -555,7 +555,7 @@ const Inbound = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-semibold tracking-tight uppercase">Inbound - Recepción</h1>
+                                <h1 className="text-base font-medium  tracking-tight uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
@@ -618,44 +618,44 @@ const Inbound = () => {
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
                                             <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
-                                                <div className="flex flex-col gap-0.5 text-black font-semibold">
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                                <div className="flex flex-col gap-0.5 text-black font-medium ">
                                                     <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-semibold"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-medium "><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
 
                                         {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
                                             <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
-                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-semibold">
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium ">
                                                     {itemData.xdockCustomers.map((c, idx) => (
                                                         <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                            <div className="pr-2 text-black uppercase truncate font-semibold"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                            <span className="text-red-700 whitespace-nowrap font-semibold">{c?.qty || 0} UN</span>
+                                                            <div className="pr-2 text-black uppercase truncate font-medium "><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                            <span className="text-red-700 whitespace-nowrap font-medium ">{c?.qty || 0} UN</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-semibold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium  italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
                                         {itemData?.suggestedBin ? (
                                             <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
                                                 <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
-                                                    <span className={`text-[10px] font-semibold uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+                                                    <span className={`text-[10px] font-medium  uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                                                         {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
                                                     </span>
-                                                    <span className="text-[8px] italic text-zinc-600 font-semibold">Tap usar</span>
+                                                    <span className="text-[8px] italic text-zinc-600 font-medium ">Tap usar</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                         <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                         <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     </svg>
-                                                    <span className="text-base font-mono font-semibold text-black">{itemData.suggestedBin}</span>
+                                                    <span className="text-base font-mono font-medium  text-black">{itemData.suggestedBin}</span>
                                                     {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
-                                                        <span className="ml-auto text-[10px] font-semibold bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
+                                                        <span className="ml-auto text-[10px] font-medium  bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -668,7 +668,7 @@ const Inbound = () => {
                             </div>
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
-                                <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
+                                <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
                                     <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
@@ -706,7 +706,7 @@ const Inbound = () => {
                         </div>
 
                         <div className="lg:col-span-1">
-                            <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
+                            <h2 className="text-lg font-medium  text-center mb-3">Vista Etiqueta</h2>
                             <div className="flex justify-center">
                                 <div ref={labelComponentRef} className="bg-white">
                                     <SandvikLabel
@@ -737,7 +737,7 @@ const Inbound = () => {
 
                 <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
                     <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
-                        <h2 className="text-base font-semibold text-black tracking-tight uppercase">Registros de Sesión</h2>
+                        <h2 className="text-base font-medium  text-black tracking-tight uppercase">Registros de Sesión</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
@@ -757,7 +757,7 @@ const Inbound = () => {
                                     <button
                                         type="button"
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-semibold"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-medium "
                                         title="Limpiar búsqueda"
                                     >
                                         ✕
@@ -802,18 +802,18 @@ const Inbound = () => {
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-0 z-20">
                                 <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Acc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Item</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">New</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">User</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Acc</th>
                                 </tr>
                             </thead>
 

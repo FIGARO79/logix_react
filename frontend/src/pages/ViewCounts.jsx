@@ -80,7 +80,7 @@ const ViewCounts = () => {
                     <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Monitoreo de avance de conteo físico general</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-[8px] text-gray-400 uppercase font-bold">Estado del Proceso</p>
+                    <p className="text-[8px] text-gray-400 uppercase font-medium ">Estado del Proceso</p>
                     <p className="text-base font-light text-green-600">{stats.progress_percentage}% Completado</p>
                 </div>
             </div>
@@ -95,7 +95,7 @@ const ViewCounts = () => {
                     { title: 'Total Unidades', val: stats.total_units_counted, color: 'text-[#285f94]' }
                 ].map((s, idx) => (
                     <div key={idx} className="bg-white border border-gray-200 rounded p-4 shadow-sm">
-                        <h3 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${s.color}`}>{s.title}</h3>
+                        <h3 className={`text-[10px] font-medium  uppercase tracking-widest mb-1 ${s.color}`}>{s.title}</h3>
                         <p className={`text-xl font-light ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
@@ -104,7 +104,7 @@ const ViewCounts = () => {
             {/* Toolbar */}
             <div className="flex justify-between items-center mb-6 p-3 bg-white rounded border border-gray-200 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-tight">Filtrar Auditor:</label>
+                    <label className="text-xs font-medium  text-gray-400 uppercase tracking-tight">Filtrar Auditor:</label>
                     <select
                         value={selectedUser}
                         onChange={(e) => setSelectedUser(e.target.value)}
@@ -117,7 +117,7 @@ const ViewCounts = () => {
                 <div className="flex gap-4">
                     <a
                         href="/api/export_counts?tz=America/Bogota"
-                        className="inline-flex items-center px-4 py-1.5 border border-gray-300 text-gray-600 bg-white text-xs font-bold uppercase tracking-tighter rounded hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center px-4 py-1.5 border border-gray-300 text-gray-600 bg-white text-xs font-medium  uppercase tracking-tighter rounded hover:bg-gray-50 transition-colors"
                     >
                         Exportar Reporte
                     </a>
@@ -131,7 +131,7 @@ const ViewCounts = () => {
                         <thead className="sticky top-0 z-10 bg-gray-50">
                             <tr>
                                 {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Acciones'].map((h, i) => (
-                                    <th key={i} className="px-4 py-3 border-b border-gray-200 text-[10px] font-bold uppercase tracking-widest text-white-500">
+                                    <th key={i} className="px-4 py-3 border-b border-gray-200 text-[12px] font-medium  uppercase tracking-widest text-white-500">
                                         {h}
                                     </th>
                                 ))}
@@ -151,14 +151,14 @@ const ViewCounts = () => {
                                     <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
                                         <td className="px-4 py-2 text-xs text-gray-400">{c.inventory_stage || '1'}</td>
                                         <td className="px-4 py-2 text-xs text-gray-400">{c.session_id}</td>
-                                        <td className="px-4 py-2 text-xs font-semibold text-gray-700">{c.username || 'N/A'}</td>
+                                        <td className="px-4 py-2 text-xs font-medium  text-gray-700">{c.username || 'N/A'}</td>
                                         <td className="px-4 py-2 text-[10px] text-gray-500 whitespace-nowrap">
                                             {c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                                         </td>
-                                        <td className="px-4 py-2 text-xs font-bold text-slate-800">{c.item_code}</td>
+                                        <td className="px-4 py-2 text-xs font-medium  text-slate-800">{c.item_code}</td>
                                         <td className="px-4 py-2 text-[11px] text-gray-500 truncate max-w-[300px]" title={c.item_description}>{c.item_description}</td>
                                         <td className="px-4 py-2 text-xs font-mono text-gray-600">{c.counted_location}</td>
-                                        <td className="px-4 py-2 text-sm font-bold text-[#285f94]">{c.counted_qty}</td>
+                                        <td className="px-4 py-2 text-sm font-medium  text-[#285f94]">{c.counted_qty}</td>
                                         <td className="px-4 py-2 text-right flex justify-end gap-2">
                                             <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-gray-400 hover:text-blue-600 transition-colors">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
