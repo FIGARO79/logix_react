@@ -12,7 +12,7 @@ const OccupancyDashboard = () => {
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     useEffect(() => {
-        if (setTitle) setTitle('Mapa de Slotting');
+        if (setTitle) setTitle('Ocupación de Bodega');
         fetchData();
     }, [setTitle]);
 
