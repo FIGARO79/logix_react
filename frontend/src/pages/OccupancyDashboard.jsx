@@ -129,12 +129,15 @@ const OccupancyDashboard = () => {
                         <tbody className="divide-y divide-zinc-200">
                             {zones.map(zoneName => {
                                 const zoneData = data.zones[zoneName];
+                                const zoneOccupancyPct = zoneData.total > 0
+                                    ? Math.round((zoneData.occupied / zoneData.total) * 100)
+                                    : 0;
                                 return (
                                     <tr key={zoneName} className="hover:bg-zinc-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-medium  text-zinc-900 leading-none">{zoneName}</div>
                                             <div className="text-[10px] text-zinc-600 font-medium  mt-1 uppercase tracking-tighter">
-                                                {zoneData.total} Bins Total
+                                                {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
