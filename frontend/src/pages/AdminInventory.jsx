@@ -102,38 +102,38 @@ const AdminInventory = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
             {/* Header Técnico */}
             <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-base font-normal tracking-tight">Administración de Inventario</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Gestión de Ciclos y Auditoría de Stock</p>
+                    <h1 className="text-[14px] font-normal text-black tracking-tight">Administración de Inventario</h1>
+                    <p className="text-[12px] font-normal leading-none mt-0.5 text-black">Gestión de Ciclos y Auditoría de Stock</p>
                 </div>
                 <div className="flex gap-3">
                     <button
                         onClick={() => window.location.href = `/api/export_counts`}
-                        className="bg-white border border-black text-black text-[8px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors text-sm font-medium shadow-sm"
+                        className="bg-white border border-black text-black text-[12px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors font-normal shadow-sm"
                     >
                         Exportar Master
                     </button>
                 </div>
             </div>
 
-            {message && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm text-xs font-medium uppercase tracking-tight">{message}</div>}
-            {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm text-xs font-medium uppercase tracking-tight">{error}</div>}
+            {message && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase tracking-tight">{message}</div>}
+            {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase tracking-tight">{error}</div>}
 
             {/* Tab Navigation */}
             <div className="flex border-b border-zinc-200 mb-6">
                 <button
                     onClick={() => setActiveTab('cycle')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'cycle' ? 'border-[#285f94] text-[#285f94]' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'cycle' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
                 >
                     Fases del Inventario
                 </button>
                 <button
                     onClick={() => setActiveTab('counts')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'counts' ? 'border-[#285f94] text-[#285f94]' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'counts' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
                 >
                     Auditoría de Registros
                 </button>
@@ -149,19 +149,19 @@ const AdminInventory = () => {
                                 { s: 3, t: 'FASE 3: RECONTEO R2', d: 'Segunda validación enfocada en discrepancias persistentes.', action: '/api/admin/inventory/advance_stage/3', label: 'GENERAR R2' },
                                 { s: 4, t: 'FASE 4: AUDITORÍA FINAL', d: 'Validación técnica final previa al cierre del ejercicio.', action: '/api/admin/inventory/advance_stage/4', label: 'PREPARAR CIERRE' }
                             ].map((item) => (
-                                <div key={item.s} className={`p-6 border bg-white shadow-sm transition-all ${stage === item.s ? 'border-blue-600 ring-1 ring-blue-50' : 'border-zinc-200 opacity-60'}`}>
+                                <div key={item.s} className={`p-6 border bg-white shadow-sm transition-all ${stage === item.s ? 'border-black ring-1 ring-black' : 'border-zinc-200 opacity-60'}`}>
                                     <div className="flex justify-between items-start mb-4">
-                                        <h3 className="text-xs font-normal text-black uppercase tracking-tight">{item.t}</h3>
-                                        <span className={`text-[10px] font-mono font-normal px-2 py-0.5 rounded ${stage === item.s ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-black'}`}>PHASE-0{item.s}</span>
+                                        <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">{item.t}</h3>
+                                        <span className={`text-[12px] font-mono font-normal px-2 py-0.5 rounded bg-zinc-100 text-black`}>PHASE-0{item.s}</span>
                                     </div>
-                                    <p className="text-[11px] text-black mb-6 leading-relaxed uppercase font-normal tracking-tight">{item.d}</p>
+                                    <p className="text-[12px] text-black mb-6 leading-relaxed uppercase font-normal tracking-tight">{item.d}</p>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => handleAction(item.action, `¿Confirmar transición a Fase ${item.s}?`)}
                                             disabled={loading || (item.s === 1 ? (stage !== 0 && stage !== 4) : stage !== item.s - 1)}
-                                            className={`flex-1 h-8 text-[10px] font-medium  uppercase tracking-widest rounded transition-colors ${stage === item.s
-                                                    ? 'bg-[#285f94] text-white hover:bg-[#1e4a74]'
-                                                    : 'bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-100 disabled:text-gray-300'
+                                            className={`flex-1 h-8 text-[12px] font-normal uppercase tracking-widest rounded transition-colors ${stage === item.s
+                                                    ? 'bg-black text-white hover:bg-zinc-900'
+                                                    : 'bg-zinc-800 text-white hover:bg-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-300'
                                                 }`}
                                         >
                                             {item.label}
@@ -179,13 +179,13 @@ const AdminInventory = () => {
                             ))}
                         </div>
 
-                        <div className={`p-8 border-2 border-dashed transition-all ${stage === 4 ? 'border-emerald-200 bg-emerald-50/20' : 'border-zinc-100 bg-transparent opacity-40'}`}>
-                            <div className="flex flex-col items-center text-center">
-                                <h3 className="text-lg font-light text-black mb-2 uppercase tracking-tight">Finalización del Ejercicio</h3>
-                                <p className="text-[10px] text-black uppercase font-normal tracking-widest mb-6">Cierre definitivo de registros y consolidación de informe maestro</p>
+                        <div className={`p-8 border-2 border-dashed transition-all ${stage === 4 ? 'border-zinc-300 bg-zinc-50/20' : 'border-zinc-100 bg-transparent opacity-40'}`}>
+                             <div className="flex flex-col items-center text-center">
+                                <h3 className="text-[12px] font-light text-black mb-2 uppercase tracking-tight">Finalización del Ejercicio</h3>
+                                <p className="text-[12px] text-black uppercase font-normal tracking-widest mb-6">Cierre definitivo de registros y consolidación de informe maestro</p>
                                 <div className="flex gap-4 w-full max-w-md">
-                                    <button onClick={() => window.location.href = `/admin/inventory/report`} disabled={stage !== 4} className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-sm">Reporte Excel</button>
-                                    <button onClick={() => handleAction('/api/admin/inventory/finalize', '¿Finalizar Inventario?')} disabled={loading || stage !== 4} className="flex-1 h-10 bg-[#285f94] text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-[#1e4a74] disabled:opacity-50 transition-all shadow-md">Cerrar Ciclo</button>
+                                    <button onClick={() => window.location.href = `/admin/inventory/report`} disabled={stage !== 4} className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-sm">Reporte Excel</button>
+                                    <button onClick={() => handleAction('/api/admin/inventory/finalize', '¿Finalizar Inventario?')} disabled={loading || stage !== 4} className="flex-1 h-10 bg-black text-white text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 disabled:opacity-50 transition-all shadow-md">Cerrar Ciclo</button>
                                 </div>
                             </div>
                         </div>
@@ -194,32 +194,32 @@ const AdminInventory = () => {
                     {/* Resumen Sidebar */}
                     <div className="lg:col-span-1">
                         <div className="bg-white p-6 rounded shadow-sm border border-zinc-200 sticky top-20">
-                            <h2 className="text-lg font-normal text-black mb-4 border-b pb-2">Estado del Inventario</h2>
+                            <h2 className="text-[12px] font-normal text-black mb-4 border-b pb-2">Estado del Inventario</h2>
                             {!stats ? (
-                                <div className="flex justify-center py-8 text-black text-xs italic">Calculando estadísticas...</div>
+                                <div className="flex justify-center py-8 text-black text-[12px] italic">Calculando estadísticas...</div>
                             ) : (
                                 <div className="space-y-6">
                                     <div>
-                                        <h3 className="text-xs font-normal text-black uppercase tracking-widest mb-3 tracking-tighter">Status Operativo</h3>
+                                        <h3 className="text-[12px] font-normal text-black uppercase tracking-[0.1em] mb-3 tracking-tighter">Status Operativo</h3>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center text-sm border-b border-zinc-50 pb-1">
-                                                <span className="text-black uppercase text-[10px] font-normal">Fase Activa</span>
-                                                <span className="font-mono font-medium text-black">{stage === 0 ? 'STANDBY' : `PHASE ${stage}`}</span>
+                                                <span className="text-black uppercase text-[12px] font-normal">Fase Activa</span>
+                                                <span className="font-mono font-normal text-black text-[12px]">{stage === 0 ? 'STANDBY' : `PHASE ${stage}`}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-sm border-b border-zinc-50 pb-1">
-                                                <span className="text-black uppercase text-[10px] font-normal">Catálogo Master</span>
-                                                <span className="font-mono font-medium text-[#285f94]">{stats?.general?.total_items_master || 0}</span>
+                                                <span className="text-black uppercase text-[12px] font-normal">Catálogo Master</span>
+                                                <span className="font-mono font-normal text-black text-[12px]">{stats?.general?.total_items_master || 0}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-zinc-50 space-y-4">
                                         {stats?.stages && Object.entries(stats.stages).map(([sNum, sStats]) => (
-                                            <div key={sNum} className="flex justify-between items-center text-[11px] group py-0.5 border-b border-transparent hover:border-zinc-100">
+                                            <div key={sNum} className="flex justify-between items-center text-[12px] group py-0.5 border-b border-transparent hover:border-zinc-100">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-[#285f94] transition-colors"></span>
-                                                    <span className="text-black group-hover:text-black transition-colors uppercase font-normal text-[9px]">Stage 0{sNum} Accuracy</span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-black transition-colors"></span>
+                                                    <span className="text-black group-hover:text-black transition-colors uppercase font-normal text-[12px]">Stage 0{sNum} Accuracy</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-[#285f94]">{sStats.accuracy}</span>
+                                                <span className="font-mono font-normal text-black text-[12px]">{sStats.accuracy}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -243,8 +243,8 @@ const AdminInventory = () => {
                                 { l: 'Unidades', v: countStats.total_units_counted }
                             ].map((s, i) => (
                                 <div key={i} className="bg-white border border-zinc-200 p-4 shadow-sm text-center">
-                                    <label className="text-[9px] uppercase font-normal text-black block mb-1 tracking-tighter">{s.l}</label>
-                                    <div className="text-xl font-light text-black">{s.v}</div>
+                                    <label className="text-[12px] uppercase font-normal text-black block mb-1 tracking-tighter">{s.l}</label>
+                                    <div className="text-[12px] font-light text-black">{s.v}</div>
                                 </div>
                             ))}
                         </div>
@@ -253,7 +253,7 @@ const AdminInventory = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         <div className="lg:col-span-1">
                             <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-                                <h3 className="text-[10px] font-normal text-black uppercase tracking-widest mb-6 border-b border-zinc-50 pb-2">Reabrir Ubicación</h3>
+                                <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-6 border-b border-zinc-50 pb-2">Reabrir Ubicación</h3>
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
                                     try {
@@ -267,10 +267,10 @@ const AdminInventory = () => {
                                         setTimeout(() => setAdminMsg(''), 3000);
                                     } catch (e) { alert("Error en reapertura técnica"); }
                                 }} className="space-y-4">
-                                    <div><label className="text-[9px] font-normal text-black uppercase">ID Sesión</label><input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all" required /></div>
-                                    <div><label className="text-[9px] font-normal text-black uppercase">Código Loc</label><input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white font-mono outline-none transition-all" required /></div>
-                                    <button type="submit" className="w-full h-9 bg-zinc-800 text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-zinc-900 transition-colors shadow-sm">EJECUTAR</button>
-                                    {adminMsg && <div className="text-center text-[10px] font-medium  text-emerald-600 animate-pulse uppercase tracking-tight">REAPERTURA OK</div>}
+                                    <div><label className="text-[12px] font-normal text-black uppercase">ID Sesión</label><input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all" required /></div>
+                                    <div><label className="text-[12px] font-normal text-black uppercase">Código Loc</label><input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white font-mono outline-none transition-all" required /></div>
+                                    <button type="submit" className="w-full h-9 bg-zinc-800 text-white text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 transition-colors shadow-sm">EJECUTAR</button>
+                                    {adminMsg && <div className="text-center text-[12px] font-normal text-emerald-600 animate-pulse uppercase tracking-tight">REAPERTURA OK</div>}
                                 </form>
                             </div>
                         </div>
@@ -279,14 +279,14 @@ const AdminInventory = () => {
                             <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
                                 <div className="bg-[#f2f2f2] px-4 py-1.5 border-b border-zinc-200 flex flex-row justify-between items-center gap-4">
                                     <div className="flex gap-4 items-center flex-1 max-w-[300px]">
-                                        <label className="text-[10px] font-normal text-black uppercase tracking-widest">Filtro Auditor:</label>
-                                        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="h-6 flex-1 bg-white border border-zinc-300 text-[11px] font-normal uppercase outline-none focus:ring-1 focus:ring-[#285f94] px-2 cursor-pointer transition-all">
+                                        <label className="text-[12px] font-normal text-black uppercase tracking-widest">Filtro Auditor:</label>
+                                        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="h-6 flex-1 bg-white border border-zinc-300 text-[12px] font-normal uppercase outline-none focus:ring-1 focus:ring-black px-2 cursor-pointer transition-all">
                                             <option value="">Todos los auditores</option>
                                             {usernames.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
                                     </div>
                                     <div className="whitespace-nowrap shrink-0">
-                                        <span className="text-[10px] text-black font-normal uppercase tracking-tight">{filteredCounts.length} registros capturados</span>
+                                        <span className="text-[12px] text-black font-normal uppercase tracking-tight">{filteredCounts.length} registros capturados</span>
                                     </div>
                                 </div>
 
@@ -295,21 +295,21 @@ const AdminInventory = () => {
                                         <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {['Auditor', 'Timestamp', 'Ítem', 'Ubicación', 'Cantidad', ''].map((h, i) => (
-                                                    <th key={i} className="px-4 py-2 text-[10px] font-medium  uppercase tracking-wider">{h}</th>
+                                                    <th key={i} className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
                                             {filteredCounts.map((c) => (
                                                 <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                    <td className="px-4 py-2 text-[11px] font-medium  text-black">{c.username}</td>
-                                                    <td className="px-4 py-2 text-[10px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="px-4 py-2 text-[11px] font-medium  text-[#285f94] font-mono tracking-tight uppercase">{c.item_code}</td>
-                                                    <td className="px-4 py-2 text-[11px] text-black font-mono uppercase">{c.counted_location}</td>
-                                                    <td className="px-4 py-2 text-xs font-medium  text-black border-l border-zinc-50">{c.counted_qty}</td>
+                                                    <td className="px-4 py-2 text-[12px] font-normal text-black">{c.username}</td>
+                                                    <td className="px-4 py-2 text-[12px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                                                    <td className="px-4 py-2 text-[12px] font-normal text-black font-mono tracking-tight uppercase">{c.item_code}</td>
+                                                    <td className="px-4 py-2 text-[12px] text-black font-mono uppercase">{c.counted_location}</td>
+                                                    <td className="px-4 py-2 text-[12px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
                                                     <td className="px-4 py-2 text-right space-x-4">
-                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-[#285f94] text-[10px] font-medium  uppercase transition-colors">Editar</button>
-                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[10px] font-medium  uppercase transition-colors">Borrar</button>
+                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-black text-[12px] font-normal uppercase transition-colors">Editar</button>
+                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[12px] font-normal uppercase transition-colors">Borrar</button>
                                                     </td>
                                                 </tr>
                                             ))}

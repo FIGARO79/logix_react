@@ -156,63 +156,55 @@ const CycleCountHistory = () => {
                     <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11px] leading-tight">
                         <thead className="bg-[#34495e] text-white sticky top-0 z-20 shadow">
                             <tr>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">SR</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">ITEM CODE</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap max-w-xs">DESCRIPTION</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">ITEM TYPE</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">CLASS</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">GROUP</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">SIC (CO)</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">SIC (SR)</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">WEIGHT</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-center">ABC</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">BIN</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">SYS STOCK</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">COUNTED</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">DIFF</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">VALUE (DIFF)</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">ITEM COST</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">COUNT VALUE</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap text-right">DATE</th>
-                                <th className="px-3 py-3 font-medium  uppercase tracking-wider whitespace-nowrap">USER</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SR</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">ITEM CODE</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap max-w-xs">DESCRIPTION</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">ITEM TYPE</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">CLASS</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">GROUP</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SIC (CO)</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SIC (SR)</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">WEIGHT</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">ABC</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">BIN</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">SYS STOCK</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">COUNTED</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">DIFF</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">VALUE (DIFF)</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">ITEM COST</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">COUNT VALUE</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">DATE</th>
+                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">USER</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {visibleRecordings.map((rec, idx) => (
                                 <tr key={`rec-${rec.id || idx}`} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
-                                    <td className="px-3 py-2 font-medium  whitespace-nowrap">{rec.stockroom}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap">
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.stockroom}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">
                                         <span className="text-[#285f94] font-medium hover:underline cursor-pointer">{rec.item_code}</span>
                                     </td>
-                                    <td className="px-3 py-2 truncate max-w-xs" title={rec.description}>{rec.description}</td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.item_type}</td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.item_class}</td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.item_group}</td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.sic_company}</td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.sic_stockroom}</td>
-                                    <td className="px-3 py-2 text-right whitespace-nowrap">{rec.weight}</td>
-                                    <td className="px-3 py-2 text-center whitespace-nowrap">
-                                        {rec.abc_code && (
-                                            <span className={`inline-block w-5 h-5 leading-5 rounded-full text-[9px] font-medium  
-                                                ${rec.abc_code === 'A' ? 'bg-red-100 text-red-800' :
-                                                    rec.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                                                {rec.abc_code}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-3 py-2 font-mono text-gray-700 whitespace-nowrap">{rec.bin_location}</td>
-                                    <td className="px-3 py-2 text-right font-medium text-gray-600 whitespace-nowrap">{rec.system_qty}</td>
-                                    <td className="px-3 py-2 text-right font-medium   whitespace-nowrap">{rec.physical_qty}</td>
-                                    <td className={`px-3 py-2 text-right font-medium  whitespace-nowrap ${rec.difference !== 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap truncate max-w-xs" title={rec.description}>{rec.description}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_type}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_class}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_group}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.sic_company}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.sic_stockroom}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{rec.weight}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.abc_code}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-left">{rec.bin_location}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.system_qty}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.physical_qty}</td>
+                                    <td className={`px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center ${rec.difference !== 0 ? 'text-red-600' : 'text-gray-300'}`}>
                                         {rec.difference}
                                     </td>
-                                    <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatMoney(rec.value_diff)}</td>
-                                    <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatMoney(rec.cost)}</td>
-                                    <td className="px-3 py-2 text-right text-gray-800 font-medium whitespace-nowrap">{formatMoney(rec.count_value)}</td>
-                                    <td className="px-3 py-2 text-right whitespace-nowrap text-gray-500">
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.value_diff)}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.cost)}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.count_value)}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">
                                         {formatDate(rec.executed_date)}
                                     </td>
-                                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{rec.username}</td>
+                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.username}</td>
                                 </tr>
                             ))}
                             {/* Sentinel element para detectar scroll */}

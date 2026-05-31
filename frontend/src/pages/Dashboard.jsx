@@ -63,8 +63,8 @@ const Dashboard = () => {
                 {/* Header Profesional */}
                 <header className="mb-12 border-b border-slate-200 pb-8 flex justify-between items-end">
                     <div>
-                        <h1 className="text-2xl font-light text-slate-900 tracking-tight">Panel de Control</h1>
-                        <p className="text-slate-500 text-xs font-medium text-gray-900 uppercase tracking-widest mt-1">Logix WMS</p>
+                        <h1 className="text-2xl font-light text-black tracking-tight">Panel de Control</h1>
+                        <p className="text-black text-xs font-normal uppercase tracking-widest mt-1">Logix WMS</p>
                     </div>
                 </header>
 
@@ -74,7 +74,7 @@ const Dashboard = () => {
                         <div key={category.id} className="flex flex-col">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className={`h-4 w-1 ${category.accent} rounded-full`}></div>
-                                <h2 className="text-sm font-medium text-gray-900 text-slate-800 uppercase tracking-wider">{category.title}</h2>
+                                <h2 className="text-sm font-medium text-black uppercase tracking-wider">{category.title}</h2>
                             </div>
 
                             <div className="space-y-3">
@@ -84,10 +84,10 @@ const Dashboard = () => {
                                         to={item.href}
                                         className="group block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200"
                                     >
-                                        <div className="text-xs font-medium text-gray-900 text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight">
+                                        <div className="text-xs font-medium text-black group-hover:text-blue-700 transition-colors tracking-tight">
                                             {item.text}
                                         </div>
-                                        <div className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-tighter">
+                                        <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-tighter">
                                             {item.desc}
                                         </div>
                                     </Link>

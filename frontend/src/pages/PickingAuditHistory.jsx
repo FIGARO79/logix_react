@@ -237,10 +237,10 @@ const PickingAuditHistory = () => {
             {/* Header Profesional */}
             <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-base font-normal tracking-tight">Pickings Empacados</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
+                    <h1 className="text-[14px] font-normal tracking-tight">Pickings Empacados</h1>
+                    <p className="text-[12px] font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
                 </div>
-                <div className="text-[9px] font-medium  text-black uppercase tracking-widest">
+                <div className="text-[12px] font-medium  text-black">
                     {audits.length} Registros Encontrados
                 </div>
             </div>
@@ -300,19 +300,19 @@ const PickingAuditHistory = () => {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-4 py-1.5 text-[11px] font-medium  text-zinc-900">{audit.id}</td>
-                                            <td className="px-4 py-1.5 text-[11px] font-medium  text-[#285f94]">{audit.order_number}</td>
-                                            <td className="px-4 py-1.5 text-[11px] text-zinc-600 font-mono uppercase">{audit.despatch_number}</td>
-                                            <td className="px-4 py-1.5 text-[10px] text-zinc-800 truncate max-w-[200px] uppercase font-medium ">
+                                            <td className="px-4 py-1.5 text-[11px] font-normal text-black">{audit.id}</td>
+                                            <td className="px-4 py-1.5 text-[11px] font-normal text-black">{audit.order_number}</td>
+                                            <td className="px-4 py-1.5 text-[11px] text-black font-normal uppercase">{audit.despatch_number}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-black truncate max-w-[200px] uppercase font-normal ">
                                                  {audit.customer_code && audit.customer_code.trim() !== "" && (
-                                                     <span className="text-zinc-700 mr-2">[{audit.customer_code}]</span>
+                                                     <span className="text-black mr-2">[{audit.customer_code}]</span>
                                                  )}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
-                                            <td className="px-4 py-1.5 text-[10px] text-zinc-700 uppercase font-medium">{audit.username}</td>
-                                            <td className="px-4 py-1.5 text-[10px] text-zinc-600 font-mono">{formatDate(audit.timestamp)}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-black uppercase font-normal">{audit.username}</td>
+                                            <td className="px-4 py-1.5 text-[10px] text-black font-normal">{formatDate(audit.timestamp)}</td>
                                             <td className="px-4 py-1.5 text-center">
-                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-medium  uppercase tracking-tight rounded border ${
+                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-normal  uppercase tracking-tight rounded border ${
                                                     audit.status === 'Completado' || audit.status === 'Completo'
                                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
                                                 }`}>
@@ -333,7 +333,7 @@ const PickingAuditHistory = () => {
                                                     )}
                                                     <Link
                                                         to={`/packing_list/print/${audit.id}`}
-                                                        className="text-[9px] font-medium uppercase tracking-widest text-zinc-700 hover:text-[#285f94] transition-colors leading-none"
+                                                        className="text-[9px] font-normal uppercase tracking-tight text-black hover:text-[#285f94] transition-colors leading-none"
                                                         title="Imprimir"
                                                     >
                                                         Print
