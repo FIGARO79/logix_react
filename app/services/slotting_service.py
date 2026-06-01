@@ -314,18 +314,21 @@ class SlottingService:
                 report["zones"][zone] = {"total": 0, "occupied": 0, "levels": {}}
             
             if level not in report["zones"][zone]["levels"]:
-                report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0}
+                report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0, "total_occupancy_pct": 0, "occupied_bins": 0}
             
             report["zones"][zone]["total"] += 1
             report["zones"][zone]["levels"][level]["total"] += 1
             
             current_skus = occupancy.get(bin_code.upper(), 0)
             limit = 3 if zone == "Minuteria" else 4
+            bin_pct = min(100, round((current_skus / limit) * 100))
+            report["zones"][zone]["levels"][level]["total_occupancy_pct"] += bin_pct
             
             if current_skus > 0:
                 report["zones"][zone]["occupied"] += 1
                 report["summary"]["filled_bins"] += 1
                 report["zones"][zone]["levels"][level]["occupied_skus"] += current_skus
+                report["zones"][zone]["levels"][level]["occupied_bins"] += 1
                 total_items += current_skus
                 
                 zones_by_items[zone] = zones_by_items.get(zone, 0) + current_skus

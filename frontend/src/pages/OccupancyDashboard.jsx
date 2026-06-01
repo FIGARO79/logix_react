@@ -101,7 +101,7 @@ const OccupancyDashboard = () => {
                     { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white p-4 border border-zinc-200 shadow-sm text-black">
-                        <label className="text-[12px] uppercase text-black font-normal tracking-widest block mb-1">{s.label}</label>
+                        <label className="text-[12px] uppercase text-black font-normal tracking-tight block mb-1">{s.label}</label>
                         <p className={`text-[20px] font-normal font-mono ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
@@ -141,9 +141,11 @@ const OccupancyDashboard = () => {
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
-                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0 };
+                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0, total_occupancy_pct: 0, occupied_bins: 0 };
                                             const occupancyPercent = levelData.total > 0
-                                                ? Math.round((levelData.full_bins / levelData.total) * 100)
+                                                ? (levelData.total_occupancy_pct !== undefined
+                                                    ? Math.round(levelData.total_occupancy_pct / levelData.total)
+                                                    : Math.round((levelData.full_bins / levelData.total) * 100))
                                                 : 0;
 
                                             const isSelected = selectedCell && selectedCell.zone === zoneName && selectedCell.level === level;
@@ -162,7 +164,7 @@ const OccupancyDashboard = () => {
                                                         >
                                                             <span className="text-[12px] font-normal leading-none mb-1 text-black">{occupancyPercent}%</span>
                                                             <div className="text-[12px] uppercase tracking-tighter font-normal opacity-90 text-center text-black">
-                                                                {levelData.full_bins}/{levelData.total} Bins
+                                                                {levelData.occupied_bins !== undefined ? levelData.occupied_bins : levelData.full_bins}/{levelData.total} Bins
                                                             </div>
                                                             <div className="text-[12px] font-normal opacity-85 text-black">
                                                                 {levelData.occupied_skus} SKUs
