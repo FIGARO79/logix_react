@@ -7,7 +7,7 @@ from app.utils.auth import get_current_user, login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
 from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster
+from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster, BinLocation
 
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
@@ -531,3 +531,20 @@ async def get_occupancy_detail(
         return details
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get('/valid_bins', response_model=List[str])
+async def get_valid_bins_api(
+    request: Request,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene la lista de todos los códigos de ubicación de slotting válidos."""
+    try:
+        stmt = select(BinLocation.bin_code)
+        res = await db.execute(stmt)
+        bins = res.scalars().all()
+        return [str(b).strip().upper() for b in bins if b]
+    except Exception as e:
+        print(f"Error al obtener bins válidos: {e}")
+        return []
+

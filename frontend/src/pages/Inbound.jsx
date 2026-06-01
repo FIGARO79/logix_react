@@ -125,16 +125,62 @@ const Inbound = () => {
     }, []);
 
     const loadSlottingBins = async () => {
-        try {
-            const res = await fetch('/static/json/slotting_parameters.json');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.storage) {
-                    setValidBins(new Set(Object.keys(data.storage).map(b => b.toUpperCase())));
+        let binsLoaded = false;
+
+        // 1. Intentar cargar en tiempo real desde la API del backend (más actualizado, consulta DB física directamente)
+        if (navigator.onLine) {
+            try {
+                const res = await fetch('/api/views/valid_bins', { credentials: 'include' });
+                if (res.ok) {
+                    const binsList = await res.json();
+                    if (Array.isArray(binsList) && binsList.length > 0) {
+                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                        setValidBins(binsSet);
+                        // Guardar en la caché IndexedDB para soporte offline futuro
+                        await cacheData('slotting_valid_bins', binsList);
+                        binsLoaded = true;
+                        console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde API.`);
+                    }
                 }
+            } catch (e) {
+                console.warn("No se pudo cargar bins desde la API, intentando fallback estático...", e);
             }
-        } catch (e) {
-            console.error("Error loading slotting bins", e);
+        }
+
+        // 2. Fallback 1: Cargar desde el archivo estático JSON (con prevención de caché)
+        if (!binsLoaded && navigator.onLine) {
+            try {
+                const res = await fetch(`/static/json/slotting_parameters.json?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.storage) {
+                        const binsList = Object.keys(data.storage);
+                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                        setValidBins(binsSet);
+                        await cacheData('slotting_valid_bins', binsList);
+                        binsLoaded = true;
+                        console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde JSON.`);
+                    }
+                }
+            } catch (e) {
+                console.error("Error en fallback de JSON estático:", e);
+            }
+        }
+
+        // 3. Fallback 2 (Offline / Desconectado): Cargar desde IndexedDB
+        if (!binsLoaded) {
+            try {
+                const cachedBinsList = await getCachedData('slotting_valid_bins');
+                if (cachedBinsList && Array.isArray(cachedBinsList) && cachedBinsList.length > 0) {
+                    const binsSet = new Set(cachedBinsList.map(b => b.toUpperCase()));
+                    setValidBins(binsSet);
+                    console.log(`Logix Offline: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde caché local.`);
+                } else {
+                    console.warn("Logix: Sin ubicaciones válidas de slotting en caché local.");
+                }
+            } catch (e) {
+                console.error("Error al cargar bins de slotting desde IndexedDB:", e);
+            }
         }
     };
 
