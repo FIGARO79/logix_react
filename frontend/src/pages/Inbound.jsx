@@ -24,6 +24,8 @@ const Inbound = () => {
     const [waybill, setWaybill] = useState('');
     const [itemCode, setItemCode] = useState('');
     const [quantity, setQuantity] = useState('');
+    const [labelUnits, setLabelUnits] = useState('');
+    const [labelCount, setLabelCount] = useState('');
     const [relocatedBin, setRelocatedBin] = useState('');
 
     // --- Estados de Datos ---
@@ -322,6 +324,12 @@ const Inbound = () => {
         }
     };
 
+    const handleQuantityChange = (val) => {
+        setQuantity(val);
+        setLabelUnits('1');
+        setLabelCount('1');
+    };
+
     const findItem = async () => {
         if (!itemCode || !importRef) {
             alert("Ingrese Import Reference e Item Code");
@@ -339,6 +347,8 @@ const Inbound = () => {
                     setItemData(data);
                     if (!editId) {
                         setQuantity('');
+                        setLabelUnits('');
+                        setLabelCount('');
                         // El binLocation ya viene actualizado del backend (effective_bin_location)
                         setRelocatedBin(''); 
                     }
@@ -394,6 +404,8 @@ const Inbound = () => {
                     });
                     if (!editId) {
                         setQuantity('');
+                        setLabelUnits('');
+                        setLabelCount('');
                         // En offline mantenemos el comportamiento anterior
                         setRelocatedBin('');
                     }
@@ -441,6 +453,8 @@ const Inbound = () => {
             timestamp: new Date().toISOString()
         };
 
+        const shouldPrint = !editId && parseInt(labelCount) > 0 && parseInt(labelUnits) > 0;
+
         try {
             if (navigator.onLine) {
                 try {
@@ -469,7 +483,12 @@ const Inbound = () => {
                             body: JSON.stringify(payload)
                         });
                     }
-                    if (res.ok) { loadLogs(); resetForm(); return; }
+                    if (res.ok) { 
+                        if (shouldPrint) handlePrint();
+                        loadLogs(); 
+                        setTimeout(() => resetForm(), 500);
+                        return; 
+                    }
                 } catch (e) { console.error("Connection error, falling back to offline save", e); }
             }
 
@@ -486,7 +505,9 @@ const Inbound = () => {
                 }
                 setHasWarnedOffline(true);
             }
-            loadLogs(); resetForm();
+            if (shouldPrint) handlePrint();
+            loadLogs(); 
+            setTimeout(() => resetForm(), 500);
         } catch (e) {
             alert("Error al guardar");
         } finally {
@@ -519,6 +540,7 @@ const Inbound = () => {
 
     const resetForm = () => {
         setEditId(null); setItemCode(''); setQuantity(''); setRelocatedBin(''); setItemData(null);
+        setLabelUnits(''); setLabelCount('');
         setTimeout(() => itemCodeRef.current?.focus(), 300);
     };
 
@@ -528,6 +550,8 @@ const Inbound = () => {
         setWaybill(log.waybill ? log.waybill.trim() : '');
         setItemCode(log.itemCode);
         setQuantity(log.qtyReceived);
+        setLabelUnits(log.qtyReceived);
+        setLabelCount('1');
         setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
         fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
             .then(r => r.json()).then(data => setItemData(data));
@@ -620,63 +644,68 @@ const Inbound = () => {
 
                             <div className="mb-4"><label className="form-label font-semibold text-gray-800">Item Description</label><div className="data-field font-semibold text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-4">
+                                <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => handleQuantityChange(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-semibold text-gray-800">Unidades</label><input type="number" value={labelUnits} onChange={e => setLabelUnits(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
+                                <div><label className="form-label font-semibold text-gray-800">Etiquetas</label><input type="number" value={labelCount} onChange={e => setLabelCount(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
                                 <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
                                 <div><label className="form-label font-semibold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-semibold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                            </div>
 
-                                {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
-                                    <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                                        {effectiveXdockPending > 0 ? (
-                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
-                                                <div className="flex flex-col gap-0.5 text-black font-semibold">
-                                                    <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-semibold"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
-                                                </div>
-                                            </div>
-                                        ) : <div className="hidden sm:block"></div>}
-
-                                        {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
-                                                <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-semibold">
-                                                    {itemData.xdockCustomers.map((c, idx) => (
-                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                            <div className="pr-2 text-black uppercase truncate font-semibold"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                            <span className="text-red-700 whitespace-nowrap font-semibold">{c?.qty || 0} UN</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-semibold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
-
-                                        {itemData?.suggestedBin ? (
-                                            <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
-                                                <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
-                                                    <span className={`text-[10px] font-semibold uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
-                                                        {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
-                                                    </span>
-                                                    <span className="text-[8px] italic text-zinc-600 font-semibold">Tap usar</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    </svg>
-                                                    <span className="text-base font-mono font-semibold text-black">{itemData.suggestedBin}</span>
-                                                    {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
-                                                        <span className="ml-auto text-[10px] font-semibold bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : <div className="hidden sm:block"></div>}
-                                    </div>
-                                )}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                                 <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
                                 <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
                                 <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
                             </div>
+
+                            {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                                    {itemData?.suggestedBin ? (
+                                        <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
+                                            <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
+                                                <span className={`text-[10px] font-semibold uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+                                                    {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
+                                                </span>
+                                                <span className="text-[8px] italic text-zinc-600 font-semibold">Tap usar</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                <span className="text-base font-mono font-semibold text-black">{itemData.suggestedBin}</span>
+                                                {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
+                                                    <span className="ml-auto text-[10px] font-semibold bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : <div className="hidden sm:block"></div>}
+
+                                    {effectiveXdockPending > 0 ? (
+                                        <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
+                                            <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                            <div className="flex flex-col gap-0.5 text-black font-semibold">
+                                                <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
+                                                <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-semibold"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                            </div>
+                                        </div>
+                                    ) : <div className="hidden sm:block"></div>}
+
+                                    {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
+                                        <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
+                                            <h4 className="text-[10px] font-semibold uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                            <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-semibold">
+                                                {itemData.xdockCustomers.map((c, idx) => (
+                                                    <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
+                                                        <div className="pr-2 text-black uppercase truncate font-semibold"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                        <span className="text-red-700 whitespace-nowrap font-semibold">{c?.qty || 0} UN</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-semibold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                </div>
+                            )}
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
                                 <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
@@ -718,15 +747,21 @@ const Inbound = () => {
 
                         <div className="lg:col-span-1">
                             <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
-                            <div className="flex justify-center">
-                                <div ref={labelComponentRef} className="bg-white">
-                                    <SandvikLabel 
-                                        data={itemData} 
-                                        qrImage={qrImage} 
-                                        quantity={quantity} 
-                                        relocatedBin={relocatedBin} 
-                                        totalWeight={totalWeight} 
-                                    />
+                            <div className="flex justify-center w-full">
+                                <div className="max-h-[500px] overflow-y-auto p-2 rounded w-full flex justify-center">
+                                    <div ref={labelComponentRef} className="bg-white flex flex-col gap-4">
+                                        {Array.from({ length: parseInt(labelCount) || 1 }).map((_, idx) => (
+                                            <div key={idx} className="print:my-0 my-2 first:mt-0 last:mb-0 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 print:border-b-0 print:pb-0 print:break-after-page">
+                                                <SandvikLabel 
+                                                    data={itemData} 
+                                                    qrImage={qrImage} 
+                                                    quantity={labelUnits || quantity} 
+                                                    relocatedBin={relocatedBin} 
+                                                    totalWeight={totalWeight} 
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                             <div className="w-full flex justify-center mt-4">
