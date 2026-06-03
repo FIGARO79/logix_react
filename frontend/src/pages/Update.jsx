@@ -314,7 +314,7 @@ const Update = () => {
                             <div className="mb-6 bg-zinc-50 border border-zinc-200 p-4 rounded shadow-sm">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-zinc-100">
                                     <div className="flex items-center gap-4">
-                                        <h4 className="text-[12px] font-normal text-black uppercase tracking-[0.2em]">Filtro de GRN (Archivo 280)</h4>
+                                        <h4 className="text-[12px] font-normal text-black uppercase tracking-tight">Filtro de GRN (Archivo 280)</h4>
                                         <div className="flex gap-3 border-l border-zinc-200 pl-4">
                                             <button 
                                                 type="button" 
