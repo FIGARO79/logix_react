@@ -45,8 +45,8 @@ const InboundHistory = () => {
         } catch (e) { console.error("Error loading versions", e); }
     };
 
-    const loadLogs = async (version = '') => {
-        setLoading(true);
+    const loadLogs = async (version = '', isSilent = false) => {
+        if (!isSilent) setLoading(true);
         setCurrentVersion(version);
         try {
             const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
@@ -117,12 +117,12 @@ const InboundHistory = () => {
         }
     };
 
-    useEffect(() => { 
-        loadLogs(); 
+    useEffect(() => {
+        loadLogs();
         // Intervalo para refrescar y ver si los pendientes ya se sincronizaron
         const interval = setInterval(() => {
             // Solo si no estamos viendo una versión archivada
-            if (!currentVersion) loadLogs();
+            if (!currentVersion) loadLogs('', true);
         }, 15000);
         return () => clearInterval(interval);
     }, [currentVersion]);
@@ -138,13 +138,14 @@ const InboundHistory = () => {
         <div className="w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h1 className="text-lg font-medium  text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
+                <h1 className="text-[16px] font-medium  text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
                             type="text"
                             placeholder="Buscar..."
-                            className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                            style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
+                            className="px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -155,21 +156,23 @@ const InboundHistory = () => {
                                 className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                 </svg>
                             </button>
                         )}
                     </div>
-                    <select 
+                    <select
                         onChange={(e) => loadLogs(e.target.value)}
-                        className="h-8 px-3 text-xs bg-white border border-gray-300 rounded outline-none focus:border-[#285f94] w-full sm:w-40"
+                        style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
+                        className="px-3 text-xs font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#285f94] w-full sm:w-40"
                     >
                         <option value="">-- Actual --</option>
                         {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
                     </select>
                     <button
                         onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'}
-                        className="h-8 px-4 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
+                        style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
+                        className="px-4 text-xs font-normal bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar
