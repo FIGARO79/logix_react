@@ -1,7 +1,8 @@
 import polars as pl
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy import update
 from app.models.sql_models import MasterItem
 from app.core.config import ITEM_MASTER_CSV_PATH
@@ -47,7 +48,48 @@ async def sync_master_csv_to_db(db: AsyncSession):
             'SupersededBy': 'superseded_by'
         }
         
-        # 1. Leer y transformar con Polars (Lazy loading para eficiencia)
+        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        available_columns = pl.scan_csv(ITEM_MASTER_CSV_PATH).collect_schema().names()
+
+        trunc_limits = {
+            'Item_Description': 255,
+            'ABC_Code_stockroom': 10,
+            'Bin_1': 100,
+            'Aditional_Bin_Location': 100,
+            'Weight_per_Unit': 50,
+            'Item_Type': 50,
+            'Item_Class': 50,
+            'Item_Group_Major': 50,
+            'Stockroom': 50,
+            'SIC_Code_Company': 50,
+            'SIC_Code_stockroom': 50,
+            'Date_Last_Received': 50,
+            'SupersededBy': 100
+        }
+
+        # Generar expresiones de truncado en Polars de forma vectorizada
+        exprs = []
+        for col_name, limit in trunc_limits.items():
+            if col_name in available_columns:
+                exprs.append(
+                    pl.col(col_name).cast(pl.Utf8).str.slice(0, limit).alias(col_name)
+                )
+        
+        # Limitar costo en Polars si está disponible
+        if 'Cost_per_Unit' in available_columns:
+            exprs.append(
+                pl.when(pl.col('Cost_per_Unit') > 99999999.99)
+                .then(99999999.99)
+                .otherwise(pl.col('Cost_per_Unit'))
+                .fill_null(0.0)
+                .alias('Cost_per_Unit')
+            )
+        else:
+            exprs.append(pl.lit(0.0).alias('Cost_per_Unit'))
+
+        exprs.append(pl.lit(today).alias("updated_at"))
+
+        # 1. Leer y transformar con Polars (Lazy loading y transformaciones vectorizadas)
         q = (
             pl.scan_csv(
                 ITEM_MASTER_CSV_PATH,
@@ -63,52 +105,63 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     "SupersededBy": pl.String
                 }
             )
-            .select([pl.col(c) for c in col_map.keys() if c in pl.scan_csv(ITEM_MASTER_CSV_PATH).columns])
+            .select([pl.col(c) for c in col_map.keys() if c in available_columns])
             .with_columns([
                 pl.col('Item_Code').str.strip_chars().str.to_uppercase(),
                 pl.col('Physical_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
                 pl.col('Frozen_Qty').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False).fill_null(0).cast(pl.Int64),
-                pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False),
+                pl.col('Cost_per_Unit').cast(pl.Utf8).str.replace(',', '').cast(pl.Float64, strict=False) if 'Cost_per_Unit' in available_columns else pl.lit(0.0).alias('Cost_per_Unit'),
             ])
             .filter(pl.col('Item_Code').is_not_null() & (pl.col('Item_Code') != ""))
+            .with_columns(exprs)
         )
 
         df = q.collect()
+        
+        # Renombrar columnas en Polars de forma masiva
+        rename_map = {k: v for k, v in col_map.items() if k in df.columns}
+        df = df.rename(rename_map)
+        
+        # Obtener columnas físicas reales de la tabla en la base de datos para tolerar esquemas desactualizados
+        try:
+            from sqlalchemy import inspect
+            def get_physical_cols(session):
+                conn = session.connection()
+                return [c['name'] for c in inspect(conn).get_columns("master_items")]
+            physical_cols = await db.run_sync(get_physical_cols)
+            
+            # Filtrar el DataFrame de Polars para conservar únicamente columnas que existan físicamente en la DB
+            db_cols = [c for c in df.columns if c in physical_cols]
+            if 'item_code' not in db_cols:
+                db_cols.append('item_code')
+            df = df.select(db_cols)
+        except Exception as inspect_err:
+            print(f"⚠️ No se pudo inspeccionar las columnas físicas de master_items: {inspect_err}")
+        
         total_items = df.height
         print(f"📦 Procesando {total_items} items con Polars...")
 
-        # 2. Sincronización por lotes (Chunks) para no saturar la memoria de la DB
+        # 2. Sincronización por lotes (Chunks) con Upsert nativo
         chunk_size = 5000
         total_processed = 0
-        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         is_sqlite = db.bind.dialect.name == 'sqlite'
 
         for i in range(0, total_items, chunk_size):
             chunk_df = df.slice(i, chunk_size)
-            insert_data = []
-
-            for row in chunk_df.to_dicts():
-                item_data = {col_map[k]: v for k, v in row.items() if k in col_map}
-                
-                # Truncado de strings por seguridad
-                if item_data.get('description'): item_data['description'] = str(item_data['description'])[:255]
-                if item_data.get('abc_code'): item_data['abc_code'] = str(item_data['abc_code'])[:10]
-                if item_data.get('bin_1'): item_data['bin_1'] = str(item_data['bin_1'])[:100]
-                if item_data.get('additional_bin'): item_data['additional_bin'] = str(item_data['additional_bin'])[:100]
-                
-                if item_data.get('cost_per_unit') and item_data['cost_per_unit'] > 99999999.99:
-                    item_data['cost_per_unit'] = 99999999.99
-                
-                item_data['updated_at'] = today
-                insert_data.append(item_data)
+            insert_data = chunk_df.to_dicts()
 
             if insert_data:
                 if is_sqlite:
-                    for item in insert_data:
-                        await db.merge(MasterItem(**item))
+                    stmt = sqlite_insert(MasterItem).values(insert_data)
+                    update_dict = {k: getattr(stmt.excluded, k) for k in insert_data[0].keys() if k != 'item_code'}
+                    on_conflict_stmt = stmt.on_conflict_do_update(
+                        index_elements=['item_code'],
+                        set_=update_dict
+                    )
+                    await db.execute(on_conflict_stmt)
                 else:
-                    stmt = insert(MasterItem).values(insert_data)
-                    update_dict = {k: getattr(stmt.inserted, k) for k in item_data.keys() if k != 'item_code'}
+                    stmt = mysql_insert(MasterItem).values(insert_data)
+                    update_dict = {k: getattr(stmt.inserted, k) for k in insert_data[0].keys() if k != 'item_code'}
                     on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)
                     await db.execute(on_duplicate_key_stmt)
                 

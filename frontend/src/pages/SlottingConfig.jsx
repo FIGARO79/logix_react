@@ -5,7 +5,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 const SlottingConfig = () => {
     const navigate = useNavigate();
     const { setTitle } = useOutletContext();
-    const [activeTab, setActiveTab] = useState('storage');
+    const [activeTab, setActiveTab] = useState('turnover');
     const [config, setConfig] = useState({
         turnover: {},
         storage: {},
