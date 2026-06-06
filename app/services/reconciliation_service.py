@@ -51,7 +51,9 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
-        grn_to_ir_list = []
+        grn_maps = []
+        ir_maps = []
+        wb_maps = []
 
         # A. Desde grn_master_data.json
         if os.path.exists(GRN_JSON_DATA_PATH):
@@ -61,7 +63,9 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                         ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
                         grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()
                         if ir and grn:
-                            grn_to_ir_list.append({"grn_map": grn, "ir_map": ir, "wb_map": str(row.get("Waybill", ""))})
+                            grn_maps.append(grn)
+                            ir_maps.append(ir)
+                            wb_maps.append(str(row.get("Waybill", "")))
             except: pass
 
         # B. Desde DB GRN Master
@@ -71,8 +75,11 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                 ir = str(g_master.import_reference).strip().upper()
                 if ir and g_master.grn_number:
                     for g in str(g_master.grn_number).split(','):
-                        if g.strip():
-                            grn_to_ir_list.append({"grn_map": g.strip().upper(), "ir_map": ir, "wb_map": str(g_master.waybill or "")})
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grn_maps.append(g_clean)
+                            ir_maps.append(ir)
+                            wb_maps.append(str(g_master.waybill or ""))
         except: pass
 
         # C. Desde po_lookup.json (Si el robot ya encontró el GRN)
@@ -86,11 +93,21 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
                             grn_val = str(item.get("grn", "")).strip().upper()
                             if grn_val and ir:
                                 for g in grn_val.split(','):
-                                    if g.strip():
-                                        grn_to_ir_list.append({"grn_map": g.strip().upper(), "ir_map": ir, "wb_map": str(wb)})
+                                    g_clean = g.strip().upper()
+                                    if g_clean:
+                                        grn_maps.append(g_clean)
+                                        ir_maps.append(ir)
+                                        wb_maps.append(str(wb))
             except: pass
 
-        df_grn_master = pl.DataFrame(grn_to_ir_list).unique(subset=["grn_map"]) if grn_to_ir_list else pl.DataFrame(schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8})
+        if grn_maps:
+            df_grn_master = pl.DataFrame({
+                "grn_map": grn_maps,
+                "ir_map": ir_maps,
+                "wb_map": wb_maps
+            }).unique(subset=["grn_map"])
+        else:
+            df_grn_master = pl.DataFrame(schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8})
 
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
