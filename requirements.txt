@@ -16,6 +16,7 @@ anyio==4.13.0
     # via
     #   httpx
     #   starlette
+    #   watchfiles
 asgiref==3.11.1
     # via -r requirements.in
 bcrypt==5.0.0
@@ -152,6 +153,8 @@ typing-inspection==0.4.2
     #   pydantic
 uvloop==0.22.1
     # via -r requirements.in
+watchfiles==1.2.0
+    # via granian
 werkzeug==3.1.8
     # via -r requirements.in
 wrapt==2.1.2
