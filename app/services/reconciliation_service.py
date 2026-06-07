@@ -173,7 +173,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # 9. Cálculos de Diferencia y Ubicaciones
         final = final.with_columns([
             pl.col("qtyReceived").fill_null(0.0),
-            (pl.col("qtyReceived") - pl.col("Total_Esperado_IR")).alias("Diferencia")
+            (pl.col("qtyReceived").fill_null(0.0) - pl.col("Total_Esperado_IR")).alias("Diferencia")
         ]).with_columns([
             pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
             pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"),

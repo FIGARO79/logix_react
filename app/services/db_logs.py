@@ -85,12 +85,16 @@ async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_fo
             log.relocatedBin = entry_data_for_db['relocatedBin']
         if 'qtyReceived' in entry_data_for_db:
             log.qtyReceived = entry_data_for_db['qtyReceived']
-            # Recalcular la diferencia si qtyGrn existe
-            if log.qtyGrn is not None:
-                try:
-                    log.difference = float(log.qtyReceived) - float(log.qtyGrn)
-                except ValueError:
-                    pass
+        if 'qtyGrn' in entry_data_for_db:
+            log.qtyGrn = entry_data_for_db['qtyGrn']
+            
+        # Recalcular la diferencia si qtyReceived y qtyGrn existen
+        if log.qtyReceived is not None and log.qtyGrn is not None:
+            try:
+                log.difference = float(log.qtyReceived) - float(log.qtyGrn)
+            except ValueError:
+                pass
+                
         if 'timestamp' in entry_data_for_db:
             log.timestamp = entry_data_for_db['timestamp']
             

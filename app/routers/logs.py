@@ -117,7 +117,8 @@ async def find_item(
         "frozenQty": item_details.get('Frozen_Qty', 0),
         "dateLastReceived": item_details.get('Date_Last_Received', 'N/A'),
         "supersededBy": item_details.get('SupersededBy', 'N/A'),
-        "latestRelocatedBin": latest_relocated_bin
+        "latestRelocatedBin": latest_relocated_bin,
+        "expectedBreakdown": await csv_handler.get_expected_breakdown_by_item(item_code)
     }
     return ORJSONResponse(content=response_data)
 
@@ -131,7 +132,9 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     if not item_details:
         raise HTTPException(status_code=404, detail="El código de ítem no existe en el maestro.")
 
-    expected_qty = await csv_handler.get_expected_quantity_from_po(data.importReference, item_code_form)
+    expected_qty = data.qtyGrn
+    if expected_qty is None or expected_qty == 0:
+        expected_qty = await csv_handler.get_expected_quantity_from_po(data.importReference, item_code_form)
     if expected_qty == 0:
         expected_qty = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
         

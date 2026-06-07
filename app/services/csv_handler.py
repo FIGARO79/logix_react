@@ -244,3 +244,49 @@ async def get_expected_quantity_from_po(import_reference: str, item_code: str) -
             print(f"Error al obtener cantidad de PO desde cache: {e}")
     return 0
 
+
+async def get_expected_breakdown_by_item(item_code: str) -> list:
+    """Obtiene el desglose de cantidades esperadas de un artículo agrupado por Import Reference."""
+    item_code = item_code.strip().upper()
+    if not item_code:
+        return []
+    
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    breakdown = []
+    
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            
+            ir_to_data = cache.get("ir_to_data", {})
+            for ir_ref, data in ir_to_data.items():
+                items = data.get("items", [])
+                item_qty = 0
+                grns = set()
+                for it in items:
+                    if str(it.get("item_code", "")).strip().upper() == item_code:
+                        try:
+                            item_qty += int(float(it.get("qty", 0)))
+                        except:
+                            pass
+                        grn_val = it.get("grn", "")
+                        if grn_val:
+                            for g in str(grn_val).split(','):
+                                if g.strip():
+                                    grns.add(g.strip().upper())
+                
+                if item_qty > 0:
+                    breakdown.append({
+                        "ir": ir_ref,
+                        "grn": ",".join(sorted(list(grns))) if grns else "N/A",
+                        "qty": item_qty
+                    })
+        except Exception as e:
+            print(f"Error al obtener desglose de PO: {e}")
+            
+    return breakdown
+
+

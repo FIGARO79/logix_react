@@ -275,43 +275,61 @@ const Inbound = () => {
             return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
         });
 
-        const uniqueItems = [...new Set(allLogsSorted.map(l => l.itemCode))];
-
         const grnMap = {};
         try {
             const db = await getDB();
-            for (const itemCode of uniqueItems) {
-                const grnInfo = await db.get('grn_pending', itemCode);
-                grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
+            // Cargar lo esperado por itemCode + importReference
+            for (const log of allLogsSorted) {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                if (!(key in grnMap)) {
+                    const dbKey = `${code}|${ir}`;
+                    const grnInfo = await db.get('grn_pending', dbKey);
+                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
+                    if (!expectedQty || expectedQty === 0) {
+                        const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
+                        if (poInfo && poInfo.items) {
+                            expectedQty = poInfo.items
+                                .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
+                                .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
+                        }
+                    }
+                    grnMap[key] = expectedQty;
+                }
             }
         } catch (e) { console.error("Error loading GRN info", e); }
 
-        // Calcular total recibido por ítem y encontrar la última entrada (por timestamp) para cada uno
+        // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
         const totalsMap = {};
-        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode (ya ordenados)
+        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode|importReference (ya ordenados)
 
         allLogsSorted.forEach(log => {
             const code = log.itemCode;
-            // Asegurar que usamos qtyReceived del payload o campo directo
+            const ir = log.importReference || log.importRef || '';
+            const key = `${code}|${ir}`;
             const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
-            totalsMap[code] = (totalsMap[code] || 0) + qty;
+            totalsMap[key] = (totalsMap[key] || 0) + qty;
 
-            if (!latestEntryMap[code]) {
-                latestEntryMap[code] = log.id;
+            if (!latestEntryMap[key]) {
+                latestEntryMap[key] = log.id;
             }
         });
 
-        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem)
+        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem en esa I.R.)
         const logsWithGRN = allLogsSorted.map(log => {
-            const expected280 = grnMap[log.itemCode] || 0;
-            const totalReceived = totalsMap[log.itemCode] || 0;
-            const isLatest = latestEntryMap[log.itemCode] === log.id;
+            const code = log.itemCode;
+            const ir = log.importReference || log.importRef || '';
+            const key = `${code}|${ir}`;
+            const expected = grnMap[key] || log.qtyGrn || log.quantity || 0;
+            const totalReceived = totalsMap[key] || 0;
+            const isLatest = latestEntryMap[key] === log.id;
 
 
             return {
                 ...log,
-                expected_qty: log.qtyGrn || 0,
-                difference: isLatest ? (totalReceived - expected280) : 0
+                expected_qty: expected,
+                difference: isLatest ? (totalReceived - expected) : 0
             };
         });
 
@@ -370,7 +388,7 @@ const Inbound = () => {
         let onlineFound = false;
         if (navigator.onLine) {
             try {
-                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}`, { credentials: 'include' });
+                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}?_=${Date.now()}`, { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     setItemData(data);
@@ -392,16 +410,8 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
-                    const poInfo = await db.get('po_lookup', `ir_${importRef.trim().toUpperCase()}`);
-                    let poQty = 0;
-                    if (poInfo && poInfo.items) {
-                        const matchItem = poInfo.items.find(it => String(it.item_code).toUpperCase() === normalizedCode);
-                        if (matchItem) {
-                            poQty = parseInt(matchItem.qty) || 0;
-                        }
-                    }
-
-                    const grnInfo = await db.get('grn_pending', normalizedCode);
+                    const dbKey = `${normalizedCode}|${importRef.trim().toUpperCase()}`;
+                    const grnInfo = await db.get('grn_pending', dbKey);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
                     // Buscar si ya hay reubicaciones de este ítem en la cola local
@@ -423,6 +433,41 @@ const Inbound = () => {
                         offlineSuggestedBin = localItem.Bin_1;
                     }
 
+                    // Obtener desglose offline
+                    const allPos = await db.getAll('po_lookup') || [];
+                    const offlineBreakdown = [];
+                    for (const po of allPos) {
+                        if (po.type === 'ir' && po.items) {
+                            let itemQty = 0;
+                            const grns = new Set();
+                            for (const it of po.items) {
+                                if (String(it.item_code).toUpperCase() === normalizedCode) {
+                                    itemQty += parseInt(it.qty) || 0;
+                                    if (it.grn) {
+                                        String(it.grn).split(',').forEach(g => {
+                                            if (g.trim()) grns.add(g.trim().toUpperCase());
+                                        });
+                                    }
+                                }
+                            }
+                            if (itemQty > 0) {
+                                offlineBreakdown.push({
+                                    ir: po.value,
+                                    grn: Array.from(grns).join(',') || 'N/A',
+                                    qty: itemQty
+                                });
+                            }
+                        }
+                    }
+
+                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
+                    if (!expectedQty || expectedQty === 0) {
+                        const matchPo = offlineBreakdown.find(b => b.ir === importRef.trim().toUpperCase());
+                        if (matchPo) {
+                            expectedQty = matchPo.qty;
+                        }
+                    }
+
                     setItemData({
                         itemCode: localItem.Item_Code,
                         description: localItem.Item_Description,
@@ -430,12 +475,13 @@ const Inbound = () => {
                         weight: localItem.Weight_per_Unit,
                         itemType: localItem.ABC_Code_stockroom,
                         sicCode: localItem.SIC_Code_stockroom,
-                        defaultQtyGrn: poQty || (grnInfo ? grnInfo.total_expected : 0),
+                        defaultQtyGrn: expectedQty,
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
                         xdockCustomers: xdockInfo ? xdockInfo.customers : [],
                         is_offline_result: true,
-                        suggestedBin: offlineSuggestedBin
+                        suggestedBin: offlineSuggestedBin,
+                        expectedBreakdown: offlineBreakdown
                     });
                     if (!editId) {
                         setQuantity('');
@@ -574,7 +620,7 @@ const Inbound = () => {
         setItemCode(log.itemCode);
         setQuantity(log.qtyReceived);
         setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
-        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}`)
+        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}?_=${Date.now()}`)
             .then(r => r.json()).then(data => setItemData(data));
     };
 
@@ -585,7 +631,7 @@ const Inbound = () => {
         setTimeout(() => { setItemCode(upperCode); findItem(); }, 200);
     };
 
-    const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode);
+    const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode && (l.importReference || l.importRef || '').trim().toUpperCase() === importRef.trim().toUpperCase());
     const cumulativeQty = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
     const auditCount = itemLogs.length;
     const currentQtyNum = parseInt(quantity) || 0;
@@ -672,18 +718,18 @@ const Inbound = () => {
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
-                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-medium  uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                            <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
                                                 <div className="flex flex-col gap-0.5 text-black font-medium ">
                                                     <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-700 font-medium "><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                                    <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium "><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                                 </div>
                                             </div>
                                         ) : <div className="hidden sm:block"></div>}
 
                                         {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                            <div className="bg-red-50 border-2 border-red-200 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-medium  uppercase text-red-700 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                            <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
                                                 <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium ">
                                                     {itemData.xdockCustomers.map((c, idx) => (
                                                         <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
@@ -724,13 +770,32 @@ const Inbound = () => {
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
                                 <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-3 gap-4 mb-4">
                                     <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
                                     <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
                                     <div><label className="form-label font-normal text-gray-800">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
+
+                                {itemData?.expectedBreakdown && itemData.expectedBreakdown.length > 0 && (
+                                    <div className="border-t border-gray-100 pt-3">
+                                        <h4 className="text-[10px] font-semibold uppercase text-zinc-500 mb-2 tracking-wider">Detalle de Esperados por I.R. / GRN</h4>
+                                        <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                                            {itemData.expectedBreakdown.map((b, idx) => (
+                                                <div key={idx} className="flex justify-between items-center text-xs bg-zinc-50 hover:bg-zinc-100 px-2 py-1.5 rounded border border-zinc-200">
+                                                    <span className="font-semibold text-gray-700">
+                                                        I.R: <span className="text-black font-bold">{b.ir}</span> 
+                                                        {b.grn && b.grn !== 'N/A' && <> | GRN: <span className="text-gray-900 font-mono font-medium">{b.grn}</span></>}
+                                                    </span>
+                                                    <span className="font-bold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-zinc-200">
+                                                        {b.qty} UN
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex gap-3">
                                 <button

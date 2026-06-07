@@ -9,6 +9,8 @@ class LogEntry(BaseModel):
     quantity: int
     relocatedBin: Optional[str] = ''
     client_id: Optional[str] = None
+    qtyGrn: Optional[int] = None
+
 
 class CloseLocationRequest(BaseModel):
     """Modelo para cerrar una ubicación en conteo."""
