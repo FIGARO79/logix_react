@@ -27,6 +27,8 @@
     "workbox-window": "^7.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.2",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-basic-ssl": "^1.2.0",

@@ -87,7 +87,7 @@ async def generate_reservation_cache():
             else:
                 reservation_qty_map = {}
     except Exception as e:
-        print(f"⚠️ Error generando caché de reservaciones: {e}")
+        print(f"Error generando cache de reservaciones: {e}")
         reservation_qty_map = {}
 
 async def load_csv_data():
@@ -114,7 +114,7 @@ async def load_csv_data():
                 if r["Item_Code"]
             }
         except Exception as e:
-            print(f"❌ Error cargando Master CSV ({ITEM_MASTER_CSV_PATH}): {e}")
+            print(f"Error cargando Master CSV ({ITEM_MASTER_CSV_PATH}): {e}")
 
     # 2. Cargar GRN (AURRSGLBD0280)
     if os.path.exists(GRN_CSV_FILE_PATH):
@@ -129,15 +129,15 @@ async def load_csv_data():
                 ])
             )
         except Exception as e:
-            print(f"❌ Error cargando GRN CSV ({GRN_CSV_FILE_PATH}): {e}")
+            print(f"Error cargando GRN CSV ({GRN_CSV_FILE_PATH}): {e}")
 
     # 3. Cargar Reservaciones (AURRSLAMP0006)
     try:
         await generate_reservation_cache()
     except Exception as e:
-        print(f"❌ Error cargando Reservaciones: {e}")
+        print(f"Error cargando Reservaciones: {e}")
 
-    print(f"✅ [POLARS] Sincronización RAM completa ({time.time() - t0:.3f}s)")
+    print(f"[POLARS] Sincronizacion RAM completa ({time.time() - t0:.3f}s)")
 
 async def reload_cache_if_needed():
     global _last_check, _mtime_master, _mtime_grn
@@ -175,7 +175,7 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
                     "SupersededBy": db_item.superseded_by
                 }
         except Exception as e:
-            print(f"⚠️ Error consultando MasterItem en DB: {e}")
+            print(f"Error consultando MasterItem en DB: {e}")
 
     # 2. Fallback: Caché en RAM (Polars)
     global df_master_cache
@@ -213,3 +213,34 @@ async def read_csv_safe_polars(file_path: str, columns: list = None):
             return df.select(available)
         return df
     except: return None
+
+async def get_expected_quantity_from_po(import_reference: str, item_code: str) -> int:
+    """Busca la cantidad esperada de un artículo específico para una Import Reference dada en la caché de PO."""
+    if not import_reference or not item_code:
+        return 0
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    import_reference = import_reference.strip().upper()
+    item_code = item_code.strip().upper()
+    
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+            items = ir_data.get("items", [])
+            
+            # Sumar las cantidades despachadas por si el artículo está repetido en diferentes líneas de la misma importación
+            total_qty = 0
+            for it in items:
+                if str(it.get("item_code", "")).strip().upper() == item_code:
+                    try:
+                        total_qty += int(float(it.get("qty", 0)))
+                    except:
+                        pass
+            return total_qty
+        except Exception as e:
+            print(f"Error al obtener cantidad de PO desde cache: {e}")
+    return 0
+

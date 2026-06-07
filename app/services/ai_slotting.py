@@ -37,7 +37,7 @@ class AISlottingService:
             self._category_cache[p.sic_code][p.bin_code] = p.frequency
 
         self._initialized = True
-        print(f"🧠 IA Slotting: Memoria cargada ({len(self._item_cache)} ítems, {len(self._category_cache)} categorías)")
+        print(f"[IA Slotting] Memoria cargada ({len(self._item_cache)} items, {len(self._category_cache)} categorias)")
 
     async def _migrate_from_json_if_needed(self, db: AsyncSession):
         """Migra la memoria de IA desde el archivo JSON legacy a la base de datos SQL."""
@@ -50,7 +50,7 @@ class AISlottingService:
         if not os.path.exists(json_path):
             return
 
-        print("🚚 [IA] Migrando memoria JSON legacy a SQL...")
+        print("[IA] Migrando memoria JSON legacy a SQL...")
         try:
             with open(json_path, 'rb') as f:
                 memory = orjson.loads(f.read())
@@ -68,9 +68,9 @@ class AISlottingService:
                     db.add(AICategoryPattern(sic_code=sic.upper(), bin_code=bin_code.upper(), frequency=freq))
             
             await db.commit()
-            print("✅ [IA] Migración completada con éxito.")
+            print("[IA] Migracion completada con exito.")
         except Exception as e:
-            print(f"⚠️ [IA] Error en migración JSON -> SQL: {e}")
+            print(f"[IA] Error en migracion JSON -> SQL: {e}")
             await db.rollback()
 
     async def learn_from_decision(self, db: AsyncSession, item_code: str, final_bin: str, sic_code: str):

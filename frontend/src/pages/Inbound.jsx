@@ -303,15 +303,15 @@ const Inbound = () => {
 
         // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem)
         const logsWithGRN = allLogsSorted.map(log => {
-            const expected = grnMap[log.itemCode] || 0;
+            const expected280 = grnMap[log.itemCode] || 0;
             const totalReceived = totalsMap[log.itemCode] || 0;
             const isLatest = latestEntryMap[log.itemCode] === log.id;
 
 
             return {
                 ...log,
-                expected_qty: expected,
-                difference: isLatest ? (totalReceived - expected) : 0
+                expected_qty: log.qtyGrn || 0,
+                difference: isLatest ? (totalReceived - expected280) : 0
             };
         });
 
@@ -392,6 +392,15 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
+                    const poInfo = await db.get('po_lookup', `ir_${importRef.trim().toUpperCase()}`);
+                    let poQty = 0;
+                    if (poInfo && poInfo.items) {
+                        const matchItem = poInfo.items.find(it => String(it.item_code).toUpperCase() === normalizedCode);
+                        if (matchItem) {
+                            poQty = parseInt(matchItem.qty) || 0;
+                        }
+                    }
+
                     const grnInfo = await db.get('grn_pending', normalizedCode);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
@@ -421,7 +430,7 @@ const Inbound = () => {
                         weight: localItem.Weight_per_Unit,
                         itemType: localItem.ABC_Code_stockroom,
                         sicCode: localItem.SIC_Code_stockroom,
-                        defaultQtyGrn: grnInfo ? grnInfo.total_expected : 0,
+                        defaultQtyGrn: poQty || (grnInfo ? grnInfo.total_expected : 0),
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
                         xdockCustomers: xdockInfo ? xdockInfo.customers : [],

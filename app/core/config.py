@@ -17,6 +17,8 @@ PO_EXTRACTOR_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'Purchase Order Extracto
 
 # --- Rutas de Archivos JSON (Centralizadas en static/json) ---
 JSON_FOLDER = os.path.join(PROJECT_ROOT, 'static', 'json')
+os.makedirs(JSON_FOLDER, exist_ok=True)
+
 
 GRN_JSON_DATA_PATH = os.path.join(JSON_FOLDER, 'grn_master_data.json')
 PO_LOOKUP_JSON_PATH = os.path.join(JSON_FOLDER, 'po_lookup.json')
@@ -74,12 +76,12 @@ INTEGRATION_API_KEY = os.getenv('INTEGRATION_API_KEY')
 # Validar que las variables críticas estén configuradas
 if not INTEGRATION_API_KEY:
     raise ValueError(
-        "❌ ERROR: La variable de entorno 'INTEGRATION_API_KEY' es obligatoria.\n"
+        "ERROR: La variable de entorno 'INTEGRATION_API_KEY' es obligatoria.\n"
         "   Defínela en tu archivo .env"
     )
 
 if not ADMIN_PASSWORD:
     raise ValueError(
-        "❌ ERROR: La variable de entorno 'ADMIN_PASSWORD' es obligatoria.\n"
+        "ERROR: La variable de entorno 'ADMIN_PASSWORD' es obligatoria.\n"
         "   Define una contraseña segura en tu archivo .env"
     )

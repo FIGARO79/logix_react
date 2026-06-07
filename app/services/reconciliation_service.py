@@ -25,7 +25,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # 1. Obtener Logs (Lo recibido físicamente)
         logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
         if not logs_list:
-            print("⚠️ [RECONCILIATION] No hay registros de log para procesar.")
+            print("[RECONCILIATION] No hay registros de log para procesar.")
             return []
 
         logs_pl = pl.from_dicts(logs_list)
@@ -218,7 +218,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
     except Exception as e:
         import traceback
-        print(f"❌ [RECONCILIATION ERROR]: {e}")
+        print(f"[RECONCILIATION ERROR]: {e}")
         print(traceback.format_exc())
         return []
 
@@ -267,5 +267,5 @@ async def auto_snapshot_before_update(db: AsyncSession, username: str):
             return await create_snapshot(db, current_data, f"AUTO({user_str})", is_auto=True)
         return None
     except Exception as e:
-        print(f"❌ Error en snapshot automático: {e}")
+        print(f"Error en snapshot automático: {e}")
         return None

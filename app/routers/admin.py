@@ -111,7 +111,7 @@ async def get_slotting_config(admin: str = Depends(permission_required("inventor
 
     # 2. Si el JSON está vacío o incompleto, reconstruir desde SQL
     if not config.get("storage") or not config.get("turnover"):
-        print("⚡ [SLOTTING] Reconstruyendo configuración desde SQL...")
+        print("[SLOTTING] Reconstruyendo configuración desde SQL...")
         
         res_bins = await db.execute(select(BinLocation))
         for b in res_bins.scalars().all():

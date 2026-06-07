@@ -48,7 +48,10 @@ async def find_item(
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
-    expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
+    expected_quantity = await csv_handler.get_expected_quantity_from_po(import_reference, item_code)
+    if expected_quantity == 0:
+        expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
+
     original_bin = item_details.get('Bin_1', 'N/A')
     
     # Obtenemos la última reubicación para que aparezca como ubicación base si ya se movió
@@ -128,7 +131,11 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     if not item_details:
         raise HTTPException(status_code=404, detail="El código de ítem no existe en el maestro.")
 
-    expected_qty = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
+    expected_qty = await csv_handler.get_expected_quantity_from_po(data.importReference, item_code_form)
+    if expected_qty == 0:
+        expected_qty = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
+        
+    expected_280 = await csv_handler.get_total_expected_quantity_for_item(item_code_form)
     
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code_form)
     original_bin = item_details.get('Bin_1', '')
@@ -141,7 +148,8 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
         entry_data['timestamp'] = datetime.datetime.now().isoformat()
     entry_data['qtyGrn'] = expected_qty
     entry_data['qtyReceived'] = data.quantity
-    entry_data['difference'] = data.quantity - expected_qty
+    entry_data['difference'] = data.quantity - expected_280
+
     entry_data['itemDescription'] = item_details.get('Item_Description', '')
     entry_data['binLocation'] = effective_bin_location
 
@@ -240,12 +248,13 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     cols_out = ['ID', 'Fecha', 'Usuario', 'I.R.', 'Waybill', 'Código Item', 'Descripción',
                 'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. Esperada', 'Diferencia']
 
+
     # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
-    # 1. Obtener cantidad esperada del GRN CSV por itemCode
+    # 1. Obtener cantidad esperada del GRN CSV (280) por itemCode
     unique_items = list({log['itemCode'] for log in logs if log.get('itemCode')})
-    expected_map = {}
+    expected_280_map = {}
     for item in unique_items:
-        expected_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
+        expected_280_map[item] = await csv_handler.get_total_expected_quantity_for_item(item)
 
     # 2. Calcular total recibido por itemCode y encontrar el log más reciente
     #    Ordenamos por ID descendente para marcar la "última" fila del item.
@@ -267,8 +276,9 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
         code = log.get('itemCode')
         is_latest = latest_id_map.get(code) == log.get('id')
         
-        expected = expected_map.get(code, 0)
+        expected_280 = expected_280_map.get(code, 0)
         total_rec = totals_map.get(code, 0)
+        expected_po = int(log.get('qtyGrn') or 0)
 
         # Formatear fecha aplicando el desfase del cliente
         ts_raw = log.get('timestamp', '')
@@ -292,11 +302,12 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
         enriched.append({
             **log,
             'timestamp': formatted_date,
-            # Solo mostramos el total esperado y la diferencia en la última fila del ítem
+            # Solo mostramos el total esperado de la PO y la diferencia del 280 en la última fila del ítem
             # para que el reporte sea sumable sin duplicidades.
-            'qtyGrn': expected if is_latest else 0,
-            'difference': (total_rec - expected) if is_latest else 0
+            'qtyGrn': expected_po if is_latest else 0,
+            'difference': (total_rec - expected_280) if is_latest else 0
         })
+
     # ─────────────────────────────────────────────────────────────────────────
     df_pl = pl.DataFrame(enriched, infer_schema_length=None)
 

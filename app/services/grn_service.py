@@ -18,11 +18,11 @@ async def seed_grn_from_excel(db: AsyncSession):
     # 1. Intentar cargar desde JSON (formato prioritario por consistencia)
     if os.path.exists(GRN_JSON_DATA_PATH):
         try:
-            print(f"📄 [POLARS] Cargando GRN desde JSON: {GRN_JSON_DATA_PATH}", flush=True)
+            print(f"[POLARS] Cargando GRN desde JSON: {GRN_JSON_DATA_PATH}", flush=True)
             with open(GRN_JSON_DATA_PATH, 'rb') as f:
                 df = pl.from_dicts(orjson.loads(f.read()))
         except Exception as e:
-            print(f"⚠️ Error leyendo JSON GRN con orjson: {e}")
+            print(f"Error leyendo JSON GRN con orjson: {e}")
             try:
                 df = pl.read_json(GRN_JSON_DATA_PATH)
             except: pass
@@ -30,10 +30,10 @@ async def seed_grn_from_excel(db: AsyncSession):
     # 2. Si no hay JSON viable, cargar desde Excel (Puente vía Pandas por compatibilidad)
     if df is None and os.path.exists(GRN_EXCEL_PATH):
         try:
-            print(f"📗 [POLARS] Cargando GRN desde Excel: {GRN_EXCEL_PATH}", flush=True)
+            print(f"[POLARS] Cargando GRN desde Excel: {GRN_EXCEL_PATH}", flush=True)
             df = pl.read_excel(GRN_EXCEL_PATH)
         except Exception as e:
-            print(f"❌ Error leyendo Excel GRN: {e}")
+            print(f"Error leyendo Excel GRN: {e}")
             return {"error": f"Error leyendo Excel: {e}", "count": 0}
     
     if df is None or df.height == 0:
@@ -41,7 +41,7 @@ async def seed_grn_from_excel(db: AsyncSession):
 
     try:
         # 3. Normalización masiva con Polars (Vectorizado)
-        print(f"🔄 [POLARS] Normalizando {df.height} registros...", flush=True)
+        print(f"[POLARS] Normalizando {df.height} registros...", flush=True)
         
         cols = df.columns
         def find_col(targets):
@@ -82,7 +82,7 @@ async def seed_grn_from_excel(db: AsyncSession):
         chunk_size = 2000
         processed = 0
         
-        print(f"📦 [POLARS] Sincronizando {total_items} registros con la Base de Datos...", flush=True)
+        print(f"[POLARS] Sincronizando {total_items} registros con la Base de Datos...", flush=True)
 
         for i in range(0, total_items, chunk_size):
             chunk = insert_data[i:i + chunk_size]
@@ -96,20 +96,20 @@ async def seed_grn_from_excel(db: AsyncSession):
                 await db.execute(stmt.on_duplicate_key_update(update_dict))
             
             processed += len(chunk)
-            print(f"   ➤ {processed}/{total_items} sincronizados...", flush=True)
+            print(f"   {processed}/{total_items} sincronizados...", flush=True)
 
         await db.commit()
         
         # Sincronizar el JSON para que UI y Script vean lo mismo
         await export_grn_to_json(db)
         
-        print(f"✅ [POLARS] Proceso GRN finalizado con éxito.", flush=True)
+        print(f"[POLARS] Proceso GRN finalizado con éxito.", flush=True)
         return {"message": "Sincronización GRN exitosa", "total": total_items}
 
     except Exception as e:
         await db.rollback()
         import traceback
-        print(f"❌ [POLARS] Error Crítico: {e}")
+        print(f"[POLARS] Error Crítico: {e}")
         print(traceback.format_exc())
         return {"error": str(e)}
 
@@ -139,5 +139,5 @@ async def export_grn_to_json(db: AsyncSession):
             f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
         return True
     except Exception as e:
-        print(f"❌ [POLARS] Error exportando JSON: {e}")
+        print(f"[POLARS] Error exportando JSON: {e}")
         return False

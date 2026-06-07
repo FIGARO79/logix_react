@@ -298,7 +298,7 @@ async def get_cycle_count_recordings(
     t1 = time.time()
     result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
     recordings = result.scalars().all()
-    print(f"⏱️ Query recordings: {time.time() - t1:.2f}s")
+    print(f"Query recordings: {time.time() - t1:.2f}s")
 
     if not recordings:
         return []
@@ -312,12 +312,12 @@ async def get_cycle_count_recordings(
         select(MasterItem).where(MasterItem.item_code.in_(item_codes))
     )
     master_items = result_items.scalars().all()
-    print(f"⏱️ Query master_items ({len(item_codes)} codes): {time.time() - t2:.2f}s")
+    print(f"Query master_items ({len(item_codes)} codes): {time.time() - t2:.2f}s")
     
     # Crear un mapa para lookup rápido
     t3 = time.time()
     master_map = {item.item_code: item for item in master_items}
-    print(f"⏱️ Build master_map: {time.time() - t3:.2f}s")
+    print(f"Build master_map: {time.time() - t3:.2f}s")
 
     data = []
     
@@ -410,8 +410,8 @@ async def get_cycle_count_recordings(
             "username": rec.username
         })
     
-    print(f"⏱️ Build response data: {time.time() - t4:.2f}s")
-    print(f"⏱️ TOTAL endpoint time: {time.time() - start_time:.2f}s")
+    print(f"Build response data: {time.time() - t4:.2f}s")
+    print(f"TOTAL endpoint time: {time.time() - start_time:.2f}s")
 
     return data
 

@@ -16,7 +16,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
     if not os.path.exists(ITEM_MASTER_CSV_PATH):
         raise FileNotFoundError(f"Archivo maestro no encontrado: {ITEM_MASTER_CSV_PATH}")
 
-    print("⏳ [POLARS] Iniciando sincronización CSV -> DB...")
+    print("[POLARS] Iniciando sincronizacion CSV -> DB...")
 
     try:
         # 0. Pre-procesamiento: Resetear stock a 0 para items que podrían no venir en el CSV
@@ -24,7 +24,7 @@ async def sync_master_csv_to_db(db: AsyncSession):
         await db.execute(update(MasterItem).values(physical_qty=0, frozen_qty=0))
         await db.commit()
     except Exception as e:
-        print(f"⚠️ Error al resetear cantidades: {e}")
+        print(f"Error al resetear cantidades: {e}")
     
     try:
         # Mapeo de columnas CSV a Modelo DB
@@ -130,16 +130,16 @@ async def sync_master_csv_to_db(db: AsyncSession):
                 return [c['name'] for c in inspect(conn).get_columns("master_items")]
             physical_cols = await db.run_sync(get_physical_cols)
             
-            # Filtrar el DataFrame de Polars para conservar únicamente columnas que existan físicamente en la DB
+        # Filtrar el DataFrame de Polars para conservar únicamente columnas que existan físicamente en la DB
             db_cols = [c for c in df.columns if c in physical_cols]
             if 'item_code' not in db_cols:
                 db_cols.append('item_code')
             df = df.select(db_cols)
         except Exception as inspect_err:
-            print(f"⚠️ No se pudo inspeccionar las columnas físicas de master_items: {inspect_err}")
+            print(f"No se pudo inspeccionar las columnas fisicas de master_items: {inspect_err}")
         
         total_items = df.height
-        print(f"📦 Procesando {total_items} items con Polars...")
+        print(f"Procesando {total_items} items con Polars...")
 
         # 2. Sincronización por lotes (Chunks) con Upsert nativo
         chunk_size = 5000
@@ -166,13 +166,13 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     await db.execute(on_duplicate_key_stmt)
                 
                 total_processed += len(insert_data)
-                print(f"   ➤ {total_processed}/{total_items} sincronizados...")
+                print(f"   > {total_processed}/{total_items} sincronizados...")
 
         await db.commit()
-        print(f"✅ [POLARS] Sincronización completada. {total_processed} items procesados.")
+        print(f"[POLARS] Sincronizacion completada. {total_processed} items procesados.")
         return total_processed
 
     except Exception as e:
-        print(f"❌ Error en sincronización Polars CSV -> DB: {e}")
+        print(f"Error en sincronizacion Polars CSV -> DB: {e}")
         await db.rollback()
         raise e

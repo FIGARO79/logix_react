@@ -76,7 +76,7 @@ async def process_po_extractor_logic(file_path: str):
         if opt_col in df_full.columns:
             df_po = df_po.with_columns(df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col))
         else:
-            print(f"⚠️ Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
+            print(f"Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
             df_po = df_po.with_columns(pl.lit("").alias(opt_col))
         
         # LIMPIEZA CRÍTICA
@@ -204,7 +204,7 @@ async def run_po_robot_api(
         if not success:
             po_robot_status["status"] = "error"
             po_robot_status["message"] = f"Error en Robot: {msg}"
-            print(f"❌ {po_robot_status['message']}")
+            print(f"[ERROR] {po_robot_status['message']}")
             return
 
         # 2. Procesar el archivo
@@ -212,13 +212,13 @@ async def run_po_robot_api(
         if success_proc:
             po_robot_status["status"] = "success"
             po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
-            print(f"✅ Robot: {po_robot_status['message']}")
+            print(f"[OK] Robot: {po_robot_status['message']}")
             # Recargar el caché de memoria general
             await load_csv_data()
         else:
             po_robot_status["status"] = "error"
             po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
-            print(f"❌ Robot: {po_robot_status['message']}")
+            print(f"[ERROR] Robot: {po_robot_status['message']}")
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
@@ -230,7 +230,7 @@ async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
         return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
     # Log para depuración
-    print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
+    print(f"[STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
     return ORJSONResponse(content=po_robot_status)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
