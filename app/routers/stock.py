@@ -4,7 +4,7 @@ Router para endpoints de stock/inventario.
 from typing import List, Tuple, Dict
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db

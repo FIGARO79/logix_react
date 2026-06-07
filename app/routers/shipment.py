@@ -5,7 +5,7 @@ Permite agrupar múltiples auditorías de picking en un solo envío.
 import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload

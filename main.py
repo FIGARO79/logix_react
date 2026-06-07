@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 # Asegurar que los archivos .wasm se sirvan con el tipo MIME correcto
 mimetypes.add_type('application/wasm', '.wasm')
-from fastapi.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles

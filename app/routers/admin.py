@@ -2,7 +2,8 @@
 Router para endpoints administrativos simplificado y unificado.
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, Body, UploadFile, File
-from fastapi.responses import ORJSONResponse, Response
+from fastapi.responses import Response
+from app.core.responses import ORJSONResponse
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession

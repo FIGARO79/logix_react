@@ -2,7 +2,7 @@
 Router para endpoints de autenticación y gestión de contraseñas (API ONLY).
 """
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
-from fastapi.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.utils.auth import (

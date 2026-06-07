@@ -2,7 +2,7 @@ import os
 import time
 import orjson
 from fastapi import APIRouter, Depends, Response
-from fastapi.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse
 from typing import Dict, Any
 
 from app.core.config import (
