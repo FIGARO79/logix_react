@@ -96,6 +96,32 @@ class SlottingService:
         if not sic_code:
             sic_code = '0'
 
+        occupancy = await self._get_bins_occupancy(db)
+
+        # Intentar calcular la ubicación óptima usando la extensión de Rust para máxima velocidad
+        try:
+            import logix_rust_core
+            storage_json = orjson.dumps(storage).decode('utf-8')
+            turnover_json = orjson.dumps(turnover_map).decode('utf-8')
+            zone_rules_json = orjson.dumps(zone_rules).decode('utf-8')
+            mix_limits_json = orjson.dumps(mix_limits).decode('utf-8')
+            item_details_json = orjson.dumps(item_details).decode('utf-8')
+            occupancy_json = orjson.dumps(occupancy).decode('utf-8')
+
+            rust_res = logix_rust_core.get_suggested_bin_rust(
+                storage_json,
+                turnover_json,
+                zone_rules_json,
+                mix_limits_json,
+                item_details_json,
+                occupancy_json,
+                sic_code
+            )
+            return rust_res
+        except Exception as e:
+            print(f"Error en extensión de Rust: {e}. Usando fallback en Python.")
+
+        # --- FALLBACK EN PYTHON ---
         # Determinar el spot ideal basado en el SIC Code
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
         if sic_code in ['W', 'X']: 
@@ -123,8 +149,6 @@ class SlottingService:
                 # En otros casos (ej. ítem warm en score medio), se queda si no hay una mejor opción obvia.
                 if ideal_spot == 'warm':
                     return None
-
-        occupancy = await self._get_bins_occupancy(db)
         
         target_zone = None
         target_levels = None
@@ -242,11 +266,11 @@ class SlottingService:
         # 3. Menor OCUPACIÓN.
 
         if ideal_spot == 'hot':
-            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy'], x['bin']))
         elif ideal_spot == 'warm':
-            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy'], x['bin']))
         else:
-            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy'], x['bin']))
 
         return candidates[0]['bin']
 

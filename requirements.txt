@@ -161,3 +161,5 @@ wrapt==2.1.2
     # via deprecated
 xlsxwriter==3.2.9
     # via -r requirements.in
+maturin==1.5.1
+    # via -r requirements.in
