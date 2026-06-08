@@ -25,7 +25,7 @@ const SandvikLabel = ({ data, qrImage, quantity, relocatedBin, totalWeight }) =>
             <div style={{ flexGrow: 1 }}></div>
 
             {/* Data Table */}
-            <div style={{ fontSize: '9pt', lineHeight: 1.4, flexShrink: 0 }}>
+            <div style={{ fontSize: '10pt', fontWeight: 'semibold', lineHeight: 1.4, flexShrink: 0 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                     <div>Quantity/pack</div>
                     <div>{quantity || 1} EA</div>
@@ -49,9 +49,9 @@ const SandvikLabel = ({ data, qrImage, quantity, relocatedBin, totalWeight }) =>
                 <p style={{ fontSize: '7pt', margin: 0, maxWidth: '35mm', lineHeight: 1.1 }}>
                     All trademarks and logotypes appearing on this label are owned by Sandvik Group
                 </p>
-                <div style={{ 
-                    width: '25mm', 
-                    height: '25mm', 
+                <div style={{
+                    width: '25mm',
+                    height: '25mm',
                     flexShrink: 0,
                     border: qrImage ? 'none' : '1px solid #e5e7eb',
                     borderRadius: '4px',
