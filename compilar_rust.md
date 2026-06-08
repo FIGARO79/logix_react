@@ -2,34 +2,32 @@
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
 
-# 2. Entra a la carpeta del proyecto en el VPS y activa tu entorno virtual
-cd /home/debian/logix
+Si vuelves a modificar los archivos .rs dentro de rust_core, puedes compilar y aplicar los cambios ejecutando lo siguiente:
+
+Opción A: Compilación directa en caliente (Recomendada)
+Si estás dentro de /home/debian/logix:
+
+# 1. Asegúrate de tener Rust en el PATH y activar el venv
+source $HOME/.cargo/env
 source venv/bin/activate
 
-# 3. Instalar la herramienta de compilación de Rust para Python
-pip install maturin
+# 2. Compilar e instalar en el venv actual
+maturin develop --release --manifest-path rust_core/Cargo.toml
 
-# 4. Compilar el core de Rust en modo optimizado (Release)
-cd rust_core
-maturin develop --release
+# 3. Reiniciar el servicio de la API
+sudo systemctl restart logix
 
-# 5. Reiniciar el servicio de Logix API para aplicar los cambios en caliente
-sudo systemctl restart logix.service
+Opción B: Generar rueda (.whl) e instalar con uv
+Si prefieres el flujo que documentaste al final del archivo:
 
+# 1. Asegúrate de tener Rust en el PATH
+source $HOME/.cargo/env
 
-cd rust_core && maturin build --release --out target/dist
-uv pip install --force-reinstall target/dist/*.whl -p ../venv
+# 2. Compilar y generar el empaquetado wheel (.whl)
+cd rust_core && maturin build --release --out target/dist && cd ..
 
-
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-
-# Entrar a la carpeta de Rust y generar el binario optimizado (.whl)
-cd rust_core && maturin build --release --out target/dist
-
-# Instalar el paquete en el entorno virtual de producción
-cd ..
+# 3. Forzar reinstalación del wheel usando uv en el venv
 uv pip install --force-reinstall rust_core/target/dist/*.whl -p venv
 
-
-sudo systemctl restart logix_api   # O el comando que uses para reiniciar el servicio en tu VPS
+# 4. Reiniciar el servicio de la API
+sudo systemctl restart logix
