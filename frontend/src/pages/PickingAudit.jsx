@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
 import DimensionScanner from '../components/DimensionScanner';
@@ -32,6 +32,19 @@ const createBeep = (frequency, duration) => {
 const playSuccess = () => createBeep(800, 0.1);
 const playError = () => createBeep(200, 0.2);
 
+const formatDateLabel = (dateStr) => {
+    if (!dateStr) return '';
+    const dateOnly = dateStr.split(' ')[0] || dateStr.split('T')[0];
+    const parts = dateOnly.split('-');
+    if (parts.length === 3) {
+        const year = parts[0];
+        const monthStr = parts[1]; // Mantener el mes con dos dígitos, ej. "06"
+        const day = parseInt(parts[2], 10); // Día sin cero a la izquierda, ej. 7 en vez de 07
+        return `${day}/${monthStr}/${year}`;
+    }
+    return dateStr;
+};
+
 const PickingAudit = () => {
     const { setTitle } = useOutletContext();
     const { isOnline, pendingCount, syncPendingData } = useOffline();
@@ -43,6 +56,7 @@ const PickingAudit = () => {
     const [loadingOrder, setLoadingOrder] = useState(false);
     const [trackingData, setTrackingData] = useState([]);
     const [sortOrder, setSortOrder] = useState('desc');
+    const [selectedCustomerFilter, setSelectedCustomerFilter] = useState(null);
 
     // Audit Section
     const [auditActive, setAuditActive] = useState(false);
@@ -70,9 +84,110 @@ const PickingAudit = () => {
     const [packageDimensions, setPackageDimensions] = useState({}); // { 1: {length, width, height, weight} }
 
     useEffect(() => {
-        setTitle("Packing");
+        setTitle("Picking");
         loadTrackingData();
     }, [setTitle]);
+
+    // -- Matrix Data Calculation --
+    const matrixData = useMemo(() => {
+        if (!trackingData || trackingData.length === 0) {
+            return { dates: [], rows: [], totals: {}, grandTotal: { orders: 0, lines: 0 } };
+        }
+
+        // 1. Extraer fechas únicas en formato YYYY-MM-DD y ordenarlas cronológicamente
+        const datesSet = new Set();
+        trackingData.forEach(t => {
+            if (!t.print_date) return;
+            const datePart = t.print_date.split(' ')[0] || t.print_date.split('T')[0];
+            if (datePart) {
+                datesSet.add(datePart);
+            }
+        });
+        const sortedDates = Array.from(datesSet).sort();
+
+        // 2. Agrupar datos por cliente (usando customer_code para evitar colisiones)
+        const rowsMap = {};
+        trackingData.forEach(t => {
+            if (!t.print_date) return;
+            const datePart = t.print_date.split(' ')[0] || t.print_date.split('T')[0];
+            if (!datePart) return;
+
+            const custCode = t.customer_code || 'N/A';
+            const custName = t.customer_name || 'Desconocido';
+            const custKey = custCode;
+
+            if (!rowsMap[custKey]) {
+                rowsMap[custKey] = {
+                    customerCode: custCode,
+                    customerName: custName,
+                    dates: {}
+                };
+            }
+
+            if (!rowsMap[custKey].dates[datePart]) {
+                rowsMap[custKey].dates[datePart] = { orders: 0, lines: 0 };
+            }
+
+            rowsMap[custKey].dates[datePart].orders += 1;
+            rowsMap[custKey].dates[datePart].lines += (parseInt(t.total_lines) || 0);
+        });
+
+        // Convertir el mapa a un array y calcular totales por cliente (filas)
+        const rows = Object.values(rowsMap).map(row => {
+            let rowTotalOrders = 0;
+            let rowTotalLines = 0;
+            Object.values(row.dates).forEach(d => {
+                rowTotalOrders += d.orders;
+                rowTotalLines += d.lines;
+            });
+            return {
+                ...row,
+                totalOrders: rowTotalOrders,
+                totalLines: rowTotalLines
+            };
+        });
+
+        // 3. Calcular totales acumulados por fecha (verticales)
+        const totals = {};
+        sortedDates.forEach(d => {
+            totals[d] = { orders: 0, lines: 0 };
+        });
+
+        rows.forEach(row => {
+            sortedDates.forEach(d => {
+                const cellData = row.dates[d] || { orders: 0, lines: 0 };
+                totals[d].orders += cellData.orders;
+                totals[d].lines += cellData.lines;
+            });
+        });
+
+        // 4. Calcular gran total acumulado (horizontal + vertical)
+        let grandTotalOrders = 0;
+        let grandTotalLines = 0;
+        rows.forEach(row => {
+            grandTotalOrders += row.totalOrders;
+            grandTotalLines += row.totalLines;
+        });
+
+        return {
+            dates: sortedDates,
+            rows,
+            totals,
+            grandTotal: {
+                orders: grandTotalOrders,
+                lines: grandTotalLines
+            }
+        };
+    }, [trackingData]);
+
+    const toggleCustomerFilter = (customerCode) => {
+        setSelectedCustomerFilter(prev => prev === customerCode ? null : customerCode);
+    };
+
+    const filteredTracking = useMemo(() => {
+        if (!selectedCustomerFilter) return trackingData;
+        return trackingData.filter(t => t.customer_code === selectedCustomerFilter);
+    }, [trackingData, selectedCustomerFilter]);
 
 
     // -- API Calls --
@@ -159,6 +274,7 @@ const PickingAudit = () => {
         setPackageDimensions({});
         setPackagesCount('1');
         setActivePackage(1);
+        setSelectedCustomerFilter(null);
         loadTrackingData();
     };
 
@@ -378,7 +494,7 @@ const PickingAudit = () => {
                                         {i + 1}
                                     </button>
                                     {activePackage === i + 1 && (
-                                        <button 
+                                        <button
                                             onClick={() => setDimensionScannerOpen(true)}
                                             className="absolute -top-1.5 -right-1.5 bg-white border border-[#285f94] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
                                             title="Medir Dimensiones"
@@ -796,7 +912,7 @@ const PickingAudit = () => {
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-[16px] font-normal text-gray-800">Cargar Pedido Picking</h1>
+                    <h1 className="text-[16px] font-normal text-black">Cargar Pedido Picking</h1>
                     {!isOnline && <span className="text-[9px] font-medium  text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
                 </div>
 
@@ -832,7 +948,7 @@ const PickingAudit = () => {
                 {/* Tracking Table */}
                 <div>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium  text-gray-700">Pedidos Recientes</h3>
+                        <h3 className="font-medium text-gray-700">Pedidos Recientes</h3>
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
@@ -870,10 +986,10 @@ const PickingAudit = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {trackingData.length === 0 ? (
-                                    <tr><td colSpan="5" className="text-center p-4 text-gray-500">No hay pedidos recientes</td></tr>
+                                {filteredTracking.length === 0 ? (
+                                    <tr><td colSpan="6" className="text-center p-4 text-gray-500">No hay pedidos recientes</td></tr>
                                 ) : (
-                                    [...trackingData]
+                                    [...filteredTracking]
                                         .sort((a, b) => {
                                             const dateA = new Date(a.print_date);
                                             const dateB = new Date(b.print_date);
@@ -902,12 +1018,12 @@ const PickingAudit = () => {
                                         ))
                                 )}
                             </tbody>
-                            {trackingData.length > 0 && (
+                            {filteredTracking.length > 0 && (
                                 <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                                     <tr>
                                         <td colSpan="4" className="py-2.5 px-3 text-right font-medium  text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
                                         <td className="py-2.5 px-3 text-center font-black text-lg text-[#285f94]">
-                                            {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
+                                            {filteredTracking.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                         </td>
                                         <td></td>
                                     </tr>
@@ -918,45 +1034,192 @@ const PickingAudit = () => {
 
                     {/* Mobile Card View */}
                     <div className="block sm:hidden space-y-2 max-h-[500px] overflow-y-auto relative">
-                        {trackingData.length === 0 ? (
+                        {filteredTracking.length === 0 ? (
                             <div className="text-center p-4 text-gray-500 bg-gray-50 rounded">No hay pedidos recientes</div>
                         ) : (
                             <>
-                                {trackingData.map((t, idx) => (
-                                <div key={idx}
-                                    className={`${t.is_audited ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
-                                    onClick={() => {
-                                        setOrderNumber(t.order_number);
-                                        setDespatchNumber(t.despatch_number);
-                                    }}
-                                >
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
-                                            <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
-                                            {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
+                                {filteredTracking.map((t, idx) => (
+                                    <div key={idx}
+                                        className={`${t.is_audited ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
+                                        onClick={() => {
+                                            setOrderNumber(t.order_number);
+                                            setDespatchNumber(t.despatch_number);
+                                        }}
+                                    >
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
+                                                <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
+                                                {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
+                                            </div>
+                                            <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                         </div>
-                                        <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-medium  text-slate-500 uppercase">Cliente:</span>
+                                            <span className="text-xs font-medium  text-gray-700">{t.customer_code}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
+                                        <div className="text-right text-xs text-gray-400">
+                                            {t.print_date}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-medium  text-slate-500 uppercase">Cliente:</span>
-                                        <span className="text-xs font-medium  text-gray-700">{t.customer_code}</span>
-                                    </div>
-                                    <div className="text-sm text-gray-800 font-medium mb-2 truncate">{t.customer_name}</div>
-                                    <div className="text-right text-xs text-gray-400">
-                                        {t.print_date}
-                                    </div>
+                                ))}
+                                <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
+                                    <span className="text-[10px] font-medium  text-slate-500 uppercase">Total Líneas:</span>
+                                    <span className="text-[12px] font-black text-[#285f94]">
+                                        {filteredTracking.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
+                                    </span>
                                 </div>
-                            ))}
-                            <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
-                                <span className="text-[10px] font-medium  text-slate-500 uppercase">Total Líneas:</span>
-                                <span className="text-[12px] font-black text-[#285f94]">
-                                    {trackingData.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
-                                </span>
-                            </div>
-                        </>
-                    )}
+                            </>
+                        )}
                     </div>
+                </div>
+
+                {/* Matriz de Resumen por Cliente y Fecha */}
+                <div className="mt-8 border-t border-gray-200 pt-6 animate-fade-in">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-[16px] font-normal text-black">Resumen por Cliente y Fecha</h3>
+                    </div>
+                    {matrixData.dates.length === 0 ? (
+                        <div className="text-center p-6 text-gray-500 bg-slate-50 rounded border border-gray-200">
+                            No hay información disponible para generar la matriz
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto border border-gray-200 rounded shadow-sm max-h-[500px]">
+                            <table className="w-full text-left text-sm sap-table border-collapse min-w-[750px]">
+                                <thead>
+                                    <tr>
+                                        <th className="py-2 px-3 font-semibold border-b border-r border-slate-600 text-white" style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}>
+                                            Fecha
+                                        </th>
+                                        {matrixData.dates.map(date => (
+                                            <th
+                                                key={date}
+                                                className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                                colSpan={2}
+                                                style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
+                                            >
+                                                {formatDateLabel(date)}
+                                            </th>
+                                        ))}
+                                        {/* Columna Total General en Cabecera */}
+                                        <th
+                                            className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                            colSpan={2}
+                                            style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
+                                        >
+                                            Total General
+                                        </th>
+                                    </tr>
+                                    <tr className="bg-slate-600 text-white">
+                                        <th className="py-1.5 px-3 font-medium border-b border-r border-slate-500 text-xs uppercase text-white" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                            Customer
+                                        </th>
+                                        {matrixData.dates.map(date => (
+                                            <React.Fragment key={date}>
+                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                    Ordenes
+                                                </th>
+                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                    Lineas
+                                                </th>
+                                            </React.Fragment>
+                                        ))}
+                                        {/* Subcolumnas de Total en Cabecera */}
+                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                            Ordenes
+                                        </th>
+                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                            Lineas
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {matrixData.rows.map((row, idx) => (
+                                        <tr
+                                            key={idx}
+                                            className={`border-b border-gray-200 transition-colors ${selectedCustomerFilter === row.customerCode
+                                                ? 'bg-blue-50/20'
+                                                : 'hover:bg-slate-50'
+                                                }`}
+                                        >
+                                            {/* Columna de Customer mostrando Código + Nombre de Cliente */}
+                                            <td
+                                                className={`py-1.5 px-3 border-r border-gray-200 cursor-pointer select-none transition-colors ${selectedCustomerFilter === row.customerCode
+                                                    ? 'bg-blue-50/60 hover:bg-blue-100/60'
+                                                    : 'hover:bg-slate-100'
+                                                    }`}
+                                                onClick={() => toggleCustomerFilter(row.customerCode)}
+                                                title="Haga clic para filtrar pedidos de este cliente"
+                                            >
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-[10px] text-slate-600 font-mono font-bold bg-slate-100 px-1 py-0.5 rounded border border-slate-200 leading-none">
+                                                        {row.customerCode}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-gray-800 leading-none">
+                                                        {row.customerName}
+                                                    </span>
+                                                    {selectedCustomerFilter === row.customerCode && (
+                                                        <span className="text-[8px] bg-[#285f94] text-white px-1 py-0.5 rounded font-bold uppercase leading-none tracking-wide animate-pulse">
+                                                            Filtrado
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            {matrixData.dates.map(date => {
+                                                const dayData = row.dates[date] || { orders: 0, lines: 0 };
+                                                return (
+                                                    <React.Fragment key={date}>
+                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                            {dayData.orders > 0 ? dayData.orders : ''}
+                                                        </td>
+                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                            {dayData.lines > 0 ? dayData.lines : ''}
+                                                        </td>
+                                                    </React.Fragment>
+                                                );
+                                            })}
+                                            {/* Totales Horizontales del Cliente */}
+                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                                {row.totalOrders > 0 ? row.totalOrders : ''}
+                                            </td>
+                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                                {row.totalLines > 0 ? row.totalLines : ''}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot className="bg-slate-50 border-t-2 border-gray-200 font-semibold sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                    <tr className="bg-slate-50 border-b border-gray-200">
+                                        <td className="py-2.5 px-3 border-r border-gray-200 text-gray-800 font-bold uppercase text-[11px] tracking-wider">
+                                            Total
+                                        </td>
+                                        {matrixData.dates.map(date => {
+                                            const totalOrders = matrixData.totals[date].orders;
+                                            const totalLines = matrixData.totals[date].lines;
+                                            return (
+                                                <React.Fragment key={date}>
+                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                        {totalOrders > 0 ? totalOrders : 0}
+                                                    </td>
+                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                        {totalLines > 0 ? totalLines : 0}
+                                                    </td>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                        {/* Gran Total Acumulado en el Pie */}
+                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                            {matrixData.grandTotal.orders}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                            {matrixData.grandTotal.lines}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

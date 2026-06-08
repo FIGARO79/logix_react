@@ -334,7 +334,7 @@ const Layout = () => {
                     </div>
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>
-                        <MenuItem to="/picking" label="Auditoría" onClick={toggleMenu} />
+                        <MenuItem to="/picking" label="Picking" onClick={toggleMenu} />
                         <MenuItem to="/view_picking_audits" label="Empaque" onClick={toggleMenu} />
                         <MenuItem to="/shipments" label="Despacho" onClick={toggleMenu} />
                         <MenuItem to="/label" label="Etiquetado" onClick={toggleMenu} />
