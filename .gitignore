@@ -57,6 +57,7 @@ dev.bat
 !requirements.txt
 !README.md    
 *.xlsx
+compilar_rust.md
 
 *.sql
 
