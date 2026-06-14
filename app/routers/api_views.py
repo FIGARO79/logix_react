@@ -141,9 +141,12 @@ class ReconciliationArchiveRequest(BaseModel):
     data: List[dict]
     client_timestamp: Optional[str] = None
 
+from fastapi import BackgroundTasks
+
 @router.post("/reconciliation/archive")
 async def archive_reconciliation_snapshot(
     payload: ReconciliationArchiveRequest, 
+    background_tasks: BackgroundTasks,
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):
@@ -154,6 +157,11 @@ async def archive_reconciliation_snapshot(
             username, 
             client_timestamp=payload.client_timestamp
         )
+        
+        # [NUEVO] Ejecutar auditoría de recepción en segundo plano
+        from app.services.inbound_auditor import run_inbound_audit
+        background_tasks.add_task(run_inbound_audit, db)
+        
         return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
     except Exception as e:
         import traceback

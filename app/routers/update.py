@@ -361,6 +361,14 @@ async def update_files_post(
                     await sync_master_csv_to_db(session)
             background_tasks.add_task(run_sql_sync)
 
+        # [NUEVO] Ejecutar auditoría de recepción en segundo plano después de cargar datos
+        from app.core.db import AsyncSessionLocal
+        from app.services.inbound_auditor import run_inbound_audit
+        async def run_auditor_sync():
+            async with AsyncSessionLocal() as session:
+                await run_inbound_audit(session)
+        background_tasks.add_task(run_auditor_sync)
+
         message += " Procesamiento en segundo plano iniciado."
 
     if error:

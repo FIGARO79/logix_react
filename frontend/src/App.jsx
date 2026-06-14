@@ -36,6 +36,7 @@ import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
 import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
+import InboundAudit from './pages/InboundAudit';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
@@ -224,6 +225,11 @@ function App() {
                         <Route path="/view_logs" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <InboundHistory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/inbound/audit" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <InboundAudit />
                             </ProtectedRoute>
                         } />
 

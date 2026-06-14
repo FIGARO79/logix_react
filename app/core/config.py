@@ -26,6 +26,7 @@ PLANNER_CONFIG_PATH = os.path.join(JSON_FOLDER, 'planner_config.json')
 PLANNER_DATA_PATH = os.path.join(JSON_FOLDER, 'planner_data.json')
 SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
 RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, 'reservation_cache.json')
+INBOUND_ALERTS_JSON_PATH = os.path.join(JSON_FOLDER, 'inbound_audit_alerts.json')
 
 # --- Carpeta Instance para datos de aplicación ---
 INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')

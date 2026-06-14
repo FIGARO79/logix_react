@@ -83,3 +83,42 @@ async def lookup_reference(
     except Exception as e:
         print(f"Error reading Excel fallback: {e}")
         return result
+
+# --- NUEVOS ENDPOINTS PARA EL AGENTE DE AUDITORÍA DE RECEPCIÓN ---
+from app.services import inbound_auditor
+
+class ResolveAlertRequest(BaseModel):
+    status: str  # "resolved" o "dismissed"
+    resolution_notes: Optional[str] = ""
+
+@router.get("/auditor/alerts")
+async def get_auditor_alerts(
+    user: str = Depends(permission_required("inbound"))
+):
+    """Obtiene la lista de alertas generadas por el Agente de Auditoría."""
+    return inbound_auditor.load_alerts()
+
+@router.post("/auditor/run")
+async def run_auditor_trigger(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
+    """Ejecuta de manera inmediata la auditoría algorítmica de Inbound."""
+    res = await inbound_auditor.run_inbound_audit(db)
+    return res
+
+@router.post("/auditor/alerts/{alert_id}/resolve")
+async def resolve_auditor_alert(
+    alert_id: str,
+    data: ResolveAlertRequest,
+    user: str = Depends(permission_required("inbound"))
+):
+    """Marca una alerta de auditoría como resuelta o descartada con notas."""
+    if data.status not in ["resolved", "dismissed"]:
+        raise HTTPException(status_code=400, detail="Estado de resolución inválido")
+    
+    success = inbound_auditor.resolve_alert(alert_id, data.status, data.resolution_notes)
+    if not success:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+    
+    return {"status": "success", "message": f"Alerta marcada como {data.status}"}

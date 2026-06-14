@@ -34,6 +34,7 @@ import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
 import PackingListPrint from '../pages/PackingListPrint';
+import InboundAudit from '../pages/InboundAudit';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
@@ -65,6 +66,7 @@ const ROUTE_MAP = [
     { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
     { path: '/packing_list/print/:id', component: PackingListPrint },
+    { path: '/inbound/audit', component: InboundAudit },
 ];
 
 const MenuItem = ({ to, label, onClick }) => {
@@ -332,6 +334,7 @@ const Layout = () => {
                         <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Inbound</div>
                         <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
+                        <MenuItem to="/inbound/audit" label="Auditoría Agente" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-4">
