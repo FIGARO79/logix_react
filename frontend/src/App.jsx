@@ -250,14 +250,14 @@ function App() {
                                 <Shipments />
                             </ProtectedRoute>
                         } />
+                        <Route path="/packing_list/print/:id" element={
+                            <ProtectedRoute>
+                                <PackingListPrint />
+                            </ProtectedRoute>
+                        } />
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}
-                    <Route path="/packing_list/print/:id" element={
-                        <ProtectedRoute>
-                            <PackingListPrint />
-                        </ProtectedRoute>
-                    } />
                     <Route path="/shipments/print/:id" element={
                         <ProtectedRoute>
                             <ConsolidatedPackingList />

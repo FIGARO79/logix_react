@@ -284,8 +284,7 @@ const Inbound = () => {
                 const ir = log.importReference || log.importRef || '';
                 const key = `${code}|${ir}`;
                 if (!(key in grnMap)) {
-                    const dbKey = `${code}|${ir}`;
-                    const grnInfo = await db.get('grn_pending', dbKey);
+                    const grnInfo = await db.get('grn_pending', code);
                     let expectedQty = grnInfo ? grnInfo.total_expected : 0;
                     if (!expectedQty || expectedQty === 0) {
                         const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
@@ -321,7 +320,7 @@ const Inbound = () => {
             const code = log.itemCode;
             const ir = log.importReference || log.importRef || '';
             const key = `${code}|${ir}`;
-            const expected = grnMap[key] || log.qtyGrn || log.quantity || 0;
+            const expected = log.qtyGrn || grnMap[key] || log.quantity || 0;
             const totalReceived = totalsMap[key] || 0;
             const isLatest = latestEntryMap[key] === log.id;
 
@@ -410,8 +409,7 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
-                    const dbKey = `${normalizedCode}|${importRef.trim().toUpperCase()}`;
-                    const grnInfo = await db.get('grn_pending', dbKey);
+                    const grnInfo = await db.get('grn_pending', normalizedCode);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
                     // Buscar si ya hay reubicaciones de este ítem en la cola local
@@ -777,25 +775,6 @@ const Inbound = () => {
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
-
-                                {itemData?.expectedBreakdown && itemData.expectedBreakdown.length > 0 && (
-                                    <div className="border-t border-gray-100 pt-3">
-                                        <h4 className="text-[10px] font-semibold uppercase text-zinc-500 mb-2 tracking-wider">Detalle de Esperados por I.R. / GRN</h4>
-                                        <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
-                                            {itemData.expectedBreakdown.map((b, idx) => (
-                                                <div key={idx} className="flex justify-between items-center text-xs bg-zinc-50 hover:bg-zinc-100 px-2 py-1.5 rounded border border-zinc-200">
-                                                    <span className="font-semibold text-gray-700">
-                                                        I.R: <span className="text-black font-bold">{b.ir}</span> 
-                                                        {b.grn && b.grn !== 'N/A' && <> | GRN: <span className="text-gray-900 font-mono font-medium">{b.grn}</span></>}
-                                                    </span>
-                                                    <span className="font-bold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-zinc-200">
-                                                        {b.qty} UN
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                             <div className="flex gap-3">
                                 <button

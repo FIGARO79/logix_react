@@ -31,8 +31,8 @@ async def generate_reservation_cache():
         # Búsqueda robusta y prioritariamente específica de columnas
         item_col = next((c for c in cols if c.lower() == 'item_code' or 'item' in c.lower()), None)
         
-        # Priorizar 'action_qty' sobre 'qty' o 'quantity' generales
-        qty_col = next((c for c in cols if 'action_qty' in c.lower()), None)
+        # Priorizar 'Quantity_reserved' sobre otros nombres de cantidad
+        qty_col = next((c for c in cols if 'quantity_reserved' in c.lower()), None)
         if not qty_col:
             qty_col = next((c for c in cols if 'qty' in c.lower() or 'quantity' in c.lower()), None)
 
@@ -40,16 +40,23 @@ async def generate_reservation_cache():
         if not cust_col:
             cust_col = next((c for c in cols if 'cust' in c.lower() or 'name' in c.lower()), None)
 
+        so_col = next((c for c in cols if 'so_number' in c.lower() or 'so_num' in c.lower()), None)
+
         if item_col and qty_col:
             # Limpiar datos y normalizar
             cleaned_df = df.with_columns([
                 pl.col(item_col).str.strip_chars().str.to_uppercase().alias("item_key"),
                 pl.col(qty_col).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0).alias("qty_val"),
-                pl.col(cust_col).str.strip_chars().fill_null("SIN NOMBRE").alias("cust_val") if cust_col else pl.lit("SIN NOMBRE").alias("cust_val")
+                pl.col(cust_col).str.strip_chars().fill_null("SIN NOMBRE").alias("cust_val") if cust_col else pl.lit("SIN NOMBRE").alias("cust_val"),
+                pl.col(so_col).str.strip_chars().fill_null("").alias("so_val") if so_col else pl.lit("").alias("so_val")
             ])
             
-            # Filtrar solo registros con cantidad real pendiente mayor a cero
-            filtered_df = cleaned_df.filter((pl.col("item_key") != "") & (pl.col("qty_val") > 0))
+            # Filtrar solo registros con cantidad real pendiente mayor a cero y que tengan asociada una orden
+            filtered_df = cleaned_df.filter(
+                (pl.col("item_key") != "") & 
+                (pl.col("qty_val") > 0) & 
+                (pl.col("so_val") != "")
+            )
             
             if filtered_df.height > 0:
                 # Agrupar por ítem y cliente para consolidar cantidades individuales
@@ -288,5 +295,65 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
             print(f"Error al obtener desglose de PO: {e}")
             
     return breakdown
+
+
+async def get_expected_quantity_from_grn_for_import_ref(import_reference: str, item_code: str) -> Optional[int]:
+    """
+    Busca la cantidad esperada de un artículo específico en el archivo de GRN (AURRSGLBD0280.csv)
+    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json.
+    Retorna None si la GRN no está cargada o no hay GRNs asociadas.
+    """
+    global df_grn_cache
+    if not import_reference or not item_code:
+        return None
+        
+    import_reference = import_reference.strip().upper()
+    item_code = item_code.strip().upper()
+    
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    if not os.path.exists(PO_LOOKUP_JSON_PATH):
+        return None
+        
+    grns = set()
+    try:
+        with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+            cache = orjson.loads(f.read())
+        ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+        items = ir_data.get("items", [])
+        for it in items:
+            if str(it.get("item_code", "")).strip().upper() == item_code:
+                grn_val = it.get("grn", "")
+                if grn_val:
+                    for g in str(grn_val).split(','):
+                        if g.strip():
+                            grns.add(g.strip().upper())
+    except Exception as e:
+        print(f"Error leyendo po_lookup para buscar GRNs: {e}")
+        return None
+        
+    if not grns:
+        return None
+        
+    await reload_cache_if_needed()
+    if df_grn_cache is None:
+        return None
+        
+    grn_list_str = [str(g) for g in grns]
+    
+    try:
+        res = df_grn_cache.filter(
+            (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code) &
+            (pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().is_in(grn_list_str))
+        )
+        if res.height > 0:
+            total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
+            return total_qty
+    except Exception as e:
+        print(f"Error consultando cantidad en cache de GRN: {e}")
+        
+    return None
+
 
 

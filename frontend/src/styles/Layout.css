@@ -248,3 +248,23 @@ header .header-actions {
         display: none;
     }
 }
+
+/* Ocultar elementos estructurales del layout durante la impresión */
+@media print {
+    html, body, #root, [class*="min-h-screen"], main, .main-content {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        box-shadow: none !important;
+    }
+    .top-header,
+    .no-print,
+    .print-hidden,
+    [class*="print:hidden"],
+    header,
+    nav,
+    .menu-overlay,
+    .dropdown-menu,
+    aside {
+        display: none !important;
+    }
+}

@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const PackingListPrint = () => {
+const PackingListPrint = ({ setTitle }) => {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (setTitle) {
+            setTitle(`Packing List #${id}`);
+        }
+    }, [id, setTitle]);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

@@ -33,6 +33,7 @@ import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
+import PackingListPrint from '../pages/PackingListPrint';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
@@ -63,6 +64,7 @@ const ROUTE_MAP = [
     { path: '/admin/users', component: AdminUsers },
     { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
+    { path: '/packing_list/print/:id', component: PackingListPrint },
 ];
 
 const MenuItem = ({ to, label, onClick }) => {
@@ -260,7 +262,7 @@ const Layout = () => {
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
             {/* Header / Shell Bar */}
-            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden border-none">
+            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden no-print border-none">
                 <button
                     className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
                     onClick={toggleMenu}
@@ -317,7 +319,7 @@ const Layout = () => {
 
             {/* Sidebar Menu Sincronizado a 48px */}
             <div
-                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
                 <nav className="py-4">
@@ -370,7 +372,7 @@ const Layout = () => {
 
             {/* Overlay Sincronizado a 48px */}
             <div
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] print:hidden no-print ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 style={{ top: '48px' }}
                 onClick={toggleMenu}
             ></div>
