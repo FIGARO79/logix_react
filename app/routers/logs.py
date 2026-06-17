@@ -237,7 +237,75 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                 'Ubicación', 'Reubicación', 'Cant. Recibida', 'Cant. Esperada', 'Diferencia']
 
     # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
-    # 1. Obtener cantidad esperada del GRN CSV por itemCode e importReference
+    # 1. Cargar el mapa grn_to_ir una sola vez
+    import os
+    import orjson
+    from app.models.sql_models import GRNMaster
+    from app.core.config import GRN_JSON_DATA_PATH, PO_LOOKUP_JSON_PATH
+
+    grn_to_ir = {}
+    
+    # A. Desde grn_master_data.json
+    if os.path.exists(GRN_JSON_DATA_PATH):
+        try:
+            with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                for row in orjson.loads(f.read()):
+                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                    if ir and grn:
+                        grn_to_ir[grn] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando GRN JSON: {e}")
+
+    # B. Desde DB GRN Master
+    if db:
+        try:
+            db_grns = await db.execute(select(GRNMaster))
+            for g_master in db_grns.scalars().all():
+                ir = str(g_master.import_reference).strip().upper()
+                if ir and g_master.grn_number:
+                    for g in str(g_master.grn_number).split(','):
+                        if g.strip():
+                            grn_to_ir[g.strip().upper()] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando GRN Master de DB: {e}")
+
+    # C. Desde po_lookup.json
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
+                po_cache = orjson.loads(f.read())
+                for wb, data in po_cache.get("wb_to_data", {}).items():
+                    ir = str(data.get("import_ref", "")).strip().upper()
+                    for item in data.get("items", []):
+                        grn_val = str(item.get("grn", "")).strip().upper()
+                        if grn_val and ir:
+                            for g in grn_val.split(','):
+                                if g.strip():
+                                    grn_to_ir[g.strip().upper()] = ir
+        except Exception as e:
+            print(f"⚠️ Error cargando PO Lookup: {e}")
+
+    # 2. Cargar df_grn_cache y construir mapa de sumas esperado
+    await csv_handler.reload_cache_if_needed()
+    df_grn = csv_handler.df_grn_cache
+
+    precalculated_expected = {}
+    if df_grn is not None:
+        for row in df_grn.select(["Item_Code", "GRN_Number", "Quantity"]).iter_rows():
+            item_code_raw, grn_num_raw, qty_raw = row
+            if not item_code_raw:
+                continue
+            item_code = str(item_code_raw).strip().upper()
+            grn_num = str(grn_num_raw).strip().upper()
+            qty = int(qty_raw or 0)
+            
+            ir = grn_to_ir.get(grn_num)
+            if ir:
+                norm_key = f"{item_code}|{ir}"
+                precalculated_expected[norm_key] = precalculated_expected.get(norm_key, 0) + qty
+
+    # 3. Obtener cantidad esperada por itemCode e importReference de logs
     expected_map = {}
     for log in logs:
         code = log.get('itemCode')
@@ -245,7 +313,9 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
         if code and ir:
             key = f"{code}|{ir}"
             if key not in expected_map:
-                expected_map[key] = await csv_handler.get_expected_quantity_by_ir_and_item(code, ir, db=db)
+                norm_code = str(code).strip().upper()
+                norm_ir = str(ir).strip().upper()
+                expected_map[key] = precalculated_expected.get(f"{norm_code}|{norm_ir}", 0)
 
     # 2. Calcular total recibido por (itemCode, importReference) y encontrar el log más reciente
     #    Ordenamos por ID descendente para marcar la "última" fila del item para esa I.R.
