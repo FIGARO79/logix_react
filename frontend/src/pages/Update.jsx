@@ -30,6 +30,9 @@ const Update = () => {
     const [clearPassword, setClearPassword] = useState('');
     const [backupPassword, setBackupPassword] = useState('');
     const [deleteMaestroPassword, setDeleteMaestroPassword] = useState('');
+    const [showBackupPassword, setShowBackupPassword] = useState(false);
+    const [showDeleteMaestroPassword, setShowDeleteMaestroPassword] = useState(false);
+    const [showClearPassword, setShowClearPassword] = useState(false);
     const [syncStatus, setSyncStatus] = useState({});
 
     // GRN Selection State
@@ -371,19 +374,52 @@ const Update = () => {
                             {/* Backup */}
                             <form onSubmit={async (e) => {
                                 e.preventDefault(); setIsLoading(true);
+                                setMessages({ success: '', error: '', info: 'Generando respaldo...' });
                                 try {
                                     const res = await fetch('/api/export_all_log', { method: 'POST', body: new FormData(e.target) });
                                     if (res.ok) {
                                         const blob = await res.blob();
                                         const url = window.URL.createObjectURL(blob);
                                         const a = document.createElement('a'); a.href = url; a.download = `LOGIX_BACKUP_${new Date().toISOString().slice(0,10)}.xlsx`;
-                                        a.click(); setMessages({ success: "BACKUP GENERADO", error: '' });
+                                        a.click(); setMessages({ success: "BACKUP GENERADO", error: '', info: '' });
+                                    } else {
+                                        const data = await res.json().catch(() => ({}));
+                                        setMessages({ success: '', error: data.error || `ERROR AL GENERAR RESPALDO (CÓDIGO ${res.status})`, info: '' });
                                     }
-                                } catch (err) { setMessages({ error: "ERROR EN BACKUP" }); }
+                                } catch (err) { 
+                                    setMessages({ success: '', error: "ERROR DE CONEXIÓN AL GENERAR RESPALDO", info: '' }); 
+                                }
                                 finally { setIsLoading(false); setBackupPassword(''); }
                             }} className="space-y-3">
                                 <label className="text-[12px] font-normal text-black uppercase">Exportación de Históricos</label>
-                                <input type="password" name="password" placeholder="Contraseña Admin" value={backupPassword} onChange={e => setBackupPassword(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-3 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" required />
+                                <div className="relative w-full">
+                                    <input 
+                                        type={showBackupPassword ? "text" : "password"} 
+                                        name="password" 
+                                        placeholder="Contraseña Admin" 
+                                        value={backupPassword} 
+                                        onChange={e => setBackupPassword(e.target.value)} 
+                                        className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" 
+                                        required 
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBackupPassword(!showBackupPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showBackupPassword ? (
+                                            <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                                 <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">Generar Respaldo</button>
                             </form>
 
@@ -425,14 +461,33 @@ const Update = () => {
                                         </div>
                                         
                                         <form onSubmit={handleDeleteMaestroGrns} className="space-y-2">
-                                            <input 
-                                                type="password" 
-                                                placeholder="Contraseña Admin" 
-                                                value={deleteMaestroPassword} 
-                                                onChange={e => setDeleteMaestroPassword(e.target.value)} 
-                                                className="w-full h-8 border border-zinc-200 rounded px-3 text-[12px] outline-none bg-zinc-50 focus:bg-white text-black placeholder:text-zinc-400" 
-                                                required 
-                                            />
+                                            <div className="relative w-full">
+                                                <input 
+                                                    type={showDeleteMaestroPassword ? "text" : "password"} 
+                                                    placeholder="Contraseña Admin" 
+                                                    value={deleteMaestroPassword} 
+                                                    onChange={e => setDeleteMaestroPassword(e.target.value)} 
+                                                    className="w-full h-8 border border-zinc-200 rounded pl-3 pr-10 text-[12px] outline-none bg-zinc-50 focus:bg-white text-black placeholder:text-zinc-400" 
+                                                    required 
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowDeleteMaestroPassword(!showDeleteMaestroPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 focus:outline-none"
+                                                    tabIndex={-1}
+                                                >
+                                                    {showDeleteMaestroPassword ? (
+                                                        <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            </div>
                                             <button 
                                                 type="submit" 
                                                 disabled={isLoading || selectedMaestroGrns.length === 0}
@@ -462,7 +517,34 @@ const Update = () => {
                         finally { setIsLoading(false); setClearPassword(''); }
                     }} className="space-y-3 pt-6 border-t border-zinc-100 mt-8">
                         <label className="text-[12px] font-normal text-black uppercase">Zona de Riesgo: Reset Total</label>
-                        <input type="password" name="password" placeholder="Contraseña Admin" value={clearPassword} onChange={e => setClearPassword(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-3 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" required />
+                        <div className="relative w-full">
+                            <input 
+                                type={showClearPassword ? "text" : "password"} 
+                                name="password" 
+                                placeholder="Contraseña Admin" 
+                                value={clearPassword} 
+                                onChange={e => setClearPassword(e.target.value)} 
+                                className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" 
+                                required 
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowClearPassword(!showClearPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 focus:outline-none"
+                                tabIndex={-1}
+                            >
+                                {showClearPassword ? (
+                                    <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4 text-zinc-500 hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
                         <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight hover:bg-blue-500 hover:text-white hover:border-blue-500 shadow-sm transition-colors">Limpiar Base de Datos</button>
                     </form>
                 </div>

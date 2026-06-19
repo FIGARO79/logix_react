@@ -419,7 +419,7 @@ async def export_all_log_api(request: Request, password: str = Form(...), db: As
         logs_data = await db_logs.load_all_logs_db_async(db)
         if not logs_data: return ORJSONResponse(status_code=404, content={"error": "No hay datos"})
         
-        df = pl.DataFrame(logs_data)
+        df = pl.DataFrame(logs_data, infer_schema_length=None)
         col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}
         available = {k: v for k, v in col_rename.items() if k in df.columns}
         df_export = df.rename(available)
