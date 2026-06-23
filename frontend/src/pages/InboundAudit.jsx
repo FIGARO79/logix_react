@@ -17,6 +17,8 @@ const InboundAudit = () => {
     const [resolveStatus, setResolveStatus] = useState('resolved'); // resolved, dismissed
     const [selectedAlertIds, setSelectedAlertIds] = useState([]);
     const [isBulkResolve, setIsBulkResolve] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [clearing, setClearing] = useState(false);
 
 
     useEffect(() => {
@@ -55,6 +57,26 @@ const InboundAudit = () => {
             setError(err.message);
         } finally {
             setRunningAudit(false);
+        }
+    };
+
+    const handleClearAlerts = async (target) => {
+        setClearing(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/inbound/auditor/clear?target=${target}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (!res.ok) throw new Error("Error al limpiar las alertas de auditoría.");
+            const data = await res.json();
+            alert(data.message || "Limpieza realizada con éxito.");
+            setShowClearModal(false);
+            loadAlerts();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setClearing(false);
         }
     };
 
@@ -190,6 +212,15 @@ const InboundAudit = () => {
                             </button>
                         )}
                     </div>
+                    <button
+                        onClick={() => setShowClearModal(true)}
+                        className="px-4 py-1.5 text-xs font-medium rounded-md shadow-sm text-slate-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                    >
+                        <svg className="w-3.5 h-3.5 text-gray-550" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Limpiar Alertas
+                    </button>
                     <button
                         onClick={handleRunAudit}
                         disabled={runningAudit}
@@ -467,6 +498,65 @@ const InboundAudit = () => {
                             </button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {/* MODAL: Limpiar Alertas / Base de datos */}
+            {showClearModal && (
+                <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center z-[2000] p-4">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden">
+                        <div className="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">
+                            <span className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                                <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Limpiar Base de Datos de Alertas
+                            </span>
+                            <button type="button" onClick={() => setShowClearModal(false)} className="text-xl hover:text-gray-200 focus:outline-none">&times;</button>
+                        </div>
+                        <div className="p-5 flex flex-col gap-4">
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                                Selecciona una opción para depurar la base de datos de auditorías. Esto ayuda a eliminar falsos positivos de ítems que ya han sido recibidos o limpiar el historial de alertas inactivas.
+                            </p>
+                            
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={() => handleClearAlerts('history')}
+                                    disabled={clearing}
+                                    className="p-3 text-left border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40 rounded-lg transition-all flex flex-col gap-1 group"
+                                >
+                                    <span className="text-xs font-semibold text-slate-850 group-hover:text-[#285f94]">
+                                        Limpiar Historial (Resueltas / Descartadas)
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">
+                                        Mantiene las alertas activas (Pendientes) pero elimina de forma permanente todos los registros del historial.
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => handleClearAlerts('all')}
+                                    disabled={clearing}
+                                    className="p-3 text-left border border-gray-200 hover:border-red-400 hover:bg-red-50/40 rounded-lg transition-all flex flex-col gap-1 group"
+                                >
+                                    <span className="text-xs font-semibold text-slate-850 group-hover:text-red-650">
+                                        Reiniciar Base de Datos (Eliminar Todo)
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">
+                                        Elimina absolutamente todas las alertas de auditoría. Al ejecutar una nueva auditoría posteriormente, se volverán a generar solo las discrepancias activas reales.
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t">
+                            <button
+                                type="button"
+                                onClick={() => setShowClearModal(false)}
+                                className="px-4 py-1.5 text-xs font-medium text-gray-650 hover:bg-gray-200 rounded transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

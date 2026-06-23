@@ -139,3 +139,19 @@ async def resolve_auditor_alert(
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
     
     return {"status": "success", "message": f"Alerta marcada como {data.status}"}
+
+
+@router.post("/auditor/clear")
+async def clear_auditor_alerts(
+    target: str,  # "all" o "history"
+    user: str = Depends(permission_required("inbound"))
+):
+    """Limpia las alertas de la base de datos de auditoría."""
+    if target not in ["all", "history"]:
+        raise HTTPException(status_code=400, detail="Target de limpieza inválido")
+    try:
+        res = inbound_auditor.clear_alerts(target)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

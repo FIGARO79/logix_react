@@ -284,3 +284,18 @@ def resolve_alerts_bulk(alert_ids: List[str], status: str, resolution_notes: str
         save_alerts(alerts)
     return resolved_count
 
+
+def clear_alerts(target: str) -> Dict[str, Any]:
+    """Limpia las alertas de la base de datos de auditoría (archivo JSON)."""
+    if target == 'all':
+        save_alerts([])
+        return {"status": "success", "message": "Todas las alertas han sido eliminadas."}
+    elif target == 'history':
+        alerts = load_alerts()
+        pending_alerts = [a for a in alerts if a.get("status") == "pending"]
+        save_alerts(pending_alerts)
+        return {"status": "success", "message": "El historial de alertas resueltas y descartadas ha sido limpiado."}
+    else:
+        raise ValueError("Target de limpieza no válido")
+
+
