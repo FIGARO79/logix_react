@@ -15,6 +15,9 @@ const InboundAudit = () => {
     const [resolveModalAlert, setResolveModalAlert] = useState(null); // Alerta para resolver
     const [resolutionNotes, setResolutionNotes] = useState('');
     const [resolveStatus, setResolveStatus] = useState('resolved'); // resolved, dismissed
+    const [selectedAlertIds, setSelectedAlertIds] = useState([]);
+    const [isBulkResolve, setIsBulkResolve] = useState(false);
+
 
     useEffect(() => {
         setTitle("Auditoría de Inbound");
@@ -46,7 +49,7 @@ const InboundAudit = () => {
             });
             if (!res.ok) throw new Error("Error al ejecutar la auditoría.");
             const result = await res.json();
-            alert(`Auditoría ejecutada con éxito. Nuevas alertas: ${result.new_alerts}`);
+            alert(`Auditoría ejecutada con éxito.\nNuevas alertas: ${result.new_alerts}\nAlertas eliminadas (conciliadas): ${result.auto_resolved || 0}`);
             loadAlerts();
         } catch (err) {
             setError(err.message);
@@ -57,27 +60,54 @@ const InboundAudit = () => {
 
     const handleResolveSubmit = async (e) => {
         e.preventDefault();
-        if (!resolveModalAlert) return;
+        if (!isBulkResolve && !resolveModalAlert) return;
+        if (isBulkResolve && selectedAlertIds.length === 0) return;
 
         try {
-            const res = await fetch(`/api/inbound/auditor/alerts/${resolveModalAlert.id}/resolve`, {
+            const url = isBulkResolve 
+                ? '/api/inbound/auditor/alerts/resolve-bulk'
+                : `/api/inbound/auditor/alerts/${resolveModalAlert.id}/resolve`;
+                
+            const body = isBulkResolve
+                ? { alert_ids: selectedAlertIds, status: resolveStatus, resolution_notes: resolutionNotes }
+                : { status: resolveStatus, resolution_notes: resolutionNotes };
+
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: resolveStatus,
-                    resolution_notes: resolutionNotes
-                }),
+                body: JSON.stringify(body),
                 credentials: 'include'
             });
 
-            if (!res.ok) throw new Error("No se pudo resolver la alerta.");
+            if (!res.ok) throw new Error(isBulkResolve ? "No se pudieron resolver las alertas." : "No se pudo resolver la alerta.");
             
             setResolveModalAlert(null);
+            setIsBulkResolve(false);
             setResolutionNotes('');
+            setSelectedAlertIds([]);
             loadAlerts();
         } catch (err) {
             alert(err.message);
         }
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            const visiblePendingIds = filteredAlerts
+                .filter(a => a.status === 'pending')
+                .map(a => a.id);
+            setSelectedAlertIds(visiblePendingIds);
+        } else {
+            setSelectedAlertIds([]);
+        }
+    };
+
+    const handleSelectRow = (alertId) => {
+        setSelectedAlertIds(prev => 
+            prev.includes(alertId) 
+                ? prev.filter(id => id !== alertId)
+                : [...prev, alertId]
+        );
     };
 
     const copyToClipboard = (text) => {
@@ -198,12 +228,49 @@ const InboundAudit = () => {
                 </button>
             </div>
 
+            {/* Bulk Action Bar */}
+            {activeTab === 'pending' && selectedAlertIds.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 p-3 mb-4 rounded-lg flex justify-between items-center animate-fade-in shadow-sm">
+                    <span className="text-xs text-blue-700 font-semibold">
+                        {selectedAlertIds.length} alertas seleccionadas
+                    </span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setIsBulkResolve(true);
+                                setResolveStatus('resolved');
+                                setResolutionNotes('');
+                            }}
+                            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow-sm transition-all"
+                        >
+                            Resolver Selección
+                        </button>
+                        <button
+                            onClick={() => setSelectedAlertIds([])}
+                            className="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs font-semibold transition-all"
+                        >
+                            Desmarcar Todo
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Alertas Table */}
             <div className="bg-white shadow-sm rounded-b-lg overflow-hidden border border-gray-200">
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-slate-700 text-white">
                             <tr>
+                                {activeTab === 'pending' && (
+                                    <th className="px-4 py-2 text-center font-medium w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={filteredAlerts.length > 0 && selectedAlertIds.length === filteredAlerts.filter(a => a.status === 'pending').length}
+                                            onChange={handleSelectAll}
+                                            className="rounded border-gray-300 text-[#285f94] focus:ring-[#285f94] cursor-pointer"
+                                        />
+                                    </th>
+                                )}
                                 <th className="px-4 py-2 text-left font-medium">FECHA DETECCIÓN</th>
                                 <th className="px-4 py-2 text-left font-medium">I.R.</th>
                                 <th className="px-4 py-2 text-left font-medium">GRN / BULTO</th>
@@ -219,16 +286,26 @@ const InboundAudit = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {loading ? (
-                                <tr><td colSpan="11" className="py-8 text-center text-gray-500">Cargando alertas...</td></tr>
+                                <tr><td colSpan={activeTab === 'pending' ? 12 : 11} className="py-8 text-center text-gray-500">Cargando alertas...</td></tr>
                             ) : filteredAlerts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="11" className="py-8 text-center text-gray-500 italic">
+                                    <td colSpan={activeTab === 'pending' ? 12 : 11} className="py-8 text-center text-gray-500 italic">
                                         No hay alertas registradas en esta sección.
                                     </td>
                                 </tr>
                             ) : (
                                 filteredAlerts.map(alert => (
-                                    <tr key={alert.id} className="hover:bg-slate-50 transition-colors">
+                                    <tr key={alert.id} className={`hover:bg-slate-50 transition-colors ${selectedAlertIds.includes(alert.id) ? 'bg-blue-50/40 hover:bg-blue-50/60' : ''}`}>
+                                        {activeTab === 'pending' && (
+                                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAlertIds.includes(alert.id)}
+                                                    onChange={() => handleSelectRow(alert.id)}
+                                                    className="rounded border-gray-300 text-[#285f94] focus:ring-[#285f94] cursor-pointer"
+                                                />
+                                            </td>
+                                        )}
                                         <td className="px-4 py-3 whitespace-nowrap text-gray-500">{formatDate(alert.created_at)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-850">{alert.import_reference}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-gray-650">{alert.grn}</td>
@@ -236,14 +313,22 @@ const InboundAudit = () => {
                                         <td className="px-4 py-3 text-gray-750 max-w-xs truncate" title={alert.description}>{alert.description}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center text-gray-700 font-semibold">{alert.qty_expected}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center text-gray-700 font-semibold">{alert.qty_received}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-center text-red-600 font-bold">{alert.difference}</td>
+                                        <td className={`px-4 py-3 whitespace-nowrap text-center font-bold ${alert.difference > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            {alert.difference > 0 ? `+${alert.difference}` : alert.difference}
+                                        </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center">
                                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                                 alert.alert_type === 'recurrent_shortage'
                                                     ? 'bg-red-100 text-red-700 border border-red-200'
-                                                    : 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                    : alert.alert_type === 'surplus'
+                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        : 'bg-amber-100 text-amber-700 border border-amber-200'
                                             }`}>
-                                                {alert.alert_type === 'recurrent_shortage' ? 'Faltante Recurrente' : 'Faltante Inicial'}
+                                                {alert.alert_type === 'recurrent_shortage'
+                                                    ? 'Faltante Recurrente'
+                                                    : alert.alert_type === 'surplus'
+                                                        ? 'Sobrante / Excedente'
+                                                        : 'Faltante Inicial'}
                                             </span>
                                         </td>
                                         {activeTab === 'history' && (
@@ -323,18 +408,25 @@ const InboundAudit = () => {
             )}
 
             {/* MODAL: Resolver Alerta */}
-            {resolveModalAlert && (
+            {(resolveModalAlert || isBulkResolve) && (
                 <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center z-[2000] p-4">
                     <form onSubmit={handleResolveSubmit} className="bg-white rounded-lg shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden">
                         <div className="bg-[#285f94] text-white px-5 py-3 flex justify-between items-center">
-                            <span className="text-sm font-semibold uppercase tracking-wider">Resolver Alerta</span>
-                            <button type="button" onClick={() => setResolveModalAlert(null)} className="text-xl hover:text-gray-200 focus:outline-none">&times;</button>
+                            <span className="text-sm font-semibold uppercase tracking-wider">{isBulkResolve ? "Resolución Masiva" : "Resolver Alerta"}</span>
+                            <button type="button" onClick={() => { setResolveModalAlert(null); setIsBulkResolve(false); }} className="text-xl hover:text-gray-200 focus:outline-none">&times;</button>
                         </div>
                         <div className="p-5 flex flex-col gap-4">
-                            <div className="text-xs bg-slate-50 p-3 rounded border">
-                                <p className="font-semibold text-gray-700">Ítem: {resolveModalAlert.item_code} - {resolveModalAlert.description}</p>
-                                <p className="text-gray-500 mt-1">Ref. Importación: {resolveModalAlert.import_reference} | Faltante: {resolveModalAlert.difference} un.</p>
-                            </div>
+                            {isBulkResolve ? (
+                                <div className="text-xs bg-slate-50 p-3 rounded border">
+                                    <p className="font-semibold text-gray-700">Resolución masiva de alertas</p>
+                                    <p className="text-gray-500 mt-1">Se marcarán {selectedAlertIds.length} alertas seleccionadas como resueltas o descartadas simultáneamente.</p>
+                                </div>
+                            ) : (
+                                <div className="text-xs bg-slate-50 p-3 rounded border">
+                                    <p className="font-semibold text-gray-700">Ítem: {resolveModalAlert.item_code} - {resolveModalAlert.description}</p>
+                                    <p className="text-gray-500 mt-1">Ref. Importación: {resolveModalAlert.import_reference} | Faltante: {resolveModalAlert.difference} un.</p>
+                                </div>
+                            )}
                             
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] uppercase font-bold text-gray-500">Acción de Resolución</label>
@@ -362,7 +454,7 @@ const InboundAudit = () => {
                         <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t">
                             <button
                                 type="button"
-                                onClick={() => setResolveModalAlert(null)}
+                                onClick={() => { setResolveModalAlert(null); setIsBulkResolve(false); }}
                                 className="px-4 py-1.5 text-xs font-medium text-gray-650 hover:bg-gray-200 rounded transition-colors"
                             >
                                 Cancelar

@@ -84,6 +84,43 @@ const ManageCycleCountDifferences = () => {
         }
     };
 
+    const handleExportToExcel = () => {
+        if (!data || data.length === 0) {
+            alert("No hay datos para exportar");
+            return;
+        }
+
+        const headers = ['Fecha', 'Item Code', 'Descripción', 'Ubicación', 'ABC', 'Sistema', 'Física', 'Diferencia', 'Usuario'];
+        
+        const rows = data.map(row => [
+            formatDate(row.executed_date),
+            row.item_code,
+            `"${(row.item_description || '').replace(/"/g, '""')}"`,
+            row.bin_location,
+            row.abc_code,
+            row.system_qty,
+            row.physical_qty,
+            row.difference,
+            row.username
+        ]);
+
+        const csvContent = [
+            headers.join(';'),
+            ...rows.map(e => e.join(';'))
+        ].join('\n');
+
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `diferencias_conteo_${year}_${month || 'todos'}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+
     return (
         <div className="max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
 
@@ -129,12 +166,21 @@ const ManageCycleCountDifferences = () => {
                     <label htmlFor="onlyDiff" className="ml-2 text-[12px] uppercase font-medium  text-black tracking-tight cursor-pointer select-none">Solo Diferencias</label>
                 </div>
                 <div className="flex-grow"></div>
-                <button
-                    onClick={fetchData}
-                    className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
-                >
-                    Actualizar Vista
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleExportToExcel}
+                        disabled={data.length === 0}
+                        className="h-8 bg-emerald-700 disabled:bg-zinc-200 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-emerald-800 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-sm"
+                    >
+                        Exportar a Excel
+                    </button>
+                    <button
+                        onClick={fetchData}
+                        className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
+                    >
+                        Actualizar Vista
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white shadow-sm border border-zinc-200 overflow-x-auto">

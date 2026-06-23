@@ -98,6 +98,11 @@ async def get_auditor_alerts(
     """Obtiene la lista de alertas generadas por el Agente de Auditoría."""
     return inbound_auditor.load_alerts()
 
+class ResolveAlertBulkRequest(BaseModel):
+    alert_ids: list[str]
+    status: str
+    resolution_notes: Optional[str] = ""
+
 @router.post("/auditor/run")
 async def run_auditor_trigger(
     db: AsyncSession = Depends(get_db),
@@ -106,6 +111,18 @@ async def run_auditor_trigger(
     """Ejecuta de manera inmediata la auditoría algorítmica de Inbound."""
     res = await inbound_auditor.run_inbound_audit(db)
     return res
+
+@router.post("/auditor/alerts/resolve-bulk")
+async def resolve_auditor_alerts_bulk(
+    data: ResolveAlertBulkRequest,
+    user: str = Depends(permission_required("inbound"))
+):
+    """Marca un conjunto de alertas como resueltas o descartadas de forma masiva."""
+    if data.status not in ["resolved", "dismissed"]:
+        raise HTTPException(status_code=400, detail="Estado de resolución inválido")
+    
+    count = inbound_auditor.resolve_alerts_bulk(data.alert_ids, data.status, data.resolution_notes)
+    return {"status": "success", "message": f"{count} alertas marcadas como {data.status}"}
 
 @router.post("/auditor/alerts/{alert_id}/resolve")
 async def resolve_auditor_alert(
