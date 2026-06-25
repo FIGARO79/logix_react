@@ -71,41 +71,82 @@ const InboundHistory = () => {
                 } catch (e) { console.error("Error loading pending logs", e); }
             }
 
-            const combinedData = [...pendingLogs, ...serverData];
+            // Deduplicación estricta usando Map por UUID (client_id)
+            const logMap = new Map();
 
-            // Ordenar por fecha (más reciente primero)
-            const sortedData = combinedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            // 1. Primero los pendientes locales (prioridad más baja)
+            pendingLogs.forEach(log => {
+                const key = log.id;
+                logMap.set(key, log);
+            });
+
+            // 2. Después los del servidor (sobrescriben cualquier pendiente con el mismo client_id)
+            serverData.forEach(log => {
+                const key = log.client_id || `server_${log.id}`;
+                logMap.set(key, log);
+            });
+
+            // 3. Ordenar por fecha (más reciente primero)
+            const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
+                const timeA = new Date(a.timestamp).getTime();
+                const timeB = new Date(b.timestamp).getTime();
+                if (timeB !== timeA) return timeB - timeA;
+                return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
+            });
 
             // Obtener datos del reporte 280 desde IndexedDB (Cache local)
             const grnMap = {};
             try {
                 const db = await getDB();
-                const uniqueItems = [...new Set(sortedData.map(l => l.itemCode))];
-                for (const itemCode of uniqueItems) {
-                    const grnInfo = await db.get('grn_pending', itemCode);
-                    grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
+                for (const log of allLogsSorted) {
+                    const code = log.itemCode;
+                    const ir = log.importReference || log.importRef || '';
+                    const key = `${code}|${ir}`;
+                    if (!(key in grnMap)) {
+                        const dbKey = `${code}_${ir}`;
+                        const grnInfo = await db.get('grn_pending', dbKey);
+                        let expectedQty = grnInfo ? grnInfo.total_expected : 0;
+                        if (!expectedQty || expectedQty === 0) {
+                            const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
+                            if (poInfo && poInfo.items) {
+                                expectedQty = poInfo.items
+                                    .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
+                                    .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
+                            }
+                        }
+                        grnMap[key] = expectedQty;
+                    }
                 }
             } catch (e) { console.error("Offline GRN error", e); }
 
-            // Calcular totales por ítem y marcar última entrada para mostrar diferencia
+            // Calcular totales y encontrar última entrada para cada itemCode|importReference
             const totalsMap = {};
             const latestEntryMap = {};
 
-            sortedData.forEach(log => {
+            allLogsSorted.forEach(log => {
                 const code = log.itemCode;
-                totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
-                if (!latestEntryMap[code]) latestEntryMap[code] = log.id;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+                totalsMap[key] = (totalsMap[key] || 0) + qty;
+
+                if (!latestEntryMap[key]) {
+                    latestEntryMap[key] = log.id;
+                }
             });
 
-            const enrichedLogs = sortedData.map(log => {
-                const expected = grnMap[log.itemCode] || parseInt(log.qtyGrn) || 0;
-                const totalReceived = totalsMap[log.itemCode] || 0;
-                const isLatest = latestEntryMap[log.itemCode] === log.id;
+            const enrichedLogs = allLogsSorted.map(log => {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const expected = grnMap[key] || parseInt(log.qtyGrn) || parseInt(log.quantity) || 0;
+                const totalReceived = totalsMap[key] || 0;
+                const isLatest = latestEntryMap[key] === log.id;
 
                 return {
                     ...log,
                     expected_qty: expected,
-                    calculatedDifference: isLatest ? (totalReceived - expected) : 0
+                    difference: isLatest ? (totalReceived - expected) : 0
                 };
             });
 
@@ -212,9 +253,9 @@ const InboundHistory = () => {
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.binLocation}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-800 font-mono">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-center font-mono">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.expected_qty}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
-                                        {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-500 font-mono">{log.expected_qty || 0}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap text-center font-mono font-semibold ${(log.difference || 0) < 0 ? 'text-red-600' : (log.difference || 0) > 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+                                        {(log.difference || 0) > 0 ? `+${log.difference}` : log.difference || 0}
                                     </td>
                                 </tr>
                             ))}
