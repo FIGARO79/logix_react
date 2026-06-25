@@ -77,7 +77,8 @@ export const downloadMasterData = async () => {
                     id: `ir_${normalizedIr}`, 
                     type: 'ir', 
                     value: normalizedIr, 
-                    waybill: info.waybill 
+                    waybill: info.waybill,
+                    items: info.items
                 }));
             }
         }

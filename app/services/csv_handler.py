@@ -249,3 +249,138 @@ async def read_csv_safe_polars(file_path: str, columns: list = None):
             return df.select(available)
         return df
     except: return None
+
+async def get_expected_quantity_from_po(import_reference: str, item_code: str) -> int:
+    """Busca la cantidad esperada de un artículo específico para una Import Reference dada en la caché de PO."""
+    if not import_reference or not item_code:
+        return 0
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    import_reference = import_reference.strip().upper()
+    item_code = item_code.strip().upper()
+    
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+            items = ir_data.get("items", [])
+            
+            # Sumar las cantidades despachadas por si el artículo está repetido en diferentes líneas de la misma importación
+            total_qty = 0
+            for it in items:
+                if str(it.get("item_code", "")).strip().upper() == item_code:
+                    try:
+                        total_qty += int(float(it.get("qty", 0)))
+                    except:
+                        pass
+            return total_qty
+        except Exception as e:
+            print(f"Error al obtener cantidad de PO desde cache: {e}")
+    return 0
+
+
+async def get_expected_breakdown_by_item(item_code: str) -> list:
+    """Obtiene el desglose de cantidades esperadas de un artículo agrupado por Import Reference."""
+    item_code = item_code.strip().upper()
+    if not item_code:
+        return []
+    
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    breakdown = []
+    
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            
+            ir_to_data = cache.get("ir_to_data", {})
+            for ir_ref, data in ir_to_data.items():
+                items = data.get("items", [])
+                item_qty = 0
+                grns = set()
+                for it in items:
+                    if str(it.get("item_code", "")).strip().upper() == item_code:
+                        try:
+                            item_qty += int(float(it.get("qty", 0)))
+                        except:
+                            pass
+                        grn_val = it.get("grn", "")
+                        if grn_val:
+                            for g in str(grn_val).split(','):
+                                if g.strip():
+                                    grns.add(g.strip().upper())
+                
+                if item_qty > 0:
+                    breakdown.append({
+                        "ir": ir_ref,
+                        "grn": ",".join(sorted(list(grns))) if grns else "N/A",
+                        "qty": item_qty
+                    })
+        except Exception as e:
+            print(f"Error al obtener desglose de PO: {e}")
+            
+    return breakdown
+
+
+async def get_expected_quantity_from_grn_for_import_ref(import_reference: str, item_code: str) -> Optional[int]:
+    """
+    Busca la cantidad esperada de un artículo específico en el archivo de GRN (AURRSGLBD0280.csv)
+    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json.
+    Retorna None si la GRN no está cargada o no hay GRNs asociadas.
+    """
+    global df_grn_cache
+    if not import_reference or not item_code:
+        return None
+        
+    import_reference = import_reference.strip().upper()
+    item_code = item_code.strip().upper()
+    
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    
+    if not os.path.exists(PO_LOOKUP_JSON_PATH):
+        return None
+        
+    grns = set()
+    try:
+        with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+            cache = orjson.loads(f.read())
+        ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+        items = ir_data.get("items", [])
+        for it in items:
+            if str(it.get("item_code", "")).strip().upper() == item_code:
+                grn_val = it.get("grn", "")
+                if grn_val:
+                    for g in str(grn_val).split(','):
+                        if g.strip():
+                            grns.add(g.strip().upper())
+    except Exception as e:
+        print(f"Error leyendo po_lookup para buscar GRNs: {e}")
+        return None
+        
+    if not grns:
+        return None
+        
+    await reload_cache_if_needed()
+    if df_grn_cache is None:
+        return None
+        
+    grn_list_str = [str(g) for g in grns]
+    
+    try:
+        res = df_grn_cache.filter(
+            (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code) &
+            (pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().is_in(grn_list_str))
+        )
+        if res.height > 0:
+            total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
+            return total_qty
+    except Exception as e:
+        print(f"Error consultando cantidad en cache de GRN: {e}")
+        
+    return None
+

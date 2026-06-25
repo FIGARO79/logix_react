@@ -242,7 +242,16 @@ const Inbound = () => {
                 if (!(key in grnMap)) {
                     const dbKey = `${code}_${ir}`;
                     const grnInfo = await db.get('grn_pending', dbKey);
-                    grnMap[key] = grnInfo ? grnInfo.total_expected : 0;
+                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
+                    if (!expectedQty || expectedQty === 0) {
+                        const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
+                        if (poInfo && poInfo.items) {
+                            expectedQty = poInfo.items
+                                .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
+                                .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
+                        }
+                    }
+                    grnMap[key] = expectedQty;
                 }
             }
         } catch (e) { console.error("Error loading GRN info", e); }
@@ -388,6 +397,41 @@ const Inbound = () => {
                         offlineSuggestedBin = localItem.Bin_1;
                     }
 
+                    // Obtener desglose offline
+                    const allPos = await db.getAll('po_lookup') || [];
+                    const offlineBreakdown = [];
+                    for (const po of allPos) {
+                        if (po.type === 'ir' && po.items) {
+                            let itemQty = 0;
+                            const grns = new Set();
+                            for (const it of po.items) {
+                                if (String(it.item_code).toUpperCase() === normalizedCode) {
+                                    itemQty += parseInt(it.qty) || 0;
+                                    if (it.grn) {
+                                        String(it.grn).split(',').forEach(g => {
+                                            if (g.trim()) grns.add(g.trim().toUpperCase());
+                                        });
+                                    }
+                                }
+                            }
+                            if (itemQty > 0) {
+                                offlineBreakdown.push({
+                                    ir: po.value,
+                                    grn: Array.from(grns).join(',') || 'N/A',
+                                    qty: itemQty
+                                });
+                            }
+                        }
+                    }
+
+                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
+                    if (!expectedQty || expectedQty === 0) {
+                        const matchPo = offlineBreakdown.find(b => b.ir === importRef.trim().toUpperCase());
+                        if (matchPo) {
+                            expectedQty = matchPo.qty;
+                        }
+                    }
+
                     setItemData({
                         itemCode: localItem.Item_Code,
                         description: localItem.Item_Description,
@@ -395,12 +439,13 @@ const Inbound = () => {
                         weight: localItem.Weight_per_Unit,
                         itemType: localItem.ABC_Code_stockroom,
                         sicCode: localItem.SIC_Code_stockroom,
-                        defaultQtyGrn: grnInfo ? grnInfo.total_expected : 0,
+                        defaultQtyGrn: expectedQty,
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
                         xdockCustomers: xdockInfo ? xdockInfo.customers : [],
                         is_offline_result: true,
-                        suggestedBin: offlineSuggestedBin
+                        suggestedBin: offlineSuggestedBin,
+                        expectedBreakdown: offlineBreakdown
                     });
                     if (!editId) {
                         setQuantity('');
