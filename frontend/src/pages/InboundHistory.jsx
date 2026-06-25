@@ -45,8 +45,8 @@ const InboundHistory = () => {
         } catch (e) { console.error("Error loading versions", e); }
     };
 
-    const loadLogs = async (version = '') => {
-        setLoading(true);
+    const loadLogs = async (version = '', isSilent = false) => {
+        if (!isSilent) setLoading(true);
         setCurrentVersion(version);
         try {
             const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
@@ -163,7 +163,7 @@ const InboundHistory = () => {
         // Intervalo para refrescar y ver si los pendientes ya se sincronizaron
         const interval = setInterval(() => {
             // Solo si no estamos viendo una versión archivada
-            if (!currentVersion) loadLogs();
+            if (!currentVersion) loadLogs(currentVersion, true);
         }, 15000);
         return () => clearInterval(interval);
     }, [currentVersion]);
