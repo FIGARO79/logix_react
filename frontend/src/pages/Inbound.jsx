@@ -649,10 +649,10 @@ const Inbound = () => {
     return (
         <>
             <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
-                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-1">
+                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
-                        <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-1">
+                        <div className="lg:col-span-2 bg-white p-2 rounded shadow-sm !mb-0 border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-medium  tracking-tight uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
@@ -668,7 +668,7 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
                                     <label className="form-label font-normal text-gray-800">Import Reference</label>
                                     <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-normal text-black" required />
@@ -707,10 +707,10 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-4"><label className="form-label font-normal text-gray-800">Item Description</label><div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                            <div className="mb-2"><label className="form-label font-normal text-gray-800">Item Description</label><div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                 <div><label className="form-label font-normal text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
-                                <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
                                 <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
@@ -761,19 +761,19 @@ const Inbound = () => {
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>
                                 )}
-                                <div><label className="form-label font-normal text-gray-800">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.sicCode || ''}</div></div>
                             </div>
 
-                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
+                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-2 shadow-sm">
                                 <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
                                 <div className="grid grid-cols-3 gap-4 mb-4">
-                                    <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.defaultQtyGrn || 0}</div></div>
                                     <div><label className="form-label font-normal text-gray-800">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
-                                        }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
+                                        }`} style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
                             <div className="flex gap-3">
@@ -805,7 +805,7 @@ const Inbound = () => {
                         </div>
 
                         <div className="lg:col-span-1">
-                            <h2 className="text-lg font-medium  text-center mb-3">Vista Etiqueta</h2>
+                            <h2 className="text-lg font-medium  text-center mb-1">Vista Etiqueta</h2>
                             <div className="flex justify-center">
                                 <div ref={labelComponentRef} className="bg-white">
                                     <SandvikLabel
@@ -817,7 +817,7 @@ const Inbound = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="w-full flex justify-center mt-4">
+                            <div className="w-full flex justify-center mt-2">
                                 <button
                                     type="button"
                                     onClick={handlePrint}
