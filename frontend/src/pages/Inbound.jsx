@@ -629,9 +629,9 @@ const Inbound = () => {
     return (
         <>
             <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
-                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-1">
+                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-start">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-semibold tracking-tight uppercase">Inbound - Recepción</h1>
@@ -693,14 +693,14 @@ const Inbound = () => {
                                 <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => handleQuantityChange(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
                                 <div><label className="form-label font-semibold text-gray-800">Unidades</label><input type="number" value={labelUnits} onChange={e => setLabelUnits(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
                                 <div><label className="form-label font-semibold text-gray-800">Etiquetas</label><input type="number" value={labelCount} onChange={e => setLabelCount(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
-                                <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
                                 <div><label className="form-label font-semibold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-semibold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 px-2 py-0.5 rounded">{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 rounded">{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 rounded">{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 rounded">{itemData?.sicCode || ''}</div></div>
                             </div>
 
                             {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
@@ -755,9 +755,9 @@ const Inbound = () => {
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
                                 <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label font-semibold text-gray-800">Recibido</label><div className="data-field font-semibold text-2xl text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Esperado</label><div className="data-field font-semibold text-2xl text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Diferencia</label><div className={`data-field font-semibold text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                                    <div><label className="form-label font-semibold text-gray-800">Recibido</label><div className="data-field font-semibold text-xl leading-none text-[#1e4a74]">{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-semibold text-gray-800">Esperado</label><div className="data-field font-semibold text-xl leading-none text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-semibold text-gray-800">Diferencia</label><div className={`data-field font-semibold text-xl leading-none ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>

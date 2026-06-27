@@ -161,8 +161,8 @@ input[type="email"],
 select {
     width: 100%;
     border: 1px solid var(--sap-input-border);
-    padding: 0.5rem 0.75rem;
-    /* 8px 12px */
+    padding: 0.25rem;
+    /* matching data-field */
     border-radius: 0.25rem;
     background-color: transparent;
     font-family: inherit;
@@ -170,7 +170,7 @@ select {
     color: var(--sap-text);
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
-    height: 36px;
+    height: 30px;
     /* Consistent height */
 }
 
@@ -197,10 +197,10 @@ select:focus {
 .data-field {
     background-color: #f8f9fa;
     /* Light gray for read-only */
-    padding: 0.5rem 0.75rem;
+    padding: 0.25rem;
     border-radius: 0.25rem;
-    min-height: 36px;
     border: 1px solid var(--sap-border);
+    min-height: 30px;
     color: var(--sap-text);
     font-size: 0.875rem;
     display: flex;
@@ -215,7 +215,7 @@ button {
     font-size: 0.875rem;
     font-weight: 500;
     padding: 0 1rem;
-    height: 36px;
+    height: 30px;
     /* Standard button height */
     border-radius: 0.25rem;
     border: 1px solid transparent;
@@ -235,12 +235,14 @@ button {
     background-color: var(--sap-primary);
     color: white;
     border-color: var(--sap-primary);
+    height: 30px;
 }
 
 .fiori-button-primary:hover:not(:disabled),
 .btn-primary:hover:not(:disabled) {
     background-color: var(--sap-primary-dark);
     border-color: var(--sap-primary-dark);
+    height: 30px;
 }
 
 /* Secondary / Ghost Button */
