@@ -137,7 +137,7 @@ const InboundHistory = () => {
     return (
         <div className="w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-2 rounded shadow-sm border border-gray-200">
                 <h1 className="text-[16px] font-medium  text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
@@ -164,15 +164,15 @@ const InboundHistory = () => {
                     <select
                         onChange={(e) => loadLogs(e.target.value)}
                         style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                        className="px-3 text-xs font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#285f94] w-full sm:w-40"
+                        className="p-1 text-[12px] font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#285f94] w-full sm:w-40"
                     >
-                        <option value="">-- Actual --</option>
+                        <option value="">Actual</option>
                         {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
                     </select>
                     <button
                         onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'}
                         style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                        className="px-4 text-xs font-normal bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
+                        className="p-1 font-normal bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar

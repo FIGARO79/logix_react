@@ -259,7 +259,7 @@ const Reconciliation = () => {
                         <select
                             value={currentVersion}
                             onChange={handleVersionChange}
-                            className="w-full h-9 px-2 text-[9px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">LOGS ACTUALES</option>
                             {archiveVersions.map(v => (
@@ -272,7 +272,7 @@ const Reconciliation = () => {
                         <select
                             value={currentSnapshot}
                             onChange={handleSnapshotChange}
-                            className="w-full h-9 px-2 text-[9px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">INSTANTÁNEAS</option>
                             {snapshotVersions.map(v => (
@@ -290,7 +290,7 @@ const Reconciliation = () => {
                                 params.append('timezone_offset', new Date().getTimezoneOffset());
                                 window.location.href = `/api/export_reconciliation?${params.toString()}`;
                             }}
-                            className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                            className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                         >
                             Exportar
                         </button>
@@ -298,7 +298,7 @@ const Reconciliation = () => {
                         {!currentSnapshot && (
                             <button
                                 onClick={handleArchiveSnapshot}
-                                className="h-9 px-3 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                             >
                                 Snapshot
                             </button>

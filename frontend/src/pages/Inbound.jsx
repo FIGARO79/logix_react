@@ -821,7 +821,7 @@ const Inbound = () => {
                                 <button
                                     type="button"
                                     onClick={handlePrint}
-                                    className="h-9 px-8 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="h-9 px-16 text-[12px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ background: '#285f94' }}
                                     onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
                                     onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
@@ -835,7 +835,7 @@ const Inbound = () => {
                 </form>
 
                 <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
-                    <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
+                    <div className="bg-zinc-50/50 p-2 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
                         <h2 className="text-base font-medium  text-black tracking-normal uppercase">Registros de ingreso</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
@@ -866,7 +866,7 @@ const Inbound = () => {
 
                             <select
                                 onChange={(e) => loadLogs(e.target.value)}
-                                className="h-9 px-3 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
+                                className="h-9 p-1 text-[12px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
                             >
                                 <option value="">ACTUAL</option>
                                 {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
@@ -878,7 +878,7 @@ const Inbound = () => {
                                     const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
                                     window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
                                 }}
-                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
@@ -888,7 +888,7 @@ const Inbound = () => {
 
                             <button
                                 onClick={handleArchive}
-                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
