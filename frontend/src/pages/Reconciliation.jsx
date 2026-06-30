@@ -109,27 +109,27 @@ const Reconciliation = () => {
                 cleanStr = cleanStr.replace(' ', 'T');
             }
             // Determinar si ya tiene zona horaria (Z o offset +/-)
-            const hasTimezone = cleanStr.endsWith('Z') || 
-                                cleanStr.includes('+') || 
-                                (cleanStr.includes('T') && cleanStr.split('T')[1].includes('-')) ||
-                                (!cleanStr.includes('T') && cleanStr.lastIndexOf('-') > 7);
-            
+            const hasTimezone = cleanStr.endsWith('Z') ||
+                cleanStr.includes('+') ||
+                (cleanStr.includes('T') && cleanStr.split('T')[1].includes('-')) ||
+                (!cleanStr.includes('T') && cleanStr.lastIndexOf('-') > 7);
+
             // Si es hora del servidor sin offset, forzar interpretación como UTC
             if (!hasTimezone) {
                 cleanStr = cleanStr + 'Z';
             }
-            
+
             const date = new Date(cleanStr);
-            return date.toLocaleString('es-CO', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                hour: '2-digit', 
+            return date.toLocaleString('es-CO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
                 minute: '2-digit',
                 hour12: false
             });
-        } catch (e) { 
-            return dateStr; 
+        } catch (e) {
+            return dateStr;
         }
     };
 
@@ -308,7 +308,7 @@ const Reconciliation = () => {
             </div>
 
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
-                <div className="bg-white border border-zinc-200 rounded-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
+                <div className="bg-white border border-zinc-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
                     {loading ? (
                         <div className="flex-1 flex flex-col items-center justify-center py-32 text-zinc-400 text-sm font-medium">
                             Cargando...

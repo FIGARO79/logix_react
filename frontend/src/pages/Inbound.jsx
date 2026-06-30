@@ -648,7 +648,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
+            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-1">
@@ -834,7 +834,7 @@ const Inbound = () => {
                     </div>
                 </form>
 
-                <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
+                <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
                     <div className="bg-zinc-50/50 p-2 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
                         <h2 className="text-base font-medium  text-black tracking-normal uppercase">Registros de ingreso</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
