@@ -79,7 +79,7 @@ const OccupancyDashboard = () => {
         <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
 
             {/* Header / Actions Section */}
-            <div className="mb-8 border-b border-zinc-300 pb-4 flex justify-between items-end">
+            <div className="mb-4 border-b border-zinc-300 pb-4 flex justify-between items-end">
                 <div>
                     <h1 className="text-[14px] font-normal text-black tracking-tight">Ocupación de Bodega</h1>
                     <p className="text-black text-[12px] font-normal">Mapa de Saturación y Densidad de Bins</p>
@@ -93,7 +93,7 @@ const OccupancyDashboard = () => {
             </div>
 
             {/* Global Utilization Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
                 {[
                     { label: 'Total Bins', val: data.summary.total_bins, color: 'text-black' },
                     { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-black' },
@@ -102,9 +102,9 @@ const OccupancyDashboard = () => {
                     { label: 'Active SKUs', val: data.summary.total_items, color: 'text-black' },
                     { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' }
                 ].map((s, i) => (
-                    <div key={i} className="bg-white p-4 border border-zinc-200 shadow-sm text-black">
-                        <label className="text-[12px] uppercase text-black font-normal tracking-tight block mb-1">{s.label}</label>
-                        <p className={`text-[20px] font-normal font-mono ${s.color}`}>{s.val}</p>
+                    <div key={i} className="bg-white px-3 py-1.5 border border-zinc-200 shadow-sm text-black">
+                        <label className="text-[12px] uppercase text-black font-normal tracking-tight block mb-0.5 leading-tight">{s.label}</label>
+                        <p className={`text-[20px] font-normal font-mono leading-none ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
             </div>

@@ -1,5 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+
+const COLUMNS = [
+    { label: 'Fecha', key: 'executed_date', align: 'left' },
+    { label: 'Item Code', key: 'item_code', align: 'left' },
+    { label: 'Descripción', key: 'item_description', align: 'left' },
+    { label: 'Ubicación', key: 'bin_location', align: 'left' },
+    { label: 'ABC', key: 'abc_code', align: 'center' },
+    { label: 'Sistema', key: 'system_qty', align: 'right' },
+    { label: 'Física', key: 'physical_qty', align: 'right' },
+    { label: 'Diff', key: 'difference', align: 'right' },
+    { label: 'Usuario', key: 'username', align: 'left' },
+    { label: 'Acciones', key: null, align: 'center' }
+];
 
 const ManageCycleCountDifferences = () => {
     const { setTitle } = useOutletContext();
@@ -15,6 +28,51 @@ const ManageCycleCountDifferences = () => {
 
     const [editingItem, setEditingItem] = useState(null);
     const [newPhysicalQty, setNewPhysicalQty] = useState('');
+
+    // Ordenamiento
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedData = useMemo(() => {
+        let sortableItems = [...data];
+        if (sortConfig.key !== null) {
+            sortableItems.sort((a, b) => {
+                let valA = a[sortConfig.key];
+                let valB = b[sortConfig.key];
+
+                if (valA === undefined || valA === null) valA = '';
+                if (valB === undefined || valB === null) valB = '';
+
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+                }
+
+                if (sortConfig.key === 'executed_date') {
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+                }
+
+                const strA = String(valA).toLowerCase();
+                const strB = String(valB).toLowerCase();
+                if (strA < strB) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (strA > strB) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [data, sortConfig]);
 
     useEffect(() => {
         setTitle("Gestión de Diferencias");
@@ -185,20 +243,43 @@ const ManageCycleCountDifferences = () => {
 
             <div className="bg-white shadow-sm border border-zinc-200 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-zinc-900 text-white">
+                    <thead className="bg-zinc-900 text-white select-none">
                         <tr>
-                            {['Fecha', 'Item Code', 'Descripción', 'Ubicación', 'ABC', 'Sistema', 'Física', 'Diff', 'Usuario', 'Acciones'].map((h, i) => (
-                                <th key={i} className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap ${i > 4 && i < 8 ? 'text-right' : (i === 4 || i === 9 ? 'text-center' : 'text-left')}`}>{h}</th>
-                            ))}
+                            {COLUMNS.map((col, i) => {
+                                const isSortable = col.key !== null;
+                                const isSorted = sortConfig.key === col.key;
+                                const direction = sortConfig.direction;
+
+                                let alignClass = 'text-left';
+                                if (col.align === 'right') alignClass = 'text-right';
+                                if (col.align === 'center') alignClass = 'text-center';
+
+                                return (
+                                    <th
+                                        key={i}
+                                        onClick={() => isSortable && handleSort(col.key)}
+                                        className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-800 transition-colors' : ''}`}
+                                    >
+                                        <div className={`inline-flex items-center gap-1 ${col.align === 'right' ? 'justify-end w-full' : col.align === 'center' ? 'justify-center w-full' : ''}`}>
+                                            <span>{col.label}</span>
+                                            {isSortable && (
+                                                <span className="text-[10px] text-zinc-400">
+                                                    {isSorted ? (direction === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                         {loading ? (
                             <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">Analizando discrepancias...</td></tr>
-                        ) : data.length === 0 ? (
+                        ) : sortedData.length === 0 ? (
                             <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">No se encontraron diferencias en este periodo.</td></tr>
                         ) : (
-                            data.map((row) => (
+                            sortedData.map((row) => (
                                 <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors leading-none">
                                     <td className="px-4 py-1.5 whitespace-nowrap text-black font-normal">{formatDate(row.executed_date)}</td>
                                     <td className="px-4 py-1.5 font-normal text-black whitespace-nowrap">{row.item_code}</td>
