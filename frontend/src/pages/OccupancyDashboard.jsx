@@ -33,9 +33,11 @@ const OccupancyDashboard = () => {
         setSelectedCell({ zone, level });
         setLoadingDetails(true);
         try {
-            const response = await axios.get('/api/views/occupancy_detail', {
-                params: { zone, level }
-            });
+            const params = { zone };
+            if (level !== null && level !== undefined) {
+                params.level = level;
+            }
+            const response = await axios.get('/api/views/occupancy_detail', { params });
             setCellDetails(response.data);
         } catch (error) {
             console.error('Error fetching occupancy details:', error);
@@ -132,11 +134,22 @@ const OccupancyDashboard = () => {
                                 const zoneOccupancyPct = zoneData.total > 0
                                     ? Math.round((zoneData.occupied / zoneData.total) * 100)
                                     : 0;
+                                const isZoneSelected = selectedCell && selectedCell.zone === zoneName && selectedCell.level === null;
                                 return (
                                     <tr key={zoneName} className="hover:bg-zinc-50/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="text-[12px] font-normal text-black uppercase tracking-tight">{zoneName}</div>
-                                            <div className="text-[12px] text-black font-normal mt-1 uppercase tracking-tight">
+                                        <td 
+                                            onClick={() => handleCellClick(zoneName, null)}
+                                            className={`px-6 py-4 cursor-pointer transition-all duration-200 ${
+                                                isZoneSelected 
+                                                    ? 'bg-zinc-100 border-l-4 border-black font-semibold' 
+                                                    : 'hover:bg-zinc-100/70'
+                                            }`}
+                                        >
+                                            <div className="text-[12px] font-normal text-black uppercase tracking-tight flex items-center gap-1.5">
+                                                <span className="hover:underline">{zoneName}</span>
+                                                <span className="text-[10px] text-zinc-400 font-normal lowercase tracking-normal">(Ver todo)</span>
+                                            </div>
+                                            <div className="text-[12px] text-zinc-500 font-normal mt-1 uppercase tracking-tight">
                                                 {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
                                             </div>
                                         </td>
@@ -211,7 +224,7 @@ const OccupancyDashboard = () => {
                     <div className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center text-black">
                         <div>
                             <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">
-                                Mapa de Ubicaciones: Zona {selectedCell.zone} — Nivel {selectedCell.level}
+                                Mapa de Ubicaciones: Zona {selectedCell.zone} {selectedCell.level !== null ? `— Nivel ${selectedCell.level}` : '— Todos los Niveles'}
                             </h3>
                             <p className="text-[12px] text-black font-normal uppercase tracking-tight mt-1">
                                 {loadingDetails ? 'Cargando infraestructura...' : `${cellDetails.length} Ubicaciones encontradas`}
@@ -235,7 +248,7 @@ const OccupancyDashboard = () => {
                             </div>
                         ) : cellDetails.length === 0 ? (
                             <div className="text-center py-12 text-black text-[12px] font-normal">
-                                No se encontraron bins configurados para la Zona {selectedCell.zone} en el Nivel {selectedCell.level}.
+                                No se encontraron bins configurados para la Zona {selectedCell.zone} {selectedCell.level !== null ? `en el Nivel ${selectedCell.level}` : 'en ningún nivel'}.
                             </div>
                         ) : (
                             <div className="space-y-8 text-black">
@@ -311,14 +324,23 @@ const OccupancyDashboard = () => {
                         Distribución de Bins por Zona
                     </h3>
                     <div className="space-y-4">
-                        {Object.entries(data.analytics.bins_by_zone).map(([zone, count]) => (
-                            <div key={zone} className="flex justify-between items-end border-b border-zinc-50 pb-1.5">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[12px] font-normal text-black">{zone}</span>
-                                </div>
-                                <span className="text-black font-normal text-[12px]">{count} <span className="text-[12px] uppercase ml-0.5 text-black font-normal">Units</span></span>
-                            </div>
-                        ))}
+                        {(() => {
+                            const totalBins = Object.values(data.analytics.bins_by_zone).reduce((acc, val) => acc + val, 0);
+                            return Object.entries(data.analytics.bins_by_zone).map(([zone, count]) => {
+                                const percentage = totalBins > 0 ? ((count / totalBins) * 100).toFixed(1) : 0;
+                                return (
+                                    <div key={zone} className="flex justify-between items-end border-b border-zinc-50 pb-1.5">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[12px] font-normal text-black">{zone}</span>
+                                        </div>
+                                        <span className="text-black font-normal text-[12px]">
+                                            {count} <span className="text-[10px] uppercase ml-0.5 text-zinc-400 font-normal">Units</span>
+                                            <span className="text-black font-mono text-[11px] ml-2">({percentage}%)</span>
+                                        </span>
+                                    </div>
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
 
@@ -328,21 +350,28 @@ const OccupancyDashboard = () => {
                         Densidad de SKUs por Zona
                     </h3>
                     <div className="space-y-6">
-                        {Object.entries(data.analytics.zones_by_items).map(([zone, count]) => {
-                            const maxVal = Object.values(data.analytics.zones_by_items)[0] || 1;
-                            const pct = Math.round((count / maxVal) * 100);
-                            return (
-                                <div key={zone}>
-                                    <div className="flex justify-between text-[12px] font-normal text-black mb-1.5 uppercase tracking-tighter">
-                                        <span>{zone}</span>
-                                        <span className="text-black font-normal text-[12px]">{count}</span>
+                        {(() => {
+                            const totalItems = Object.values(data.analytics.zones_by_items).reduce((acc, val) => acc + val, 0);
+                            return Object.entries(data.analytics.zones_by_items).map(([zone, count]) => {
+                                const maxVal = Object.values(data.analytics.zones_by_items)[0] || 1;
+                                const pct = Math.round((count / maxVal) * 100);
+                                const itemPct = totalItems > 0 ? ((count / totalItems) * 100).toFixed(1) : 0;
+                                return (
+                                    <div key={zone}>
+                                        <div className="flex justify-between text-[12px] font-normal text-black mb-1.5 uppercase tracking-tighter">
+                                            <span>{zone}</span>
+                                            <span className="text-black font-normal text-[12px]">
+                                                {count}
+                                                <span className="text-black font-mono text-[11px] ml-2">({itemPct}%)</span>
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-blue-500" style={{ width: `${pct}%` }}></div>
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500" style={{ width: `${pct}%` }}></div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
 

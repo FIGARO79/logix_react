@@ -529,7 +529,7 @@ async def get_occupancy_stats(
 @router.get('/occupancy_detail', response_model=List[Dict[str, Any]])
 async def get_occupancy_detail(
     zone: str,
-    level: int,
+    level: Optional[int] = None,
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db)
 ):

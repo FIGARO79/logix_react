@@ -376,7 +376,7 @@ class SlottingService:
                 
         return report
 
-    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: int) -> List[Dict[str, Any]]:
+    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: Optional[int] = None) -> List[Dict[str, Any]]:
         """Obtiene el detalle de cada bin para una zona y nivel específicos."""
         occupancy = await self._get_bins_occupancy(db)
         config = await self._get_layout_config(db)
@@ -391,14 +391,14 @@ class SlottingService:
         details = []
         # Normalizar para comparación robusta (quitar espacios, todo mayúsculas)
         target_zone = str(zone).strip().upper()
-        target_level = int(level)
+        target_level = int(level) if level is not None else None
 
         for bin_code, info in storage.items():
             lvl = _to_int(info.get('level', 0))
             current_zone = str(info.get('zone', 'Unknown')).strip().upper()
             
             # Comparación flexible de zona y nivel
-            if current_zone == target_zone and lvl == target_level:
+            if current_zone == target_zone and (target_level is None or lvl == target_level):
                 skus = occupancy.get(bin_code.upper(), 0)
                 details.append({
                     "bin_code": bin_code,
