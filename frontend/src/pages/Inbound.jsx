@@ -13,17 +13,17 @@ import '../styles/Label.css';
 
 
 const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
-    const radius = 28;
+    const radius = 32;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
     
     return (
         <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
-            <div className="relative flex items-center justify-center" style={{ width: '68px', height: '68px' }}>
-                <svg className="transform -rotate-90" style={{ width: '68px', height: '68px' }}>
+            <div className="relative flex items-center justify-center" style={{ width: '75px', height: '75px' }}>
+                <svg className="transform -rotate-90" style={{ width: '75px', height: '75px' }}>
                     <circle 
-                        cx="34" 
-                        cy="34" 
+                        cx="37.5" 
+                        cy="37.5" 
                         r={radius} 
                         className="text-zinc-200" 
                         strokeWidth="4" 
@@ -31,8 +31,8 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
                         fill="transparent" 
                     />
                     <circle 
-                        cx="34" 
-                        cy="34" 
+                        cx="37.5" 
+                        cy="37.5" 
                         r={radius} 
                         stroke={strokeColor} 
                         strokeWidth="4" 
