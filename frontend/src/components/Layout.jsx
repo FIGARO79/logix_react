@@ -26,6 +26,7 @@ import ManageCounts from '../pages/ManageCounts';
 import ViewCounts from '../pages/ViewCounts';
 import EditCount from '../pages/EditCount';
 import InboundHistory from '../pages/InboundHistory';
+import IRReconciliation from '../pages/IRReconciliation';
 import Update from '../pages/Update';
 import CycleCountHistory from '../pages/CycleCountHistory';
 import DashboardInventario from './../pages/DashboardInventario';
@@ -48,6 +49,7 @@ const ROUTE_MAP = [
     { path: '/planner/manage_differences', component: ManageCycleCountDifferences },
     { path: '/picking', component: PickingAudit },
     { path: '/view_logs', component: InboundHistory },
+    { path: '/ir-reconciliation', component: IRReconciliation },
     { path: '/counts', component: CycleCounts },
     { path: '/express-audit', component: ExpressAudit },
     { path: '/counts/manage', component: ManageCounts },
@@ -331,6 +333,7 @@ const Layout = () => {
                         <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
+                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-4">
                         <div className="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>

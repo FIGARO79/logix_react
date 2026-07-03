@@ -40,7 +40,16 @@ async def run_po_robot(start_date: str, end_date: str):
     
     async with async_playwright() as p:
         print(f"🔧 [ROBOT] Navegador Chromium...", flush=True)
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--disable-setuid-sandbox",
+                "--no-sandbox",
+                "--no-zygote"
+            ]
+        )
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
@@ -54,8 +63,11 @@ async def run_po_robot(start_date: str, end_date: str):
             except Exception as e:
                 print(f"⚠️ [ROBOT] Warning en goto: {e}. Intentando continuar...", flush=True)
             
-            print("⏳ [ROBOT] Esperando renderizado (10s)...", flush=True)
-            await asyncio.sleep(10)
+            print("⏳ [ROBOT] Esperando renderizado del selector de países...", flush=True)
+            try:
+                await page.wait_for_selector("#Form_SelectedCountries_2__IsSelected", timeout=30000)
+            except Exception as wait_err:
+                print(f"⚠️ [ROBOT] Warning esperando selector: {wait_err}. Continuando...", flush=True)
             
             initial_snap = os.path.join(debug_dir, "debug_initial.png")
             await page.screenshot(path=initial_snap)
@@ -71,27 +83,35 @@ async def run_po_robot(start_date: str, end_date: str):
             for idx, (sub_start, sub_end) in enumerate(ranges):
                 print(f"📝 [ROBOT] Procesando bloque {idx+1}/{len(ranges)}: {sub_start} a {sub_end}...", flush=True)
                 
-                # Rellenar Fecha Inicio
+                # Rellenar Fecha Inicio (Teclado físico simulado rápido)
                 print(f"   ➤ [ROBOT] Fecha Inicio: {sub_start}", flush=True)
                 start_input = page.locator("#Form_StartDate")
                 await start_input.click()
                 await start_input.clear()
-                await page.keyboard.type(sub_start, delay=50)
+                await page.keyboard.type(sub_start, delay=15)
                 await page.keyboard.press("Enter")
                 
-                # Rellenar Fecha Fin
+                # Rellenar Fecha Fin (Teclado físico simulado rápido)
                 print(f"   ➤ [ROBOT] Fecha Fin: {sub_end}", flush=True)
                 end_input = page.locator("#Form_EndDate")
                 await end_input.click()
                 await end_input.clear()
-                await page.keyboard.type(sub_end, delay=50)
+                await page.keyboard.type(sub_end, delay=15)
                 await page.keyboard.press("Enter")
+                
+                # Esperar 0.5 segundos para estabilidad del DatePicker de Sandvik
+                await asyncio.sleep(0.5)
                 
                 # Obtener el botón de exportación
                 btn = page.locator("input[name='Form.Export']")
                 await btn.scroll_into_view_if_needed()
                 await btn.wait_for(state="visible", timeout=10000)
                 
+                # Captura de pantalla de debug del bloque
+                block_snap = os.path.join(debug_dir, f"debug_block_{idx+1}.png")
+                await page.screenshot(path=block_snap)
+                print(f"📸 [ROBOT] Captura de bloque guardada: {block_snap}", flush=True)
+
                 print(f"🚀 [ROBOT] Iniciando descarga del bloque {idx+1}...", flush=True)
                 try:
                     async with page.expect_download(timeout=120000) as download_info:
@@ -110,8 +130,8 @@ async def run_po_robot(start_date: str, end_date: str):
                     # Propagar error para que no consolidemos datos incompletos
                     raise block_err
                 
-                # Esperar 2 segundos de cortesía entre consultas
-                await asyncio.sleep(2)
+                # Esperar 0.5 segundos de cortesía entre consultas
+                await asyncio.sleep(0.5)
 
             # Consolidar todos los excels usando Polars
             print("🔄 [ROBOT] Consolidando bloques Excel...", flush=True)

@@ -12,6 +12,47 @@ import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 
 
+const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
+    const radius = 32;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percent / 100) * circumference;
+    
+    return (
+        <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
+            <div className="relative flex items-center justify-center" style={{ width: '75px', height: '75px' }}>
+                <svg className="transform -rotate-90" style={{ width: '75px', height: '75px' }}>
+                    <circle 
+                        cx="37.5" 
+                        cy="37.5" 
+                        r={radius} 
+                        className="text-zinc-200" 
+                        strokeWidth="4" 
+                        stroke="currentColor" 
+                        fill="transparent" 
+                    />
+                    <circle 
+                        cx="37.5" 
+                        cy="37.5" 
+                        r={radius} 
+                        stroke={strokeColor} 
+                        strokeWidth="4" 
+                        strokeDasharray={circumference} 
+                        strokeDashoffset={offset} 
+                        strokeLinecap="round" 
+                        fill="transparent" 
+                    />
+                </svg>
+                <div className="absolute text-center flex flex-col items-center justify-center">
+                    <span className="text-[11px] font-bold text-black leading-none">{valueText}</span>
+                    <span className="text-[9px] text-zinc-500 font-bold leading-none mt-0.5">{percent}%</span>
+                </div>
+            </div>
+            <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-bold mt-1.5 text-center leading-none truncate w-full">{label}</span>
+        </div>
+    );
+};
+
+
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { isOnline, pendingCount, syncPendingData } = useOffline();
@@ -44,6 +85,21 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
+
+    // --- Estado para el Tablero de Control de la IR ---
+    const [irStats, setIrStats] = useState({
+        totalLines: 0,
+        completedLines: 0,
+        startedLines: 0,
+        expectedUnits: 0,
+        receivedUnits: 0,
+        positiveDiffLines: 0,
+        negativeDiffLines: 0,
+        okLines: 0,
+        totalGrns: 0,
+        completedGrns: 0,
+        grnProgressPercent: 0
+    });
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
@@ -139,6 +195,200 @@ const Inbound = () => {
             console.error("Error loading slotting bins", e);
         }
     };
+
+    const calculateIRStats = async () => {
+        if (!importRef || importRef.trim() === '') {
+            setIrStats({
+                totalLines: 0,
+                completedLines: 0,
+                startedLines: 0,
+                expectedUnits: 0,
+                receivedUnits: 0,
+                positiveDiffLines: 0,
+                negativeDiffLines: 0,
+                okLines: 0,
+                totalGrns: 0,
+                completedGrns: 0,
+                grnProgressPercent: 0
+            });
+            return;
+        }
+
+        try {
+            const db = await getDB();
+            const allGrns = await db.getAll('grn_pending') || [];
+            const targetIr = importRef.trim().toUpperCase();
+            
+            // Filtrar líneas de la GRN para esta IR
+            const irLines = allGrns.filter(g => (g.Import_Reference || '').trim().toUpperCase() === targetIr);
+            
+            let totalLines = irLines.length;
+            let expectedUnits = 0;
+            let receivedUnits = 0;
+            let completedLines = 0;
+            let startedLines = 0;
+            let positiveDiffLines = 0;
+            let negativeDiffLines = 0;
+            let okLines = 0;
+
+            // Crear mapa de cantidades esperadas del reporte 280 (GRN) para cada SKU
+            const grnExpectedMap = {};
+            irLines.forEach(line => {
+                const code = String(line.Item_Code).toUpperCase().trim();
+                grnExpectedMap[code] = parseInt(line.total_expected) || 0;
+            });
+
+            // Crear mapa de cantidades recibidas para cada ítem en esta IR (con normalización a mayúsculas y trim)
+            const receivedMap = {};
+            logs.forEach(log => {
+                const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
+                if (logIr === targetIr) {
+                    const code = String(log.itemCode).toUpperCase().trim();
+                    const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+                    receivedMap[code] = (receivedMap[code] || 0) + qty;
+                }
+            });
+
+            irLines.forEach(line => {
+                const code = String(line.Item_Code).toUpperCase().trim();
+                const expected = parseInt(line.total_expected) || 0;
+                const received = receivedMap[code] || 0;
+
+                expectedUnits += expected;
+                receivedUnits += received;
+
+                if (received > 0) {
+                    startedLines += 1;
+                }
+
+                const diff = received - expected;
+                if (diff > 0) {
+                    positiveDiffLines += 1;
+                } else if (diff < 0) {
+                    negativeDiffLines += 1;
+                } else {
+                    okLines += 1;
+                }
+
+                if (received >= expected && expected > 0) {
+                    completedLines += 1;
+                }
+            });
+
+            // Calcular avance de GRNs asociadas
+            let totalGrns = 0;
+            let completedGrns = 0;
+            let grnTotalProgress = 0;
+            
+            try {
+                const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+                if (poInfo && poInfo.items) {
+                    const grnToItems = {}; // grn -> [ {itemCode, expected} ]
+                    
+                    poInfo.items.forEach(it => {
+                        const itemCode = String(it.item_code).toUpperCase().trim();
+                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        const qty = parseInt(it.qty) || 0;
+                        
+                        if (grnVal) {
+                            grnVal.split(',').forEach(g => {
+                                const gKey = g.trim();
+                                if (gKey) {
+                                    if (!grnToItems[gKey]) {
+                                        grnToItems[gKey] = [];
+                                    }
+                                    grnToItems[gKey].push({ itemCode, expected: qty });
+                                }
+                            });
+                        }
+                    });
+                    
+                    const grnList = Object.keys(grnToItems);
+                    totalGrns = grnList.length;
+                    
+                    grnList.forEach(grn => {
+                        const itemsInGrn = grnToItems[grn];
+                        let itemsCompleted = 0;
+                        
+                        itemsInGrn.forEach(it => {
+                            const recQty = receivedMap[it.itemCode] || 0;
+                            // Priorizar cantidad esperada del reporte 280, usar PO qty como fallback
+                            const expectedQty = grnExpectedMap[it.itemCode] !== undefined 
+                                ? grnExpectedMap[it.itemCode] 
+                                : it.expected;
+                                
+                            if (recQty >= expectedQty && expectedQty > 0) {
+                                itemsCompleted += 1;
+                            }
+                        });
+                        
+                        const grnProgress = itemsInGrn.length > 0 ? itemsCompleted / itemsInGrn.length : 0;
+                        grnTotalProgress += grnProgress;
+                        
+                        if (grnProgress === 1 && itemsInGrn.length > 0) {
+                            completedGrns += 1;
+                        }
+                    });
+                }
+            } catch (poErr) {
+                console.error("Error calculating GRN stats from po_lookup:", poErr);
+            }
+
+            const grnProgressPercent = totalGrns > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrns) * 100)) : 0;
+
+            setIrStats({
+                totalLines,
+                completedLines,
+                startedLines,
+                expectedUnits,
+                receivedUnits,
+                positiveDiffLines,
+                negativeDiffLines,
+                okLines,
+                totalGrns,
+                completedGrns,
+                grnProgressPercent
+            });
+        } catch (err) {
+            console.error("Error calculating IR stats:", err);
+        }
+    };
+
+    useEffect(() => {
+        calculateIRStats();
+    }, [importRef, logs]);
+
+    // Autoguardar la conciliación en segundo plano de manera silenciosa cada vez que cambien las estadísticas
+    useEffect(() => {
+        if (!importRef || importRef.trim() === '' || irStats.totalLines === 0) return;
+
+        const delayDebounceFn = setTimeout(async () => {
+            try {
+                await fetch('/api/inbound/ir_reconciliation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        import_reference: importRef,
+                        total_lines: irStats.totalLines,
+                        completed_lines: irStats.completedLines,
+                        started_lines: irStats.startedLines,
+                        expected_units: irStats.expectedUnits,
+                        received_units: irStats.receivedUnits,
+                        ok_lines: irStats.okLines,
+                        negative_diff_lines: irStats.negativeDiffLines,
+                        positive_diff_lines: irStats.positiveDiffLines,
+                        total_grns: irStats.totalGrns,
+                        completed_grns: irStats.completedGrns
+                    }),
+                    credentials: 'include'
+                });
+            } catch (e) {
+                console.error("Error auto-saving IR reconciliation:", e);
+            }
+        }, 1000);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [irStats, importRef]);
 
     // Filter logs based on search term
     const filteredLogs = logs.filter(log =>
@@ -628,10 +878,10 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
+            <div className="container-wrapper px-2 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-1">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow-sm !mb-0 border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-medium tracking-tight uppercase">Inbound - Recepción</h1>
@@ -793,13 +1043,22 @@ const Inbound = () => {
 
                         </div>
 
-                        <div className="lg:col-span-1">
-                            <h2 className="text-lg font-medium text-center mb-1">Vista Etiqueta</h2>
-                            <div className="flex justify-center w-full">
-                                <div className="max-h-[500px] overflow-y-auto p-2 rounded w-full flex justify-center">
-                                    <div ref={labelComponentRef} className="bg-white flex flex-col gap-4">
+                        {/* Columna 3: Vista Etiqueta */}
+                        <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                                Vista Etiqueta
+                            </h2>
+                            <div className="flex-grow flex flex-col justify-between">
+                                <div className="bg-zinc-50/50 p-0 rounded border border-dashed border-zinc-200 flex-grow flex items-center justify-center min-h-[220px] w-full">
+                                    <div ref={labelComponentRef} className="flex flex-col gap-4 w-full max-w-[265px]">
                                         {Array.from({ length: parseInt(labelCount) || 1 }).map((_, idx) => (
-                                            <div key={idx} className="print:my-0 my-2 first:mt-0 last:mb-0 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 print:border-b-0 print:pb-0 print:break-after-page">
+                                            <div 
+                                                key={idx} 
+                                                className={idx === 0 
+                                                    ? "print:my-0 print:break-after-page" 
+                                                    : "hidden print:block print:my-0 print:break-after-page"
+                                                }
+                                            >
                                                 <SandvikLabel
                                                     data={itemData}
                                                     qrImage={qrImage}
@@ -811,20 +1070,86 @@ const Inbound = () => {
                                         ))}
                                     </div>
                                 </div>
+                                <div className="mt-4 flex justify-center lg:flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                        style={{ background: '#285f94' }}
+                                        onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
+                                        onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                        disabled={!itemData}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        Imprimir
+                                    </button>
+                                </div>
                             </div>
-                            <div className="w-full flex justify-center mt-2">
-                                <button
-                                    type="button"
-                                    onClick={handlePrint}
-                                    className="h-9 px-16 text-[12px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
-                                    disabled={!itemData}
-                                >
-                                    Imprimir
-                                </button>
-                            </div>
+                        </div>
+
+                        {/* Columna 4: Tablero de Control de la IR */}
+                        <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                                Tablero de Control: {importRef || "S.I.R."}
+                            </h2>
+                            
+                            {importRef ? (
+                                <div className="flex-grow flex flex-col justify-between">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Dial 
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.completedLines / irStats.totalLines) * 100)) : 0} 
+                                            label="Líneas OK" 
+                                            valueText={`${irStats.completedLines}/${irStats.totalLines}`} 
+                                            strokeColor="#1679E0" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.startedLines / irStats.totalLines) * 100)) : 0} 
+                                            label="Iniciadas" 
+                                            valueText={`${irStats.startedLines}/${irStats.totalLines}`} 
+                                            strokeColor="#D97706" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.expectedUnits > 0 ? Math.min(100, Math.round((irStats.receivedUnits / irStats.expectedUnits) * 100)) : 0} 
+                                            label="Unidades" 
+                                            valueText={`${irStats.receivedUnits}/${irStats.expectedUnits}`} 
+                                            strokeColor="#10B981" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.totalGrns > 0 ? irStats.grnProgressPercent : 0} 
+                                            label="GRNs OK" 
+                                            valueText={`${irStats.completedGrns}/${irStats.totalGrns}`} 
+                                            strokeColor="#8B5CF6" 
+                                        />
+                                    </div>
+                                    
+                                    <div className="mt-4 space-y-2">
+                                        <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Desglose de Diferencias (GRN)</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="p-2 bg-emerald-50 rounded border border-emerald-100 text-center">
+                                                <div className="text-[14px] font-bold text-emerald-700">{irStats.okLines}</div>
+                                                <div className="text-[8px] uppercase tracking-wider text-emerald-600 font-semibold leading-tight">Sin Dif.</div>
+                                            </div>
+                                            <div className="p-2 bg-red-50 rounded border border-red-100 text-center">
+                                                <div className="text-[14px] font-bold text-red-700">{irStats.negativeDiffLines}</div>
+                                                <div className="text-[8px] uppercase tracking-wider text-red-600 font-semibold leading-tight">Faltantes</div>
+                                            </div>
+                                            <div className="p-2 bg-blue-50 rounded border border-blue-100 text-center">
+                                                <div className="text-[14px] font-bold text-blue-700">{irStats.positiveDiffLines}</div>
+                                                <div className="text-[8px] uppercase tracking-wider text-blue-600 font-semibold leading-tight">Sobrantes</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-grow flex flex-col items-center justify-center text-zinc-400 p-4 text-center">
+                                    <svg className="w-10 h-10 text-zinc-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="italic text-[11px] uppercase tracking-wider">Ingrese una Import Reference para activar el tablero</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </form>

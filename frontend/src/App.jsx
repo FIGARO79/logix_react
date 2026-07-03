@@ -25,6 +25,7 @@ import ViewCounts from './pages/ViewCounts';
 import EditCount from './pages/EditCount';
 import InboundHistory from './pages/InboundHistory';
 import Update from './pages/Update';
+import IRReconciliation from './pages/IRReconciliation';
 import Register from './pages/Register';
 import SetPassword from './pages/SetPassword';
 import PackingListPrint from './pages/PackingListPrint';
@@ -224,6 +225,11 @@ function App() {
                         <Route path="/view_logs" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <InboundHistory />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/ir-reconciliation" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <IRReconciliation />
                             </ProtectedRoute>
                         } />
 

@@ -1,13 +1,13 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 5;
+const DB_VERSION = 8;
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
-            // Migración Versión 5: cambiar keyPath de grn_pending a 'id'
-            if (oldVersion > 0 && oldVersion < 5) {
+            // Migración Versión 8: limpiar grn_pending para asegurar esquema estable
+            if (oldVersion > 0 && oldVersion < 8) {
                 if (db.objectStoreNames.contains('grn_pending')) {
                     db.deleteObjectStore('grn_pending');
                 }

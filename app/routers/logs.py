@@ -44,16 +44,10 @@ async def find_item(
     if item_details is None:
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
-    # Intentar obtener la cantidad esperada de la GRN si está cargada y asociada a esta IR
+    # Obtener la cantidad esperada de la GRN (reporte 280)
     expected_quantity = await csv_handler.get_expected_quantity_from_grn_for_import_ref(import_reference, item_code)
     if expected_quantity is None:
-        # Fallback 1: Si no hay GRN cargada o asociada, obtener la cantidad de la PO
-        expected_quantity = await csv_handler.get_expected_quantity_from_po(import_reference, item_code)
-    if expected_quantity == 0:
-        # Fallback 2: Si es 0, intentar obtener la cantidad total del item en la GRN en general (comportamiento original)
-        expected_quantity = await csv_handler.get_expected_quantity_by_ir_and_item(item_code, import_reference, db=db)
-        if expected_quantity == 0:
-            expected_quantity = await csv_handler.get_total_expected_quantity_for_item(item_code)
+        expected_quantity = 0
             
     original_bin = item_details.get('Bin_1', 'N/A')
     

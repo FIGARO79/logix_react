@@ -331,3 +331,39 @@ class SpotCheck(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
     username: Mapped[str] = mapped_column(String(100))
+
+class IRReconciliation(Base):
+    """Historial de conciliación y avance de Import References."""
+    __tablename__ = "ir_reconciliations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
+    import_reference: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    total_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    completed_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    started_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    expected_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    received_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    ok_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    negative_diff_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    positive_diff_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_grns: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed_grns: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    username: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "import_reference": self.import_reference,
+            "total_lines": self.total_lines,
+            "completed_lines": self.completed_lines,
+            "started_lines": self.started_lines,
+            "expected_units": self.expected_units,
+            "received_units": self.received_units,
+            "ok_lines": self.ok_lines,
+            "negative_diff_lines": self.negative_diff_lines,
+            "positive_diff_lines": self.positive_diff_lines,
+            "total_grns": self.total_grns,
+            "completed_grns": self.completed_grns,
+            "username": self.username
+        }
