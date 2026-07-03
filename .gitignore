@@ -59,6 +59,7 @@ dev.bat
 *.xlsx
 
 *.sql
+*.sql.gz
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv

@@ -1,0 +1,9 @@
+[Unit]
+Description=Logix Database Backup Service
+After=mariadb.service
+
+[Service]
+Type=oneshot
+User=debian
+Group=debian
+ExecStart=/bin/bash /home/debian/logix_cl/instance/backup_db.sh
