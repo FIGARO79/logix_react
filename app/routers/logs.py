@@ -85,7 +85,7 @@ async def find_item(
     total_reserved = xdock_data.get("total", 0)
     xdock_customers = xdock_data.get("customers", [])
 
-    already_received = await db_logs.get_total_received_for_item_async(db, item_code)
+    already_received = await db_logs.get_total_received_for_import_reference_async(db, import_reference, item_code)
     xdock_pending = max(0, total_reserved - already_received)
 
     # 5. ELIMINADO: Ya no sobreescribimos final_suggested_bin con "XDOCK" aquí.

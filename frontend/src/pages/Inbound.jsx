@@ -636,7 +636,7 @@ const Inbound = () => {
                         .pop();
 
                     // Calcular remanente XDOCK localmente 
-                    const itemLogs = logs.filter(l => l.itemCode === normalizedCode);
+                    const itemLogs = logs.filter(l => l.itemCode === normalizedCode && (l.importReference === importRef || l.importRef === importRef));
                     const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
                     const totalRes = xdockInfo ? xdockInfo.total : 0;
                     const xdockRemanente = Math.max(0, totalRes - localCumulative);
@@ -860,7 +860,7 @@ const Inbound = () => {
         setTimeout(() => { setItemCode(upperCode); findItem(); }, 200);
     };
 
-    const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode);
+    const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode && (l.importReference === importRef || l.importRef === importRef));
     const cumulativeQty = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
     const auditCount = itemLogs.length;
     const currentQtyNum = parseInt(quantity) || 0;
