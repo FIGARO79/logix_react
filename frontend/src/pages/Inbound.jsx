@@ -1043,13 +1043,22 @@ const Inbound = () => {
 
                         </div>
 
-                        <div className="lg:col-span-1">
-                            <h2 className="text-lg font-medium text-center mb-1">Vista Etiqueta</h2>
-                            <div className="flex justify-center w-full">
-                                <div className="max-h-[500px] overflow-y-auto p-2 rounded w-full flex justify-center">
-                                    <div ref={labelComponentRef} className="bg-white flex flex-col gap-4">
+                        {/* Columna 3: Vista Etiqueta */}
+                        <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                                Vista Etiqueta
+                            </h2>
+                            <div className="flex-grow flex flex-col justify-between">
+                                <div className="bg-zinc-50/50 p-0 rounded border border-dashed border-zinc-200 flex-grow flex items-center justify-center min-h-[220px] w-full">
+                                    <div ref={labelComponentRef} className="flex flex-col gap-4 w-full max-w-[265px]">
                                         {Array.from({ length: parseInt(labelCount) || 1 }).map((_, idx) => (
-                                            <div key={idx} className="print:my-0 my-2 first:mt-0 last:mb-0 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 print:border-b-0 print:pb-0 print:break-after-page">
+                                            <div 
+                                                key={idx} 
+                                                className={idx === 0 
+                                                    ? "print:my-0 print:break-after-page" 
+                                                    : "hidden print:block print:my-0 print:break-after-page"
+                                                }
+                                            >
                                                 <SandvikLabel
                                                     data={itemData}
                                                     qrImage={qrImage}
@@ -1061,19 +1070,22 @@ const Inbound = () => {
                                         ))}
                                     </div>
                                 </div>
-                            </div>
-                            <div className="w-full flex justify-center mt-2">
-                                <button
-                                    type="button"
-                                    onClick={handlePrint}
-                                    className="h-9 px-16 text-[12px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
-                                    disabled={!itemData}
-                                >
-                                    Imprimir
-                                </button>
+                                <div className="mt-4 flex justify-center lg:flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={handlePrint}
+                                        className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                        style={{ background: '#285f94' }}
+                                        onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
+                                        onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                        disabled={!itemData}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        Imprimir
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
