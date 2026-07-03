@@ -417,3 +417,13 @@ table tbody tr:hover {
         padding: 0 0.5rem;
     }
 }
+
+/* ===== Bordes de los contenedores en color azul #1679E0 ===== */
+div.bg-white.border,
+div.bg-white.border-2,
+div[class*="bg-white"][class*="border-"],
+.sap-card,
+.fiori-tile {
+    border-color: #1679E0 !important;
+    border-style: solid !important;
+}

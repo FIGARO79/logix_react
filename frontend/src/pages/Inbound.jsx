@@ -628,13 +628,13 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-2 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden">
-                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0">
+            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
+                <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-start">
-                        <div className="lg:col-span-2 bg-white p-2 rounded shadow border border-gray-200">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-1">
+                        <div className="lg:col-span-2 bg-white p-2 rounded shadow-sm !mb-0 border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-semibold tracking-tight uppercase">Inbound - Recepción</h1>
+                                <h1 className="text-base font-medium tracking-tight uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
@@ -648,19 +648,19 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
-                                    <label className="form-label font-semibold text-gray-800">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-semibold text-black" required />
+                                    <label className="form-label font-normal text-gray-800">Import Reference</label>
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
-                                    <label className="form-label font-semibold text-gray-800">Waybill</label>
-                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-semibold text-black" required />
+                                    <label className="form-label font-normal text-gray-800">Waybill</label>
+                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-normal text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="form-label font-semibold text-gray-800">Item Code</label>
+                                    <label className="form-label font-normal text-gray-800">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-semibold text-black" required disabled={!!editId} />
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
                                         <button
                                             type="button"
                                             className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
@@ -687,79 +687,82 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-4"><label className="form-label font-semibold text-gray-800">Item Description</label><div className="data-field font-semibold text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-4">
-                                <div><label className="form-label font-semibold text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => handleQuantityChange(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
-                                <div><label className="form-label font-semibold text-gray-800">Unidades</label><input type="number" value={labelUnits} onChange={e => setLabelUnits(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
-                                <div><label className="form-label font-semibold text-gray-800">Etiquetas</label><input type="number" value={labelCount} onChange={e => setLabelCount(e.target.value)} className="font-semibold text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
-                                <div><label className="form-label font-semibold text-gray-800">Bin (Original)</label><div className="data-field font-semibold text-blue-800 bg-blue-50 rounded border border-blue-100">{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-semibold text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                            <div className="mb-2">
+                                <label className="form-label font-normal text-gray-800">Item Description</label>
+                                <div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-                                <div><label className="form-label font-semibold text-gray-800">Aditional Bins</label><div className="data-field text-xs font-semibold text-black bg-zinc-50 rounded">{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">ABC Type</label><div className="data-field font-semibold text-black bg-zinc-50 rounded">{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label font-semibold text-gray-800">SIC Code</label><div className="data-field font-semibold text-black bg-zinc-50 rounded">{itemData?.sicCode || ''}</div></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-2">
+                                <div><label className="form-label font-normal text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => handleQuantityChange(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Unidades</label><input type="number" value={labelUnits} onChange={e => setLabelUnits(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Etiquetas</label><input type="number" value={labelCount} onChange={e => setLabelCount(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                                <div><label className="form-label font-normal text-gray-800">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-normal text-gray-800">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.sicCode || ''}</div></div>
                             </div>
 
                             {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                     {itemData?.suggestedBin ? (
                                         <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
                                             <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
-                                                <span className={`text-[10px] font-semibold uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+                                                <span className={`text-[10px] font-medium uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                                                     {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
                                                 </span>
-                                                <span className="text-[8px] italic text-zinc-600 font-semibold">Tap usar</span>
+                                                <span className="text-[8px] italic text-zinc-600 font-medium">Tap usar</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                     <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                     <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 </svg>
-                                                <span className="text-base font-mono font-semibold text-black">{itemData.suggestedBin}</span>
+                                                <span className="text-base font-mono font-medium text-black">{itemData.suggestedBin}</span>
                                                 {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 && (
-                                                    <span className="ml-auto text-[10px] font-semibold bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
+                                                    <span className="ml-auto text-[10px] font-medium bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">XDOCK</span>
                                                 )}
                                             </div>
                                         </div>
                                     ) : <div className="hidden sm:block"></div>}
 
                                     {effectiveXdockPending > 0 ? (
-                                        <div className="bg-red-100 border-2 border-red-500 rounded p-2 shadow-sm">
-                                            <h4 className="text-[12px] font-semibold uppercase text-red-700 mb-1 border-b border-red-500 pb-0.5 tracking-widest">XDOCK</h4>
-                                            <div className="flex flex-col gap-0.5 text-black font-semibold">
-                                                <div className="flex justify-between items-center text-[12px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                <div className="flex justify-between items-center text-[12px] uppercase text-red-700 font-semibold"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
+                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                            <div className="flex flex-col gap-0.5 text-black font-medium">
+                                                <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
+                                                <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
                                             </div>
                                         </div>
                                     ) : <div className="hidden sm:block"></div>}
 
                                     {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                        <div className="bg-red-100 border-2 border-red-500 rounded p-2 shadow-sm overflow-hidden">
-                                            <h4 className="text-[12px] font-semibold uppercase text-red-700 mb-1 border-b border-red-500 pb-0.5 tracking-widest">RESERVAS:</h4>
-                                            <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-semibold">
+                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
+                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                            <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium">
                                                 {itemData.xdockCustomers.map((c, idx) => (
-                                                    <div key={idx} className="flex justify-between items-baseline text-[12px] border-b border-red-50 last:border-0 pb-0.5">
-                                                        <div className="pr-2 text-black uppercase truncate font-semibold"><span className="text-[12px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                        <span className="text-red-700 whitespace-nowrap font-semibold">{c?.qty || 0} UN</span>
+                                                    <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
+                                                        <div className="pr-2 text-black uppercase truncate font-medium"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                        <span className="text-red-700 whitespace-nowrap font-medium">{c?.qty || 0} UN</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-                                    ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-semibold italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+                                    ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
                                 </div>
                             )}
 
-                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-4 shadow-sm">
-                                <h3 className="text-[11px] font-semibold uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen Operativo</h3>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div><label className="form-label font-semibold text-gray-800">Recibido</label><div className="data-field font-semibold text-xl leading-none text-[#1e4a74]">{cumulativeQty}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Esperado</label><div className="data-field font-semibold text-xl leading-none text-gray-950">{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label font-semibold text-gray-800">Diferencia</label><div className={`data-field font-semibold text-xl leading-none ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                            <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-2 shadow-sm">
+                                <h3 className="text-[11px] font-medium uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                    <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-normal text-gray-800">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
-                                        }`}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
+                                        }`} style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
                             <div className="flex gap-3">
@@ -791,7 +794,7 @@ const Inbound = () => {
                         </div>
 
                         <div className="lg:col-span-1">
-                            <h2 className="text-lg font-semibold text-center mb-3">Vista Etiqueta</h2>
+                            <h2 className="text-lg font-medium text-center mb-1">Vista Etiqueta</h2>
                             <div className="flex justify-center w-full">
                                 <div className="max-h-[500px] overflow-y-auto p-2 rounded w-full flex justify-center">
                                     <div ref={labelComponentRef} className="bg-white flex flex-col gap-4">
@@ -809,11 +812,11 @@ const Inbound = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full flex justify-center mt-4">
+                            <div className="w-full flex justify-center mt-2">
                                 <button
                                     type="button"
                                     onClick={handlePrint}
-                                    className="h-9 px-8 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="h-9 px-16 text-[12px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ background: '#285f94' }}
                                     onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
                                     onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
@@ -826,9 +829,9 @@ const Inbound = () => {
                     </div>
                 </form>
 
-                <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
-                    <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
-                        <h2 className="text-base font-semibold text-black tracking-tight uppercase">Registros de Sesión</h2>
+                <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
+                    <div className="bg-zinc-50/50 p-2 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
+                        <h2 className="text-base font-medium text-black tracking-normal uppercase">Registros de ingreso</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
@@ -848,7 +851,7 @@ const Inbound = () => {
                                     <button
                                         type="button"
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-semibold"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-medium"
                                         title="Limpiar búsqueda"
                                     >
                                         ✕
@@ -858,7 +861,7 @@ const Inbound = () => {
 
                             <select
                                 onChange={(e) => loadLogs(e.target.value)}
-                                className="h-9 px-3 text-[9px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
+                                className="h-9 p-1 text-[12px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
                             >
                                 <option value="">ACTUAL</option>
                                 {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
@@ -870,7 +873,7 @@ const Inbound = () => {
                                     const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
                                     window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
                                 }}
-                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
@@ -880,7 +883,7 @@ const Inbound = () => {
 
                             <button
                                 onClick={handleArchive}
-                                className="h-9 px-4 text-[9px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
@@ -893,37 +896,37 @@ const Inbound = () => {
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-0 z-20">
                                 <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">Acc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Item</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">New</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">User</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Acc</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
                                 {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1 font-normal text-xs sm:text-gray-900">{log.importReference}</td>
-                                        <td className="px-2 py-1 font-normal text-xs sm:text-gray-900">{log.waybill}</td>
-                                        <td className="px-2 py-1 font-normal text-xs sm:text-black">{log.itemCode}</td>
-                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-xs sm:text-gray-800">{log.itemDescription}</td>
-                                        <td className="px-2 py-1 font-normal text-xs sm:text-blue-900">{log.binLocation}</td>
-                                        <td className="px-2 py-1 font-normal text-xs sm:text-emerald-900">{log.relocatedBin}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.itemCode}</td>
+                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-sm text-black">{log.itemDescription}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-emerald-900">{log.relocatedBin}</td>
                                         <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1 text-center font-normal text-sm text-gray-700">{log.expected_qty || 0}</td>
+                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.expected_qty || 0}</td>
                                         <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
                                             (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
                                             }`}>{log.difference || 0}</td>
-                                        <td className="px-2 py-1 whitespace-nowrap text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1 uppercase font-normal text-gray-800">{log.username}</td>
+                                        <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1 uppercase font-normal text-sm text-gray-800">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
