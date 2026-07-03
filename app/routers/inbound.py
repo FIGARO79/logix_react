@@ -80,3 +80,94 @@ async def lookup_reference(
     except Exception as e:
         print(f"Error reading Excel fallback: {e}")
         return result
+
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.core.db import get_db
+from app.models.sql_models import IRReconciliation
+import datetime
+
+# Registrar o actualizar conciliación de IR (UPSERT)
+@router.post("/ir_reconciliation")
+async def save_ir_reconciliation(
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
+    import_ref = data.get("import_reference", "").strip().upper()
+    if not import_ref:
+        return {"error": "Import Reference es obligatoria"}, 400
+        
+    # Verificar si ya existe una conciliación previa para esta IR
+    stmt = select(IRReconciliation).where(IRReconciliation.import_reference == import_ref)
+    result = await db.execute(stmt)
+    recon = result.scalars().first()
+    
+    now_str = datetime.datetime.now().isoformat()
+    
+    if recon:
+        # Actualizar existente
+        recon.timestamp = now_str
+        recon.total_lines = data.get("total_lines", 0)
+        recon.completed_lines = data.get("completed_lines", 0)
+        recon.started_lines = data.get("started_lines", 0)
+        recon.expected_units = data.get("expected_units", 0)
+        recon.received_units = data.get("received_units", 0)
+        recon.ok_lines = data.get("ok_lines", 0)
+        recon.negative_diff_lines = data.get("negative_diff_lines", 0)
+        recon.positive_diff_lines = data.get("positive_diff_lines", 0)
+        recon.total_grns = data.get("total_grns", 0)
+        recon.completed_grns = data.get("completed_grns", 0)
+        recon.username = user
+    else:
+        # Crear nuevo registro
+        recon = IRReconciliation(
+            timestamp=now_str,
+            import_reference=import_ref,
+            total_lines=data.get("total_lines", 0),
+            completed_lines=data.get("completed_lines", 0),
+            started_lines=data.get("started_lines", 0),
+            expected_units=data.get("expected_units", 0),
+            received_units=data.get("received_units", 0),
+            ok_lines=data.get("ok_lines", 0),
+            negative_diff_lines=data.get("negative_diff_lines", 0),
+            positive_diff_lines=data.get("positive_diff_lines", 0),
+            total_grns=data.get("total_grns", 0),
+            completed_grns=data.get("completed_grns", 0),
+            username=user
+        )
+        db.add(recon)
+        
+    await db.commit()
+    return {"message": "Conciliación de Import Reference guardada exitosamente", "data": recon.to_dict()}
+
+
+# Listar conciliaciones registradas
+@router.get("/ir_reconciliation")
+async def get_ir_reconciliations(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
+    stmt = select(IRReconciliation).order_by(IRReconciliation.timestamp.desc())
+    result = await db.execute(stmt)
+    recons = result.scalars().all()
+    return [r.to_dict() for r in recons]
+
+
+# Eliminar una conciliación
+@router.delete("/ir_reconciliation/{recon_id}")
+async def delete_ir_reconciliation(
+    recon_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound"))
+):
+    stmt = select(IRReconciliation).where(IRReconciliation.id == recon_id)
+    result = await db.execute(stmt)
+    recon = result.scalars().first()
+    if not recon:
+        return {"error": "Registro de conciliación no encontrado"}, 404
+        
+    await db.delete(recon)
+    await db.commit()
+    return {"message": "Registro de conciliación eliminado exitosamente"}
