@@ -12,8 +12,8 @@ import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 
 
-const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
-    const radius = 32;
+const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
+    const radius = 31;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
     
@@ -26,7 +26,7 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
                         cy="37.5" 
                         r={radius} 
                         className="text-zinc-200" 
-                        strokeWidth="4" 
+                        strokeWidth={trackStrokeWidth} 
                         stroke="currentColor" 
                         fill="transparent" 
                     />
@@ -35,11 +35,12 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0" }) => {
                         cy="37.5" 
                         r={radius} 
                         stroke={strokeColor} 
-                        strokeWidth="4" 
+                        strokeWidth={strokeWidth} 
                         strokeDasharray={circumference} 
                         strokeDashoffset={offset} 
                         strokeLinecap="round" 
                         fill="transparent" 
+                        className="transition-all duration-500 ease-out"
                     />
                 </svg>
                 <div className="absolute text-center flex flex-col items-center justify-center">
