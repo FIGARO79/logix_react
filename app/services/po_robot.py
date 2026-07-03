@@ -83,25 +83,35 @@ async def run_po_robot(start_date: str, end_date: str):
             for idx, (sub_start, sub_end) in enumerate(ranges):
                 print(f"📝 [ROBOT] Procesando bloque {idx+1}/{len(ranges)}: {sub_start} a {sub_end}...", flush=True)
                 
-                # Rellenar Fecha Inicio (Rápido con fill)
+                # Rellenar Fecha Inicio (Teclado físico simulado rápido)
                 print(f"   ➤ [ROBOT] Fecha Inicio: {sub_start}", flush=True)
                 start_input = page.locator("#Form_StartDate")
                 await start_input.click()
-                await start_input.fill(sub_start)
-                await start_input.press("Enter")
+                await start_input.clear()
+                await page.keyboard.type(sub_start, delay=15)
+                await page.keyboard.press("Enter")
                 
-                # Rellenar Fecha Fin (Rápido con fill)
+                # Rellenar Fecha Fin (Teclado físico simulado rápido)
                 print(f"   ➤ [ROBOT] Fecha Fin: {sub_end}", flush=True)
                 end_input = page.locator("#Form_EndDate")
                 await end_input.click()
-                await end_input.fill(sub_end)
-                await end_input.press("Enter")
+                await end_input.clear()
+                await page.keyboard.type(sub_end, delay=15)
+                await page.keyboard.press("Enter")
+                
+                # Esperar 0.5 segundos para estabilidad del DatePicker de Sandvik
+                await asyncio.sleep(0.5)
                 
                 # Obtener el botón de exportación
                 btn = page.locator("input[name='Form.Export']")
                 await btn.scroll_into_view_if_needed()
                 await btn.wait_for(state="visible", timeout=10000)
                 
+                # Captura de pantalla de debug del bloque
+                block_snap = os.path.join(debug_dir, f"debug_block_{idx+1}.png")
+                await page.screenshot(path=block_snap)
+                print(f"📸 [ROBOT] Captura de bloque guardada: {block_snap}", flush=True)
+
                 print(f"🚀 [ROBOT] Iniciando descarga del bloque {idx+1}...", flush=True)
                 try:
                     async with page.expect_download(timeout=120000) as download_info:
