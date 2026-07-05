@@ -1,0 +1,1 @@
+&pyo3::types::PyModule: From<pyo3::impl_::pymethods::BoundRef<'_, '_, pyo3::types::PyModule>>

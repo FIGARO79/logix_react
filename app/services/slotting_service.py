@@ -96,6 +96,32 @@ class SlottingService:
         if not sic_code:
             sic_code = '0'
 
+        occupancy = await self._get_bins_occupancy(db)
+
+        # Intentar calcular la ubicación óptima usando la extensión de Rust para máxima velocidad
+        try:
+            import logix_rust_core
+            storage_json = orjson.dumps(storage).decode('utf-8')
+            turnover_json = orjson.dumps(turnover_map).decode('utf-8')
+            zone_rules_json = orjson.dumps(zone_rules).decode('utf-8')
+            mix_limits_json = orjson.dumps(mix_limits).decode('utf-8')
+            item_details_json = orjson.dumps(item_details).decode('utf-8')
+            occupancy_json = orjson.dumps(occupancy).decode('utf-8')
+
+            rust_res = logix_rust_core.get_suggested_bin_rust(
+                storage_json,
+                turnover_json,
+                zone_rules_json,
+                mix_limits_json,
+                item_details_json,
+                occupancy_json,
+                sic_code
+            )
+            return rust_res
+        except Exception as e:
+            print(f"Error en extensión de Rust: {e}. Usando fallback en Python.")
+
+        # --- FALLBACK EN PYTHON ---
         # Determinar el spot ideal basado en el SIC Code
         ideal_spot = turnover_map.get(sic_code, {}).get('spot', 'cold').lower()
         if sic_code in ['W', 'X']: 
@@ -123,8 +149,6 @@ class SlottingService:
                 # En otros casos (ej. ítem warm en score medio), se queda si no hay una mejor opción obvia.
                 if ideal_spot == 'warm':
                     return None
-
-        occupancy = await self._get_bins_occupancy(db)
         
         target_zone = None
         target_levels = None
@@ -169,6 +193,15 @@ class SlottingService:
             target_zone = "Cantilever"
         elif 0 < weight < minuteria_weight_max:
             target_zone = minuteria_zone
+        elif sic_code in exile_sics:
+            target_zone = "Rack"
+            if weight > heavy_weight_min:
+                # Si pesa más que heavy_weight_min, se restringen los niveles para colocar a partir del 3er nivel inclusive (nivel >= 3)
+                target_levels = [lvl for lvl in exile_levels if lvl >= 3]
+                if not target_levels:
+                    target_levels = [3] # Fallback seguro de exilio para peso pesado (del 3 en adelante)
+            else:
+                target_levels = exile_levels
         elif weight > heavy_weight_min:
             target_zone = "Rack"
             target_levels = heavy_levels
@@ -182,9 +215,6 @@ class SlottingService:
             target_levels = medium_rotation_levels
             target_score_min = medium_rotation_min_score
             target_score_max = medium_rotation_max_score
-        elif sic_code in exile_sics:
-            target_zone = "Rack"
-            target_levels = exile_levels
         else:
             # Todo lo demás
             target_zone = "Rack"
@@ -236,11 +266,11 @@ class SlottingService:
         # 3. Menor OCUPACIÓN.
 
         if ideal_spot == 'hot':
-            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'hot', -x['score'], x['occupancy'], x['bin']))
         elif ideal_spot == 'warm':
-            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'warm', -x['score'], x['occupancy'], x['bin']))
         else:
-            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy']))
+            candidates.sort(key=lambda x: (x['spot'] != 'cold', x['score'], x['occupancy'], x['bin']))
 
         return candidates[0]['bin']
 
@@ -308,18 +338,21 @@ class SlottingService:
                 report["zones"][zone] = {"total": 0, "occupied": 0, "levels": {}}
             
             if level not in report["zones"][zone]["levels"]:
-                report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0}
+                report["zones"][zone]["levels"][level] = {"total": 0, "occupied_skus": 0, "full_bins": 0, "total_occupancy_pct": 0, "occupied_bins": 0}
             
             report["zones"][zone]["total"] += 1
             report["zones"][zone]["levels"][level]["total"] += 1
             
             current_skus = occupancy.get(bin_code.upper(), 0)
             limit = 3 if zone == "Minuteria" else 4
+            bin_pct = min(100, round((current_skus / limit) * 100))
+            report["zones"][zone]["levels"][level]["total_occupancy_pct"] += bin_pct
             
             if current_skus > 0:
                 report["zones"][zone]["occupied"] += 1
                 report["summary"]["filled_bins"] += 1
                 report["zones"][zone]["levels"][level]["occupied_skus"] += current_skus
+                report["zones"][zone]["levels"][level]["occupied_bins"] += 1
                 total_items += current_skus
                 
                 zones_by_items[zone] = zones_by_items.get(zone, 0) + current_skus
@@ -343,7 +376,7 @@ class SlottingService:
                 
         return report
 
-    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: int) -> List[Dict[str, Any]]:
+    async def get_detailed_occupancy(self, db: AsyncSession, zone: str, level: Optional[int] = None) -> List[Dict[str, Any]]:
         """Obtiene el detalle de cada bin para una zona y nivel específicos."""
         occupancy = await self._get_bins_occupancy(db)
         config = await self._get_layout_config(db)
@@ -358,14 +391,14 @@ class SlottingService:
         details = []
         # Normalizar para comparación robusta (quitar espacios, todo mayúsculas)
         target_zone = str(zone).strip().upper()
-        target_level = int(level)
+        target_level = int(level) if level is not None else None
 
         for bin_code, info in storage.items():
             lvl = _to_int(info.get('level', 0))
             current_zone = str(info.get('zone', 'Unknown')).strip().upper()
             
             # Comparación flexible de zona y nivel
-            if current_zone == target_zone and lvl == target_level:
+            if current_zone == target_zone and (target_level is None or lvl == target_level):
                 skus = occupancy.get(bin_code.upper(), 0)
                 details.append({
                     "bin_code": bin_code,
