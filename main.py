@@ -1,9 +1,12 @@
 """
 Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
+import os
 import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from app.core.responses import ORJSONResponse
+
 
 # Asegurar que los archivos .wasm se sirvan con el tipo MIME correcto
 mimetypes.add_type('application/wasm', '.wasm')
@@ -66,6 +69,7 @@ app = FastAPI(
     description="API Headless para gestión de almacén y logística (Backend React)",
     version="2.1.0",
     lifespan=lifespan,
+    default_response_class=ORJSONResponse,
     # [SEGURIDAD] Deshabilitar docs en producción
     docs_url=None if ENVIRONMENT == 'production' else "/docs",
     redoc_url=None if ENVIRONMENT == 'production' else "/redoc",
