@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { getDB } from '../utils/offlineDb';
+import { getDB, getGRNExpectedQty } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
@@ -94,7 +94,7 @@ const InboundHistory = () => {
                 return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
             });
 
-            // Obtener datos del reporte 280 desde IndexedDB (Cache local)
+            // Obtener datos del reporte 280 desde IndexedDB (Cache local) usando el helper getGRNExpectedQty
             const grnMap = {};
             try {
                 const db = await getDB();
@@ -103,18 +103,7 @@ const InboundHistory = () => {
                     const ir = log.importReference || log.importRef || '';
                     const key = `${code}|${ir}`;
                     if (!(key in grnMap)) {
-                        const dbKey = `${code}_${ir}`;
-                        const grnInfo = await db.get('grn_pending', dbKey);
-                        let expectedQty = grnInfo ? grnInfo.total_expected : 0;
-                        if (!expectedQty || expectedQty === 0) {
-                            const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
-                            if (poInfo && poInfo.items) {
-                                expectedQty = poInfo.items
-                                    .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
-                                    .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
-                            }
-                        }
-                        grnMap[key] = expectedQty;
+                        grnMap[key] = await getGRNExpectedQty(db, code, ir);
                     }
                 }
             } catch (e) { console.error("Offline GRN error", e); }

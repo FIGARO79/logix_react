@@ -110,3 +110,60 @@ export const getCachedData = async (key) => {
     const result = await db.get('data_cache', key);
     return result ? result.data : null;
 };
+
+/**
+ * Obtiene la cantidad esperada de GRN para un SKU e IR, basándose en las GRNs asociadas de po_lookup.
+ */
+export const getGRNExpectedQty = async (db, itemCode, importRef) => {
+    if (!importRef || !itemCode) return 0;
+    const normalizedIr = importRef.trim().toUpperCase();
+    const normalizedCode = itemCode.trim().toUpperCase();
+
+    try {
+        // 1. Obtener GRNs asociadas a la IR desde po_lookup
+        const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
+        const associatedGrns = new Set();
+        if (poInfo && poInfo.items) {
+            poInfo.items.forEach(it => {
+                const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                if (grnVal) {
+                    grnVal.split(',').forEach(g => {
+                        const gKey = g.trim();
+                        if (gKey) {
+                            associatedGrns.add(gKey);
+                        }
+                    });
+                }
+            });
+        }
+
+        // 2. Obtener todos los registros de grn_pending
+        const allGrns = await db.getAll('grn_pending') || [];
+        const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
+
+        // 3. Si tenemos GRNs asociadas, sumar sus total_expected
+        if (associatedGrns.size > 0) {
+            const sum = itemGrns
+                .filter(g => {
+                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    if (grnNum && associatedGrns.has(grnNum)) {
+                        return true;
+                    }
+                    if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === normalizedIr) {
+                        return true;
+                    }
+                    return false;
+                })
+                .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+            if (sum > 0) return sum;
+        }
+
+        // 4. Fallback: buscar por Import_Reference === normalizedIr
+        return itemGrns
+            .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
+            .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+    } catch (err) {
+        console.error("Error in getGRNExpectedQty:", err);
+        return 0;
+    }
+};

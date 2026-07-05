@@ -27,11 +27,15 @@ export const downloadMasterData = async () => {
         await grnStore.clear();
         for (const [key, qty] of Object.entries(data.grn_pending)) {
             if (key && key !== 'null' && key !== 'undefined') {
-                const [itemCode, importRef] = key.split('|');
-                if (itemCode && importRef) {
+                const parts = key.split('|');
+                const itemCode = parts[0];
+                const grnNumber = parts[1];
+                const importRef = parts[2] || '';
+                if (itemCode && grnNumber) {
                     grnStore.put({ 
-                        id: `${itemCode}_${importRef}`, 
+                        id: `${itemCode}_${grnNumber}_${importRef}`, 
                         Item_Code: itemCode, 
+                        GRN_Number: grnNumber,
                         Import_Reference: importRef, 
                         total_expected: qty 
                     });
