@@ -1,5 +1,5 @@
-/home/fabio/Programacion/logix_chile/rust_core/target/release/deps/logix_rust_core.d: src/lib.rs
+/home/debian/logix_cl/rust_core/target/release/deps/logix_rust_core.d: src/lib.rs
 
-/home/fabio/Programacion/logix_chile/rust_core/target/release/deps/liblogix_rust_core.so: src/lib.rs
+/home/debian/logix_cl/rust_core/target/release/deps/liblogix_rust_core.so: src/lib.rs
 
 src/lib.rs:
