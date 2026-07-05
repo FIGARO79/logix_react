@@ -129,20 +129,24 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
 
     const { Component } = resolved;
 
+    const childElement = useMemo(() => {
+        if (!initialized) {
+            return (
+                <div className="flex items-center justify-center h-full text-slate-400 text-xs uppercase tracking-widest bg-[#fafafa]">
+                    <span>Cargando módulo...</span>
+                </div>
+            );
+        }
+        return <Component setTitle={tabSetTitle} />;
+    }, [initialized, Component, tabSetTitle]);
+
     return (
         <div
             className={`tab-content-container ${isActive ? 'block' : 'hidden'}`}
             style={{ height: '100%', width: '100%' }}
         >
             <TabProvider value={contextValue}>
-                {/* Solo renderizar el componente si ha sido inicializado (Lazy Load) */}
-                {initialized ? (
-                    <Component setTitle={tabSetTitle} />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-slate-400 text-xs uppercase tracking-widest bg-[#fafafa]">
-                        <span>Cargando módulo...</span>
-                    </div>
-                )}
+                {childElement}
             </TabProvider>
         </div>
     );
@@ -180,18 +184,21 @@ const Layout = () => {
         localStorage.setItem('logix_tabs', JSON.stringify(tabs));
     }, [tabs]);
 
+    const activeTabIdRef = useRef(activeTabId);
+
     useEffect(() => {
         if (activeTabId) {
             localStorage.setItem('logix_active_tab', activeTabId);
         }
+        activeTabIdRef.current = activeTabId;
     }, [activeTabId]);
 
     const updateTabLabel = useCallback((tabId, newLabel) => {
         setTabs(prev => prev.map(tab =>
             tab.id === tabId ? { ...tab, label: newLabel } : tab
         ));
-        if (tabId === activeTabId) setTitle(newLabel);
-    }, [activeTabId]);
+        if (tabId === activeTabIdRef.current) setTitle(newLabel);
+    }, []);
 
     const lastActiveTabId = useRef(activeTabId);
 

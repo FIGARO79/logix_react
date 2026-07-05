@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { getDB, getGRNExpectedQty } from '../utils/offlineDb';
+import { getDB, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
@@ -94,19 +94,17 @@ const InboundHistory = () => {
                 return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
             });
 
-            // Obtener datos del reporte 280 desde IndexedDB (Cache local) usando el helper getGRNExpectedQty
-            const grnMap = {};
+            // Obtener datos del reporte 280 desde IndexedDB (Cache local) usando el helper getGRNExpectedQtyBulk de forma optimizada
+            let grnMap = {};
             try {
                 const db = await getDB();
-                for (const log of allLogsSorted) {
-                    const code = log.itemCode;
-                    const ir = log.importReference || log.importRef || '';
-                    const key = `${code}|${ir}`;
-                    if (!(key in grnMap)) {
-                        grnMap[key] = await getGRNExpectedQty(db, code, ir);
-                    }
-                }
+                const itemsToQuery = allLogsSorted.map(log => ({
+                    itemCode: log.itemCode,
+                    importRef: log.importReference || log.importRef || ''
+                }));
+                grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
             } catch (e) { console.error("Offline GRN error", e); }
+
 
             // Calcular totales y encontrar última entrada para cada itemCode|importReference
             const totalsMap = {};

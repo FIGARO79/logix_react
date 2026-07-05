@@ -167,3 +167,116 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
         return 0;
     }
 };
+
+/**
+ * Obtiene de forma masiva las cantidades esperadas de GRN para una lista de SKUs e IRs,
+ * cargando toda la tabla grn_pending una sola vez en memoria y resolviendo po_lookup en paralelo.
+ * @param {object} db Instancia de IndexedDB
+ * @param {Array<{itemCode: string, importRef: string}>} items Lista de ítems a consultar
+ * @returns {Promise<Object>} Un mapa con claves "itemCode|importRef" y sus respectivas cantidades esperadas.
+ */
+export const getGRNExpectedQtyBulk = async (db, items) => {
+    if (!items || items.length === 0) return {};
+    const resultMap = {};
+
+    try {
+        const uniqueIrs = new Set();
+        items.forEach(item => {
+            const ir = item.importRef || '';
+            if (ir) {
+                uniqueIrs.add(ir.trim().toUpperCase());
+            }
+        });
+
+        // 1. Obtener po_lookup para las IR únicas en paralelo
+        const poInfoMap = new Map();
+        await Promise.all(Array.from(uniqueIrs).map(async ir => {
+            try {
+                const poInfo = await db.get('po_lookup', `ir_${ir}`);
+                if (poInfo) {
+                    poInfoMap.set(ir, poInfo);
+                }
+            } catch (e) {
+                console.error(`Error al consultar po_lookup para IR ${ir}:`, e);
+            }
+        }));
+
+        // 2. Obtener todos los registros de grn_pending de una sola vez
+        const allGrns = await db.getAll('grn_pending') || [];
+
+        // 3. Indexar grn_pending por SKU para búsqueda rápida
+        const grnsByItem = new Map();
+        allGrns.forEach(g => {
+            if (g.Item_Code) {
+                const code = String(g.Item_Code).toUpperCase().trim();
+                if (!grnsByItem.has(code)) {
+                    grnsByItem.set(code, []);
+                }
+                grnsByItem.get(code).push(g);
+            }
+        });
+
+        // 4. Calcular el total esperado para cada ítem solicitado
+        items.forEach(item => {
+            const importRef = item.importRef || '';
+            const itemCode = item.itemCode || '';
+            const key = `${itemCode}|${importRef}`;
+
+            if (!importRef || !itemCode) {
+                resultMap[key] = 0;
+                return;
+            }
+
+            const normalizedIr = importRef.trim().toUpperCase();
+            const normalizedCode = itemCode.trim().toUpperCase();
+
+            const poInfo = poInfoMap.get(normalizedIr);
+            const associatedGrns = new Set();
+            if (poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gKey = g.trim();
+                            if (gKey) {
+                                associatedGrns.add(gKey);
+                            }
+                        });
+                    }
+                });
+            }
+
+            const itemGrns = grnsByItem.get(normalizedCode) || [];
+
+            let sum = 0;
+            if (associatedGrns.size > 0) {
+                sum = itemGrns
+                    .filter(g => {
+                        const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                        if (grnNum && associatedGrns.has(grnNum)) {
+                            return true;
+                        }
+                        if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === normalizedIr) {
+                            return true;
+                        }
+                        return false;
+                    })
+                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+            }
+
+            if (sum > 0) {
+                resultMap[key] = sum;
+            } else {
+                // Fallback: buscar por Import_Reference === normalizedIr
+                resultMap[key] = itemGrns
+                    .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
+                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+            }
+        });
+    } catch (err) {
+        console.error("Error en getGRNExpectedQtyBulk:", err);
+    }
+
+    return resultMap;
+};
+

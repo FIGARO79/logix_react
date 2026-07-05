@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
+
 
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
@@ -528,18 +529,15 @@ const Inbound = () => {
             return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
         });
 
-        const grnMap = {};
+        let grnMap = {};
         try {
             const db = await getDB();
-            // Cargar lo esperado por itemCode + importReference usando el helper getGRNExpectedQty
-            for (const log of allLogsSorted) {
-                const code = log.itemCode;
-                const ir = log.importReference || log.importRef || '';
-                const key = `${code}|${ir}`;
-                if (!(key in grnMap)) {
-                    grnMap[key] = await getGRNExpectedQty(db, code, ir);
-                }
-            }
+            // Cargar lo esperado por itemCode + importReference de forma optimizada
+            const itemsToQuery = allLogsSorted.map(log => ({
+                itemCode: log.itemCode,
+                importRef: log.importReference || log.importRef || ''
+            }));
+            grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
         } catch (e) { console.error("Error loading GRN info", e); }
 
         // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
