@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty } from '../utils/offlineDb';
 
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
@@ -52,6 +52,9 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
         </div>
     );
 };
+
+
+
 
 
 const Inbound = () => {
@@ -220,10 +223,55 @@ const Inbound = () => {
             const allGrns = await db.getAll('grn_pending') || [];
             const targetIr = importRef.trim().toUpperCase();
             
-            // Filtrar líneas de la GRN para esta IR
-            const irLines = allGrns.filter(g => (g.Import_Reference || '').trim().toUpperCase() === targetIr);
+            // 1. Obtener GRNs asociadas a la IR desde po_lookup
+            const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            const associatedGrns = new Set();
+            if (poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gKey = g.trim();
+                            if (gKey) {
+                                associatedGrns.add(gKey);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
+            let irLines = [];
+            if (associatedGrns.size > 0) {
+                irLines = allGrns.filter(g => {
+                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    if (grnNum && associatedGrns.has(grnNum)) {
+                        return true;
+                    }
+                    if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === targetIr) {
+                        return true;
+                    }
+                    return false;
+                });
+            } else {
+                irLines = allGrns.filter(g => String(g.Import_Reference || '').toUpperCase().trim() === targetIr);
+            }
             
-            let totalLines = irLines.length;
+            // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
+            const groupedIrLines = {};
+            irLines.forEach(line => {
+                const code = String(line.Item_Code).toUpperCase().trim();
+                if (!groupedIrLines[code]) {
+                    groupedIrLines[code] = {
+                        Item_Code: code,
+                        total_expected: 0
+                    };
+                }
+                groupedIrLines[code].total_expected += parseInt(line.total_expected) || 0;
+            });
+
+            const uniqueIrLines = Object.values(groupedIrLines);
+            let totalLines = uniqueIrLines.length;
             let expectedUnits = 0;
             let receivedUnits = 0;
             let completedLines = 0;
@@ -232,14 +280,13 @@ const Inbound = () => {
             let negativeDiffLines = 0;
             let okLines = 0;
 
-            // Crear mapa de cantidades esperadas del reporte 280 (GRN) para cada SKU
+            // Crear mapa de cantidades esperadas para cada SKU para el cálculo de GRNs
             const grnExpectedMap = {};
-            irLines.forEach(line => {
-                const code = String(line.Item_Code).toUpperCase().trim();
-                grnExpectedMap[code] = parseInt(line.total_expected) || 0;
+            uniqueIrLines.forEach(line => {
+                grnExpectedMap[line.Item_Code] = line.total_expected;
             });
 
-            // Crear mapa de cantidades recibidas para cada ítem en esta IR (con normalización a mayúsculas y trim)
+            // Crear mapa de cantidades recibidas para cada ítem en esta IR
             const receivedMap = {};
             logs.forEach(log => {
                 const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
@@ -250,9 +297,9 @@ const Inbound = () => {
                 }
             });
 
-            irLines.forEach(line => {
-                const code = String(line.Item_Code).toUpperCase().trim();
-                const expected = parseInt(line.total_expected) || 0;
+            uniqueIrLines.forEach(line => {
+                const code = line.Item_Code;
+                const expected = line.total_expected;
                 const received = receivedMap[code] || 0;
 
                 expectedUnits += expected;
@@ -282,7 +329,6 @@ const Inbound = () => {
             let grnTotalProgress = 0;
             
             try {
-                const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
                 if (poInfo && poInfo.items) {
                     const grnToItems = {}; // grn -> [ {itemCode, expected} ]
                     
@@ -485,24 +531,13 @@ const Inbound = () => {
         const grnMap = {};
         try {
             const db = await getDB();
-            // Cargar lo esperado por itemCode + importReference
+            // Cargar lo esperado por itemCode + importReference usando el helper getGRNExpectedQty
             for (const log of allLogsSorted) {
                 const code = log.itemCode;
                 const ir = log.importReference || log.importRef || '';
                 const key = `${code}|${ir}`;
                 if (!(key in grnMap)) {
-                    const dbKey = `${code}_${ir}`;
-                    const grnInfo = await db.get('grn_pending', dbKey);
-                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
-                    if (!expectedQty || expectedQty === 0) {
-                        const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
-                        if (poInfo && poInfo.items) {
-                            expectedQty = poInfo.items
-                                .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
-                                .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
-                        }
-                    }
-                    grnMap[key] = expectedQty;
+                    grnMap[key] = await getGRNExpectedQty(db, code, ir);
                 }
             }
         } catch (e) { console.error("Error loading GRN info", e); }
@@ -625,8 +660,7 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
-                    const dbKey = `${normalizedCode}_${importRef.trim().toUpperCase()}`;
-                    const grnInfo = await db.get('grn_pending', dbKey);
+                    const expectedQty = await getGRNExpectedQty(db, normalizedCode, importRef);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
                     // Buscar si ya hay reubicaciones de este ítem en la cola local
@@ -675,11 +709,11 @@ const Inbound = () => {
                         }
                     }
 
-                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
-                    if (!expectedQty || expectedQty === 0) {
+                    let expectedQtyVal = expectedQty;
+                    if (!expectedQtyVal || expectedQtyVal === 0) {
                         const matchPo = offlineBreakdown.find(b => b.ir === importRef.trim().toUpperCase());
                         if (matchPo) {
-                            expectedQty = matchPo.qty;
+                            expectedQtyVal = matchPo.qty;
                         }
                     }
 
