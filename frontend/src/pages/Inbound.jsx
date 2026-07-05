@@ -13,17 +13,17 @@ import '../styles/Label.css';
 
 
 const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
-    const radius = 31;
+    const radius = 35;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
     
     return (
         <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
-            <div className="relative flex items-center justify-center" style={{ width: '75px', height: '75px' }}>
-                <svg className="transform -rotate-90" style={{ width: '75px', height: '75px' }}>
+            <div className="relative flex items-center justify-center" style={{ width: '85px', height: '85px' }}>
+                <svg className="transform -rotate-90" style={{ width: '85px', height: '85px' }}>
                     <circle 
-                        cx="37.5" 
-                        cy="37.5" 
+                        cx="42.5" 
+                        cy="42.5" 
                         r={radius} 
                         className="text-zinc-200" 
                         strokeWidth={trackStrokeWidth} 
@@ -31,8 +31,8 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         fill="transparent" 
                     />
                     <circle 
-                        cx="37.5" 
-                        cy="37.5" 
+                        cx="42.5" 
+                        cy="42.5" 
                         r={radius} 
                         stroke={strokeColor} 
                         strokeWidth={strokeWidth} 
@@ -44,11 +44,11 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                     />
                 </svg>
                 <div className="absolute text-center flex flex-col items-center justify-center">
-                    <span className="text-[11px] font-bold text-black leading-none">{valueText}</span>
-                    <span className="text-[9px] text-zinc-500 font-bold leading-none mt-0.5">{percent}%</span>
+                    <span className="text-[13px] font-extrabold text-black leading-none">{valueText}</span>
+                    <span className="text-[10px] text-zinc-700 font-extrabold leading-none mt-0.5">{percent}%</span>
                 </div>
             </div>
-            <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-bold mt-1.5 text-center leading-none truncate w-full">{label}</span>
+            <span className="text-[10px] uppercase tracking-wider text-zinc-900 font-bold mt-1.5 text-center leading-none truncate w-full">{label}</span>
         </div>
     );
 };
@@ -1160,29 +1160,29 @@ const Inbound = () => {
                                     </div>
                                     
                                     <div className="mt-4 space-y-2">
-                                        <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Desglose de Diferencias (GRN)</div>
+                                        <div className="text-[11px] uppercase font-bold text-zinc-800 tracking-wider">Desglose de Diferencias (GRN)</div>
                                         <div className="grid grid-cols-3 gap-2">
-                                            <div className="p-2 bg-emerald-50 rounded border border-emerald-100 text-center">
-                                                <div className="text-[14px] font-bold text-emerald-700">{irStats.okLines}</div>
-                                                <div className="text-[8px] uppercase tracking-wider text-emerald-600 font-semibold leading-tight">Sin Dif.</div>
+                                            <div className="p-2 bg-emerald-50 rounded border border-emerald-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-emerald-900">{irStats.okLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-emerald-800 font-bold leading-tight">Sin Dif.</div>
                                             </div>
-                                            <div className="p-2 bg-red-50 rounded border border-red-100 text-center">
-                                                <div className="text-[14px] font-bold text-red-700">{irStats.negativeDiffLines}</div>
-                                                <div className="text-[8px] uppercase tracking-wider text-red-600 font-semibold leading-tight">Faltantes</div>
+                                            <div className="p-2 bg-red-50 rounded border border-red-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-red-900">{irStats.negativeDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-red-800 font-bold leading-tight">Faltantes</div>
                                             </div>
-                                            <div className="p-2 bg-blue-50 rounded border border-blue-100 text-center">
-                                                <div className="text-[14px] font-bold text-blue-700">{irStats.positiveDiffLines}</div>
-                                                <div className="text-[8px] uppercase tracking-wider text-blue-600 font-semibold leading-tight">Sobrantes</div>
+                                            <div className="p-2 bg-blue-50 rounded border border-blue-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-blue-900">{irStats.positiveDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-blue-800 font-bold leading-tight">Sobrantes</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex-grow flex flex-col items-center justify-center text-zinc-400 p-4 text-center">
-                                    <svg className="w-10 h-10 text-zinc-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <div className="flex-grow flex flex-col items-center justify-center text-zinc-700 p-4 text-center">
+                                    <svg className="w-10 h-10 text-zinc-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    <span className="italic text-[11px] uppercase tracking-wider">Ingrese una Import Reference para activar el tablero</span>
+                                    <span className="italic text-[11px] uppercase tracking-wider font-medium">Ingrese una Import Reference para activar el tablero</span>
                                 </div>
                             )}
                         </div>
