@@ -15,6 +15,15 @@ const Reconciliation = () => {
     const [currentSnapshot, setCurrentSnapshot] = useState('');
     const [isOfflineData, setIsOfflineData] = useState(false);
 
+    // Filtros del histórico en la base de datos
+    const [filterGRN, setFilterGRN] = useState('');
+    const [filterWaybill, setFilterWaybill] = useState('');
+    const [filterImportRef, setFilterImportRef] = useState('');
+    const [isHistoricalMode, setIsHistoricalMode] = useState(false);
+    const [showHistoryFilters, setShowHistoryFilters] = useState(false);
+    const [selectedRowIds, setSelectedRowIds] = useState([]);
+
+
     // Fetch data
     const fetchData = async (params = {}) => {
         setLoading(true);
@@ -22,16 +31,35 @@ const Reconciliation = () => {
 
         if (navigator.onLine) {
             const queryParams = new URLSearchParams();
-            if (params.archive_date) queryParams.append('archive_date', params.archive_date);
-            if (params.snapshot_date) queryParams.append('snapshot_date', params.snapshot_date);
+
+            const snapshotVal = params.snapshot_date !== undefined ? params.snapshot_date : currentSnapshot;
+            const grnVal = params.grn !== undefined ? params.grn : filterGRN;
+            const waybillVal = params.waybill !== undefined ? params.waybill : filterWaybill;
+            const importRefVal = params.import_reference !== undefined ? params.import_reference : filterImportRef;
+
+            const isQueryingHistory = !!(snapshotVal || grnVal || waybillVal || importRefVal);
+            setIsHistoricalMode(isQueryingHistory);
+
+            let url = `/api/views/reconciliation`;
+            if (isQueryingHistory) {
+                url = `/api/views/reconciliation/history`;
+                if (snapshotVal) queryParams.append('snapshot_date', snapshotVal);
+                if (grnVal) queryParams.append('grn', grnVal);
+                if (waybillVal) queryParams.append('waybill', waybillVal);
+                if (importRefVal) queryParams.append('import_reference', importRefVal);
+            } else {
+                const archiveVal = params.archive_date !== undefined ? params.archive_date : currentVersion;
+                if (archiveVal) queryParams.append('archive_date', archiveVal);
+            }
 
             try {
-                const res = await fetch(`/api/views/reconciliation?${queryParams.toString()}`);
+                const res = await fetch(`${url}?${queryParams.toString()}`);
                 if (res.ok) {
                     const response = await res.json();
                     if (response.data) {
                         setData(response.data);
-                        if (!params.archive_date && !params.snapshot_date) {
+                        setSelectedRowIds([]);
+                        if (!isQueryingHistory && !params.archive_date) {
                             await cacheData('last_reconciliation', response.data);
                         }
                     }
@@ -86,19 +114,76 @@ const Reconciliation = () => {
         }
     };
 
+    const handleUnarchiveVersion = async () => {
+        if (!currentVersion) return;
+        if (!confirm(`¿Deseas desarchivar los registros correspondientes al lote ${formatDateShort(currentVersion)}? Esto los reincorporará a la conciliación activa.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/logs/unarchive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ version_date: currentVersion })
+            });
+            if (res.ok) {
+                alert("Lote desarchivado con éxito");
+                setCurrentVersion('');
+                fetchData({ archive_date: '', snapshot_date: '' });
+            } else {
+                const err = await res.json();
+                alert(`Error al desarchivar: ${err.detail || 'Error desconocido'}`);
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    };
+
+    const handleRestoreRowsBulk = async () => {
+        if (selectedRowIds.length === 0) return alert("No hay registros seleccionados");
+        if (!confirm(`¿Deseas desarchivar y restaurar los ${selectedRowIds.length} registros seleccionados a la conciliación activa?`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/views/reconciliation/restore_rows_bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_ids: selectedRowIds })
+            });
+            if (res.ok) {
+                alert("Registros restaurados con éxito como logs activos.");
+                setSelectedRowIds([]);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(`Error al restaurar: ${err.detail || 'Error desconocido'}`);
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    };
+
+
+
+
     const handleVersionChange = (e) => {
         const val = e.target.value;
         setCurrentVersion(val);
         setCurrentSnapshot('');
-        fetchData({ archive_date: val });
+        setFilterGRN('');
+        setFilterWaybill('');
+        setFilterImportRef('');
+        fetchData({ archive_date: val, snapshot_date: '', grn: '', waybill: '', import_reference: '' });
     };
 
     const handleSnapshotChange = (e) => {
         const val = e.target.value;
         setCurrentSnapshot(val);
         setCurrentVersion('');
-        fetchData({ snapshot_date: val });
+        fetchData({ snapshot_date: val, archive_date: '' });
     };
+
 
     const formatDateShort = (dateStr) => {
         if (!dateStr) return '';
@@ -160,6 +245,25 @@ const Reconciliation = () => {
             );
         });
     }, [sortedData, filterText]);
+
+    const allSelected = filteredData.length > 0 && filteredData.every(row => selectedRowIds.includes(row.id));
+    
+    const handleToggleSelectAll = () => {
+        if (allSelected) {
+            setSelectedRowIds(prev => prev.filter(id => !filteredData.some(r => r.id === id)));
+        } else {
+            const newIds = filteredData.map(r => r.id).filter(id => id && !selectedRowIds.includes(id));
+            setSelectedRowIds(prev => [...prev, ...newIds]);
+        }
+    };
+
+    const handleToggleSelectRow = (rowId) => {
+        if (selectedRowIds.includes(rowId)) {
+            setSelectedRowIds(prev => prev.filter(id => id !== rowId));
+        } else {
+            setSelectedRowIds(prev => [...prev, rowId]);
+        }
+    };
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -282,6 +386,31 @@ const Reconciliation = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5 ml-auto">
+                        {isHistoricalMode && selectedRowIds.length > 0 && (
+                            <button
+                                onClick={handleRestoreRowsBulk}
+                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
+                            >
+                                Desarchivar ({selectedRowIds.length})
+                            </button>
+                        )}
+
+                        {currentVersion && (
+                            <button
+                                onClick={handleUnarchiveVersion}
+                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
+                            >
+                                Desarchivar Lote
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => setShowHistoryFilters(!showHistoryFilters)}
+                            className="h-9 px-3 text-[12px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap hover:bg-zinc-50 transition-colors"
+                        >
+                            {showHistoryFilters ? "Ocultar BD" : "Buscar BD"}
+                        </button>
+
                         <button
                             onClick={() => {
                                 const params = new URLSearchParams();
@@ -305,6 +434,65 @@ const Reconciliation = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Panel de filtros históricos de base de datos */}
+                {showHistoryFilters && (
+                    <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100 mt-2">
+                        <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-semibold pl-1">Búsqueda en Histórico (BD):</span>
+                        
+                        <input
+                            type="text"
+                            placeholder="GRN..."
+                            value={filterGRN}
+                            onChange={(e) => setFilterGRN(e.target.value)}
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                        />
+                        
+                        <input
+                            type="text"
+                            placeholder="WAYBILL..."
+                            value={filterWaybill}
+                            onChange={(e) => setFilterWaybill(e.target.value)}
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                        />
+                        
+                        <input
+                            type="text"
+                            placeholder="I.R...."
+                            value={filterImportRef}
+                            onChange={(e) => setFilterImportRef(e.target.value)}
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                        />
+
+                        <button
+                            onClick={() => fetchData()}
+                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm uppercase tracking-wider bg-zinc-700 hover:bg-zinc-800 transition-colors active:scale-95"
+                        >
+                            Buscar BD
+                        </button>
+
+                        {(filterGRN || filterWaybill || filterImportRef) && (
+                            <button
+                                onClick={() => {
+                                    setFilterGRN('');
+                                    setFilterWaybill('');
+                                    setFilterImportRef('');
+                                    fetchData({ grn: '', waybill: '', import_reference: '' });
+                                }}
+                                className="h-8 px-2 text-[11px] text-zinc-500 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors active:scale-95"
+                            >
+                                Limpiar
+                            </button>
+                        )}
+
+                        {isHistoricalMode && (
+                            <span className="text-[9px] uppercase tracking-widest text-[#285f94] font-bold ml-auto flex items-center gap-1.5 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#285f94] animate-pulse"></span>
+                                Modo Histórico Activo
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
@@ -330,19 +518,35 @@ const Reconciliation = () => {
                                                 { id: 'Cant_Esperada', label: 'CANT ESPERADA' },
                                                 { id: 'Cant_Recibida', label: 'CANT RECIBIDA' },
                                                 { id: 'Diferencia', label: 'DIFERENCIA' },
-                                                { id: 'Timestamp', label: 'FECHA' }
+                                                { id: 'Timestamp', label: 'FECHA' },
+                                                ...(isHistoricalMode ? [
+                                                    { id: 'Snapshot_Date', label: 'SNAPSHOT' },
+                                                    { id: 'actions', label: 'ACCIONES' }
+                                                ] : [])
                                             ].map((head) => (
                                                 <th
                                                     key={head.id}
-                                                    onClick={() => requestSort(head.id)}
-                                                    className="px-3 py-2.5 text-[12px] font-medium text-white/90 cursor-pointer select-none whitespace-nowrap uppercase tracking-wider transition-colors"
+                                                    onClick={() => head.id !== 'actions' && requestSort(head.id)}
+                                                    className={`px-3 py-2.5 text-[12px] font-medium text-white/90 ${head.id !== 'actions' ? 'cursor-pointer select-none' : ''} whitespace-nowrap uppercase tracking-wider transition-colors`}
                                                     style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = '#2a3c4e'}
-                                                    onMouseLeave={e => e.currentTarget.style.background = ''}
+                                                    onMouseEnter={e => head.id !== 'actions' && (e.currentTarget.style.background = '#2a3c4e')}
+                                                    onMouseLeave={e => head.id !== 'actions' && (e.currentTarget.style.background = '')}
                                                 >
-                                                    <div className="flex items-center gap-1">
-                                                        {head.label}
-                                                        {getSortIcon(head.id)}
+                                                    <div className="flex items-center gap-1 justify-center">
+                                                        {head.id === 'actions' ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={allSelected}
+                                                                onChange={handleToggleSelectAll}
+                                                                className="cursor-pointer rounded border-zinc-300 text-[#285f94] focus:ring-[#285f94] w-4 h-4"
+                                                                title="Seleccionar todos"
+                                                            />
+                                                        ) : (
+                                                            <>
+                                                                {head.label}
+                                                                {getSortIcon(head.id)}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </th>
                                             ))}
@@ -373,12 +577,32 @@ const Reconciliation = () => {
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm text-black font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>
                                                         {formatDateShort(row.Timestamp)}
                                                     </td>
+                                                    {isHistoricalMode && (
+                                                        <>
+                                                            <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm text-black font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-semibold text-zinc-700">{formatDateShort(row.Snapshot_Date)}</span>
+                                                                    <span className="text-[9px] text-zinc-400">Por: {row.Usuario || 'Sistema'}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm text-black font-normal text-center" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedRowIds.includes(row.id)}
+                                                                    onChange={() => handleToggleSelectRow(row.id)}
+                                                                    className="cursor-pointer rounded border-zinc-300 text-[#285f94] focus:ring-[#285f94] w-4 h-4"
+                                                                />
+                                                            </td>
+                                                        </>
+                                                    )}
                                                 </tr>
+
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="11" className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
+                                                <td colSpan={isHistoricalMode ? 13 : 11} className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
                                             </tr>
+
                                         )}
                                     </tbody>
                                 </table>

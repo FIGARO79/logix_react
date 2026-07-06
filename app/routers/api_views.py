@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text, select, desc, distinct, func
 from sqlalchemy.orm import selectinload
@@ -136,6 +136,179 @@ async def get_reconciliation_data(
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+class HistoricalReconciliationRow(BaseModel):
+    id: int
+    Import_Reference: str
+    Waybill: str
+    GRN: str
+    Codigo_Item: str
+    Descripcion: str
+    Ubicacion: str
+    Reubicado: str
+    Cant_Esperada: int
+    Cant_Recibida: int
+    Diferencia: int
+    Timestamp: str
+    Snapshot_Date: str
+    Usuario: str
+
+class HistoricalReconciliationResponse(BaseModel):
+    data: List[HistoricalReconciliationRow]
+
+@router.get("/reconciliation/history", response_model=HistoricalReconciliationResponse)
+async def get_reconciliation_history(
+    snapshot_date: Optional[str] = Query(None, description="Filtrar por lote/snapshot específico"),
+    grn: Optional[str] = Query(None, description="Filtrar por número de GRN"),
+    waybill: Optional[str] = Query(None, description="Filtrar por número de Waybill"),
+    import_reference: Optional[str] = Query(None, description="Filtrar por Import Reference"),
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required)
+) -> dict:
+    """
+    Busca registros en el histórico de snapshots aplicando filtros avanzados en la base de datos.
+    """
+    stmt = select(ReconciliationHistory)
+    
+    # Aplicación dinámica de filtros
+    if snapshot_date:
+        stmt = stmt.where(ReconciliationHistory.archive_date == snapshot_date)
+    if grn:
+        stmt = stmt.where(ReconciliationHistory.grn.ilike(f"%{grn.strip()}%"))
+    if waybill:
+        stmt = stmt.where(ReconciliationHistory.waybill.ilike(f"%{waybill.strip()}%"))
+    if import_reference:
+        stmt = stmt.where(ReconciliationHistory.import_reference.ilike(f"%{import_reference.strip()}%"))
+        
+    stmt = stmt.order_by(desc(ReconciliationHistory.timestamp))
+    
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+    
+    data_mapped = [
+        HistoricalReconciliationRow(
+            id=r.id,
+            Import_Reference=r.import_reference,
+            Waybill=r.waybill,
+            GRN=r.grn,
+            Codigo_Item=r.item_code,
+            Descripcion=r.description,
+            Ubicacion=r.bin_location or "",
+            Reubicado=r.relocated_bin or "",
+            Cant_Esperada=r.qty_expected,
+            Cant_Recibida=r.qty_received,
+            Diferencia=r.difference,
+            Timestamp=r.timestamp,
+            Snapshot_Date=r.archive_date,
+            Usuario=r.username
+        )
+        for r in rows
+    ]
+    
+    return {"data": data_mapped}
+
+@router.post("/reconciliation/restore_row/{row_id}")
+async def restore_historical_reconciliation_row(
+    row_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required)
+):
+    """
+    Restaura una fila de historial (Snapshot) como un log activo de Inbound (archived_at = None).
+    """
+    # 1. Buscar la fila en la tabla de historial
+    stmt = select(ReconciliationHistory).where(ReconciliationHistory.id == row_id)
+    res = await db.execute(stmt)
+    history_row = res.scalar_one_or_none()
+    
+    if not history_row:
+        raise HTTPException(status_code=404, detail="Fila histórica no encontrada")
+        
+    # 2. Insertar una nueva entrada en la tabla logs
+    from app.models.sql_models import Log
+    import datetime
+    
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_log = Log(
+        timestamp=now,
+        importReference=history_row.import_reference,
+        waybill=history_row.waybill,
+        itemCode=history_row.item_code,
+        itemDescription=history_row.description,
+        binLocation=history_row.bin_location,
+        relocatedBin=history_row.relocated_bin,
+        qtyReceived=history_row.qty_received,
+        qtyGrn=history_row.qty_expected,
+        difference=history_row.difference,
+        username=username,
+        archived_at=None  # Asegurar que esté activo
+    )
+    
+    try:
+        db.add(new_log)
+        await db.commit()
+        return {"message": "Registro de log restaurado a activo correctamente", "log_id": new_log.id}
+    except Exception as e:
+        await db.rollback()
+        print(f"Error restaurando fila histórica {row_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al restaurar el registro")
+
+class RestoreRowsBulkRequest(BaseModel):
+    row_ids: List[int]
+
+@router.post("/reconciliation/restore_rows_bulk")
+async def restore_historical_reconciliation_rows_bulk(
+    payload: RestoreRowsBulkRequest,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required)
+):
+    """
+    Restaura múltiples filas de historial (Snapshots) como logs activos de Inbound (archived_at = None).
+    """
+    if not payload.row_ids:
+        raise HTTPException(status_code=400, detail="Debe especificar al menos un row_id")
+        
+    # 1. Buscar las filas en la tabla de historial
+    stmt = select(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+    res = await db.execute(stmt)
+    history_rows = res.scalars().all()
+    
+    if not history_rows:
+        raise HTTPException(status_code=404, detail="No se encontraron las filas históricas especificadas")
+        
+    # 2. Insertar las nuevas entradas en la tabla logs
+    from app.models.sql_models import Log
+    import datetime
+    
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_logs = [
+        Log(
+            timestamp=now,
+            importReference=r.import_reference,
+            waybill=r.waybill,
+            itemCode=r.item_code,
+            itemDescription=r.description,
+            binLocation=r.bin_location,
+            relocatedBin=r.relocated_bin,
+            qtyReceived=r.qty_received,
+            qtyGrn=r.qty_expected,
+            difference=r.difference,
+            username=username,
+            archived_at=None  # Asegurar que esté activo
+        )
+        for r in history_rows
+    ]
+    
+    try:
+        db.add_all(new_logs)
+        await db.commit()
+        return {"message": f"Se restauraron {len(new_logs)} registros correctamente"}
+    except Exception as e:
+        await db.rollback()
+        print(f"Error restaurando filas históricas en lote: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al restaurar los registros")
+
+
 
 class ReconciliationArchiveRequest(BaseModel):
     data: List[dict]

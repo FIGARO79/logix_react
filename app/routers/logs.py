@@ -218,6 +218,28 @@ async def archive_logs(username: str = Depends(permission_required("inbound")), 
     else:
         return ORJSONResponse(status_code=400, content={"message": "No hay registros activos para archivar"})
 
+from pydantic import BaseModel
+
+class UnarchiveLogsRequest(BaseModel):
+    version_date: str
+
+@router.post('/logs/unarchive')
+async def unarchive_logs(
+    payload: UnarchiveLogsRequest,
+    username: str = Depends(permission_required("inbound")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Desarchiva los registros de log correspondientes a una versión/fecha."""
+    if not payload.version_date:
+        raise HTTPException(status_code=400, detail="Debe especificar version_date")
+        
+    success = await db_logs.restore_archived_logs_db_async(db, payload.version_date)
+    if success:
+        return ORJSONResponse(content={"message": "Logs restaurados a activos correctamente"})
+    else:
+        raise HTTPException(status_code=500, detail="Error interno al desarchivar los registros")
+
+
 @router.get('/logs/versions')
 async def get_log_versions(username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene las fechas de las versiones archivadas."""

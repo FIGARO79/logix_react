@@ -245,6 +245,19 @@ async def archive_current_logs_db_async(db: AsyncSession) -> bool:
         await db.rollback()
         return False
 
+async def restore_archived_logs_db_async(db: AsyncSession, version_date: str) -> bool:
+    """Restaura los logs de una versión archivada específica a activos (archived_at = None)."""
+    try:
+        stmt = update(Log).where(Log.archived_at == version_date).values(archived_at=None)
+        await db.execute(stmt)
+        await db.commit()
+        return True
+    except Exception as e:
+        print(f"DB Error (restore_archived_logs_db_async): {e}")
+        await db.rollback()
+        return False
+
+
 async def get_archived_versions_db_async(db: AsyncSession) -> List[str]:
     """Obtiene una lista de las fechas de archivado únicas."""
     try:
