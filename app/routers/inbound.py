@@ -88,35 +88,61 @@ from app.core.db import get_db
 from app.models.sql_models import IRReconciliation, Log, GRNMaster
 import datetime
 
-async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
-    target_ir = import_reference.strip().upper()
-    
-    # 1. Build grn_to_ir mapping
-    grn_to_ir = {}
-    if os.path.exists(GRN_JSON_DATA_PATH):
-        try:
-            with open(GRN_JSON_DATA_PATH, 'rb') as f:
-                for row in orjson.loads(f.read()):
-                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                    if ir and grn:
-                        grn_to_ir[grn] = ir
-        except: pass
+_po_lookup_cache = None
+_po_lookup_mtime = 0.0
 
-    try:
-        db_grns = await db.execute(select(GRNMaster))
-        for g_master in db_grns.scalars().all():
-            ir = str(g_master.import_reference).strip().upper()
-            if ir and g_master.grn_number:
-                for g in str(g_master.grn_number).split(','):
-                    if g.strip():
-                        grn_to_ir[g.strip().upper()] = ir
-    except: pass
-
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
+def get_po_lookup_cached() -> dict:
+    global _po_lookup_cache, _po_lookup_mtime
+    if not os.path.exists(PO_LOOKUP_JSON_PATH):
+        return {}
+    mtime = os.path.getmtime(PO_LOOKUP_JSON_PATH)
+    if _po_lookup_cache is None or mtime > _po_lookup_mtime:
         try:
             with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
-                po_cache = orjson.loads(f.read())
+                _po_lookup_cache = orjson.loads(f.read())
+            _po_lookup_mtime = mtime
+        except Exception as e:
+            print(f"Error loading PO lookup JSON: {e}")
+            if _po_lookup_cache is None:
+                _po_lookup_cache = {}
+    return _po_lookup_cache
+
+
+_grn_to_ir_cache = None
+_grn_to_ir_mtime_po = 0.0
+_grn_to_ir_mtime_grn = 0.0
+
+async def get_grn_to_ir_cached(db: AsyncSession) -> dict:
+    global _grn_to_ir_cache, _grn_to_ir_mtime_po, _grn_to_ir_mtime_grn
+    
+    mtime_po = os.path.getmtime(PO_LOOKUP_JSON_PATH) if os.path.exists(PO_LOOKUP_JSON_PATH) else 0.0
+    mtime_grn = os.path.getmtime(GRN_JSON_DATA_PATH) if os.path.exists(GRN_JSON_DATA_PATH) else 0.0
+    
+    if _grn_to_ir_cache is None or mtime_po > _grn_to_ir_mtime_po or mtime_grn > _grn_to_ir_mtime_grn:
+        grn_to_ir = {}
+        if os.path.exists(GRN_JSON_DATA_PATH):
+            try:
+                with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                    for row in orjson.loads(f.read()):
+                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                        if ir and grn:
+                            grn_to_ir[grn] = ir
+            except: pass
+
+        try:
+            db_grns = await db.execute(select(GRNMaster))
+            for g_master in db_grns.scalars().all():
+                ir = str(g_master.import_reference).strip().upper()
+                if ir and g_master.grn_number:
+                    for g in str(g_master.grn_number).split(','):
+                        if g.strip():
+                            grn_to_ir[g.strip().upper()] = ir
+        except: pass
+
+        po_cache = get_po_lookup_cached()
+        if po_cache:
+            try:
                 for wb, data in po_cache.get("wb_to_data", {}).items():
                     ir = str(data.get("import_ref", "")).strip().upper()
                     for item in data.get("items", []):
@@ -133,7 +159,20 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                             for g in grn_val.split(','):
                                 if g.strip():
                                     grn_to_ir[g.strip().upper()] = ir
-        except: pass
+            except: pass
+            
+        _grn_to_ir_cache = grn_to_ir
+        _grn_to_ir_mtime_po = mtime_po
+        _grn_to_ir_mtime_grn = mtime_grn
+        
+    return _grn_to_ir_cache
+
+
+async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
+    target_ir = import_reference.strip().upper()
+    
+    # 1. Build/Get grn_to_ir mapping from cache
+    grn_to_ir = await get_grn_to_ir_cached(db)
 
     # 2. Load expected lines from GRN CSV
     from app.services import csv_handler
@@ -179,7 +218,9 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
         qty = int(l.qtyReceived) if l.qtyReceived is not None else 0
         received_map[code] = received_map.get(code, 0) + qty
         
-    # 4. Compute statistics
+    # 4. Compute statistics using union of SKUs from grouped_expected and received_map
+    all_codes = set(grouped_expected.keys()) | set(received_map.keys())
+    
     total_lines = len(grouped_expected)
     expected_units = sum(grouped_expected.values())
     started_lines = 0
@@ -189,7 +230,8 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
     positive_diff_lines = 0
     received_units = 0
 
-    for code, expected in grouped_expected.items():
+    for code in all_codes:
+        expected = grouped_expected.get(code, 0)
         received = received_map.get(code, 0)
         received_units += received
         
@@ -211,11 +253,9 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
     total_grns = 0
     completed_grns = 0
     
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
+    po_data = get_po_lookup_cached()
+    if po_data:
         try:
-            with open(PO_LOOKUP_JSON_PATH, "r", encoding="utf-8") as f:
-                import json
-                po_data = json.loads(f.read())
             ir_to_data = po_data.get("ir_to_data", {})
             po_info = ir_to_data.get(target_ir, {})
             if po_info and "items" in po_info:
@@ -328,22 +368,61 @@ async def get_ir_reconciliations(
     result = await db.execute(stmt)
     recons = result.scalars().all()
     
-    updated_recons = []
+    existing_irs = {recon.import_reference.strip().upper() for recon in recons}
+    
+    # Obtener todas las IRs únicas con logs activos en la DB que no estén registradas en conciliaciones
+    logs_stmt = select(Log.importReference).where(
+        or_(Log.archived_at.is_(None), Log.archived_at == '')
+    ).distinct()
+    logs_res = await db.execute(logs_stmt)
+    active_log_irs = {str(ir).strip().upper() for ir in logs_res.scalars().all() if ir}
+    
     need_commit = False
     
+    # Auto-registrar IRs faltantes
+    for log_ir in active_log_irs:
+        if log_ir not in existing_irs:
+            stats = await recalculate_ir_stats(db, log_ir)
+            if stats:
+                new_recon = IRReconciliation(
+                    timestamp=datetime.datetime.now().isoformat(),
+                    import_reference=log_ir,
+                    total_lines=stats.get("total_lines", 0),
+                    completed_lines=stats.get("completed_lines", 0),
+                    started_lines=stats.get("started_lines", 0),
+                    expected_units=stats.get("expected_units", 0),
+                    received_units=stats.get("received_units", 0),
+                    ok_lines=stats.get("ok_lines", 0),
+                    negative_diff_lines=stats.get("negative_diff_lines", 0),
+                    positive_diff_lines=stats.get("positive_diff_lines", 0),
+                    total_grns=stats.get("total_grns", 0),
+                    completed_grns=stats.get("completed_grns", 0),
+                    username="SISTEMA"
+                )
+                db.add(new_recon)
+                need_commit = True
+                
+    if need_commit:
+        await db.commit()
+        # Volver a cargar la lista de conciliaciones incluyendo las recién creadas
+        result = await db.execute(stmt)
+        recons = result.scalars().all()
+        need_commit = False
+        
+    updated_recons = []
     for recon in recons:
         stats = await recalculate_ir_stats(db, recon.import_reference)
         if stats:
-            recon.total_lines = stats["total_lines"]
-            recon.completed_lines = stats["completed_lines"]
-            recon.started_lines = stats["started_lines"]
-            recon.expected_units = stats["expected_units"]
-            recon.received_units = stats["received_units"]
-            recon.ok_lines = stats["ok_lines"]
-            recon.negative_diff_lines = stats["negative_diff_lines"]
-            recon.positive_diff_lines = stats["positive_diff_lines"]
-            recon.total_grns = stats["total_grns"]
-            recon.completed_grns = stats["completed_grns"]
+            recon.total_lines = stats.get("total_lines", 0)
+            recon.completed_lines = stats.get("completed_lines", 0)
+            recon.started_lines = stats.get("started_lines", 0)
+            recon.expected_units = stats.get("expected_units", 0)
+            recon.received_units = stats.get("received_units", 0)
+            recon.ok_lines = stats.get("ok_lines", 0)
+            recon.negative_diff_lines = stats.get("negative_diff_lines", 0)
+            recon.positive_diff_lines = stats.get("positive_diff_lines", 0)
+            recon.total_grns = stats.get("total_grns", 0)
+            recon.completed_grns = stats.get("completed_grns", 0)
             need_commit = True
         updated_recons.append(recon.to_dict())
         

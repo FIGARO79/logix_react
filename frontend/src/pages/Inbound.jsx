@@ -298,9 +298,15 @@ const Inbound = () => {
                 }
             });
 
-            uniqueIrLines.forEach(line => {
-                const code = line.Item_Code;
-                const expected = line.total_expected;
+            // Hacer la unión de los SKUs esperados y los SKUs recibidos en logs
+            const allSkusSet = new Set([
+                ...uniqueIrLines.map(l => l.Item_Code),
+                ...Object.keys(receivedMap)
+            ]);
+
+            allSkusSet.forEach(code => {
+                const line = groupedIrLines[code];
+                const expected = line ? line.total_expected : 0;
                 const received = receivedMap[code] || 0;
 
                 expectedUnits += expected;
@@ -408,7 +414,7 @@ const Inbound = () => {
 
     // Autoguardar la conciliación en segundo plano de manera silenciosa cada vez que cambien las estadísticas
     useEffect(() => {
-        if (!importRef || importRef.trim() === '' || irStats.totalLines === 0) return;
+        if (!importRef || importRef.trim() === '' || (irStats.totalLines === 0 && irStats.receivedUnits === 0)) return;
 
         const delayDebounceFn = setTimeout(async () => {
             try {
