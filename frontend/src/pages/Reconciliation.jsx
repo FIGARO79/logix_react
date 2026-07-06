@@ -511,6 +511,7 @@ const Reconciliation = () => {
                                                 { id: 'Import_Reference', label: 'I.R.' },
                                                 { id: 'Waybill', label: 'WAYBILL' },
                                                 { id: 'GRN', label: 'GRN' },
+                                                { id: 'Order_Line', label: 'LÍNEA' },
                                                 { id: 'Codigo_Item', label: 'CODIGO ITEM' },
                                                 { id: 'Descripcion', label: 'DESCRIPCION' },
                                                 { id: 'Ubicacion', label: 'UBICACION' },
@@ -565,6 +566,7 @@ const Reconciliation = () => {
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal text-black tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
+                                                    <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Order_Line || '-'}</td>
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal tracking-tight" style={{ borderBottom: '1px solid #f1f1f1', color: '#1e4a74' }}>{row.Codigo_Item}</td>
                                                     <td className="px-3 py-2 text-[12px] truncate max-w-[300px] text-sm font-normal text-black tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
                                                     <td className="px-3 py-2 text-[12px] whitespace-nowrap text-sm font-normal text-black" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
@@ -600,7 +602,7 @@ const Reconciliation = () => {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={isHistoricalMode ? 13 : 11} className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
+                                                <td colSpan={isHistoricalMode ? 14 : 12} className="px-4 py-20 text-center text-zinc-400 text-[11px]">No se encontraron registros</td>
                                             </tr>
 
                                         )}

@@ -114,6 +114,8 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         if grn_pl is None: return []
         if "Order_Number" not in grn_pl.columns:
             grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Number"))
+        if "Order_Line" not in grn_pl.columns:
+            grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Line"))
 
         df_280 = grn_pl.select([
             pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
@@ -121,6 +123,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
             pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
             pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().fill_null(""),
+            pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
         ])
 
         # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
@@ -150,7 +153,6 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             how="left"
         )
 
-        # 8. Manejo de ítems "Invasores" (Recibidos en una IR pero no en el GRN de esa IR)
         logs_sin_grn = logs_grouped.join(
             df_expected_with_ir.select(["ir_map", "Item_Code"]).unique(),
             left_on=["importReference", "itemCode"], right_on=["ir_map", "Item_Code"],
@@ -163,11 +165,12 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.lit("No en reporte 280").alias("Item_Description"),
             pl.lit(0.0).alias("Quantity"),
             pl.lit(0.0).alias("Total_Esperado_IR"),
-            pl.lit("").alias("Order_Number")
+            pl.lit("").alias("Order_Number"),
+            pl.lit("").alias("Order_Line")
         ])
 
         # Unificar
-        common_cols = ["ir_map", "wb_map", "GRN_Number", "Item_Code", "Item_Description", "Quantity", "Order_Number", "Total_Esperado_IR", "qtyReceived"]
+        common_cols = ["ir_map", "wb_map", "GRN_Number", "Item_Code", "Item_Description", "Quantity", "Order_Number", "Order_Line", "Total_Esperado_IR", "qtyReceived"]
         final = pl.concat([final.select(common_cols), logs_sin_grn.select(common_cols)], how="diagonal")
 
         # 9. Cálculos de Diferencia y Ubicaciones
@@ -206,6 +209,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("ir_map").alias("Import_Reference"),
             pl.col("wb_map").alias("Waybill"),
             pl.col("GRN_Number").alias("GRN"),
+            pl.col("Order_Line").alias("Order_Line"),
             pl.col("Item_Code").alias("Codigo_Item"),
             pl.col("Item_Description").alias("Descripcion"),
             pl.col("binLocation").alias("Ubicacion"),

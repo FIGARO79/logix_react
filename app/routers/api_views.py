@@ -106,6 +106,7 @@ async def get_reconciliation_data(
                 "Import_Reference": r.import_reference,
                 "Waybill": r.waybill,
                 "GRN": r.grn,
+                "Order_Line": "",
                 "Codigo_Item": r.item_code,
                 "Descripcion": r.description,
                 "Ubicacion": "",
@@ -142,6 +143,7 @@ class HistoricalReconciliationRow(BaseModel):
     Import_Reference: str
     Waybill: str
     GRN: str
+    Order_Line: Optional[str] = ""
     Codigo_Item: str
     Descripcion: str
     Ubicacion: str
@@ -191,6 +193,7 @@ async def get_reconciliation_history(
             Import_Reference=r.import_reference,
             Waybill=r.waybill,
             GRN=r.grn,
+            Order_Line="",
             Codigo_Item=r.item_code,
             Descripcion=r.description,
             Ubicacion=r.bin_location or "",
