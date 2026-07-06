@@ -98,14 +98,10 @@ const InboundHistory = () => {
             });
 
             const enrichedLogs = sortedData.map(log => {
-                const expected280 = grnMap[log.itemCode] || 0;
-                const totalReceived = totalsMap[log.itemCode] || 0;
-                const isLatest = latestEntryMap[log.itemCode] === log.id;
-
                 return {
                     ...log,
                     expected_qty: log.qtyGrn || 0,
-                    calculatedDifference: isLatest ? (totalReceived - expected280) : 0
+                    calculatedDifference: log.difference !== undefined ? log.difference : 0
                 };
             });
 

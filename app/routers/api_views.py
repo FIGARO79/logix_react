@@ -228,13 +228,18 @@ async def restore_historical_reconciliation_row(
     from app.models.sql_models import Log
     import datetime
     
+    # Obtener descripción real si está disponible
+    item_details = await csv_handler.get_item_details_from_master_csv(history_row.item_code, db=db)
+    real_desc = item_details.get("Item_Description") if item_details else None
+    desc_to_use = real_desc if real_desc and "No en" not in real_desc else history_row.description
+
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     new_log = Log(
         timestamp=now,
         importReference=history_row.import_reference,
         waybill=history_row.waybill,
         itemCode=history_row.item_code,
-        itemDescription=history_row.description,
+        itemDescription=desc_to_use,
         binLocation=history_row.bin_location,
         relocatedBin=history_row.relocated_bin,
         qtyReceived=history_row.qty_received,
@@ -281,23 +286,29 @@ async def restore_historical_reconciliation_rows_bulk(
     import datetime
     
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_logs = [
-        Log(
-            timestamp=now,
-            importReference=r.import_reference,
-            waybill=r.waybill,
-            itemCode=r.item_code,
-            itemDescription=r.description,
-            binLocation=r.bin_location,
-            relocatedBin=r.relocated_bin,
-            qtyReceived=r.qty_received,
-            qtyGrn=r.qty_expected,
-            difference=r.difference,
-            username=username,
-            archived_at=None  # Asegurar que esté activo
+    new_logs = []
+    for r in history_rows:
+        # Obtener descripción real si está disponible
+        item_details = await csv_handler.get_item_details_from_master_csv(r.item_code, db=db)
+        real_desc = item_details.get("Item_Description") if item_details else None
+        desc_to_use = real_desc if real_desc and "No en" not in real_desc else r.description
+        
+        new_logs.append(
+            Log(
+                timestamp=now,
+                importReference=r.import_reference,
+                waybill=r.waybill,
+                itemCode=r.item_code,
+                itemDescription=desc_to_use,
+                binLocation=r.bin_location,
+                relocatedBin=r.relocated_bin,
+                qtyReceived=r.qty_received,
+                qtyGrn=r.qty_expected,
+                difference=r.difference,
+                username=username,
+                archived_at=None  # Asegurar que esté activo
+            )
         )
-        for r in history_rows
-    ]
     
     try:
         db.add_all(new_logs)

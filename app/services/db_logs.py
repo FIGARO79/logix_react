@@ -116,26 +116,63 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
         ).order_by(Log.id.desc())
         result = await db.execute(stmt)
         logs = result.scalars().all()
-        # Convertir a dict explícitamente porque los modelos ORM no son dicts
-        return [
-            {
+        
+        from app.services import csv_handler
+        item_desc_cache = {}
+        db_needs_commit = False
+        
+        result_list = []
+        for log in logs:
+            desc = log.itemDescription
+            if not desc or "No en" in desc:
+                item_code = log.itemCode
+                if item_code not in item_desc_cache:
+                    item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
+                    real_desc = item_details.get("Item_Description") if item_details else None
+                    item_desc_cache[item_code] = real_desc if (real_desc and "No en" not in real_desc) else desc
+                
+                cached_desc = item_desc_cache[item_code]
+                if cached_desc and cached_desc != desc:
+                    desc = cached_desc
+                    log.itemDescription = desc
+                    db.add(log)
+                    db_needs_commit = True
+            
+            # Auto-sanar diferencia
+            diff = log.difference
+            try:
+                expected_qty = float(log.qtyGrn or 0)
+                received_qty = float(log.qtyReceived or 0)
+                correct_diff = int(received_qty - expected_qty)
+                if diff != correct_diff:
+                    diff = correct_diff
+                    log.difference = diff
+                    db.add(log)
+                    db_needs_commit = True
+            except (ValueError, TypeError):
+                pass
+            
+            result_list.append({
                 "id": log.id,
                 "timestamp": log.timestamp,
                 "importReference": log.importReference,
                 "waybill": log.waybill,
                 "itemCode": log.itemCode,
-                "itemDescription": log.itemDescription,
+                "itemDescription": desc,
                 "binLocation": log.binLocation,
                 "relocatedBin": log.relocatedBin,
                 "qtyReceived": log.qtyReceived,
                 "qtyGrn": log.qtyGrn,
-                "difference": log.difference,
+                "difference": diff,
                 "username": log.username,
                 "client_id": getattr(log, 'client_id', None),
                 "observaciones": ""  # Columna no existe en tabla MySQL
-            }
-            for log in logs
-        ]
+            })
+            
+        if db_needs_commit:
+            await db.commit()
+            
+        return result_list
     except Exception as e:
         print(f"DB Error (load_log_data_db_async): {e}")
         return []
@@ -279,24 +316,62 @@ async def load_archived_log_data_db_async(db: AsyncSession, version_date: str) -
         stmt = select(Log).where(Log.archived_at == version_date).order_by(Log.id.desc())
         result = await db.execute(stmt)
         logs = result.scalars().all()
-        return [
-            {
+        
+        from app.services import csv_handler
+        item_desc_cache = {}
+        db_needs_commit = False
+        
+        result_list = []
+        for log in logs:
+            desc = log.itemDescription
+            if not desc or "No en" in desc:
+                item_code = log.itemCode
+                if item_code not in item_desc_cache:
+                    item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
+                    real_desc = item_details.get("Item_Description") if item_details else None
+                    item_desc_cache[item_code] = real_desc if (real_desc and "No en" not in real_desc) else desc
+                
+                cached_desc = item_desc_cache[item_code]
+                if cached_desc and cached_desc != desc:
+                    desc = cached_desc
+                    log.itemDescription = desc
+                    db.add(log)
+                    db_needs_commit = True
+                    
+            # Auto-sanar diferencia
+            diff = log.difference
+            try:
+                expected_qty = float(log.qtyGrn or 0)
+                received_qty = float(log.qtyReceived or 0)
+                correct_diff = int(received_qty - expected_qty)
+                if diff != correct_diff:
+                    diff = correct_diff
+                    log.difference = diff
+                    db.add(log)
+                    db_needs_commit = True
+            except (ValueError, TypeError):
+                pass
+                
+            result_list.append({
                 "id": log.id,
                 "timestamp": log.timestamp,
                 "importReference": log.importReference,
                 "waybill": log.waybill,
                 "itemCode": log.itemCode,
-                "itemDescription": log.itemDescription,
+                "itemDescription": desc,
                 "binLocation": log.binLocation,
                 "relocatedBin": log.relocatedBin,
                 "qtyReceived": log.qtyReceived,
                 "qtyGrn": log.qtyGrn,
-                "difference": log.difference,
+                "difference": diff,
                 "username": log.username,
                 "observaciones": ""
-            }
-            for log in logs
-        ]
+            })
+            
+        if db_needs_commit:
+            await db.commit()
+            
+        return result_list
     except Exception as e:
         print(f"DB Error (load_archived_log_data_db_async): {e}")
         return []

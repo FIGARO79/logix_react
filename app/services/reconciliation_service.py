@@ -258,14 +258,16 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
     await db.commit()
 
     # Depuración automática preventiva: conservar únicamente el registro más reciente
-    # para cada combinación de import_reference, item_code y grn en el histórico.
+    # para cada combinación de archive_date, import_reference, item_code y grn en el histórico.
     try:
         cleanup_query = text("""
             DELETE FROM reconciliation_history
             WHERE id NOT IN (
-                SELECT MAX(id)
-                FROM reconciliation_history
-                GROUP BY import_reference, item_code, grn
+                SELECT max_id FROM (
+                    SELECT MAX(id) as max_id
+                    FROM reconciliation_history
+                    GROUP BY archive_date, import_reference, item_code, grn
+                ) as temp
             )
         """)
         await db.execute(cleanup_query)
