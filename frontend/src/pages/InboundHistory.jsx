@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { getDB, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
+import { getDB, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();

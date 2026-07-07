@@ -148,6 +148,14 @@ const SpotCheck = () => {
         setTimeout(() => qtyRef.current?.focus(), 100);
     };
 
+    const clearForm = () => {
+        setItemCode('');
+        setItemData(null);
+        setPhysicalQty('');
+        setSearchResults([]);
+        setTimeout(() => itemRef.current?.focus(), 100);
+    };
+
     const handleSave = async (e) => {
         if (e) e.preventDefault();
         if (!binLocation || !itemCode || !physicalQty || !itemData) {
