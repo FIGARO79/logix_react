@@ -134,3 +134,9 @@ thead.text-white th {
 .fixed.left-0.w-64 [class*="font-bold"] {
     font-weight: 500 !important;
 }
+
+/* Ensure the logout button in the sidebar is colored in warning red */
+.fixed.left-0.w-64 button.text-red-500,
+.fixed.left-0.w-64 button.text-red-400 {
+    color: #ef4444 !important;
+}

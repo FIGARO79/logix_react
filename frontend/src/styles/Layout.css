@@ -169,6 +169,7 @@
 .tab-label {
     font-size: 0.85rem;
     font-weight: 400; /* Chrome es font normal */
+    letter-spacing: -0.015em;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;

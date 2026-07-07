@@ -3,7 +3,7 @@ import { openDB } from 'idb';
 const DB_NAME = 'LogixOfflineDB';
 const DB_VERSION = 4;
 
-export const initDB = async () => {
+const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
             // Tabla para registros de Inbound que aún no se han subido
