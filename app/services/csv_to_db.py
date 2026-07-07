@@ -1,8 +1,8 @@
 import polars as pl
 import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.mysql import insert
-from sqlalchemy import update
+from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy import update, delete, insert
 from app.models.sql_models import MasterItem
 from app.core.config import ITEM_MASTER_CSV_PATH
 import os
@@ -17,13 +17,19 @@ async def sync_master_csv_to_db(db: AsyncSession):
 
     print("⏳ [POLARS] Iniciando sincronización CSV -> DB...")
 
+    is_sqlite = db.bind.dialect.name == 'sqlite'
+
     try:
-        # 0. Pre-procesamiento: Resetear stock a 0 para items que podrían no venir en el CSV
-        print("   Resetear cantidades a 0 antes de la carga...")
-        await db.execute(update(MasterItem).values(physical_qty=0, frozen_qty=0))
+        # 0. Pre-procesamiento: Resetear stock o vaciar tabla en SQLite para carga ultrarrápida
+        if is_sqlite:
+            print("   Vaciando tabla master_items en SQLite para carga masiva rápida...")
+            await db.execute(delete(MasterItem))
+        else:
+            print("   Resetear cantidades a 0 antes de la carga...")
+            await db.execute(update(MasterItem).values(physical_qty=0, frozen_qty=0))
         await db.commit()
     except Exception as e:
-        print(f"⚠️ Error al resetear cantidades: {e}")
+        print(f"⚠️ Error al preparar la tabla: {e}")
     
     try:
         # Mapeo de columnas CSV a Modelo DB
@@ -104,10 +110,9 @@ async def sync_master_csv_to_db(db: AsyncSession):
 
             if insert_data:
                 if is_sqlite:
-                    for item in insert_data:
-                        await db.merge(MasterItem(**item))
+                    await db.execute(insert(MasterItem).values(insert_data))
                 else:
-                    stmt = insert(MasterItem).values(insert_data)
+                    stmt = mysql_insert(MasterItem).values(insert_data)
                     update_dict = {k: getattr(stmt.inserted, k) for k in item_data.keys() if k != 'item_code'}
                     on_duplicate_key_stmt = stmt.on_duplicate_key_update(update_dict)
                     await db.execute(on_duplicate_key_stmt)
