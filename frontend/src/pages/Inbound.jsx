@@ -181,6 +181,18 @@ const Inbound = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Intervalo de actualización silenciosa de la tabla de logs (cada 15 segundos)
+    useEffect(() => {
+        // Solo programar el intervalo para la versión actual
+        if (currentVersion) return;
+
+        const interval = setInterval(() => {
+            loadLogs();
+        }, 15000);
+
+        return () => clearInterval(interval);
+    }, [currentVersion]);
+
     const loadSlottingBins = async () => {
         let binsLoaded = false;
 
