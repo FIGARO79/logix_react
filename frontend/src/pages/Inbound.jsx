@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
@@ -6,7 +6,6 @@ import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, ge
 
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
-import { sandvikLogoBase64 } from '../assets/logo';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
@@ -56,7 +55,7 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
-    const { isOnline, pendingCount, syncPendingData } = useOffline();
+    const { pendingCount, syncPendingData } = useOffline();
 
     useEffect(() => { setTitle("Recepción"); }, [setTitle]);
 
@@ -179,6 +178,7 @@ const Inbound = () => {
             clearInterval(syncInterval);
             window.removeEventListener('focus', handleFocus);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const loadSlottingBins = async () => {
@@ -466,6 +466,7 @@ const Inbound = () => {
 
     useEffect(() => {
         calculateIRStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [importRef, logs]);
 
     // Autoguardar la conciliación en segundo plano de manera silenciosa cada vez que cambien las estadísticas
@@ -927,9 +928,7 @@ const Inbound = () => {
 
     const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode && (l.importReference || l.importRef || '').trim().toUpperCase() === importRef.trim().toUpperCase());
     const cumulativeQty = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
-    const auditCount = itemLogs.length;
     const currentQtyNum = parseInt(quantity) || 0;
-    const displayQty = (cumulativeQty + currentQtyNum);
     const itemWeight = parseFloat(itemData?.weight || 0);
     const totalWeight = isNaN(itemWeight) || isNaN(currentQtyNum) ? '0.00' : (itemWeight * (currentQtyNum || 1)).toFixed(2);
 

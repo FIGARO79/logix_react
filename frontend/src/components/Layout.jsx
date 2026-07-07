@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Outlet, Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
+import { Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTabContext } from '../hooks/useTabContext';
 import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
@@ -33,11 +33,7 @@ const SpotCheck = () => {
     const itemRef = useRef(null);
     const qtyRef = useRef(null);
 
-    useEffect(() => {
-        fetchRecentChecks();
-    }, []);
-
-    const fetchRecentChecks = async () => {
+    const fetchRecentChecks = useCallback(async () => {
         try {
             if (isOnline) {
                 const res = await fetch('/api/spot_check/list');
@@ -51,7 +47,11 @@ const SpotCheck = () => {
                 if (cached) setRecentChecks(cached);
             }
         } catch (e) { console.error("Error al cargar historial", e); }
-    };
+    }, [isOnline]);
+
+    useEffect(() => {
+        fetchRecentChecks();
+    }, [fetchRecentChecks]);
 
     const handleSearchItem = async (query) => {
         const q = (query || itemCode || '').trim().toUpperCase();
@@ -132,6 +132,14 @@ const SpotCheck = () => {
         setItemCode(item.itemCode);
         setSearchResults([]);
         setTimeout(() => qtyRef.current?.focus(), 100);
+    };
+
+    const clearForm = () => {
+        setItemCode('');
+        setItemData(null);
+        setPhysicalQty('');
+        setSearchResults([]);
+        setTimeout(() => itemRef.current?.focus(), 100);
     };
 
     const handleSave = async (e) => {

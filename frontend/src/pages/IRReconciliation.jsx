@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const IRReconciliation = () => {
@@ -30,12 +30,7 @@ const IRReconciliation = () => {
         });
     };
 
-    useEffect(() => {
-        setTitle("Tablero de Control IR");
-        loadReconciliations();
-    }, [setTitle]);
-
-    const loadReconciliations = async () => {
+    const loadReconciliations = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch('/api/inbound/ir_reconciliation', { credentials: 'include' });
@@ -52,7 +47,12 @@ const IRReconciliation = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        setTitle("Tablero de Control IR");
+        loadReconciliations();
+    }, [setTitle, loadReconciliations]);
 
     const handleDelete = async (id) => {
         if (!confirm("¿Está seguro de eliminar este registro de conciliación del historial?")) return;

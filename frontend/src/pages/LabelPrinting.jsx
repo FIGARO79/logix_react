@@ -4,7 +4,6 @@ import { useReactToPrint } from 'react-to-print';
 import QRCode from 'qrcode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { sandvikLogoBase64 } from '../assets/logo';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import '../styles/Label.css';
 
