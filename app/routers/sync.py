@@ -46,18 +46,9 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
     """Retorna todos los datos maestros necesarios para operación offline."""
     await csv_handler.reload_cache_if_needed()
     
-    # 1. Master Items (Solo columnas esenciales para ahorrar espacio)
-    # Usamos el cache de Polars cargado en csv_handler
+    # 1. Master Items (Desactivado de la sincronización masiva para mantener el navegador ligero)
+    # Los items se cachean progresivamente en la IndexedDB del cliente a medida que se buscan online
     master_items = []
-    if csv_handler.df_master_cache is not None:
-        # Seleccionamos solo lo crítico para Inbound
-        cols = [
-            'Item_Code', 'Item_Description', 'Bin_1', 'Weight_per_Unit', 
-            'ABC_Code_stockroom', 'SIC_Code_stockroom'
-        ]
-        # Filtrar columnas existentes por si acaso
-        available_cols = [c for c in cols if c in csv_handler.df_master_cache.columns]
-        master_items = csv_handler.df_master_cache.select(available_cols).to_dicts()
 
     # 2. GRN Pending Quantities (Agrupado por Item_Code + Import_Reference)
     grn_data = {}

@@ -74,6 +74,20 @@ const SpotCheck = () => {
                             item_code: item.itemCode,
                             description: item.description
                         });
+
+                        // Guardar progresivamente en la IndexedDB local (master_items) para cache progresivo
+                        try {
+                            const db = await getDB();
+                            await db.put('master_items', {
+                                Item_Code: item.itemCode,
+                                Item_Description: item.description,
+                                Bin_1: item.binLocation || '',
+                                Weight_per_Unit: item.weight || 0,
+                                ABC_Code_stockroom: item.abcCode || '',
+                                SIC_Code_stockroom: item.sicCode || ''
+                            });
+                        } catch (dbErr) { console.error("Error caching item in IndexedDB", dbErr); }
+
                         setItemCode(item.itemCode);
                         setTimeout(() => qtyRef.current?.focus(), 100);
                     } else {

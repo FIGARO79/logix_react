@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { getDB, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
@@ -10,6 +10,11 @@ const InboundHistory = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, currentVersion]);
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
@@ -162,6 +167,12 @@ const InboundHistory = () => {
         (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    const itemsPerPage = 50;
+    const paginatedLogs = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredLogs, currentPage]);
+
     return (
         <div className="w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
@@ -229,7 +240,7 @@ const InboundHistory = () => {
                         <tbody className="divide-y divide-gray-200">
                             {loading && <tr><td colSpan="12" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
                             {!loading && filteredLogs.length === 0 && <tr><td colSpan="12" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
-                            {filteredLogs.map((log, idx) => (
+                            {paginatedLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">{formatDate(log.timestamp)}</td>
                                     <td className={`px-2 py-1.5 whitespace-nowrap font-bold ${log.is_pending ? 'text-amber-700' : 'text-gray-600'} uppercase`}>{log.username}</td>
@@ -249,6 +260,33 @@ const InboundHistory = () => {
                         </tbody>
                     </table>
                 </div>
+                {/* Controles de Paginación */}
+                {filteredLogs.length > itemsPerPage && (
+                    <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs">
+                        <span className="text-gray-600">
+                            Mostrando {Math.min(filteredLogs.length, (currentPage - 1) * itemsPerPage + 1)} a {Math.min(filteredLogs.length, currentPage * itemsPerPage)} de {filteredLogs.length} registros
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 font-medium transition-all"
+                            >
+                                Anterior
+                            </button>
+                            <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded font-semibold text-gray-700">
+                                Página {currentPage} de {Math.ceil(filteredLogs.length / itemsPerPage)}
+                            </span>
+                            <button
+                                disabled={currentPage >= Math.ceil(filteredLogs.length / itemsPerPage)}
+                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredLogs.length / itemsPerPage), prev + 1))}
+                                className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 font-medium transition-all"
+                            >
+                                Siguiente
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

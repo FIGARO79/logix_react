@@ -174,6 +174,20 @@ const CycleCounts = () => {
                     setItemCode(data.item_code);
                     setDescription(data.description);
                     setBinSys(data.bin_location || 'N/A');
+
+                    // Guardar progresivamente en la IndexedDB local (master_items) para cache progresivo
+                    try {
+                        const db = await getDB();
+                        await db.put('master_items', {
+                            Item_Code: data.item_code,
+                            Item_Description: data.description,
+                            Bin_1: data.bin_location || '',
+                            Weight_per_Unit: data.weight_per_unit || 0,
+                            ABC_Code_stockroom: data.abc_code || '',
+                            SIC_Code_stockroom: data.sic_code || ''
+                        });
+                    } catch (dbErr) { console.error("Error caching item in IndexedDB", dbErr); }
+
                     document.getElementById('counted_qty')?.focus();
                 } else {
                     toast.error("Item no encontrado");

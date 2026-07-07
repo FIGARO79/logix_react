@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
@@ -81,6 +81,11 @@ const Inbound = () => {
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [validBins, setValidBins] = useState(new Set());
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, currentVersion]);
 
     // --- Estados de UI ---
     const [loading, setLoading] = useState(false);
@@ -453,6 +458,12 @@ const Inbound = () => {
         (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    const itemsPerPage = 50;
+    const paginatedLogs = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredLogs, currentPage]);
+
     // Generar QR para la etiqueta cuando cambia el item o el código
     useEffect(() => {
         const activeCode = itemData?.itemCode || itemCode;
@@ -644,6 +655,20 @@ const Inbound = () => {
                 if (res.ok) {
                     const data = await res.json();
                     setItemData(data);
+                    
+                    // Guardar progresivamente en la IndexedDB local (master_items) para cache progresivo
+                    try {
+                        const db = await getDB();
+                        await db.put('master_items', {
+                            Item_Code: data.itemCode,
+                            Item_Description: data.itemDescription,
+                            Bin_1: data.suggestedBinLocation || data.effectiveBinLocation || '',
+                            Weight_per_Unit: data.weight || 0,
+                            ABC_Code_stockroom: data.abcCode || '',
+                            SIC_Code_stockroom: data.sicCode || ''
+                        });
+                    } catch (dbErr) { console.error("Error caching item in IndexedDB", dbErr); }
+
                     if (!editId) {
                         setQuantity('');
                         setLabelUnits('');
@@ -1276,7 +1301,7 @@ const Inbound = () => {
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : paginatedLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
@@ -1310,6 +1335,35 @@ const Inbound = () => {
                             </tbody>
                         </table>
                     </div>
+                    {/* Controles de Paginación */}
+                    {filteredLogs.length > itemsPerPage && (
+                        <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs">
+                            <span className="text-gray-600">
+                                Mostrando {Math.min(filteredLogs.length, (currentPage - 1) * itemsPerPage + 1)} a {Math.min(filteredLogs.length, currentPage * itemsPerPage)} de {filteredLogs.length} registros
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 font-medium transition-all"
+                                >
+                                    Anterior
+                                </button>
+                                <span className="px-3 py-1 bg-gray-100 border border-gray-300 rounded font-semibold text-gray-700">
+                                    Página {currentPage} de {Math.ceil(filteredLogs.length / itemsPerPage)}
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={currentPage >= Math.ceil(filteredLogs.length / itemsPerPage)}
+                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredLogs.length / itemsPerPage), prev + 1))}
+                                    className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 font-medium transition-all"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
