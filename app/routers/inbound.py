@@ -272,10 +272,15 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
     target_df = df_grn.filter(pl.col("Import_Reference") == target_ir)
     
     grouped_expected = {}
+    grn_detail_expected = {}
     for row in target_df.to_dicts():
         item = str(row["Item_Code"]).strip().upper()
+        grn_num = str(row["GRN_Number"]).strip().upper() if row.get("GRN_Number") else ""
         qty = int(row["Quantity"]) if row["Quantity"] is not None else 0
-        grouped_expected[item] = grouped_expected.get(item, 0) + qty
+        if item:
+            grouped_expected[item] = grouped_expected.get(item, 0) + qty
+            if grn_num:
+                grn_detail_expected[(item, grn_num)] = grn_detail_expected.get((item, grn_num), 0) + qty
         
     # Variación: si no hay líneas de la GRN (280) para calcular en el tablero, buscar en po_lookup
     if len(grouped_expected) == 0:
@@ -348,17 +353,26 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
             po_info = ir_to_data.get(target_ir, {})
             if po_info and "items" in po_info:
                 grn_to_items = {}
+                has_280_data = len(grouped_expected) > 0
                 for it in po_info["items"]:
                     item_code = str(it.get("item_code", "")).upper().strip()
                     grn_val = str(it.get("grn", "")).upper().strip()
                     qty = int(it.get("qty") or 0)
                     if grn_val:
                         for g in grn_val.split(','):
-                            g_key = g.strip()
+                            g_key = g.strip().upper()
                             if g_key:
-                                if g_key not in grn_to_items:
-                                    grn_to_items[g_key] = []
-                                grn_to_items[g_key].append({"itemCode": item_code, "expected": qty})
+                                # Determinar la cantidad esperada de forma inteligente
+                                expected_qty = 0
+                                if (item_code, g_key) in grn_detail_expected:
+                                    expected_qty = grn_detail_expected[(item_code, g_key)]
+                                elif not has_280_data:
+                                    expected_qty = qty
+                                    
+                                if expected_qty > 0:
+                                    if g_key not in grn_to_items:
+                                        grn_to_items[g_key] = []
+                                    grn_to_items[g_key].append({"itemCode": item_code, "expected": expected_qty})
                                 
                 grn_list = list(grn_to_items.keys())
                 total_grns = len(grn_list)
@@ -367,8 +381,7 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                     items_completed = 0
                     for it in items_in_grn:
                         rec_qty = received_map.get(it["itemCode"], 0)
-                        expected_qty = grouped_expected.get(it["itemCode"], it["expected"])
-                        if rec_qty >= expected_qty and expected_qty > 0:
+                        if rec_qty >= it["expected"]:
                             items_completed += 1
                     
                     grn_progress = items_completed / len(items_in_grn) if items_in_grn else 0

@@ -401,6 +401,22 @@ const Inbound = () => {
                 }
             });
 
+            // Crear mapa de cantidades esperadas por SKU y por GRN individual a partir de allGrns (280)
+            const grnDetailExpectedMap = {};
+            allGrns.forEach(g => {
+                const code = String(g.Item_Code).toUpperCase().trim();
+                if (code) {
+                    if (!grnDetailExpectedMap[code]) {
+                        grnDetailExpectedMap[code] = {};
+                    }
+                    if (g.grns) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
+                        });
+                    }
+                }
+            });
+
             // Calcular avance de GRNs asociadas
             let totalGrns = 0;
             let completedGrns = 0;
@@ -419,10 +435,26 @@ const Inbound = () => {
                             grnVal.split(',').forEach(g => {
                                 const gKey = g.trim();
                                 if (gKey) {
-                                    if (!grnToItems[gKey]) {
-                                        grnToItems[gKey] = [];
+                                    const gKeyUpper = gKey.toUpperCase().trim();
+                                    
+                                    // Determinar la cantidad esperada de forma inteligente
+                                    let expectedQty = 0;
+                                    const has280Data = uniqueIrLines.length > 0;
+                                    
+                                    if (grnDetailExpectedMap[itemCode] !== undefined && 
+                                        grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
+                                        expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
+                                    } else if (!has280Data) {
+                                        expectedQty = qty;
                                     }
-                                    grnToItems[gKey].push({ itemCode, expected: qty });
+                                    
+                                    // Solo incluir en el avance si realmente se espera recibir unidades en esa GRN
+                                    if (expectedQty > 0) {
+                                        if (!grnToItems[gKeyUpper]) {
+                                            grnToItems[gKeyUpper] = [];
+                                        }
+                                        grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
+                                    }
                                 }
                             });
                         }
@@ -437,12 +469,7 @@ const Inbound = () => {
                         
                         itemsInGrn.forEach(it => {
                             const recQty = receivedMap[it.itemCode] || 0;
-                            // Priorizar cantidad esperada del reporte 280, usar PO qty como fallback
-                            const expectedQty = grnExpectedMap[it.itemCode] !== undefined 
-                                ? grnExpectedMap[it.itemCode] 
-                                : it.expected;
-                                
-                            if (recQty >= expectedQty && expectedQty > 0) {
+                            if (recQty >= it.expected) {
                                 itemsCompleted += 1;
                             }
                         });
