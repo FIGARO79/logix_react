@@ -58,17 +58,30 @@ async def get_master_sync_data(user: str = Depends(login_required)):
         available_cols = [c for c in cols if c in csv_handler.df_master_cache.columns]
         master_items = csv_handler.df_master_cache.select(available_cols).to_dicts()
 
-    # 2. GRN Pending Quantities (Agrupado por Item_Code)
+    # 2. GRN Pending Quantities (Agrupado por Item_Code y GRN_Number)
     grn_data = {}
     if csv_handler.df_grn_cache is not None:
         import polars as pl
         summary = (
             csv_handler.df_grn_cache
             .filter(pl.col("Item_Code").is_not_null())
-            .group_by(pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Code"))
-            .agg(pl.col("Quantity").sum().alias("total_expected"))
+            .with_columns([
+                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase()
+            ])
+            .group_by(["Item_Code", "GRN_Number"])
+            .agg(pl.col("Quantity").sum().alias("qty"))
         )
-        grn_data = {str(row["Item_Code"]): int(row["total_expected"]) for row in summary.to_dicts() if row["Item_Code"]}
+        for row in summary.to_dicts():
+            item = row["Item_Code"]
+            grn = row["GRN_Number"]
+            qty = int(row["qty"] or 0)
+            if not item:
+                continue
+            if item not in grn_data:
+                grn_data[item] = {"grns": {}, "total_expected": 0}
+            grn_data[item]["grns"][grn] = qty
+            grn_data[item]["total_expected"] += qty
 
     # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
     xdock_data = csv_handler.reservation_qty_map

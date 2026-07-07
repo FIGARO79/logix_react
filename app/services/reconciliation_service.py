@@ -51,63 +51,74 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
-        grn_maps = []
-        ir_maps = []
-        wb_maps = []
+        master_maps = []
 
         # A. Desde grn_master_data.json
         if os.path.exists(GRN_JSON_DATA_PATH):
             try:
                 with open(GRN_JSON_DATA_PATH, 'rb') as f:
-                    for row in orjson.loads(f.read()):
-                        ir  = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number",       row.get("grn_number",       ""))).strip().upper()
+                    grn_data = orjson.loads(f.read())
+                if isinstance(grn_data, list):
+                    for row in grn_data:
+                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
                         if ir and grn:
-                            grn_maps.append(grn)
-                            ir_maps.append(ir)
-                            wb_maps.append(str(row.get("Waybill", "")))
-            except: pass
+                            master_maps.append((grn, ir, str(row.get("Waybill", ""))))
+            except:
+                pass
 
         # B. Desde DB GRN Master
         try:
-            db_grns = await db.execute(select(GRNMaster))
-            for g_master in db_grns.scalars().all():
-                ir = str(g_master.import_reference).strip().upper()
-                if ir and g_master.grn_number:
-                    for g in str(g_master.grn_number).split(','):
+            # Query only required fields as raw tuples to bypass SQLAlchemy ORM overhead
+            db_grns = await db.execute(
+                select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
+            )
+            for ir_raw, grn_raw, wb_raw in db_grns.all():
+                ir = str(ir_raw or "").strip().upper()
+                if ir and grn_raw:
+                    for g in str(grn_raw).split(','):
                         g_clean = g.strip().upper()
                         if g_clean:
-                            grn_maps.append(g_clean)
-                            ir_maps.append(ir)
-                            wb_maps.append(str(g_master.waybill or ""))
-        except: pass
+                            master_maps.append((g_clean, ir, str(wb_raw or "")))
+        except Exception as e:
+            print(f"[RECONCILIATION] Error loading DB GRNs: {e}")
 
         # C. Desde po_lookup.json (Si el robot ya encontró el GRN)
         if os.path.exists(PO_LOOKUP_JSON_PATH):
             try:
                 with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
                     po_cache = orjson.loads(f.read())
-                    for wb, data in po_cache.get("wb_to_data", {}).items():
-                        ir = str(data.get("import_ref", "")).strip().upper()
-                        for item in data.get("items", []):
-                            grn_val = str(item.get("grn", "")).strip().upper()
-                            if grn_val and ir:
-                                for g in grn_val.split(','):
-                                    g_clean = g.strip().upper()
-                                    if g_clean:
-                                        grn_maps.append(g_clean)
-                                        ir_maps.append(ir)
-                                        wb_maps.append(str(wb))
-            except: pass
+                
+                # List comprehension is much faster than nested loops in pure Python
+                po_maps = [
+                    (g_clean, ir, wb)
+                    for wb_raw, data in po_cache.get("wb_to_data", {}).items()
+                    if data
+                    for ir in [str(data.get("import_ref", "")).strip().upper()]
+                    if ir
+                    for wb in [str(wb_raw).strip().upper()]
+                    for item in data.get("items", [])
+                    if item
+                    for grn_val in [item.get("grn")]
+                    if grn_val
+                    for g in str(grn_val).split(",")
+                    for g_clean in [g.strip().upper()]
+                    if g_clean
+                ]
+                master_maps.extend(po_maps)
+            except Exception as e:
+                print(f"[RECONCILIATION] Error loading po_lookup: {e}")
 
-        if grn_maps:
-            df_grn_master = pl.DataFrame({
-                "grn_map": grn_maps,
-                "ir_map": ir_maps,
-                "wb_map": wb_maps
-            }).unique(subset=["grn_map"])
+        if master_maps:
+            df_grn_master = pl.DataFrame(
+                master_maps,
+                schema=["grn_map", "ir_map", "wb_map"],
+                orient="row"
+            ).unique(subset=["grn_map"])
         else:
-            df_grn_master = pl.DataFrame(schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8})
+            df_grn_master = pl.DataFrame(
+                schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8}
+            )
 
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
