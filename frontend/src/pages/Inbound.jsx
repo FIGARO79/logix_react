@@ -248,20 +248,35 @@ const Inbound = () => {
 
             // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
             let irLines = [];
-            if (associatedGrns.size > 0) {
-                irLines = allGrns.filter(g => {
+            allGrns.forEach(g => {
+                if (g.grns) {
+                    // Si el nuevo formato estructurado de grns está presente:
+                    let itemExpectedForIr = 0;
+                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                            itemExpectedForIr += parseInt(qty) || 0;
+                        }
+                    });
+                    if (itemExpectedForIr > 0) {
+                        irLines.push({
+                            Item_Code: g.Item_Code,
+                            total_expected: itemExpectedForIr
+                        });
+                    }
+                } else {
+                    // Fallback para formato antiguo / registros planos
                     const grnNum = (g.GRN_Number || '').trim().toUpperCase();
-                    if (grnNum && associatedGrns.has(grnNum)) {
-                        return true;
+                    if (associatedGrns.size > 0) {
+                        if (grnNum && associatedGrns.has(grnNum)) {
+                            irLines.push(g);
+                        } else if (!grnNum && String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
+                            irLines.push(g);
+                        }
+                    } else if (String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
+                        irLines.push(g);
                     }
-                    if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === targetIr) {
-                        return true;
-                    }
-                    return false;
-                });
-            } else {
-                irLines = allGrns.filter(g => String(g.Import_Reference || '').toUpperCase().trim() === targetIr);
-            }
+                }
+            });
             
             // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
             const groupedIrLines = {};
@@ -335,6 +350,22 @@ const Inbound = () => {
                 }
             });
 
+            // Crear mapa de cantidades esperadas por SKU y por GRN individual a partir de allGrns (280)
+            const grnDetailExpectedMap = {};
+            allGrns.forEach(g => {
+                const code = String(g.Item_Code).toUpperCase().trim();
+                if (code) {
+                    if (!grnDetailExpectedMap[code]) {
+                        grnDetailExpectedMap[code] = {};
+                    }
+                    if (g.grns) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
+                        });
+                    }
+                }
+            });
+
             // Calcular avance de GRNs asociadas
             let totalGrns = 0;
             let completedGrns = 0;
@@ -353,10 +384,26 @@ const Inbound = () => {
                             grnVal.split(',').forEach(g => {
                                 const gKey = g.trim();
                                 if (gKey) {
-                                    if (!grnToItems[gKey]) {
-                                        grnToItems[gKey] = [];
+                                    const gKeyUpper = gKey.toUpperCase().trim();
+                                    
+                                    // Determinar la cantidad esperada de forma inteligente
+                                    let expectedQty = 0;
+                                    const has280Data = uniqueIrLines.length > 0;
+                                    
+                                    if (grnDetailExpectedMap[itemCode] !== undefined && 
+                                        grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
+                                        expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
+                                    } else if (!has280Data) {
+                                        expectedQty = qty;
                                     }
-                                    grnToItems[gKey].push({ itemCode, expected: qty });
+                                    
+                                    // Solo incluir en el avance si realmente se espera recibir unidades en esa GRN
+                                    if (expectedQty > 0) {
+                                        if (!grnToItems[gKeyUpper]) {
+                                            grnToItems[gKeyUpper] = [];
+                                        }
+                                        grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
+                                    }
                                 }
                             });
                         }
@@ -371,12 +418,7 @@ const Inbound = () => {
                         
                         itemsInGrn.forEach(it => {
                             const recQty = receivedMap[it.itemCode] || 0;
-                            // Priorizar cantidad esperada del reporte 280, usar PO qty como fallback
-                            const expectedQty = grnExpectedMap[it.itemCode] !== undefined 
-                                ? grnExpectedMap[it.itemCode] 
-                                : it.expected;
-                                
-                            if (recQty >= expectedQty && expectedQty > 0) {
+                            if (recQty >= it.expected) {
                                 itemsCompleted += 1;
                             }
                         });

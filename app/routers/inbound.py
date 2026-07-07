@@ -279,8 +279,7 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                     items_completed = 0
                     for it in items_in_grn:
                         rec_qty = received_map.get(it["itemCode"], 0)
-                        expected_qty = grouped_expected.get(it["itemCode"], it["expected"])
-                        if rec_qty >= expected_qty and expected_qty > 0:
+                        if rec_qty >= it["expected"]:
                             items_completed += 1
                     
                     grn_progress = items_completed / len(items_in_grn) if items_in_grn else 0

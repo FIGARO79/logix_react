@@ -364,10 +364,10 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
     return breakdown
 
 
-async def get_expected_quantity_from_grn_for_import_ref(import_reference: str, item_code: str) -> Optional[int]:
+async def get_expected_quantity_from_grn_for_import_ref(import_reference: str, item_code: str, db: Optional[AsyncSession] = None) -> Optional[int]:
     """
     Busca la cantidad esperada de un artículo específico en el archivo de GRN (AURRSGLBD0280.csv)
-    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json.
+    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json, grn_master_data.json y GRNMaster en DB.
     Retorna None si la GRN no está cargada o no hay GRNs asociadas.
     """
     global df_grn_cache
@@ -377,28 +377,68 @@ async def get_expected_quantity_from_grn_for_import_ref(import_reference: str, i
     import_reference = import_reference.strip().upper()
     item_code = item_code.strip().upper()
     
-    from app.core.config import PO_LOOKUP_JSON_PATH
+    from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
+    from app.models.sql_models import GRNMaster
+    from sqlalchemy import select, func
     import orjson
     
-    if not os.path.exists(PO_LOOKUP_JSON_PATH):
-        return None
-        
     grns = set()
-    try:
-        with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-            cache = orjson.loads(f.read())
-        ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
-        items = ir_data.get("items", [])
-        for it in items:
-            if str(it.get("item_code", "")).strip().upper() == item_code:
+    
+    # A. Consultar desde po_lookup.json
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            # Desde ir_to_data
+            ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+            items = ir_data.get("items", [])
+            for it in items:
                 grn_val = it.get("grn", "")
                 if grn_val:
                     for g in str(grn_val).split(','):
                         if g.strip():
                             grns.add(g.strip().upper())
-    except Exception as e:
-        print(f"Error leyendo po_lookup para buscar GRNs: {e}")
-        return None
+            # Desde wb_to_data
+            for wb, data in cache.get("wb_to_data", {}).items():
+                ir = str(data.get("import_ref", "")).strip().upper()
+                if ir == import_reference:
+                    for item in data.get("items", []):
+                        grn_val = item.get("grn", "")
+                        if grn_val:
+                            for g in str(grn_val).split(','):
+                                if g.strip():
+                                    grns.add(g.strip().upper())
+        except Exception as e:
+            print(f"Error leyendo po_lookup para buscar GRNs: {e}")
+            
+    # B. Consultar desde grn_master_data.json
+    if os.path.exists(GRN_JSON_DATA_PATH):
+        try:
+            with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                grn_data = orjson.loads(f.read())
+            if isinstance(grn_data, list):
+                for row in grn_data:
+                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                    if ir == import_reference and grn:
+                        grns.add(grn)
+        except Exception as e:
+            print(f"Error leyendo grn_master_data para buscar GRNs: {e}")
+
+    # C. Consultar desde la Base de Datos SQL GRNMaster
+    if db:
+        try:
+            db_grns = await db.execute(
+                select(GRNMaster.grn_number).where(func.upper(GRNMaster.import_reference) == import_reference)
+            )
+            for grn_num_raw in db_grns.scalars().all():
+                if grn_num_raw:
+                    for g in str(grn_num_raw).split(','):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grns.add(g_clean)
+        except Exception as e:
+            print(f"Error consultando GRNMaster en DB para buscar GRNs: {e}")
         
     if not grns:
         return None

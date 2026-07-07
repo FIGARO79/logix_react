@@ -58,86 +58,26 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
         from app.models.sql_models import GRNMaster
         from app.core.config import GRN_JSON_DATA_PATH
         
-        # Construir mapa de GRN -> IR
-        grn_to_ir = {}
-        
-        # A. Desde grn_master_data.json
-        if os.path.exists(GRN_JSON_DATA_PATH):
-            try:
-                with open(GRN_JSON_DATA_PATH, 'rb') as f:
-                    for row in orjson.loads(f.read()):
-                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                        if ir and grn:
-                            grn_to_ir[grn] = ir
-            except: pass
-
-        # B. Desde DB GRN Master
-        try:
-            db_grns = await db.execute(select(GRNMaster))
-            for g_master in db_grns.scalars().all():
-                ir = str(g_master.import_reference).strip().upper()
-                if ir and g_master.grn_number:
-                    for g in str(g_master.grn_number).split(','):
-                        if g.strip():
-                            grn_to_ir[g.strip().upper()] = ir
-        except: pass
-
-        # C. Desde po_lookup.json
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
-                    po_cache = orjson.loads(f.read())
-                    for wb, data in po_cache.get("wb_to_data", {}).items():
-                        ir = str(data.get("import_ref", "")).strip().upper()
-                        for item in data.get("items", []):
-                            grn_val = str(item.get("grn", "")).strip().upper()
-                            if grn_val and ir:
-                                for g in grn_val.split(','):
-                                    if g.strip():
-                                        grn_to_ir[g.strip().upper()] = ir
-                    # Procesar también ir_to_data para asociar GRNs directamente a I.R.
-                    for ir_key, data in po_cache.get("ir_to_data", {}).items():
-                        ir = str(ir_key).strip().upper()
-                        for item in data.get("items", []):
-                            grn_val = str(item.get("grn", "")).strip().upper()
-                            if grn_val and ir:
-                                for g in grn_val.split(','):
-                                    if g.strip():
-                                        grn_to_ir[g.strip().upper()] = ir
-            except: pass
-            
-        # Convertir a dict de Polars para mapear eficientemente en el DataFrame
-        def _resolve_ir(grn_num):
-            if not grn_num: return "SIN I.R."
-            return grn_to_ir.get(str(grn_num).strip().upper(), "SIN I.R.")
-            
-        df_grn = csv_handler.df_grn_cache.filter(pl.col("Item_Code").is_not_null())
-        
-        # Mapear grn_number a ir en el DataFrame
-        df_grn = df_grn.with_columns(
-            pl.col("GRN_Number").map_elements(_resolve_ir, return_dtype=pl.Utf8).alias("Import_Reference")
-        )
-        
-        # Agrupar por Item_Code + GRN_Number + Import_Reference
         summary = (
-            df_grn
-            .group_by([
-                pl.col("Item_Code").str.strip_chars().str.to_uppercase().alias("Item_Code"),
-                pl.col("GRN_Number").str.strip_chars().str.to_uppercase().alias("GRN_Number"),
-                pl.col("Import_Reference").str.strip_chars().str.to_uppercase().alias("Import_Reference")
+            csv_handler.df_grn_cache
+            .filter(pl.col("Item_Code").is_not_null())
+            .with_columns([
+                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase()
             ])
-            .agg(pl.col("Quantity").sum().alias("total_expected"))
+            .group_by(["Item_Code", "GRN_Number"])
+            .agg(pl.col("Quantity").sum().alias("qty"))
         )
-        
-        # Guardar en grn_data como "ITEM_CODE|GRN_NUMBER|IMPORT_REFERENCE" -> total_expected
         for row in summary.to_dicts():
-            item = row.get("Item_Code")
-            grn_num = row.get("GRN_Number")
-            ir = row.get("Import_Reference")
-            if item and grn_num:
-                key = f"{item}|{grn_num}|{ir or ''}"
-                grn_data[key] = int(row.get("total_expected") or 0)
+            item = row["Item_Code"]
+            grn = row["GRN_Number"]
+            qty = int(row["qty"] or 0)
+            if not item:
+                continue
+            if item not in grn_data:
+                grn_data[item] = {"grns": {}, "total_expected": 0}
+            grn_data[item]["grns"][grn] = qty
+            grn_data[item]["total_expected"] += qty
 
     # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
     xdock_data = csv_handler.reservation_qty_map

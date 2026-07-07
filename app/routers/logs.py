@@ -45,7 +45,7 @@ async def find_item(
         raise HTTPException(status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro.")
     
     # Obtener la cantidad esperada de la GRN (reporte 280)
-    expected_quantity = await csv_handler.get_expected_quantity_from_grn_for_import_ref(import_reference, item_code)
+    expected_quantity = await csv_handler.get_expected_quantity_from_grn_for_import_ref(import_reference, item_code, db=db)
     if expected_quantity is None:
         expected_quantity = 0
             

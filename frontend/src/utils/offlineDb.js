@@ -141,27 +141,28 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
         const allGrns = await db.getAll('grn_pending') || [];
         const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
 
-        // 3. Si tenemos GRNs asociadas, sumar sus total_expected
+        // 3. Si tenemos GRNs asociadas, buscar en el objeto grns
         if (associatedGrns.size > 0) {
-            const sum = itemGrns
-                .filter(g => {
+            let sum = 0;
+            itemGrns.forEach(g => {
+                if (g.grns) {
+                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                            sum += parseInt(qty) || 0;
+                        }
+                    });
+                } else {
                     const grnNum = (g.GRN_Number || '').trim().toUpperCase();
                     if (grnNum && associatedGrns.has(grnNum)) {
-                        return true;
+                        sum += parseInt(g.total_expected) || 0;
                     }
-                    if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === normalizedIr) {
-                        return true;
-                    }
-                    return false;
-                })
-                .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+                }
+            });
             if (sum > 0) return sum;
         }
 
-        // 4. Fallback: buscar por Import_Reference === normalizedIr
-        return itemGrns
-            .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
-            .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+        // 4. Fallback: buscar la suma total del item si no hay GRNs asociadas
+        return itemGrns.reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -250,27 +251,27 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
 
             let sum = 0;
             if (associatedGrns.size > 0) {
-                sum = itemGrns
-                    .filter(g => {
+                itemGrns.forEach(g => {
+                    if (g.grns) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                sum += parseInt(qty) || 0;
+                            }
+                        });
+                    } else {
                         const grnNum = (g.GRN_Number || '').trim().toUpperCase();
                         if (grnNum && associatedGrns.has(grnNum)) {
-                            return true;
+                            sum += parseInt(g.total_expected) || 0;
                         }
-                        if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === normalizedIr) {
-                            return true;
-                        }
-                        return false;
-                    })
-                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+                    }
+                });
             }
 
             if (sum > 0) {
                 resultMap[key] = sum;
             } else {
-                // Fallback: buscar por Import_Reference === normalizedIr
-                resultMap[key] = itemGrns
-                    .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
-                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+                // Fallback: buscar la suma total del item
+                resultMap[key] = itemGrns.reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
             }
         });
     } catch (err) {
