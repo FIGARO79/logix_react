@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
-import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
+import { cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -68,7 +68,6 @@ const Reconciliation = () => {
         if (location.pathname === '/reconciliation') {
             fetchData({}, true); // Recarga silenciosa sin parpadeo conservando filtros y estados
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname]);
 
     const handleArchiveSnapshot = async () => {
