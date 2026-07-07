@@ -102,7 +102,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
             pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
             pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
-            pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
+            pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", ".").cast(pl.Float64, strict=False).fill_null(0.0),
             pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().fill_null(""),
         ])
 
