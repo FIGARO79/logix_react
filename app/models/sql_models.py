@@ -42,9 +42,9 @@ class Log(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
-    importReference: Mapped[str] = mapped_column(String(100), nullable=False, default='')
+    importReference: Mapped[str] = mapped_column(String(100), nullable=False, default='', index=True)
     waybill: Mapped[Optional[str]] = mapped_column(String(100))
-    itemCode: Mapped[Optional[str]] = mapped_column(String(100)) # Index exists in raw SQL: idx_importReference_itemCode
+    itemCode: Mapped[Optional[str]] = mapped_column(String(100), index=True) # Index exists in raw SQL: idx_importReference_itemCode
     itemDescription: Mapped[Optional[str]] = mapped_column(String(255))
     binLocation: Mapped[Optional[str]] = mapped_column(String(100))
     relocatedBin: Mapped[Optional[str]] = mapped_column(String(100))
@@ -269,10 +269,10 @@ class ReconciliationHistory(Base) :
     __tablename__ = 'reconciliation_history'
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
-    import_reference: Mapped[str] = mapped_column(String(100))
+    import_reference: Mapped[str] = mapped_column(String(100), index=True)
     waybill: Mapped[str] = mapped_column(String(100))
     grn: Mapped[str] = mapped_column(String(100))
-    item_code: Mapped[str] = mapped_column(String(100))
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
     description: Mapped[str] = mapped_column(Text)
     bin_location: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     relocated_bin: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

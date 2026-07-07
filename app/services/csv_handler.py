@@ -135,7 +135,7 @@ async def load_csv_data():
                 raw_grn
                 .filter(pl.col("Item_Code").is_not_null())
                 .with_columns([
-                    pl.col("Quantity").str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0)
+                    pl.col("Quantity").str.replace_all(",", ".").cast(pl.Float64, strict=False).fill_null(0.0)
                 ])
             )
 
