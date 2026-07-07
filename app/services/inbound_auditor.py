@@ -3,31 +3,30 @@ import datetime
 import orjson
 import uuid
 from typing import List, Dict, Any, Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import INBOUND_ALERTS_JSON_PATH
 from app.services import reconciliation_service
-from app.models.sql_models import ReconciliationHistory
+from app.models.sql_models import ReconciliationHistory, MasterItem, InboundAlert
 
-def load_alerts() -> List[Dict[str, Any]]:
-    """Carga las alertas de auditoría desde el archivo JSON local."""
-    if not os.path.exists(INBOUND_ALERTS_JSON_PATH):
-        return []
+async def load_alerts(db: AsyncSession) -> List[Dict[str, Any]]:
+    """Carga las alertas de auditoría desde la base de datos."""
     try:
-        with open(INBOUND_ALERTS_JSON_PATH, 'rb') as f:
-            return orjson.loads(f.read())
+        stmt = select(InboundAlert).order_by(
+            case(
+                (InboundAlert.status == "pending", 0),
+                else_=1
+            ),
+            InboundAlert.financial_impact.desc(),
+            InboundAlert.created_at.desc()
+        )
+        res = await db.execute(stmt)
+        alerts = res.scalars().all()
+        return [a.to_dict() for a in alerts]
     except Exception as e:
-        print(f"[AUDITOR] Error cargando alertas JSON: {e}")
+        print(f"[AUDITOR] Error cargando alertas de base de datos: {e}")
         return []
-
-def save_alerts(alerts: List[Dict[str, Any]]):
-    """Guarda la lista de alertas en el archivo JSON local."""
-    try:
-        with open(INBOUND_ALERTS_JSON_PATH, 'wb') as f:
-            f.write(orjson.dumps(alerts, option=orjson.OPT_INDENT_2))
-    except Exception as e:
-        print(f"[AUDITOR] Error guardando alertas JSON: {e}")
 
 def generate_claim_email(row: Dict[str, Any], recurrent_count: int) -> str:
     """Genera un borrador de correo de reclamo en español."""
@@ -116,18 +115,73 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
     calculations = await reconciliation_service.get_reconciliation_calculations(db)
     if not calculations:
         print("[AUDITOR AGENT] No hay datos de conciliación activos para auditar.")
-        return {"status": "no_data", "new_alerts": 0, "auto_resolved": 0, "total_alerts": len(load_alerts())}
+        try:
+            count_stmt = select(func.count(InboundAlert.id))
+            total_res = await db.execute(count_stmt)
+            total_alerts = total_res.scalar() or 0
+        except:
+            total_alerts = 0
+        return {"status": "no_data", "new_alerts": 0, "auto_resolved": 0, "total_alerts": total_alerts}
 
     # Cargar alertas existentes
-    existing_alerts = load_alerts()
+    try:
+        stmt = select(InboundAlert)
+        res = await db.execute(stmt)
+        db_alerts = res.scalars().all()
+    except Exception as e:
+        print(f"[AUDITOR AGENT] Error al cargar alertas existentes de la DB: {e}")
+        db_alerts = []
+
     existing_keys = {
-        (a["import_reference"], a["item_code"], a["grn"]) 
-        for a in existing_alerts
+        (a.import_reference, a.item_code, a.grn) 
+        for a in db_alerts
     }
+
+    # Pre-cargar costos unitarios de MasterItem para cálculo de impacto financiero en bulk
+    item_codes_all = {row.get("Codigo_Item") for row in calculations if row.get("Codigo_Item")}
+    cost_map = {}
+    if item_codes_all:
+        try:
+            stmt = select(MasterItem.item_code, MasterItem.cost_per_unit).where(
+                MasterItem.item_code.in_(list(item_codes_all))
+            )
+            res = await db.execute(stmt)
+            for item, cost in res.all():
+                cost_map[item] = float(cost) if cost is not None else 0.0
+        except Exception as db_err:
+            print(f"[AUDITOR AGENT] Error consultando costos unitarios bulk: {db_err}")
+
+    # Pre-cargar recurrencias de historial de base de datos en bulk para resolver N+1
+    shortage_item_codes = {
+        row.get("Codigo_Item") for row in calculations 
+        if row.get("Diferencia", 0) < 0 and (row.get("Import_Reference", ""), row.get("Codigo_Item", ""), row.get("GRN", "")) not in existing_keys
+    }
+    
+    recurrence_map = {}
+    if shortage_item_codes:
+        try:
+            stmt = select(
+                ReconciliationHistory.item_code,
+                ReconciliationHistory.import_reference
+            ).where(
+                ReconciliationHistory.item_code.in_(list(shortage_item_codes)),
+                ReconciliationHistory.difference < 0
+            ).distinct()
+            res = await db.execute(stmt)
+            for item, imp_ref in res.all():
+                if item not in recurrence_map:
+                    recurrence_map[item] = set()
+                recurrence_map[item].add(imp_ref)
+        except Exception as db_err:
+            print(f"[AUDITOR AGENT] Error consultando historial bulk: {db_err}")
 
     new_alerts_added = 0
     alerts_auto_resolved = 0
     timestamp_str = datetime.datetime.now().isoformat()
+
+    # Umbrales para filtro de ruido (diferencia de 1 unidad y valor < $5.0 USD)
+    NOISE_DIFF_LIMIT = 1
+    NOISE_VALUE_LIMIT = 5.0
 
     # 2. Filtrar y analizar cada registro
     for row in calculations:
@@ -142,20 +196,17 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             if (import_ref, item_code, grn) in existing_keys:
                 continue
 
-            # 3. Analizar recurrencia en el historial de base de datos
-            try:
-                # Contamos cuántas importaciones distintas (Import_Reference) en el pasado presentaron faltantes
-                # para este ítem, excluyendo la importación actual (import_ref).
-                stmt = select(func.count(func.distinct(ReconciliationHistory.import_reference))).where(
-                    ReconciliationHistory.item_code == item_code,
-                    ReconciliationHistory.import_reference != import_ref,
-                    ReconciliationHistory.difference < 0
-                )
-                res = await db.execute(stmt)
-                recurrent_count = res.scalar() or 0
-            except Exception as db_err:
-                print(f"[AUDITOR AGENT] Error consultando historial de base de datos: {db_err}")
-                recurrent_count = 0
+            # Obtener costo unitario e impacto financiero
+            cost_per_unit = cost_map.get(item_code, 0.0)
+            financial_impact = abs(difference) * cost_per_unit
+
+            # Filtro de ruido
+            if abs(difference) <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
+                continue
+
+            # Obtener recurrencia desde el mapa bulk
+            recurrent_imports = recurrence_map.get(item_code, set())
+            recurrent_count = len([r for r in recurrent_imports if r != import_ref])
 
             # Clasificar el tipo de alerta
             alert_type = "recurrent_shortage" if recurrent_count > 0 else "shortage"
@@ -168,27 +219,29 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             # 4. Generar borrador de correo
             draft_email = generate_claim_email(row, recurrent_count)
 
-            # 5. Crear la nueva alerta
-            new_alert = {
-                "id": f"alert-{uuid.uuid4().hex[:12]}",
-                "created_at": timestamp_str,
-                "item_code": item_code,
-                "description": row.get("Descripcion", ""),
-                "import_reference": import_ref,
-                "waybill": row.get("Waybill", ""),
-                "grn": grn,
-                "qty_expected": int(row.get("Cant_Esperada", 0)),
-                "qty_received": int(row.get("Cant_Recibida", 0)),
-                "difference": int(difference),
-                "alert_type": alert_type,
-                "status": "pending",  # pending, resolved, dismissed
-                "draft_claim_email": draft_email,
-                "notes": notes,
-                "resolved_at": None,
-                "resolution_notes": None
-            }
+            # 5. Crear la nueva alerta en la base de datos
+            new_alert = InboundAlert(
+                alert_id=f"alert-{uuid.uuid4().hex[:12]}",
+                created_at=timestamp_str,
+                item_code=item_code,
+                description=row.get("Descripcion", ""),
+                import_reference=import_ref,
+                waybill=row.get("Waybill", ""),
+                grn=grn,
+                qty_expected=int(row.get("Cant_Esperada", 0)),
+                qty_received=int(row.get("Cant_Recibida", 0)),
+                difference=int(difference),
+                cost_per_unit=cost_per_unit,
+                financial_impact=financial_impact,
+                alert_type=alert_type,
+                status="pending",  # pending, resolved, dismissed
+                draft_claim_email=draft_email,
+                notes=notes,
+                resolved_at=None,
+                resolution_notes=None
+            )
 
-            existing_alerts.append(new_alert)
+            db.add(new_alert)
             existing_keys.add((import_ref, item_code, grn))
             new_alerts_added += 1
 
@@ -198,104 +251,139 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             if (import_ref, item_code, grn) in existing_keys:
                 continue
 
+            # Obtener costo unitario e impacto financiero
+            cost_per_unit = cost_map.get(item_code, 0.0)
+            financial_impact = difference * cost_per_unit
+
+            # Filtro de ruido
+            if difference <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
+                continue
+
             # Generar borrador de correo para excedente
             draft_email = generate_surplus_email(row)
 
-            new_alert = {
-                "id": f"alert-{uuid.uuid4().hex[:12]}",
-                "created_at": timestamp_str,
-                "item_code": item_code,
-                "description": row.get("Descripcion", ""),
-                "import_reference": import_ref,
-                "waybill": row.get("Waybill", ""),
-                "grn": grn,
-                "qty_expected": int(row.get("Cant_Esperada", 0)),
-                "qty_received": int(row.get("Cant_Recibida", 0)),
-                "difference": int(difference),
-                "alert_type": "surplus",
-                "status": "pending",  # pending, resolved, dismissed
-                "draft_claim_email": draft_email,
-                "notes": "Excedente de recepción (sobrante) detectado.",
-                "resolved_at": None,
-                "resolution_notes": None
-            }
+            # Crear la nueva alerta en la base de datos
+            new_alert = InboundAlert(
+                alert_id=f"alert-{uuid.uuid4().hex[:12]}",
+                created_at=timestamp_str,
+                item_code=item_code,
+                description=row.get("Descripcion", ""),
+                import_reference=import_ref,
+                waybill=row.get("Waybill", ""),
+                grn=grn,
+                qty_expected=int(row.get("Cant_Esperada", 0)),
+                qty_received=int(row.get("Cant_Recibida", 0)),
+                difference=int(difference),
+                cost_per_unit=cost_per_unit,
+                financial_impact=financial_impact,
+                alert_type="surplus",
+                status="pending",  # pending, resolved, dismissed
+                draft_claim_email=draft_email,
+                notes="Excedente de recepción (sobrante) detectado.",
+                resolved_at=None,
+                resolution_notes=None
+            )
 
-            existing_alerts.append(new_alert)
+            db.add(new_alert)
             existing_keys.add((import_ref, item_code, grn))
             new_alerts_added += 1
 
         # C. Conciliado (diferencia == 0)
         else:
             # Si el ítem ya no tiene diferencias y había una alerta pendiente (pending), la removemos
-            # completamente de las alertas activas para evitar llenar el historial con registros causados
-            # por simples desfases de tiempo (delay) en el transcurso del día.
-            alerts_before_count = len(existing_alerts)
-            existing_alerts = [
-                alert for alert in existing_alerts
-                if not (alert["import_reference"] == import_ref and 
-                        alert["item_code"] == item_code and 
-                        alert["grn"] == grn and 
-                        alert["status"] == "pending")
-            ]
-            alerts_auto_resolved += (alerts_before_count - len(existing_alerts))
-
+            try:
+                delete_stmt = delete(InboundAlert).where(
+                    InboundAlert.import_reference == import_ref,
+                    InboundAlert.item_code == item_code,
+                    InboundAlert.grn == grn,
+                    InboundAlert.status == "pending"
+                )
+                res = await db.execute(delete_stmt)
+                alerts_auto_resolved += res.rowcount
+            except Exception as delete_err:
+                print(f"[AUDITOR AGENT] Error eliminando alerta conciliada: {delete_err}")
 
     # Guardar las alertas si hubo adiciones o auto-resoluciones
     if new_alerts_added > 0 or alerts_auto_resolved > 0:
-        # Ordenar alertas: primero las pendientes y más recientes
-        existing_alerts.sort(key=lambda x: (x["status"] != "pending", x["created_at"]), reverse=True)
-        save_alerts(existing_alerts)
+        await db.commit()
         print(f"[AUDITOR AGENT] Auditoría finalizada. Nuevas: {new_alerts_added}, Auto-resueltas: {alerts_auto_resolved}.")
     else:
         print("[AUDITOR AGENT] Auditoría finalizada. No se detectaron cambios ni discrepancias nuevas.")
+
+    try:
+        count_stmt = select(func.count(InboundAlert.id))
+        total_res = await db.execute(count_stmt)
+        total_alerts = total_res.scalar() or 0
+    except:
+        total_alerts = 0
 
     return {
         "status": "success",
         "new_alerts": new_alerts_added,
         "auto_resolved": alerts_auto_resolved,
-        "total_alerts": len(existing_alerts)
+        "total_alerts": total_alerts
     }
 
 
-def resolve_alert(alert_id: str, status: str, resolution_notes: str) -> bool:
+async def resolve_alert(db: AsyncSession, alert_id: str, status: str, resolution_notes: str) -> bool:
     """Resuelve o descarta una alerta de auditoría."""
-    alerts = load_alerts()
-    for alert in alerts:
-        if alert["id"] == alert_id:
-            alert["status"] = status  # "resolved" o "dismissed"
-            alert["resolved_at"] = datetime.datetime.now().isoformat()
-            alert["resolution_notes"] = resolution_notes
-            save_alerts(alerts)
+    try:
+        stmt = select(InboundAlert).where(InboundAlert.alert_id == alert_id)
+        res = await db.execute(stmt)
+        alert = res.scalar_one_or_none()
+        if alert:
+            alert.status = status
+            alert.resolved_at = datetime.datetime.now().isoformat()
+            alert.resolution_notes = resolution_notes
+            await db.commit()
             return True
-    return False
+        return False
+    except Exception as e:
+        print(f"[AUDITOR] Error resolviendo alerta: {e}")
+        return False
 
-def resolve_alerts_bulk(alert_ids: List[str], status: str, resolution_notes: str) -> int:
+
+async def resolve_alerts_bulk(db: AsyncSession, alert_ids: List[str], status: str, resolution_notes: str) -> int:
     """Resuelve o descarta un conjunto de alertas de auditoría de forma masiva."""
-    alerts = load_alerts()
-    resolved_count = 0
-    now_iso = datetime.datetime.now().isoformat()
-    for alert in alerts:
-        if alert["id"] in alert_ids and alert["status"] == "pending":
-            alert["status"] = status  # "resolved" o "dismissed"
-            alert["resolved_at"] = now_iso
-            alert["resolution_notes"] = resolution_notes
+    try:
+        stmt = select(InboundAlert).where(
+            InboundAlert.alert_id.in_(alert_ids),
+            InboundAlert.status == "pending"
+        )
+        res = await db.execute(stmt)
+        alerts = res.scalars().all()
+        resolved_count = 0
+        now_iso = datetime.datetime.now().isoformat()
+        for alert in alerts:
+            alert.status = status
+            alert.resolved_at = now_iso
+            alert.resolution_notes = resolution_notes
             resolved_count += 1
-    if resolved_count > 0:
-        save_alerts(alerts)
-    return resolved_count
+        if resolved_count > 0:
+            await db.commit()
+        return resolved_count
+    except Exception as e:
+        print(f"[AUDITOR] Error en resolución masiva de alertas: {e}")
+        return 0
 
 
-def clear_alerts(target: str) -> Dict[str, Any]:
-    """Limpia las alertas de la base de datos de auditoría (archivo JSON)."""
-    if target == 'all':
-        save_alerts([])
-        return {"status": "success", "message": "Todas las alertas han sido eliminadas."}
-    elif target == 'history':
-        alerts = load_alerts()
-        pending_alerts = [a for a in alerts if a.get("status") == "pending"]
-        save_alerts(pending_alerts)
-        return {"status": "success", "message": "El historial de alertas resueltas y descartadas ha sido limpiado."}
-    else:
-        raise ValueError("Target de limpieza no válido")
+async def clear_alerts(db: AsyncSession, target: str) -> Dict[str, Any]:
+    """Limpia las alertas de la base de datos de auditoría."""
+    try:
+        if target == 'all':
+            delete_stmt = delete(InboundAlert)
+            await db.execute(delete_stmt)
+            await db.commit()
+            return {"status": "success", "message": "Todas las alertas han sido eliminadas."}
+        elif target == 'history':
+            delete_stmt = delete(InboundAlert).where(InboundAlert.status != "pending")
+            await db.execute(delete_stmt)
+            await db.commit()
+            return {"status": "success", "message": "El historial de alertas resueltas y descartadas ha sido limpiado."}
+        else:
+            raise ValueError("Target de limpieza no válido")
+    except Exception as e:
+        print(f"[AUDITOR] Error limpiando alertas: {e}")
+        raise e
 
 

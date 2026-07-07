@@ -35,12 +35,14 @@ import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
 import PackingListPrint from '../pages/PackingListPrint';
 import InboundAudit from '../pages/InboundAudit';
+import IRReconciliation from '../pages/IRReconciliation';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
     { path: '/dashboard', component: Dashboard },
     { path: '/inbound', component: Inbound },
     { path: '/reconciliation', component: Reconciliation },
+    { path: '/ir-reconciliation', component: IRReconciliation },
     { path: '/stock', component: StockSearch },
     { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
@@ -76,11 +78,11 @@ const MenuItem = ({ to, label, onClick }) => {
     return (
         <Link
             to={to}
-            className={`flex items-center px-4 py-1.5 text-white transition-all border-l-[4px] 
+            className={`flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] 
             ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'hover:bg-white/5 border-transparent hover:border-blue-400/40'}`}
             onClick={onClick}
         >
-            <span className="text-[12px] uppercase tracking-wider">{label}</span>
+            <span className="text-[10px] uppercase  ">{label}</span>
         </Link>
     );
 };
@@ -324,28 +326,29 @@ const Layout = () => {
                 className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
-                <nav className="py-4">
-                    <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2">Principal</div>
+                <nav className="py-2">
+                    <div className="px-4 mb-3">
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-1">Principal</div>
                         <MenuItem to="/dashboard" label="Inicio" onClick={toggleMenu} />
                         <MenuItem to="/stock" label="Consultar Stock" onClick={toggleMenu} />
                     </div>
-                    <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Inbound</div>
+                    <div className="px-4 mb-3">
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-1 border-t border-white/5 pt-2">Operaciones Inbound</div>
                         <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
                         <MenuItem to="/inbound/audit" label="Auditoría Agente" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
+                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" onClick={toggleMenu} />
                     </div>
-                    <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Operaciones Outbound</div>
+                    <div className="px-4 mb-3">
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-1 border-t border-white/5 pt-2">Operaciones Outbound</div>
                         <MenuItem to="/picking" label="Picking" onClick={toggleMenu} />
                         <MenuItem to="/view_picking_audits" label="Empaque" onClick={toggleMenu} />
                         <MenuItem to="/shipments" label="Despacho" onClick={toggleMenu} />
                         <MenuItem to="/label" label="Etiquetado" onClick={toggleMenu} />
                     </div>
-                    <div className="px-4 mb-4">
-                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Control Inventario</div>
+                    <div className="px-4 mb-3">
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-1 border-t border-white/5 pt-2">Control Inventario</div>
                         <MenuItem to="/planner" label="Plan Cíclico" onClick={toggleMenu} />
                         <MenuItem to="/inventory-dashboard" label="Métricas" onClick={toggleMenu} />
                         <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
@@ -354,14 +357,14 @@ const Layout = () => {
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
                         <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
                     </div>
-                    <div className="px-4 mb-8">
-                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-2 border-t border-white/5 pt-4">Sistema</div>
+                    <div className="px-4 mb-4">
+                        <div className="px-2 text-[10px] font-medium text-gray-900 text-slate-500 uppercase tracking-[0.2em] mb-1 border-t border-white/5 pt-2">Sistema</div>
                         <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
                         <button
-                            className="w-full flex items-center px-4 py-1.5 mt-4 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-medium text-gray-900 tracking-widest text-left"
+                            className="w-full flex items-center px-4 py-1 mt-2 text-red-400 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[11px] font-medium text-gray-900 tracking-widest text-left"
                             onClick={async () => {
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } 
                                 finally { window.location.href = '/login'; }

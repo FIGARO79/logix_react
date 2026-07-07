@@ -37,6 +37,7 @@ import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
 import InboundAudit from './pages/InboundAudit';
+import IRReconciliation from './pages/IRReconciliation';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
@@ -230,6 +231,11 @@ function App() {
                         <Route path="/inbound/audit" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <InboundAudit />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/ir-reconciliation" element={
+                            <ProtectedRoute requiredPermission="inbound">
+                                <IRReconciliation />
                             </ProtectedRoute>
                         } />
 

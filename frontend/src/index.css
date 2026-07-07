@@ -108,3 +108,29 @@ tr.text-white th,
 thead.text-white th {
     color: #ffffff !important;
 }
+
+/* Force all dark/medium gray/zinc/slate/neutral text colors to black globally */
+.text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, .text-gray-850, .text-gray-900, .text-gray-950,
+.text-zinc-500, .text-zinc-600, .text-zinc-700, .text-zinc-800, .text-zinc-900, .text-zinc-950,
+.text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900, .text-slate-950,
+.text-neutral-500, .text-neutral-600, .text-neutral-700, .text-neutral-800, .text-neutral-900, .text-neutral-950,
+.text-zinc-500\/60, .text-gray-500\/60, .text-black\/60 {
+    color: #000000 !important;
+}
+
+/* Exclude the sidebar section titles from the global black color rule and set them to white */
+.fixed.left-0.w-64 nav > div > div {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Ensure all elements in the sidebar menu use normal or semibold/medium weight instead of bold */
+.fixed.left-0.w-64,
+.fixed.left-0.w-64 * {
+    font-weight: 400 !important;
+}
+.fixed.left-0.w-64 nav > div > div,
+.fixed.left-0.w-64 .font-medium,
+.fixed.left-0.w-64 [class*="font-semibold"],
+.fixed.left-0.w-64 [class*="font-bold"] {
+    font-weight: 500 !important;
+}

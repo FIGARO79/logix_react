@@ -310,6 +310,8 @@ const InboundAudit = () => {
                                 <th className="px-4 py-2 text-center font-medium">ESPERADO</th>
                                 <th className="px-4 py-2 text-center font-medium">RECIBIDO</th>
                                 <th className="px-4 py-2 text-center font-medium">DIFERENCIA</th>
+                                <th className="px-4 py-2 text-right font-medium">COSTO UNIT.</th>
+                                <th className="px-4 py-2 text-right font-medium">VALOR IMPACTO</th>
                                 <th className="px-4 py-2 text-center font-medium">TIPO ALERTA</th>
                                 {activeTab === 'history' && <th className="px-4 py-2 text-left font-medium">RESOLUCIÓN</th>}
                                 <th className="px-4 py-2 text-center font-medium">ACCIONES</th>
@@ -317,10 +319,10 @@ const InboundAudit = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {loading ? (
-                                <tr><td colSpan={activeTab === 'pending' ? 12 : 11} className="py-8 text-center text-gray-500">Cargando alertas...</td></tr>
+                                <tr><td colSpan={activeTab === 'pending' ? 14 : 13} className="py-8 text-center text-gray-500">Cargando alertas...</td></tr>
                             ) : filteredAlerts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === 'pending' ? 12 : 11} className="py-8 text-center text-gray-500 italic">
+                                    <td colSpan={activeTab === 'pending' ? 14 : 13} className="py-8 text-center text-gray-500 italic">
                                         No hay alertas registradas en esta sección.
                                     </td>
                                 </tr>
@@ -346,6 +348,12 @@ const InboundAudit = () => {
                                         <td className="px-4 py-3 whitespace-nowrap text-center text-gray-700 font-semibold">{alert.qty_received}</td>
                                         <td className={`px-4 py-3 whitespace-nowrap text-center font-bold ${alert.difference > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {alert.difference > 0 ? `+${alert.difference}` : alert.difference}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-right text-gray-600 font-mono">
+                                            {alert.cost_per_unit !== undefined ? `$${alert.cost_per_unit.toFixed(2)}` : '-'}
+                                        </td>
+                                        <td className={`px-4 py-3 whitespace-nowrap text-right font-mono font-bold ${alert.difference > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            {alert.financial_impact !== undefined ? `$${alert.financial_impact.toFixed(2)}` : '-'}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center">
                                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { getDB } from '../utils/offlineDb';
+import { useLocation } from 'react-router-dom';
+import { getDB, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
+    const location = useLocation();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -76,32 +78,44 @@ const InboundHistory = () => {
             // Ordenar por fecha (más reciente primero)
             const sortedData = combinedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            // Obtener datos del reporte 280 desde IndexedDB (Cache local)
-            const grnMap = {};
+            // Obtener datos de cantidades esperadas desde IndexedDB (Cache local) de forma masiva
+            let grnMap = {};
             try {
                 const db = await getDB();
-                const uniqueItems = [...new Set(sortedData.map(l => l.itemCode))];
-                for (const itemCode of uniqueItems) {
-                    const grnInfo = await db.get('grn_pending', itemCode);
-                    grnMap[itemCode] = grnInfo ? grnInfo.total_expected : 0;
-                }
+                const itemsToQuery = sortedData.map(log => ({
+                    itemCode: log.itemCode,
+                    importRef: log.importReference || log.importRef || ''
+                }));
+                grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
             } catch (e) { console.error("Offline GRN error", e); }
 
-            // Calcular totales por ítem y marcar última entrada para mostrar diferencia
+            // Calcular totales recibidos por ítem y por IR
             const totalsMap = {};
             const latestEntryMap = {};
 
             sortedData.forEach(log => {
                 const code = log.itemCode;
-                totalsMap[code] = (totalsMap[code] || 0) + (parseInt(log.qtyReceived) || 0);
-                if (!latestEntryMap[code]) latestEntryMap[code] = log.id;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const qty = parseInt(log.qtyReceived) || 0;
+                totalsMap[key] = (totalsMap[key] || 0) + qty;
+                if (!latestEntryMap[key]) {
+                    latestEntryMap[key] = log.id;
+                }
             });
 
             const enrichedLogs = sortedData.map(log => {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const expected = log.qtyGrn || grnMap[key] || 0;
+                const totalReceived = totalsMap[key] || 0;
+                const isLatest = latestEntryMap[key] === log.id;
+
                 return {
                     ...log,
-                    expected_qty: log.qtyGrn || 0,
-                    calculatedDifference: log.difference !== undefined ? log.difference : 0
+                    expected_qty: expected,
+                    calculatedDifference: isLatest ? (totalReceived - expected) : 0
                 };
             });
 
@@ -123,6 +137,13 @@ const InboundHistory = () => {
         return () => clearInterval(interval);
     }, [currentVersion]);
 
+    // Recargar datos automáticamente cuando la pestaña de Historial/Registros vuelve a estar activa
+    useEffect(() => {
+        if (location.pathname === '/view_logs' && !currentVersion) {
+            loadLogs('', true); // Recarga silenciosa (sin loader) conservando filtros de búsqueda
+        }
+    }, [location.pathname, currentVersion]);
+
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -134,7 +155,7 @@ const InboundHistory = () => {
         <div className="w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-2 rounded shadow-sm border border-gray-200">
-                <h1 className="text-[16px] font-medium  text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
+                <h1 className="text-[16px] font-medium  text-black mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
@@ -149,10 +170,10 @@ const InboundHistory = () => {
                             <button
                                 type="button"
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 text-black/60 hover:text-black focus:outline-none"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                                 </svg>
                             </button>
                         )}
@@ -198,20 +219,20 @@ const InboundHistory = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {loading && <tr><td colSpan="11" className="py-4 text-center text-gray-500">Cargando...</td></tr>}
-                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-gray-500">No se encontraron registros.</td></tr>}
+                            {loading && <tr><td colSpan="11" className="py-4 text-center text-black/60">Cargando...</td></tr>}
+                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-black/60">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-600">{formatDate(log.timestamp)}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-gray-600'} uppercase`}>{log.username}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.importReference}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.waybill}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800 font-normal">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800 truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.binLocation}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-gray-800">{log.relocatedBin}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{formatDate(log.timestamp)}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.importReference}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.waybill}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black font-normal">{log.itemCode}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.binLocation}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.relocatedBin}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-gray-500 font-normal">{log.expected_qty}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-black font-normal">{log.expected_qty}</td>
                                     <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>

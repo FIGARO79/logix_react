@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLocation } from 'react-router-dom';
 import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
+    const location = useLocation();
     useEffect(() => { setTitle("Conciliación"); }, [setTitle]);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,8 +27,8 @@ const Reconciliation = () => {
 
 
     // Fetch data
-    const fetchData = async (params = {}) => {
-        setLoading(true);
+    const fetchData = async (params = {}, silent = false) => {
+        if (!silent) setLoading(true);
         setIsOfflineData(false);
 
         if (navigator.onLine) {
@@ -88,6 +90,13 @@ const Reconciliation = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Recargar datos automáticamente cuando la pestaña vuelve a estar activa
+    useEffect(() => {
+        if (location.pathname === '/reconciliation') {
+            fetchData({}, true); // Recarga silenciosa sin parpadeo conservando filtros y estados
+        }
+    }, [location.pathname]);
 
     const handleArchiveSnapshot = async () => {
         if (!data || data.length === 0) return alert("No hay datos para archivar");

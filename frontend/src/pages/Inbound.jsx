@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
@@ -10,6 +10,48 @@ import { sandvikLogoBase64 } from '../assets/logo';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
+
+
+const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
+    const radius = 35;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percent / 100) * circumference;
+    
+    return (
+        <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
+            <div className="relative flex items-center justify-center" style={{ width: '85px', height: '85px' }}>
+                <svg className="transform -rotate-90" style={{ width: '85px', height: '85px' }}>
+                    <circle 
+                        cx="42.5" 
+                        cy="42.5" 
+                        r={radius} 
+                        className="text-zinc-200" 
+                        strokeWidth={trackStrokeWidth} 
+                        stroke="currentColor" 
+                        fill="transparent" 
+                    />
+                    <circle 
+                        cx="42.5" 
+                        cy="42.5" 
+                        r={radius} 
+                        stroke={strokeColor} 
+                        strokeWidth={strokeWidth} 
+                        strokeDasharray={circumference} 
+                        strokeDashoffset={offset} 
+                        strokeLinecap="round" 
+                        fill="transparent" 
+                        className="transition-all duration-500 ease-out"
+                    />
+                </svg>
+                <div className="absolute text-center flex flex-col items-center justify-center">
+                    <span className="text-[13px] font-extrabold text-black leading-none">{valueText}</span>
+                    <span className="text-[10px] text-zinc-700 font-extrabold leading-none mt-0.5">{percent}%</span>
+                </div>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-zinc-900 font-bold mt-1.5 text-center leading-none truncate w-full">{label}</span>
+        </div>
+    );
+};
 
 
 const Inbound = () => {
@@ -42,6 +84,21 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
+
+    // --- Estado para el Tablero de Control de la IR ---
+    const [irStats, setIrStats] = useState({
+        totalLines: 0,
+        completedLines: 0,
+        startedLines: 0,
+        expectedUnits: 0,
+        receivedUnits: 0,
+        positiveDiffLines: 0,
+        negativeDiffLines: 0,
+        okLines: 0,
+        totalGrns: 0,
+        completedGrns: 0,
+        grnProgressPercent: 0
+    });
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
@@ -184,6 +241,265 @@ const Inbound = () => {
         }
     };
 
+    const calculateIRStats = async () => {
+        if (!importRef || importRef.trim() === '') {
+            setIrStats({
+                totalLines: 0,
+                completedLines: 0,
+                startedLines: 0,
+                expectedUnits: 0,
+                receivedUnits: 0,
+                positiveDiffLines: 0,
+                negativeDiffLines: 0,
+                okLines: 0,
+                totalGrns: 0,
+                completedGrns: 0,
+                grnProgressPercent: 0
+            });
+            return;
+        }
+
+        try {
+            const db = await getDB();
+            const allGrns = await db.getAll('grn_pending') || [];
+            const targetIr = importRef.trim().toUpperCase();
+            
+            // 1. Obtener GRNs asociadas a la IR desde po_lookup
+            const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            const associatedGrns = new Set();
+            if (poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gKey = g.trim();
+                            if (gKey) {
+                                associatedGrns.add(gKey);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
+            let irLines = [];
+            if (associatedGrns.size > 0) {
+                irLines = allGrns.filter(g => {
+                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    if (grnNum && associatedGrns.has(grnNum)) {
+                        return true;
+                    }
+                    if (!grnNum && (g.Import_Reference || '').trim().toUpperCase() === targetIr) {
+                        return true;
+                    }
+                    return false;
+                });
+            } else {
+                irLines = allGrns.filter(g => String(g.Import_Reference || '').toUpperCase().trim() === targetIr);
+            }
+            
+            // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
+            const groupedIrLines = {};
+            irLines.forEach(line => {
+                const code = String(line.Item_Code).toUpperCase().trim();
+                if (!groupedIrLines[code]) {
+                    groupedIrLines[code] = {
+                        Item_Code: code,
+                        total_expected: 0
+                    };
+                }
+                groupedIrLines[code].total_expected += parseInt(line.total_expected) || 0;
+            });
+
+            // Si no hay líneas de la GRN (280) para calcular en el tablero, ir a la PO Purchase (poInfo)
+            if (irLines.length === 0 && poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const code = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                    if (code) {
+                        if (!groupedIrLines[code]) {
+                            groupedIrLines[code] = {
+                                Item_Code: code,
+                                total_expected: 0
+                            };
+                        }
+                        groupedIrLines[code].total_expected += parseInt(it.qty || it.Quantity || 0);
+                    }
+                });
+            }
+
+            const uniqueIrLines = Object.values(groupedIrLines);
+            let totalLines = uniqueIrLines.length;
+            let expectedUnits = 0;
+            let receivedUnits = 0;
+            let completedLines = 0;
+            let startedLines = 0;
+            let positiveDiffLines = 0;
+            let negativeDiffLines = 0;
+            let okLines = 0;
+
+            // Crear mapa de cantidades esperadas para cada SKU para el cálculo de GRNs
+            const grnExpectedMap = {};
+            uniqueIrLines.forEach(line => {
+                grnExpectedMap[line.Item_Code] = line.total_expected;
+            });
+
+            // Crear mapa de cantidades recibidas para cada ítem en esta IR
+            const receivedMap = {};
+            logs.forEach(log => {
+                const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
+                if (logIr === targetIr) {
+                    const code = String(log.itemCode).toUpperCase().trim();
+                    const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+                    receivedMap[code] = (receivedMap[code] || 0) + qty;
+                }
+            });
+
+            // Hacer la unión de los SKUs esperados y los SKUs recibidos en logs
+            const allSkusSet = new Set([
+                ...uniqueIrLines.map(l => l.Item_Code),
+                ...Object.keys(receivedMap)
+            ]);
+
+            allSkusSet.forEach(code => {
+                const line = groupedIrLines[code];
+                const expected = line ? line.total_expected : 0;
+                const received = receivedMap[code] || 0;
+
+                expectedUnits += expected;
+                receivedUnits += received;
+
+                if (received > 0) {
+                    startedLines += 1;
+                }
+
+                const diff = received - expected;
+                if (diff > 0) {
+                    positiveDiffLines += 1;
+                } else if (diff < 0) {
+                    negativeDiffLines += 1;
+                } else {
+                    okLines += 1;
+                }
+
+                if (received >= expected && expected > 0) {
+                    completedLines += 1;
+                }
+            });
+
+            // Calcular avance de GRNs asociadas
+            let totalGrns = 0;
+            let completedGrns = 0;
+            let grnTotalProgress = 0;
+            
+            try {
+                if (poInfo && poInfo.items) {
+                    const grnToItems = {}; // grn -> [ {itemCode, expected} ]
+                    
+                    poInfo.items.forEach(it => {
+                        const itemCode = String(it.item_code).toUpperCase().trim();
+                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        const qty = parseInt(it.qty) || 0;
+                        
+                        if (grnVal) {
+                            grnVal.split(',').forEach(g => {
+                                const gKey = g.trim();
+                                if (gKey) {
+                                    if (!grnToItems[gKey]) {
+                                        grnToItems[gKey] = [];
+                                    }
+                                    grnToItems[gKey].push({ itemCode, expected: qty });
+                                }
+                            });
+                        }
+                    });
+                    
+                    const grnList = Object.keys(grnToItems);
+                    totalGrns = grnList.length;
+                    
+                    grnList.forEach(grn => {
+                        const itemsInGrn = grnToItems[grn];
+                        let itemsCompleted = 0;
+                        
+                        itemsInGrn.forEach(it => {
+                            const recQty = receivedMap[it.itemCode] || 0;
+                            // Priorizar cantidad esperada del reporte 280, usar PO qty como fallback
+                            const expectedQty = grnExpectedMap[it.itemCode] !== undefined 
+                                ? grnExpectedMap[it.itemCode] 
+                                : it.expected;
+                                
+                            if (recQty >= expectedQty && expectedQty > 0) {
+                                itemsCompleted += 1;
+                            }
+                        });
+                        
+                        const grnProgress = itemsInGrn.length > 0 ? itemsCompleted / itemsInGrn.length : 0;
+                        grnTotalProgress += grnProgress;
+                        
+                        if (grnProgress === 1 && itemsInGrn.length > 0) {
+                            completedGrns += 1;
+                        }
+                    });
+                }
+            } catch (poErr) {
+                console.error("Error calculating GRN stats from po_lookup:", poErr);
+            }
+
+            const grnProgressPercent = totalGrns > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrns) * 100)) : 0;
+
+            setIrStats({
+                totalLines,
+                completedLines,
+                startedLines,
+                expectedUnits,
+                receivedUnits,
+                positiveDiffLines,
+                negativeDiffLines,
+                okLines,
+                totalGrns,
+                completedGrns,
+                grnProgressPercent
+            });
+        } catch (err) {
+            console.error("Error calculating IR stats:", err);
+        }
+    };
+
+    useEffect(() => {
+        calculateIRStats();
+    }, [importRef, logs]);
+
+    // Autoguardar la conciliación en segundo plano de manera silenciosa cada vez que cambien las estadísticas
+    useEffect(() => {
+        if (!importRef || importRef.trim() === '' || (irStats.totalLines === 0 && irStats.receivedUnits === 0)) return;
+
+        const delayDebounceFn = setTimeout(async () => {
+            try {
+                await fetch('/api/inbound/ir_reconciliation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        import_reference: importRef,
+                        total_lines: irStats.totalLines,
+                        completed_lines: irStats.completedLines,
+                        started_lines: irStats.startedLines,
+                        expected_units: irStats.expectedUnits,
+                        received_units: irStats.receivedUnits,
+                        ok_lines: irStats.okLines,
+                        negative_diff_lines: irStats.negativeDiffLines,
+                        positive_diff_lines: irStats.positiveDiffLines,
+                        total_grns: irStats.totalGrns,
+                        completed_grns: irStats.completedGrns
+                    }),
+                    credentials: 'include'
+                });
+            } catch (e) {
+                console.error("Error auto-saving IR reconciliation:", e);
+            }
+        }, 1000);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [irStats, importRef]);
+
     // Filter logs based on search term
     const filteredLogs = logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -275,28 +591,15 @@ const Inbound = () => {
             return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
         });
 
-        const grnMap = {};
+        let grnMap = {};
         try {
             const db = await getDB();
-            // Cargar lo esperado por itemCode + importReference
-            for (const log of allLogsSorted) {
-                const code = log.itemCode;
-                const ir = log.importReference || log.importRef || '';
-                const key = `${code}|${ir}`;
-                if (!(key in grnMap)) {
-                    const grnInfo = await db.get('grn_pending', code);
-                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
-                    if (!expectedQty || expectedQty === 0) {
-                        const poInfo = await db.get('po_lookup', `ir_${ir.trim().toUpperCase()}`);
-                        if (poInfo && poInfo.items) {
-                            expectedQty = poInfo.items
-                                .filter(it => String(it.item_code).toUpperCase() === code.toUpperCase())
-                                .reduce((sum, it) => sum + (parseInt(it.qty) || 0), 0);
-                        }
-                    }
-                    grnMap[key] = expectedQty;
-                }
-            }
+            // Cargar lo esperado por itemCode + importReference de forma optimizada
+            const itemsToQuery = allLogsSorted.map(log => ({
+                itemCode: log.itemCode,
+                importRef: log.importReference || log.importRef || ''
+            }));
+            grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
         } catch (e) { console.error("Error loading GRN info", e); }
 
         // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
@@ -409,7 +712,6 @@ const Inbound = () => {
                 const db = await getDB();
                 const localItem = await db.get('master_items', normalizedCode);
                 if (localItem) {
-                    const grnInfo = await db.get('grn_pending', normalizedCode);
                     const xdockInfo = await db.get('xdock_reservations', normalizedCode);
 
                     // Buscar si ya hay reubicaciones de este ítem en la cola local
@@ -458,13 +760,7 @@ const Inbound = () => {
                         }
                     }
 
-                    let expectedQty = grnInfo ? grnInfo.total_expected : 0;
-                    if (!expectedQty || expectedQty === 0) {
-                        const matchPo = offlineBreakdown.find(b => b.ir === importRef.trim().toUpperCase());
-                        if (matchPo) {
-                            expectedQty = matchPo.qty;
-                        }
-                    }
+                    const expectedQty = await getGRNExpectedQty(db, normalizedCode, importRef);
 
                     setItemData({
                         itemCode: localItem.Item_Code,
@@ -651,7 +947,7 @@ const Inbound = () => {
             <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-1">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow-sm !mb-0 border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
                                 <h1 className="text-base font-medium  tracking-tight uppercase">Inbound - Recepción</h1>
@@ -670,15 +966,15 @@ const Inbound = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
-                                    <label className="form-label font-normal text-gray-800">Import Reference</label>
+                                    <label className="form-label font-normal text-black">Import Reference</label>
                                     <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
-                                    <label className="form-label font-normal text-gray-800">Waybill</label>
+                                    <label className="form-label font-normal text-black">Waybill</label>
                                     <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-normal text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="form-label font-normal text-gray-800">Item Code</label>
+                                    <label className="form-label font-normal text-black">Item Code</label>
                                     <div className="flex gap-2">
                                         <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
                                         <button
@@ -707,11 +1003,11 @@ const Inbound = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-2"><label className="form-label font-normal text-gray-800">Item Description</label><div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
+                            <div className="mb-2"><label className="form-label font-normal text-black">Item Description</label><div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div></div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                                <div><label className="form-label font-normal text-gray-800">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
-                                <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-normal text-black">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
+                                <div><label className="form-label font-normal text-black">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
+                                <div><label className="form-label font-normal text-black">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
@@ -761,17 +1057,17 @@ const Inbound = () => {
                                         ) : <div className="hidden sm:block"></div>}
                                     </div>
                                 )}
-                                <div><label className="form-label font-normal text-gray-800">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.aditionalBins || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.itemType || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.sicCode || ''}</div></div>
+                                <div><label className="form-label font-normal text-black">Aditional Bins</label><div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.aditionalBins || ''}</div></div>
+                                <div><label className="form-label font-normal text-black">ABC Type</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.itemType || ''}</div></div>
+                                <div><label className="form-label font-normal text-black">SIC Code</label><div className="data-field font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.sicCode || ''}</div></div>
                             </div>
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-2 shadow-sm">
                                 <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
                                 <div className="grid grid-cols-3 gap-4 mb-4">
-                                    <div><label className="form-label font-normal text-gray-800">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
-                                    <div><label className="form-label font-normal text-gray-800">Esperado</label><div className="data-field font-normal text-2xl text-gray-950" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.defaultQtyGrn || 0}</div></div>
-                                    <div><label className="form-label font-normal text-gray-800">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
+                                    <div><label className="form-label font-normal text-black">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-normal text-black">Esperado</label><div className="data-field font-normal text-2xl text-black" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.defaultQtyGrn || 0}</div></div>
+                                    <div><label className="form-label font-normal text-black">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
                                         }`} style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
@@ -804,32 +1100,101 @@ const Inbound = () => {
 
                         </div>
 
-                        <div className="lg:col-span-1">
-                            <h2 className="text-lg font-medium  text-center mb-1">Vista Etiqueta</h2>
-                            <div className="flex justify-center">
-                                <div ref={labelComponentRef} className="bg-white">
-                                    <SandvikLabel
-                                        data={itemData}
-                                        qrImage={qrImage}
-                                        quantity={quantity}
-                                        relocatedBin={relocatedBin}
-                                        totalWeight={totalWeight}
-                                    />
+                        {/* Columna 3: Vista Etiqueta */}
+                        <div className="lg:col-span-1 bg-white p-1 rounded shadow-sm border border-gray-200 flex flex-col justify-between">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                                Vista Etiqueta
+                            </h2>
+                            <div className="flex-grow flex flex-col justify-center items-center">
+                                <div className="border border-zinc-200 p-0 rounded bg-zinc-50 shadow-inner scale-[0.95] transform origin-center my-auto">
+                                    <div ref={labelComponentRef} className="bg-white">
+                                        <SandvikLabel
+                                            data={itemData}
+                                            qrImage={qrImage}
+                                            quantity={quantity}
+                                            relocatedBin={relocatedBin}
+                                            totalWeight={totalWeight}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="w-full flex justify-center mt-2">
-                                <button
-                                    type="button"
-                                    onClick={handlePrint}
-                                    className="h-9 px-16 text-[12px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
-                                    disabled={!itemData}
-                                >
-                                    Imprimir
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                style={{ background: '#285f94' }}
+                                onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
+                                onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                disabled={!itemData}
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Imprimir
+                            </button>
+                        </div>
+
+                        {/* Columna 4: Tablero de Control de la IR */}
+                        <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                                Tablero de Control: {importRef || "S.I.R."}
+                            </h2>
+                            
+                            {importRef ? (
+                                <div className="flex-grow flex flex-col justify-between">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Dial 
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.completedLines / irStats.totalLines) * 100)) : 0} 
+                                            label="Líneas OK" 
+                                            valueText={`${irStats.completedLines}/${irStats.totalLines}`} 
+                                            strokeColor="#1679E0" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.startedLines / irStats.totalLines) * 100)) : 0} 
+                                            label="Iniciadas" 
+                                            valueText={`${irStats.startedLines}/${irStats.totalLines}`} 
+                                            strokeColor="#D97706" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.expectedUnits > 0 ? Math.min(100, Math.round((irStats.receivedUnits / irStats.expectedUnits) * 100)) : 0} 
+                                            label="Unidades" 
+                                            valueText={`${irStats.receivedUnits}/${irStats.expectedUnits}`} 
+                                            strokeColor="#10B981" 
+                                        />
+                                        <Dial 
+                                            percent={irStats.totalGrns > 0 ? irStats.grnProgressPercent : 0} 
+                                            label="GRNs OK" 
+                                            valueText={`${irStats.completedGrns}/${irStats.totalGrns}`} 
+                                            strokeColor="#8B5CF6" 
+                                        />
+                                    </div>
+                                    
+                                    <div className="mt-4 space-y-2">
+                                        <div className="text-[11px] uppercase font-bold text-zinc-800 tracking-wider">Desglose de Diferencias (GRN)</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="p-2 bg-emerald-50 rounded border border-emerald-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-emerald-900">{irStats.okLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-emerald-800 font-bold leading-tight">Sin Dif.</div>
+                                            </div>
+                                            <div className="p-2 bg-red-50 rounded border border-red-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-red-900">{irStats.negativeDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-red-800 font-bold leading-tight">Faltantes</div>
+                                            </div>
+                                            <div className="p-2 bg-blue-50 rounded border border-blue-200 text-center">
+                                                <div className="text-[15px] font-extrabold text-blue-900">{irStats.positiveDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-wider text-blue-800 font-bold leading-tight">Sobrantes</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-grow flex flex-col items-center justify-center text-zinc-700 p-4 text-center">
+                                    <svg className="w-10 h-10 text-zinc-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="italic text-[11px] uppercase tracking-wider font-medium">Ingrese una Import Reference para activar el tablero</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </form>
@@ -917,7 +1282,7 @@ const Inbound = () => {
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-gray-400 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
@@ -930,8 +1295,8 @@ const Inbound = () => {
                                         <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
                                             (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
                                             }`}>{log.difference || 0}</td>
-                                        <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-700 font-normal">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1 uppercase font-normal text-sm text-gray-800">{log.username}</td>
+                                        <td className="px-2 py-1 whitespace-nowrap text-sm text-black font-normal">{formatDate(log.timestamp)}</td>
+                                        <td className="px-2 py-1 uppercase font-normal text-sm text-black">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
                                                 <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">

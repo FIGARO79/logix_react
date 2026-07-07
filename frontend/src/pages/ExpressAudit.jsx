@@ -134,183 +134,195 @@ const ExpressAudit = () => {
             minute: '2-digit' 
         });
     };
-
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="w-full px-4 py-4">
             <ToastContainer position="top-right" autoClose={2000} />
             
-            <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-end">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-xl font-normal tracking-tight text-black">Ciclo Manual</h1>
-                    <p className="text-[10px] uppercase tracking-[0.15em] font-normal text-black mt-1">Inspección de Inventario y Auditoría de Ubicaciones</p>
-                </div>
-                <button 
-                    onClick={resetAll} 
-                    className="text-[10px] font-normal uppercase tracking-widest text-black hover:text-red-700 transition-colors border border-zinc-200 px-3 py-1.5 rounded hover:bg-zinc-50"
-                >
-                    Reiniciar Sesión
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white border border-zinc-200 shadow-sm p-6 rounded space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                
+                {/* Columna Principal: Formulario e Historial */}
+                <div className="lg:col-span-2 space-y-4">
+                    
+                    {/* Tarjeta del Formulario */}
+                    <div className="bg-white border border-gray-200 shadow-sm p-4 rounded space-y-3">
                         <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}`}</style>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="bg-zinc-50 border-b border-zinc-200 px-4 py-2 -mx-4 -mt-4 rounded-t flex justify-between items-center mb-3">
+                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider">
+                                Ciclo Manual (Auditoría Express)
+                            </h2>
+                            <button 
+                                onClick={resetAll} 
+                                className="text-[9px] font-semibold uppercase tracking-widest text-black bg-white border border-zinc-200 rounded px-2.5 py-1 hover:bg-zinc-50 transition-all active:scale-95 shadow-sm"
+                            >
+                                Reiniciar Sesión
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Ubicación (BIN)</label>
-                                <div className="flex">
+                                <label className="form-label font-normal text-black">Ubicación (BIN)</label>
+                                <div className="flex gap-2">
                                     <input 
                                         ref={binRef}
                                         type="text" 
                                         value={binLocation}
                                         onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                         onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
-                                        style={{height:'40px'}}
-                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-medium  outline-none focus:border-zinc-900 transition-colors"
+                                        className="font-normal text-black border border-zinc-400 focus:border-black outline-none uppercase flex-grow h-[30px] px-2 rounded"
                                         placeholder="SCAN BIN"
                                     />
                                     <button 
                                         onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
-                                        style={{height:'40px',width:'40px'}}
-                                        className="shrink-0 p-0 flex items-center justify-center border border-zinc-300 rounded-r bg-white text-black hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                        className="h-[30px] px-3 shrink-0 flex items-center justify-center border border-zinc-400 rounded bg-white text-black hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors active:scale-95"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 26 26" strokeWidth="1.5" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
+                            
                             <div>
-                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Identificación (SKU)</label>
-                                <div className="flex">
+                                <label className="form-label font-normal text-black">Identificación (SKU)</label>
+                                <div className="flex gap-2">
                                     <input 
                                         ref={itemRef}
                                         type="text" 
                                         value={itemCode}
                                         onChange={(e) => handleItemChange(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearchItem(e.target.value)}
-                                        style={{height:'40px'}}
-                                        className="flex-1 py-0 px-3 border border-zinc-300 border-r-0 rounded-l bg-white text-sm font-mono font-medium  outline-none focus:border-zinc-900 transition-colors"
+                                        className="font-normal text-black border border-zinc-400 focus:border-black outline-none uppercase flex-grow h-[30px] px-2 rounded"
                                         placeholder="SCAN SKU"
                                     />
                                     <button 
                                         onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
-                                        style={{height:'40px',width:'40px'}}
-                                        className="shrink-0 p-0 flex items-center justify-center border border-zinc-300 rounded-r bg-white text-black hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                        className="h-[30px] px-3 shrink-0 flex items-center justify-center border border-zinc-400 rounded bg-white text-black hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors active:scale-95"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 26 26" strokeWidth="1.5" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
                         </div>
-
-                        <div>
-                            <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Descripción del Producto</label>
-                            <div style={{height:'40px'}} className="flex items-center px-3 bg-white border border-zinc-300 rounded text-[11px] font-medium  text-black uppercase tracking-wide overflow-hidden">
-                                {itemData?.description || '— Esperando entrada —'}
+                        
+                        <div className="mb-2">
+                            <label className="form-label font-normal text-black">Descripción del Producto</label>
+                            <div className="data-field font-normal text-black border-b border-gray-200 pb-1">
+                                {itemData?.description || '— Esperando SKU —'}
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Cantidad Observada</label>
+                                <label className="form-label font-normal text-black">Cantidad Observada</label>
                                 <input 
                                     ref={qtyRef}
                                     type="number" 
                                     value={physicalQty}
                                     onChange={(e) => setPhysicalQty(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                    style={{height:'40px'}}
-                                    className="w-full py-0 px-3 border border-zinc-300 rounded bg-white text-base font-medium  text-center outline-none focus:border-zinc-900 transition-colors"
+                                    className="font-normal text-base text-black border border-zinc-400 focus:border-black outline-none w-full h-[30px] px-2 rounded text-center"
                                     placeholder="0"
+                                    required
+                                    min="0"
                                 />
                             </div>
-                            <div>
-                                <label className="text-[9px] font-medium  text-black uppercase mb-1.5 block tracking-widest">Acción</label>
+                            <div className="flex items-end">
                                 <button 
                                     onClick={handleSave}
                                     disabled={isSaving || !itemData}
-                                    style={{height:'40px'}}
-                                    className="w-full py-0 border border-zinc-300 rounded bg-zinc-900 text-white text-[10px] font-medium  uppercase tracking-[0.15em] hover:bg-black transition-colors active:scale-[0.98] disabled:bg-white disabled:text-black disabled:border-zinc-300"
+                                    className={`h-[30px] px-6 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving || !itemData ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !isSaving && itemData && (e.currentTarget.style.background = '#1e4a74')}
+                                    onMouseLeave={e => !isSaving && itemData && (e.currentTarget.style.background = '#285f94')}
                                 >
-                                    {isSaving ? "PROCESANDO..." : "CONFIRMAR REGISTRO"}
+                                    {isSaving ? "Guardando..." : "Confirmar Registro"}
                                 </button>
                             </div>
                         </div>
-
-                        <div className="pt-4 border-t border-zinc-200">
-                            <label className="text-[9px] font-medium  text-black uppercase mb-3 block tracking-widest">Análisis de Inventario</label>
-                            <div className="grid grid-cols-3 gap-6 bg-white border border-zinc-300 rounded p-4">
+                        
+                        <div className="pt-3 border-t border-zinc-200">
+                            <h3 className="text-[11px] font-medium uppercase text-black border-b border-zinc-200 pb-1 mb-3 tracking-widest">Análisis de Inventario</h3>
+                            <div className="grid grid-cols-3 gap-4 bg-zinc-50 border border-zinc-200 rounded-lg p-3 mb-3 shadow-inner">
                                 <div>
-                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Stock Sistema</p>
-                                    <p className="text-sm font-black text-black">{itemData?.system_qty || 0}</p>
+                                    <label className="form-label font-normal text-black text-[10px] uppercase">Stock Sistema</label>
+                                    <div className="text-xl font-bold text-black">{itemData?.system_qty || 0}</div>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Auditoría Física</p>
-                                    <p className="text-sm font-black text-black">{physicalQty || 0}</p>
+                                    <label className="form-label font-normal text-black text-[10px] uppercase">Auditoría Física</label>
+                                    <div className="text-xl font-bold text-black">{physicalQty || 0}</div>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] font-medium  text-black uppercase mb-1">Diferencia</p>
-                                    <p className={`text-sm font-black ${difference > 0 ? 'text-blue-600' : difference < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                    <label className="form-label font-normal text-black text-[10px] uppercase">Diferencia</label>
+                                    <div className={`text-xl font-bold ${difference > 0 ? 'text-blue-700' : difference < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                                         {difference > 0 ? `+${difference}` : difference}
-                                    </p>
+                                    </div>
                                 </div>
                             </div>
-
+                            
                             {itemData && binLocation && (
-                                <div className={`mt-3 p-3 rounded border flex items-center gap-4 ${binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() 
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
-                                    : 'bg-red-50 border-red-200 text-red-900'}`}>
+                                <div className={`p-3 rounded border flex items-center gap-3 shadow-sm ${binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() 
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-950' 
+                                    : 'bg-red-50 border-red-200 text-red-950'}`}>
                                     <div className="shrink-0">
                                         {binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() ? (
-                                            <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                            <svg className="w-5 h-5 text-emerald-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                                         ) : (
-                                            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                            <svg className="w-5 h-5 text-red-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                                         )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                                        <span className="text-[10px] font-semibold uppercase tracking-widest leading-none">
                                             {binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() 
                                                 ? 'Ubicación Correcta' 
                                                 : 'Discrepancia de Ubicación'}
                                         </span>
                                         {binLocation.toUpperCase() !== itemData.system_bin?.toUpperCase() && (
-                                            <span className="text-[9px] font-medium  opacity-75 uppercase mt-1">SISTEMA INDICA: {itemData.system_bin || 'NO DEFINIDA'}</span>
+                                            <span className="text-[9px] font-medium opacity-80 uppercase mt-1">SISTEMA INDICA: {itemData.system_bin || 'NO DEFINIDA'}</span>
                                         )}
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    <div className="bg-white border border-zinc-400 shadow-lg overflow-hidden">
-                        <div className="bg-zinc-100 px-6 py-4 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-normal text-black uppercase tracking-[0.25em]">Historial de Auditorías Recientes</h2>
+                    
+                    {/* Tarjeta del Historial */}
+                    <div className="bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden mt-4">
+                        <div className="bg-zinc-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                            <h2 className="text-[11px] font-semibold text-black uppercase tracking-wider">Historial de Auditorías Recientes</h2>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-black text-white text-[10px] uppercase tracking-widest font-normal">
+                        <div className="overflow-x-auto max-h-[40vh]">
+                            <table className="w-full text-xs border-collapse">
+                                <thead className="bg-[#111827] text-white">
                                     <tr>
-                                        <th className="px-6 py-4 border-r border-zinc-800">Fecha / Hora</th>
-                                        <th className="px-6 py-4 border-r border-zinc-800">Usuario</th>
-                                        <th className="px-6 py-4 text-center border-r border-zinc-800">Bin</th>
-                                        <th className="px-6 py-4 border-r border-zinc-800">Ítem / SKU</th>
-                                        <th className="px-6 py-4 text-center border-r border-zinc-800">Físico</th>
-                                        <th className="px-6 py-4 text-center">Delta</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider border-r border-zinc-800">Fecha / Hora</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider border-r border-zinc-800">Usuario</th>
+                                        <th className="px-4 py-2 text-center text-[11px] font-medium uppercase tracking-wider border-r border-zinc-800">Bin</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider border-r border-zinc-800">Ítem / SKU</th>
+                                        <th className="px-4 py-2 text-center text-[11px] font-medium uppercase tracking-wider border-r border-zinc-800">Físico</th>
+                                        <th className="px-4 py-2 text-center text-[11px] font-medium uppercase tracking-wider">Delta</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y-2 divide-zinc-100 text-[11px]">
+                                <tbody className="divide-y divide-gray-200 bg-white">
                                     {recentAudits.length === 0 ? (
-                                        <tr><td colSpan="6" className="px-6 py-16 text-center text-black font-medium  uppercase tracking-widest">No se han registrado auditorías en esta sesión</td></tr>
+                                        <tr>
+                                            <td colSpan="6" className="px-4 py-16 text-center text-black/60 uppercase tracking-widest text-[11px]">
+                                                No se han registrado auditorías en esta sesión
+                                            </td>
+                                        </tr>
                                     ) : (
-                                        recentAudits.map((audit) => (
-                                            <tr key={audit.id} className="hover:bg-zinc-50 transition-colors border-b border-zinc-100">
-                                                <td className="px-6 py-4 text-black font-mono font-medium ">{formatDate(audit.executed_date)}</td>
-                                                <td className="px-6 py-4 text-zinc-600 font-medium  uppercase tracking-tighter">{audit.username || '—'}</td>
-                                                <td className="px-6 py-4 font-black text-black text-center bg-zinc-50/50">{audit.bin_location}</td>
-                                                <td className="px-6 py-4 font-black text-[#285f94]">{audit.item_code}</td>
-                                                <td className="px-6 py-4 text-center font-black text-black">{audit.physical_qty}</td>
-                                                <td className={`px-6 py-4 text-center font-black ${audit.difference > 0 ? 'text-blue-700' : audit.difference < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                                        recentAudits.map((audit, idx) => (
+                                            <tr key={audit.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 transition-colors border-b border-gray-100`}>
+                                                <td className="px-4 py-2.5 text-black font-mono">{formatDate(audit.executed_date)}</td>
+                                                <td className="px-4 py-2.5 text-black font-medium uppercase">{audit.username || '—'}</td>
+                                                <td className="px-4 py-2.5 font-semibold text-black text-center bg-zinc-50/20">{audit.bin_location}</td>
+                                                <td className="px-4 py-2.5 font-semibold text-[#1e4a74]">{audit.item_code}</td>
+                                                <td className="px-4 py-2.5 text-center font-semibold text-black">{audit.physical_qty}</td>
+                                                <td className={`px-4 py-2.5 text-center font-semibold ${audit.difference > 0 ? 'text-blue-700' : audit.difference < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                                                     {audit.difference > 0 ? `+${audit.difference}` : audit.difference}
                                                 </td>
                                             </tr>
@@ -321,38 +333,39 @@ const ExpressAudit = () => {
                         </div>
                     </div>
                 </div>
-
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white border border-zinc-300 p-6 shadow-md">
-                        <h3 className="text-[11px] font-normal text-black uppercase tracking-[0.2em] mb-6 border-b-2 border-zinc-100 pb-2">Protocolo de Operación</h3>
-                        <div className="space-y-6">
-                            <div className="flex gap-4">
-                                <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">01</span>
-                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Validar ubicación física mediante escaneo de código de bin.</p>
+                
+                {/* Columna Lateral: Protocolo y Clasificación */}
+                <div className="lg:col-span-1 space-y-4">
+                    <div className="bg-white border border-gray-200 rounded shadow-sm p-4">
+                        <h3 className="text-[11px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5">Protocolo de Operación</h3>
+                        <div className="space-y-4">
+                            <div className="flex gap-3">
+                                <span className="text-[11px] font-semibold text-white bg-zinc-900 w-6 h-6 flex items-center justify-center rounded shrink-0 shadow-sm">01</span>
+                                <p className="text-[10px] text-black font-medium leading-relaxed uppercase tracking-tight">Validar ubicación física mediante escaneo de código de bin.</p>
                             </div>
-                            <div className="flex gap-4">
-                                <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">02</span>
-                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Identificar SKU y confirmar descripción técnica en pantalla.</p>
+                            <div className="flex gap-3">
+                                <span className="text-[11px] font-semibold text-white bg-zinc-900 w-6 h-6 flex items-center justify-center rounded shrink-0 shadow-sm">02</span>
+                                <p className="text-[10px] text-black font-medium leading-relaxed uppercase tracking-tight">Identificar SKU y confirmar descripción técnica en pantalla.</p>
                             </div>
-                            <div className="flex gap-4">
-                                <span className="text-[11px] font-black text-white bg-black w-7 h-7 flex items-center justify-center rounded shrink-0 shadow-sm">03</span>
-                                <p className="text-[10px] text-black font-medium  leading-relaxed uppercase tracking-tight">Realizar conteo ciego e ingresar unidades totales observadas.</p>
+                            <div className="flex gap-3">
+                                <span className="text-[11px] font-semibold text-white bg-zinc-900 w-6 h-6 flex items-center justify-center rounded shrink-0 shadow-sm">03</span>
+                                <p className="text-[10px] text-black font-medium leading-relaxed uppercase tracking-tight">Realizar conteo ciego e ingresar unidades totales observadas.</p>
                             </div>
                         </div>
                     </div>
-
-                    <div className="bg-white border border-zinc-300 p-6 shadow-md">
-                        <h3 className="text-[11px] font-normal text-black uppercase tracking-[0.2em] mb-6 border-b-2 border-zinc-100 pb-2">Especificaciones Técnicas</h3>
-                        <div className="space-y-5">
+                    
+                    <div className="bg-white border border-gray-200 rounded shadow-sm p-4">
+                        <h3 className="text-[11px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5">Especificaciones Técnicas</h3>
+                        <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black text-black uppercase tracking-wider">Clasificación ABC</span>
-                                <span className="text-[11px] font-black text-black border border-black px-2 py-0.5 rounded-sm bg-zinc-50">{itemData?.abc_code || '—'}</span>
+                                <span className="text-[10px] font-semibold text-black uppercase tracking-wider">Clasificación ABC</span>
+                                <span className="text-[11px] font-bold text-black border border-zinc-300 px-2 py-0.5 rounded bg-zinc-50">{itemData?.abc_code || '—'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
+            
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
         </div>
     );

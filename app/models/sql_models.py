@@ -331,3 +331,85 @@ class SpotCheck(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
     username: Mapped[str] = mapped_column(String(100))
+
+class InboundAlert(Base):
+    """Alertas del Agente de Auditoría de Inbound."""
+    __tablename__ = "inbound_alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    alert_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now().isoformat())
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    import_reference: Mapped[str] = mapped_column(String(100), index=True)
+    waybill: Mapped[Optional[str]] = mapped_column(String(100))
+    grn: Mapped[str] = mapped_column(String(100), index=True)
+    qty_expected: Mapped[int] = mapped_column(Integer)
+    qty_received: Mapped[int] = mapped_column(Integer)
+    difference: Mapped[int] = mapped_column(Integer)
+    cost_per_unit: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    financial_impact: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
+    alert_type: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(50), default="pending", index=True)
+    draft_claim_email: Mapped[Optional[str]] = mapped_column(Text)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    resolved_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    resolution_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.alert_id,
+            "created_at": self.created_at,
+            "item_code": self.item_code,
+            "description": self.description or "",
+            "import_reference": self.import_reference,
+            "waybill": self.waybill or "",
+            "grn": self.grn,
+            "qty_expected": self.qty_expected,
+            "qty_received": self.qty_received,
+            "difference": self.difference,
+            "cost_per_unit": float(self.cost_per_unit) if self.cost_per_unit is not None else 0.0,
+            "financial_impact": float(self.financial_impact) if self.financial_impact is not None else 0.0,
+            "alert_type": self.alert_type,
+            "status": self.status,
+            "draft_claim_email": self.draft_claim_email or "",
+            "notes": self.notes or "",
+            "resolved_at": self.resolved_at,
+            "resolution_notes": self.resolution_notes
+        }
+
+class IRReconciliation(Base):
+    """Historial de conciliación y avance de Import References."""
+    __tablename__ = "ir_reconciliations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
+    import_reference: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    total_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    completed_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    started_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    expected_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    received_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    ok_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    negative_diff_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    positive_diff_lines: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_grns: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed_grns: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    username: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "import_reference": self.import_reference,
+            "total_lines": self.total_lines,
+            "completed_lines": self.completed_lines,
+            "started_lines": self.started_lines,
+            "expected_units": self.expected_units,
+            "received_units": self.received_units,
+            "ok_lines": self.ok_lines,
+            "negative_diff_lines": self.negative_diff_lines,
+            "positive_diff_lines": self.positive_diff_lines,
+            "total_grns": self.total_grns,
+            "completed_grns": self.completed_grns,
+            "username": self.username
+        }
