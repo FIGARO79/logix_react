@@ -194,29 +194,34 @@ async def run_po_robot_api(
         po_robot_status["status"] = "running"
         po_robot_status["message"] = f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
         
-        from app.services.po_robot import run_po_robot
-        from app.core.config import PO_EXTRACTOR_EXCEL_PATH
-        
-        # 1. Ejecutar descarga de forma asíncrona nativa
-        success, msg = await run_po_robot(payload.start_date, payload.end_date)
-        if not success:
-            po_robot_status["status"] = "error"
-            po_robot_status["message"] = f"Error en Robot: {msg}"
-            print(f"❌ {po_robot_status['message']}")
-            return
+        try:
+            from app.services.po_robot import run_po_robot
+            from app.core.config import PO_EXTRACTOR_EXCEL_PATH
+            
+            # 1. Ejecutar descarga de forma asíncrona nativa
+            success, msg = await run_po_robot(payload.start_date, payload.end_date)
+            if not success:
+                po_robot_status["status"] = "error"
+                po_robot_status["message"] = f"Error en Robot: {msg}"
+                print(f"❌ {po_robot_status['message']}")
+                return
 
-        # 2. Procesar el archivo
-        success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
-        if success_proc:
-            po_robot_status["status"] = "success"
-            po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
-            print(f"✅ Robot: {po_robot_status['message']}")
-            # Recargar el caché de memoria general
-            await load_csv_data()
-        else:
+            # 2. Procesar el archivo
+            success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
+            if success_proc:
+                po_robot_status["status"] = "success"
+                po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
+                print(f"✅ Robot: {po_robot_status['message']}")
+                # Recargar el caché de memoria general
+                await load_csv_data()
+            else:
+                po_robot_status["status"] = "error"
+                po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
+                print(f"❌ Robot: {po_robot_status['message']}")
+        except Exception as e:
             po_robot_status["status"] = "error"
-            po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
-            print(f"❌ Robot: {po_robot_status['message']}")
+            po_robot_status["message"] = f"Error crítico inesperado: {str(e)}"
+            print(f"❌ Error crítico en execute_robot_task: {str(e)}")
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)

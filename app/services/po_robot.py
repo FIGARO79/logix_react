@@ -39,23 +39,25 @@ async def run_po_robot(start_date: str, end_date: str):
     temp_files = []
     
     async with async_playwright() as p:
-        print(f"🔧 [ROBOT] Navegador Chromium...", flush=True)
-        browser = await p.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--disable-setuid-sandbox",
-                "--no-sandbox",
-                "--no-zygote"
-            ]
-        )
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-        page = await context.new_page()
-
+        browser = None
+        page = None
         try:
+            print(f"🔧 [ROBOT] Navegador Chromium...", flush=True)
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--disable-setuid-sandbox",
+                    "--no-sandbox",
+                    "--no-zygote"
+                ]
+            )
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = await context.new_page()
+
             print(f"🚀 [ROBOT] Accediendo a {REPORT_URL}...", flush=True)
             try:
                 await page.goto(REPORT_URL, wait_until="load", timeout=120000)
@@ -154,17 +156,27 @@ async def run_po_robot(start_date: str, end_date: str):
                 df_consolidated.write_excel(PO_EXTRACTOR_EXCEL_PATH)
                 msg_success = f"Actualización completa. Consolidados {len(dfs)} bloques con un total de {len(df_consolidated)} registros."
                 print(f"✅ [ROBOT] {msg_success}", flush=True)
-                await browser.close()
+                if browser is not None:
+                    await browser.close()
                 return True, msg_success
             else:
                 print("⚠️ [ROBOT] No se extrajeron registros en ningún bloque del periodo.", flush=True)
-                await browser.close()
+                if browser is not None:
+                    await browser.close()
                 return False, "No se obtuvieron registros de PO en el periodo especificado."
 
         except Exception as e:
-            error_snap = os.path.join(debug_dir, "error_robot.png")
-            await page.screenshot(path=error_snap)
-            await browser.close()
+            if page is not None:
+                try:
+                    error_snap = os.path.join(debug_dir, "error_robot.png")
+                    await page.screenshot(path=error_snap)
+                except Exception:
+                    pass
+            if browser is not None:
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
             print(f"❌ [ROBOT] Error general en el proceso: {str(e)}", flush=True)
             return False, f"Error: {str(e)}"
             
