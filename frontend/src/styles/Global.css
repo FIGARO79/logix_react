@@ -20,7 +20,7 @@
     --sap-text: #000000;
     --sap-text-light: #000000;
     --sap-border: #d9d9d9;
-    --sap-input-border: #89919a;
+    --sap-input-border: #707880;
 
     /* Semantic Colors */
     --sap-success: #107e3e;
@@ -30,7 +30,7 @@
     --sap-negative: #bb0000;
     --sap-positive: #107e3e;
     --sap-informative: #285f94;
-    --sap-neutral: #6a6d70;
+    --sap-neutral: #595c5f;
 
     /* Shell / Header */
     --sap-shell-bg: #354a5f;
@@ -351,7 +351,7 @@ table tbody tr:hover {
 .message-strip.success {
     border-left-color: var(--sap-success);
     background-color: #f1fdf6;
-    color: #107e3e;
+    color: #0d6b34;
 }
 
 .alert-error,
@@ -365,14 +365,14 @@ table tbody tr:hover {
 .message-strip.information {
     border-left-color: var(--sap-informative);
     background-color: #f0f7fe;
-    color: #0a6ed1;
+    color: #085ca9;
 }
 
 .alert-warning,
 .message-strip.warning {
     border-left-color: var(--sap-warning);
     background-color: #fef9f0;
-    color: #e9730c;
+    color: #aa5300;
 }
 
 /* ===== Utilities ===== */
