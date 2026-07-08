@@ -258,7 +258,7 @@ const Reconciliation = () => {
     }, [sortedData, filterText]);
 
     const allSelected = filteredData.length > 0 && filteredData.every(row => selectedRowIds.includes(row.id));
-    
+
     const handleToggleSelectAll = () => {
         if (allSelected) {
             setSelectedRowIds(prev => prev.filter(id => !filteredData.some(r => r.id === id)));
@@ -294,16 +294,16 @@ const Reconciliation = () => {
             <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                     <div className="space-y-0.5">
-                        <h1 className="text-lg tracking-tight text-zinc-900 font-medium ">Conciliación de Inventario</h1>
+                        <h1 className="text-[14px] tracking-tight text-black font-normal ">Conciliación de Inventario</h1>
                         <div className="flex items-center gap-2">
-                            <p className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-medium">Auditoría de Diferencias</p>
-                            <span className="text-zinc-200"></span>
+                            <p className="text-[12px] tracking-tight text-black font-normal">Auditoría de Diferencias</p>
+                            <span className="text-black"></span>
                             {isOfflineData ? (
-                                <span className="text-[8px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
                                     Offline
                                 </span>
                             ) : (
-                                <span className="text-[8px] text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
 
                                 </span>
                             )}
@@ -450,7 +450,7 @@ const Reconciliation = () => {
                 {showHistoryFilters && (
                     <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100 mt-2">
                         <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-semibold pl-1">Búsqueda en Histórico (BD):</span>
-                        
+
                         <input
                             type="text"
                             placeholder="GRN..."
@@ -458,7 +458,7 @@ const Reconciliation = () => {
                             onChange={(e) => setFilterGRN(e.target.value)}
                             className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
                         />
-                        
+
                         <input
                             type="text"
                             placeholder="WAYBILL..."
@@ -466,7 +466,7 @@ const Reconciliation = () => {
                             onChange={(e) => setFilterWaybill(e.target.value)}
                             className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
                         />
-                        
+
                         <input
                             type="text"
                             placeholder="I.R...."
