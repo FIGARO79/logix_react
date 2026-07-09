@@ -1,13 +1,13 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
-            // Migración Versión 8: limpiar grn_pending para asegurar esquema estable
-            if (oldVersion > 0 && oldVersion < 8) {
+            // Migración Versión 9: limpiar grn_pending para asegurar esquema estable
+            if (oldVersion > 0 && oldVersion < 9) {
                 if (db.objectStoreNames.contains('grn_pending')) {
                     db.deleteObjectStore('grn_pending');
                 }
@@ -41,7 +41,7 @@ export const initDB = async () => {
 
             // Tabla para GRN Pending
             if (!db.objectStoreNames.contains('grn_pending')) {
-                db.createObjectStore('grn_pending', { keyPath: 'id' });
+                db.createObjectStore('grn_pending', { keyPath: 'Item_Code' });
             }
 
             // Tabla para Xdock
