@@ -175,6 +175,31 @@ const Reconciliation = () => {
         }
     };
 
+    const handleDeleteRowsBulk = async () => {
+        if (selectedRowIds.length === 0) return alert("No hay registros seleccionados");
+        if (!confirm(`¿Deseas eliminar permanentemente los ${selectedRowIds.length} registros seleccionados de los snapshots? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/views/reconciliation/delete_rows_bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_ids: selectedRowIds })
+            });
+            if (res.ok) {
+                alert("Registros eliminados con éxito.");
+                setSelectedRowIds([]);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(`Error al eliminar: ${err.detail || 'Error desconocido'}`);
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    };
+
 
 
 
@@ -398,12 +423,20 @@ const Reconciliation = () => {
 
                     <div className="flex items-center gap-1.5 ml-auto">
                         {isHistoricalMode && selectedRowIds.length > 0 && (
-                            <button
-                                onClick={handleRestoreRowsBulk}
-                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
-                            >
-                                Desarchivar ({selectedRowIds.length})
-                            </button>
+                            <>
+                                <button
+                                    onClick={handleRestoreRowsBulk}
+                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
+                                >
+                                    Desarchivar ({selectedRowIds.length})
+                                </button>
+                                <button
+                                    onClick={handleDeleteRowsBulk}
+                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-red-600 hover:bg-red-700 transition-colors"
+                                >
+                                    Eliminar ({selectedRowIds.length})
+                                </button>
+                            </>
                         )}
 
                         {currentVersion && (

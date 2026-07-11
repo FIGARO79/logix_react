@@ -323,6 +323,44 @@ async def restore_historical_reconciliation_rows_bulk(
         raise HTTPException(status_code=500, detail="Error interno al restaurar los registros")
 
 
+class DeleteRowsBulkRequest(BaseModel):
+    row_ids: List[int]
+
+@router.post("/reconciliation/delete_rows_bulk")
+async def delete_historical_reconciliation_rows_bulk(
+    payload: DeleteRowsBulkRequest,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required)
+):
+    """
+    Elimina físicamente múltiples filas de historial (Snapshots) de la base de datos.
+    """
+    if not payload.row_ids:
+        raise HTTPException(status_code=400, detail="Debe especificar al menos un row_id")
+        
+    try:
+        # 1. Buscar las filas en la tabla de historial para verificar su existencia
+        stmt = select(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+        res = await db.execute(stmt)
+        history_rows = res.scalars().all()
+        
+        if not history_rows:
+            raise HTTPException(status_code=404, detail="No se encontraron las filas históricas especificadas")
+            
+        # 2. Proceder a la eliminación
+        from sqlalchemy import delete
+        delete_stmt = delete(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+        await db.execute(delete_stmt)
+        await db.commit()
+        
+        return {"message": f"Se eliminaron {len(history_rows)} registros correctamente de los snapshots"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print(f"Error eliminando filas históricas en lote: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al eliminar los registros")
+
 
 class ReconciliationArchiveRequest(BaseModel):
     data: List[dict]
