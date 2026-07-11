@@ -1,7 +1,6 @@
 """
 Punto de entrada principal de la aplicación Logix - Refactorizado para Arquitectura Headless (JSON API).
 """
-import os
 import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI

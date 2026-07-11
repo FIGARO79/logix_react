@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,7 +8,7 @@ import { getDB, savePendingSync } from '../utils/offlineDb';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
-    const { isOnline, pendingCount, syncPendingData } = useOffline();
+    const { isOnline } = useOffline();
 
     useEffect(() => { setTitle("Inventario W2W"); }, [setTitle]);
 

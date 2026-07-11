@@ -17,7 +17,6 @@ const AdminInventory = () => {
     // --- Manage Counts State ---
     const [counts, setCounts] = useState([]);
     const [filteredCounts, setFilteredCounts] = useState([]);
-    const [countsLoading, setCountsLoading] = useState(false);
     const [countStats, setCountStats] = useState(null);
     const [usernames, setUsernames] = useState([]);
     const [selectedUser, setSelectedUser] = useState('');
@@ -64,7 +63,7 @@ const AdminInventory = () => {
     };
 
     const fetchCounts = useCallback(async () => {
-        setCountsLoading(true);
+
         try {
             const [resAll, resStats] = await Promise.all([
                 fetch('/api/counts/all'),
@@ -80,7 +79,7 @@ const AdminInventory = () => {
         } catch (err) {
             setError(err.message);
         } finally {
-            setCountsLoading(false);
+
         }
     }, []);
 

@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const SlottingConfig = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const [activeTab, setActiveTab] = useState('storage');
     const [config, setConfig] = useState({

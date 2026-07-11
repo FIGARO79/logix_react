@@ -54,7 +54,7 @@ async def lookup_reference(
         cols = ["Waybill", "Import Ref Code"]
         try:
             df = pl.read_excel(file_path, columns=cols).cast(pl.Utf8)
-        except Exception as read_e:
+        except Exception:
             df = pl.read_excel(file_path).select(cols).cast(pl.Utf8)
             
         df = df.fill_null("")

@@ -7,7 +7,6 @@ const ManageCounts = () => {
     const { setTitle } = useOutletContext();
     const [counts, setCounts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     // Reopen Location Form State
     const [reopenSessionId, setReopenSessionId] = useState('');
@@ -24,7 +23,7 @@ const ManageCounts = () => {
             const data = await res.json();
             setCounts(data);
         } catch (err) {
-            setError(err.message);
+            console.error("Error cargando auditoría:", err);
         } finally {
             setLoading(false);
         }

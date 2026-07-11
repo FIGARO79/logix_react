@@ -47,7 +47,6 @@ const PackingListPrint = () => {
 
     const { packages } = data;
     const sortedPackageKeys = packages ? Object.keys(packages).sort((a, b) => parseInt(a) - parseInt(b)) : [];
-    const isMultiPage = data.total_packages > 2;
 
     // Componente para el encabezado y la información del pedido (Reusable)
     const HeaderAndInfo = ({ currentPage, totalPages }) => (
@@ -87,41 +86,6 @@ const PackingListPrint = () => {
         </>
     );
 
-    // Componente para la tabla de un bulto (Reusable)
-    const PackageTable = ({ keyName, packageData }) => (
-        <div className="border border-black rounded-lg overflow-hidden print:border-black print:rounded-none">
-            <div className="bg-white text-black px-4 py-3 border-b border-black flex justify-between items-center print:py-2">
-                <h3 className="text-xl uppercase">Bulto #{keyName}</h3>
-                <span className="text-sm font-mono border border-black px-2 py-1 rounded">BOX-{keyName.padStart(3, '0')}</span>
-            </div>
-            <table className="min-w-full text-base">
-                <thead className="bg-white text-black border-b border-black">
-                    <tr>
-                        <th className="px-4 py-1 text-left w-12 uppercase text-[10px] print:py-1">Línea</th>
-                        <th className="px-4 py-1 text-left w-1/4 uppercase text-[10px] print:py-1">Código</th>
-                        <th className="px-4 py-1 text-left w-1/2 uppercase text-[10px] print:py-1">Descripción</th>
-                        <th className="px-4 py-1 text-right w-1/4 uppercase text-[10px] print:py-1">Cantidad</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 print:divide-black">
-                    {packageData && packageData.length > 0 ? (
-                        packageData.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
-                                <td className="px-4 py-1 font-mono text-black text-[10px] print:py-1 font-bold">{item.order_line}</td>
-                                <td className="px-4 py-1 font-mono text-black text-[11px] print:py-1">{item.item_code}</td>
-                                <td className="px-4 py-1 text-black text-[11px] print:py-1">{item.description}</td>
-                                <td className="px-4 py-1 text-right text-sm print:py-1">{item.quantity}</td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="3" className="px-4 py-8 text-center text-gray-500 italic">Bulto sin ítems registrados</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
-    );
 
     return (
         <div className="bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">

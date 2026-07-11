@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
 import DimensionScanner from '../components/DimensionScanner';
@@ -34,7 +34,7 @@ const playError = () => createBeep(200, 0.2);
 
 const PickingAudit = () => {
     const { setTitle } = useOutletContext();
-    const { isOnline, pendingCount, syncPendingData } = useOffline();
+    const { isOnline } = useOffline();
 
     // -- State --
     // Load Section
@@ -58,7 +58,6 @@ const PickingAudit = () => {
     const [showQtyModal, setShowQtyModal] = useState(false);
     const [scannedItem, setScannedItem] = useState(null);
     const [tempQty, setTempQty] = useState(1);
-    const qtyInputRef = useRef(null);
 
     // Modals & Finalize
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -221,7 +220,7 @@ const PickingAudit = () => {
         if (!scannedItem) return;
 
         let qtyToAdd = parseInt(tempQty) || 0;
-        const totalAdding = qtyToAdd;
+
         if (qtyToAdd <= 0) {
             setShowQtyModal(false);
             return;

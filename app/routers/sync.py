@@ -54,9 +54,6 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
     grn_data = {}
     if csv_handler.df_grn_cache is not None:
         import polars as pl
-        from sqlalchemy import select
-        from app.models.sql_models import GRNMaster
-        from app.core.config import GRN_JSON_DATA_PATH
         
         summary = (
             csv_handler.df_grn_cache

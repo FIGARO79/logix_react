@@ -42,7 +42,7 @@ async def run_po_robot(start_date: str, end_date: str):
         browser = None
         page = None
         try:
-            print(f"🔧 [ROBOT] Navegador Chromium...", flush=True)
+            print("🔧 [ROBOT] Navegador Chromium...", flush=True)
             browser = await p.chromium.launch(
                 headless=True,
                 args=[

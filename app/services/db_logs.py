@@ -232,7 +232,7 @@ async def archive_current_logs_db_async(db: AsyncSession) -> bool:
     try:
         current_time_iso = datetime.datetime.now().isoformat(timespec='seconds')
         stmt = update(Log).where(Log.archived_at.is_(None)).values(archived_at=current_time_iso)
-        result = await db.execute(stmt)
+        await db.execute(stmt)
         await db.commit()
         return True # Always return true, even if 0 rows updated
     except Exception as e:

@@ -12,7 +12,6 @@ if PROJECT_ROOT not in sys.path:
 
 # Importaciones de la aplicación (requiere entorno virtual activo)
 from app.core.db import engine, Base
-import app.models.sql_models
 
 # --- CONFIGURACIÓN DE RUTAS ---
 BACKUP_FILE = os.path.join(PROJECT_ROOT, 'databases', 'backup_logix_db_20260707_020006.sql.gz')
@@ -39,7 +38,7 @@ async def create_all_tables():
         await conn.run_sync(Base.metadata.create_all)
 
 def extract_columns_from_dump(backup_file):
-    print(f"Analizando esquema original del dump para mapear columnas...")
+    print("Analizando esquema original del dump para mapear columnas...")
     table_columns = {}
     current_table = None
     in_create_table = False

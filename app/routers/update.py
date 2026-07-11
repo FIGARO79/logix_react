@@ -42,7 +42,6 @@ async def process_po_extractor_logic(file_path: str):
     Procesa el archivo Excel de Purchase Order Extractor y genera el caché JSON.
     Esta función es compartida por la subida manual y el robot automático.
     """
-    from app.core.config import PO_LOOKUP_JSON_PATH
     import datetime
     import orjson
     import numpy as np

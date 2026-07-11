@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Outlet, Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
+import { Link, useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';
@@ -122,12 +122,7 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
 
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
 
-    // Retorno anticipado DESPUÉS de que todos los hooks han sido declarados
-    if (!resolved) {
-        return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
-    }
-
-    const { Component } = resolved;
+    const Component = resolved ? resolved.Component : null;
 
     const childElement = useMemo(() => {
         if (!initialized) {
@@ -137,8 +132,14 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
                 </div>
             );
         }
+        if (!Component) return null;
         return <Component setTitle={tabSetTitle} />;
     }, [initialized, Component, tabSetTitle]);
+
+    // Retorno anticipado DESPUÉS de que todos los hooks han sido declarados
+    if (!resolved) {
+        return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
+    }
 
     return (
         <div

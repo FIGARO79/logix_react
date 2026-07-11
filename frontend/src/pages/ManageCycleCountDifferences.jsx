@@ -5,7 +5,6 @@ const ManageCycleCountDifferences = () => {
     const { setTitle } = useOutletContext();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     // Filtros
     const [year, setYear] = useState(new Date().getFullYear());
@@ -35,7 +34,7 @@ const ManageCycleCountDifferences = () => {
             const result = await res.json();
             setData(result);
         } catch (err) {
-            setError(err.message);
+            console.error("Error al cargar diferencias:", err);
         } finally {
             setLoading(false);
         }

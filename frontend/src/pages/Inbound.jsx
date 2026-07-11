@@ -5,7 +5,7 @@ import ScannerModal from '../components/ScannerModal';
 import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 
-import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
+import { checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
@@ -175,7 +175,7 @@ const Inbound = () => {
 
         // Check inicial
         runAutoSync();
-        syncPendingInbound().then(() => loadLogs());
+        syncPendingData().then(() => loadLogs());
 
         // Intervalo de revisión cada 10 minutos
         const syncInterval = setInterval(() => {

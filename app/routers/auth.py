@@ -109,7 +109,7 @@ async def admin_generate_reset_token_api(request: Request, user_id: int, admin: 
     token = await generate_password_reset_token(db, user_id)
     
     return JSONResponse(content={
-        "message": f"Token generado correctamente.",
+        "message": "Token generado correctamente.",
         "reset_token": token,
         "reset_user": user['username'],
         "reset_link": f"/set_password?token={token}" # Frontend URL suggestion

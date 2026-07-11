@@ -230,7 +230,6 @@ async def generate_inventory_report(request: Request, user: str = Depends(permis
     """Genera un reporte Excel del inventario (100% Polars + openpyxl)."""
     import polars as pl
     import openpyxl
-    from openpyxl.utils import get_column_letter
 
     try:
         result = await db.execute(text("""
@@ -333,7 +332,6 @@ async def export_recount_list(request: Request, stage_number: int, user: str = D
     
     import polars as pl
     import openpyxl
-    from openpyxl.utils import get_column_letter
 
     enriched_data = []
     for row in items_to_recount:

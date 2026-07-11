@@ -11,7 +11,3 @@ export const useTabContext = () => {
     return useContext(TabContext);
 };
 
-// Hook de compatibilidad
-export const useSmartOutletContext = () => {
-    return useContext(TabContext);
-};

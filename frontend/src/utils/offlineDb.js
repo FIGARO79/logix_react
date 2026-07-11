@@ -3,7 +3,7 @@ import { openDB } from 'idb';
 const DB_NAME = 'LogixOfflineDB';
 const DB_VERSION = 9;
 
-export const initDB = async () => {
+const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
             // Migración Versión 9: limpiar grn_pending para asegurar esquema estable

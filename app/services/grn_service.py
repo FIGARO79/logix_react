@@ -102,7 +102,7 @@ async def seed_grn_from_excel(db: AsyncSession):
         # Sincronizar el JSON para que UI y Script vean lo mismo
         await export_grn_to_json(db)
         
-        print(f"✅ [POLARS] Proceso GRN finalizado con éxito.", flush=True)
+        print("✅ [POLARS] Proceso GRN finalizado con éxito.", flush=True)
         return {"message": "Sincronización GRN exitosa", "total": total_items}
 
     except Exception as e:
