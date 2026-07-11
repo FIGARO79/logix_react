@@ -189,11 +189,7 @@ const InboundAudit = () => {
             </div>
 
             {/* Header / Control Bar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200 gap-4">
-                <div className="flex flex-col">
-                    <h1 className="text-lg font-medium text-slate-800">Inbound Auditor Agent</h1>
-                    <p className="text-xs text-gray-500 mt-0.5">Agente algorítmico local de control de discrepancias y faltantes en recepción.</p>
-                </div>
+            <div className="flex flex-col sm:flex-row justify-end items-center mb-3 bg-white p-2 rounded-lg shadow-sm border border-gray-200 gap-4">
                 <div className="flex gap-2 items-center w-full sm:w-auto">
                     <div className="relative flex-grow sm:w-64">
                         <input

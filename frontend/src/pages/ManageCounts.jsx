@@ -63,14 +63,10 @@ const ManageCounts = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-6 font-sans text-sm text-[#32363a]">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-sans text-sm text-[#32363a]">
 
             {/* Page Header */}
-            <div className="mb-6 flex justify-between items-end">
-                <div>
-                    <h1 className="text-xl font-normal text-[#32363a] mb-1">Registros Detallados de Campo</h1>
-                    <p className="text-xs text-[#6a6d70] uppercase tracking-widest font-medium ">Administración de capturas físicas individuales</p>
-                </div>
+            <div className="mb-2 flex justify-end items-center">
                 <button
                     onClick={() => navigate('/view_counts')}
                     className="inline-flex items-center px-6 py-2 border-2 border-[#1e4a74] text-[#285f94] bg-white text-xs font-medium  uppercase tracking-widest rounded shadow-sm hover:bg-blue-50 transition-all"

@@ -104,12 +104,8 @@ const AdminInventory = () => {
     return (
         <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
-            {/* Header Técnico */}
-            <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-black tracking-tight">Administración de Inventario</h1>
-                    <p className="text-[12px] font-normal leading-none mt-0.5 text-black">Gestión de Ciclos y Auditoría de Stock</p>
-                </div>
+            {/* Barra de Acciones */}
+            <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
                 <div className="flex gap-3">
                     <button
                         onClick={() => window.location.href = `/api/export_counts`}

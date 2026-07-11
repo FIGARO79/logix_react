@@ -60,14 +60,6 @@ const Dashboard = () => {
     return (
         <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] px-6 pt-4 pb-12 lg:px-12 lg:pt-6 lg:pb-12">
             <div className="max-w-7xl mx-auto">
-                {/* Header Profesional */}
-                <header className="mb-12 border-b border-slate-200 pb-8 flex justify-between items-end">
-                    <div>
-                        <h1 className="text-2xl font-light text-black tracking-tight">Panel de Control</h1>
-                        <p className="text-black text-xs font-normal uppercase tracking-widest mt-1">Logix WMS</p>
-                    </div>
-                </header>
-
                 {/* Grid de Categorías */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {menuCategories.map((category) => (

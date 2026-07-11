@@ -235,15 +235,7 @@ const Update = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
-            
-            {/* Header Profesional */}
-            <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-black tracking-tight">Actualización de Sistema</h1>
-                    <p className="text-[12px] tracking-tight font-normal text-black leading-none mt-0.5">Sincronización de Base de Datos y Ficheros Maestros</p>
-                </div>
-            </div>
+        <div className="max-w-[1400px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
             {messages.error && <div className="mb-6 bg-red-50 text-black px-4 py-3 border border-red-100 text-[12px] font-normal uppercase tracking-widest">{messages.error}</div>}
             {messages.info && <div className="mb-6 bg-blue-50 text-black px-4 py-3 border border-blue-100 text-[12px] font-normal uppercase tracking-widest animate-pulse">{messages.info}</div>}

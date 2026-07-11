@@ -234,17 +234,6 @@ const PickingAuditHistory = () => {
         <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
-            {/* Header Profesional */}
-            <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal tracking-tight">Pickings Empacados</h1>
-                    <p className="text-[12px] font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
-                </div>
-                <div className="text-[12px] font-medium  text-black">
-                    {audits.length} Registros Encontrados
-                </div>
-            </div>
-
             {loading && (
                 <div className="flex justify-center items-center py-20">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>

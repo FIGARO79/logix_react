@@ -152,10 +152,9 @@ const InboundHistory = () => {
     );
 
     return (
-        <div className="w-full px-4 py-6">
+        <div className="w-full px-4 py-3">
             {/* Header con Buscador y Selector de Versiones */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-2 rounded shadow-sm border border-gray-200">
-                <h1 className="text-[16px] font-medium  text-black mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
+            <div className="flex flex-col md:flex-row justify-end items-center mb-2 bg-white p-1.5 rounded shadow-sm border border-gray-200">
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input

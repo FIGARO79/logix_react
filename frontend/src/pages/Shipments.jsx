@@ -62,12 +62,8 @@ const Shipments = () => {
         <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={3000} />
 
-            {/* Header Profesional */}
-            <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-base font-normal text-black tracking-tight">Gestión de Envíos</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-black">Seguimiento de Despacho y Consolidación de Carga</p>
-                </div>
+            {/* Barra de Acciones */}
+            <div className="mb-1 border-b border-zinc-100 pb-1 flex justify-end items-center">
                 <div className="flex items-center gap-6">
                     <button
                         onClick={fetchShipments}

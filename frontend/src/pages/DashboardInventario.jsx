@@ -59,37 +59,33 @@ const DashboardInventario = () => {
         <div className="max-w-[1400px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-slate-800">
 
             {/* Header Section Compact */}
-            <div className="mb-6 border-b border-slate-200 pb-4 flex justify-between items-center">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-slate-900 tracking-tight leading-none">Métricas de exactitud de Inventario</h1>
-                    <p className="text-zinc-900 text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Información de Rendimiento Operativo</p>
+            <div className="mb-3 border-b border-slate-100 pb-1.5 flex justify-end items-center">
+                <div className="text-right">
+                    <span className="text-[9px] uppercase font-medium tracking-widest block text-zinc-500">Muestra de Auditoría</span>
+                    <span className="text-xl font-light text-slate-700">{stats.total_items} <span className="text-[10px] text-zinc-900 ml-0.5">Items</span></span>
                 </div>
-                    <div className="text-right">
-                        <span className="text-[9px] uppercase font-medium  tracking-widest block">Muestra de Auditoría</span>
-                        <span className="text-xl font-light text-slate-700">{stats.total_items} <span className="text-[10px] text-zinc-900 ml-0.5">Items</span></span>
-                    </div>
             </div>
 
             {/* ERI Section Compact */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white p-4 border border-slate-200 shadow-sm">
-                    <label className="text-[9px] uppercase text-zinc-900 font-medium  tracking-widest block mb-2">ERI Global</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div className="bg-white p-2.5 border border-slate-200 shadow-sm">
+                    <label className="text-[9px] uppercase text-zinc-900 font-medium  tracking-widest block mb-1">ERI Global</label>
                     <div className="flex items-baseline gap-0.5">
                         <span className="text-3xl font-light text-slate-900">{stats.eri.Global}</span>
                         <span className="text-sm text-zinc-900">%</span>
                     </div>
-                    <div className="mt-2 h-0.5 w-full bg-slate-100">
+                    <div className="mt-1 h-0.5 w-full bg-slate-100">
                         <div className="bg-slate-900 h-full" style={{ width: `${stats.eri.Global}%` }}></div>
                     </div>
                 </div>
                 {['A', 'B', 'C'].map(clase => (
-                    <div key={clase} className="bg-white p-4 border border-slate-200 shadow-sm">
-                        <label className="text-[9px] uppercase text-zinc-900 font-medium  tracking-widest block mb-2">Clase {clase} Exactitud</label>
+                    <div key={clase} className="bg-white p-2.5 border border-slate-200 shadow-sm">
+                        <label className="text-[9px] uppercase text-zinc-900 font-medium  tracking-widest block mb-1">Clase {clase} Exactitud</label>
                         <div className="flex items-baseline gap-0.5">
                             <span className="text-2xl font-light text-slate-800">{stats.eri[clase]}</span>
                             <span className="text-xs text-zinc-900">%</span>
                         </div>
-                        <div className="mt-2 h-0.5 w-full bg-slate-100">
+                        <div className="mt-1 h-0.5 w-full bg-slate-100">
                             <div className={`h-full ${clase === 'A' ? 'bg-slate-700' : clase === 'B' ? 'bg-slate-500' : 'bg-slate-300'}`}
                                 style={{ width: `${stats.eri[clase]}%` }}></div>
                         </div>
@@ -98,16 +94,16 @@ const DashboardInventario = () => {
             </div>
 
             {/* Financial Impact & Pareto Compact */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
                 {/* Adjustments Column Compact */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white p-6 border border-slate-200 shadow-sm h-full">
-                        <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                    <div className="bg-white p-4 border border-slate-200 shadow-sm h-full">
+                        <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-3 border-b border-slate-100 pb-1">
                             Impacto Financiero
                         </h3>
 
-                        <div className="space-y-6">
+                        <div className="space-y-3">
                             <div>
                                 <label className="text-[9px] uppercase font-medium  text-zinc-900 tracking-widest block mb-1">Conciliación Neta</label>
                                 <div className={`text-2xl font-light ${stats.adjustments.value.net >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
@@ -139,7 +135,7 @@ const DashboardInventario = () => {
 
                 {/* Top Discrepancies Table Compact */}
                 <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center">
+                    <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
                         <h3 className="text-[9px] font-normal text-black uppercase tracking-widest">
                             Top 10 Discrepancias de Valor
                         </h3>
@@ -148,22 +144,22 @@ const DashboardInventario = () => {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50/50">
                                 <tr>
-                                    <th className="px-6 py-2 text-[9px] font-medium text-white uppercase tracking-widest">Item</th>
-                                    <th className="px-6 py-2 text-[9px] font-medium text-white uppercase tracking-widest text-center">Qty Diff</th>
-                                    <th className="px-6 py-2 text-[9px] font-medium text-white uppercase tracking-widest text-right">Valor Absoluto</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-medium text-white uppercase tracking-widest">Item</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-medium text-white uppercase tracking-widest text-center">Qty Diff</th>
+                                    <th className="px-4 py-1.5 text-[9px] font-medium text-white uppercase tracking-widest text-right">Valor Absoluto</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {stats.top_losses.map((item, i) => (
                                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-1.5">
+                                        <td className="px-4 py-1">
                                             <div className="text-xs font-medium  text-zinc-900">{item.code}</div>
                                             <div className="text-[9px] font-normal text-zinc-900 truncate max-w-[200px]">{item.desc}</div>
                                         </td>
-                                        <td className={`px-6 py-1.5 text-center font-mono text-[11px] ${item.diff > 0 ? 'text-slate-600' : 'text-red-500'}`}>
+                                        <td className={`px-4 py-1 text-center font-mono text-[11px] ${item.diff > 0 ? 'text-slate-600' : 'text-red-500'}`}>
                                             {item.diff > 0 ? '+' : ''}{item.diff}
                                         </td>
-                                        <td className="px-6 py-1.5 text-right font-mono text-[11px] text-slate-900 font-medium">
+                                        <td className="px-4 py-1 text-right font-mono text-[11px] text-slate-900 font-medium">
                                             {formatMoney(item.abs_val_diff)}
                                         </td>
                                     </tr>
@@ -175,14 +171,14 @@ const DashboardInventario = () => {
             </div>
 
             {/* Performance & Hot Zones Compact */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                 {/* User Performance Compact */}
-                <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                <div className="bg-white p-4 border border-slate-200 shadow-sm">
+                    <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-3 border-b border-slate-100 pb-1">
                         Calidad de Auditoría del Personal
                     </h3>
-                    <div className="space-y-6">
+                    <div className="space-y-3">
                         {stats.productivity.map((u, i) => (
                             <div key={i}>
                                 <div className="flex justify-between items-end mb-1.5">
@@ -203,8 +199,8 @@ const DashboardInventario = () => {
                 </div>
 
                 {/* Location Risk Zones Compact */}
-                <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                <div className="bg-white p-4 border border-slate-200 shadow-sm">
+                    <h3 className="text-[9px] font-medium  text-zinc-900 uppercase tracking-widest mb-3 border-b border-slate-100 pb-1">
                         Densidad de Discrepancias por Zona
                     </h3>
                     <div className="grid grid-cols-1 gap-4">

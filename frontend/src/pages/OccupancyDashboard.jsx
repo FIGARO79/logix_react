@@ -78,12 +78,8 @@ const OccupancyDashboard = () => {
     return (
         <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
 
-            {/* Header / Actions Section */}
-            <div className="mb-4 border-b border-zinc-300 pb-4 flex justify-between items-end">
-                <div>
-                    <h1 className="text-[14px] font-normal text-black tracking-tight">Ocupación de Bodega</h1>
-                    <p className="text-black text-[12px] font-normal">Mapa de Saturación y Densidad de Bins</p>
-                </div>
+            {/* Barra de Acciones */}
+            <div className="mb-2 border-b border-zinc-200 pb-1.5 flex justify-end items-center">
                 <button
                     onClick={fetchData}
                     className="px-3 py-1.5 border border-black text-black bg-white text-[10px] font-normal uppercase tracking-tight rounded hover:bg-black hover:text-white transition-all shadow-sm"

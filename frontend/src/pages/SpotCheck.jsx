@@ -246,16 +246,12 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="max-w-[1200px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={2000} />
 
-            <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
+            <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">
                 <div>
-                    <h1 className="text-[18px] font-medium  text-black uppercase tracking-tight">Conteo por Ubicación</h1>
-                    <div className="flex items-center gap-2 mt-1">
-                        <p className="text-[10px] uppercase tracking-[0.15em] font-medium  text-zinc-900">Hallazgos registrados</p>
-                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium  animate-pulse">MODO OFFLINE</span>}
-                    </div>
+                    {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium  animate-pulse">MODO OFFLINE</span>}
                 </div>
                 <button
                     onClick={() => navigate('/stock')}

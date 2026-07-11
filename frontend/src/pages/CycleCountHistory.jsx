@@ -119,13 +119,9 @@ const CycleCountHistory = () => {
     const visibleRecordings = filteredRecordings.slice(0, displayCount);
 
     return (
-        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-sans text-[#333] gap-1 mt-5">
+        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-sans text-[#333] gap-1 mt-2">
             {/* Header bar similiar to screenshot */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-20">
-                <div>
-                    <h1 className="text-lg font-medium  text-gray-800">Registro Histórico</h1>
-                    <p className="text-xs text-gray-500">Detalle de todas las ejecuciones de conteo cíclico ({filteredRecordings.length} registros)</p>
-                </div>
+            <div className="bg-white border-b border-gray-100 px-6 py-2 flex justify-end items-center z-20">
                 <div className="flex gap-3">
                     <input
                         type="text"

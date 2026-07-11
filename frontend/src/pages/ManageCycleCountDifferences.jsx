@@ -181,14 +181,6 @@ const ManageCycleCountDifferences = () => {
 
     return (
         <div className="max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
-
-            {/* Header Técnico */}
-            <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4">
-                <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal tracking-tight">Gestión de Diferencias</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-zinc-900">Auditoría de Resultados y Ajustes de Ciclo</p>
-                </div>
-            </div>
             {/* Filtros */}
             <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
                 <div>

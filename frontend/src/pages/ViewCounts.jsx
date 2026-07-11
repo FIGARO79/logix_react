@@ -71,14 +71,10 @@ const ViewCounts = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-6 font-sans text-sm text-[#32363a]">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-sans text-sm text-[#32363a]">
 
             {/* Page Header */}
-            <div className="mb-6 flex justify-between items-end border-b border-gray-100 pb-4">
-                <div>
-                    <h1 className="text-base font-normal tracking-tight">Auditoría de Campo</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Monitoreo de avance de conteo físico general</p>
-                </div>
+            <div className="mb-3 flex justify-end items-center border-b border-gray-100 pb-1.5">
                 <div className="text-right">
                     <p className="text-[8px] text-gray-400 uppercase font-medium ">Estado del Proceso</p>
                     <p className="text-base font-light text-green-600">{stats.progress_percentage}% Completado</p>

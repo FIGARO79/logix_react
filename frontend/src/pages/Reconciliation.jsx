@@ -317,25 +317,6 @@ const Reconciliation = () => {
     return (
         <div className="flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
             <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
-                    <div className="space-y-0.5">
-                        <h1 className="text-[14px] tracking-tight text-black font-normal ">Conciliación de Inventario</h1>
-                        <div className="flex items-center gap-2">
-                            <p className="text-[12px] tracking-tight text-black font-normal">Auditoría de Diferencias</p>
-                            <span className="text-black"></span>
-                            {isOfflineData ? (
-                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
-                                    Offline
-                                </span>
-                            ) : (
-                                <span className="text-[8px] text-black uppercase tracking-widest flex items-center gap-1">
-
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
                 <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100">
                     <div className="flex-1 min-w-[200px]">
                         <div style={{ position: 'relative' }}>
