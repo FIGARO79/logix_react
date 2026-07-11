@@ -2,28 +2,36 @@
 Servicio para la lógica de conciliación de Inbound y snapshots optimizado con Polars.
 Unifica la lógica de la vista web y la exportación de Excel, respetando las líneas individuales del Reporte 280.
 """
+
 import datetime
 import orjson
 import os
 import polars as pl
 from typing import List, Optional, Dict, Any
-from sqlalchemy import select, func, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler
 from app.models.sql_models import ReconciliationHistory, GRNMaster
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
-async def get_reconciliation_calculations(db: AsyncSession, archive_date: Optional[str] = None) -> List[Dict[str, Any]]:
+
+async def get_reconciliation_calculations(
+    db: AsyncSession, archive_date: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """
     Ejecuta los cálculos de conciliación cruzando el Reporte 280 con los Logs de Inbound.
     Valida la integridad usando la tríada: IR + Item + Order Number (Customer Ref).
     """
     try:
         await csv_handler.reload_cache_if_needed()
-        
+
         # 1. Obtener Logs (Lo recibido físicamente)
-        logs_list = await (db_logs.load_archived_log_data_db_async(db, archive_date) if archive_date else db_logs.load_log_data_db_async(db))
+        logs_list = await (
+            db_logs.load_archived_log_data_db_async(db, archive_date)
+            if archive_date
+            else db_logs.load_log_data_db_async(db)
+        )
         if not logs_list:
             print("[RECONCILIATION] No hay registros de log para procesar.")
             return []
@@ -31,23 +39,36 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         logs_pl = pl.from_dicts(logs_list)
 
         # 2. Normalizar Logs
-        logs_pl = logs_pl.with_columns([
-            pl.col("importReference").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("waybill").cast(pl.Utf8).fill_null(""),
-            pl.col("qtyReceived").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
-        ])
+        logs_pl = logs_pl.with_columns(
+            [
+                pl.col("importReference")
+                .cast(pl.Utf8)
+                .str.strip_chars()
+                .str.to_uppercase(),
+                pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                pl.col("waybill").cast(pl.Utf8).fill_null(""),
+                pl.col("qtyReceived")
+                .cast(pl.Utf8)
+                .str.replace_all(",", "")
+                .cast(pl.Float64, strict=False)
+                .fill_null(0.0),
+            ]
+        )
 
         # Agrupar logs por IR + Item (Ancla física)
-        logs_grouped = logs_pl.group_by(["importReference", "itemCode"]).agg([
-            pl.col("qtyReceived").sum().alias("qtyReceived"),
-            pl.col("waybill").first().alias("Waybill_Log")
-        ])
+        logs_grouped = logs_pl.group_by(["importReference", "itemCode"]).agg(
+            [
+                pl.col("qtyReceived").sum().alias("qtyReceived"),
+                pl.col("waybill").first().alias("Waybill_Log"),
+            ]
+        )
 
-        df_locations = logs_pl.group_by(["importReference", "itemCode"]).agg([
-            pl.col("binLocation").last().alias("binLocation"),
-            pl.col("relocatedBin").last().alias("relocatedBin"),
-        ])
+        df_locations = logs_pl.group_by(["importReference", "itemCode"]).agg(
+            [
+                pl.col("binLocation").last().alias("binLocation"),
+                pl.col("relocatedBin").last().alias("relocatedBin"),
+            ]
+        )
 
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
@@ -56,12 +77,24 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # A. Desde grn_master_data.json
         if os.path.exists(GRN_JSON_DATA_PATH):
             try:
-                with open(GRN_JSON_DATA_PATH, 'rb') as f:
+                with open(GRN_JSON_DATA_PATH, "rb") as f:
                     grn_data = orjson.loads(f.read())
                 if isinstance(grn_data, list):
                     for row in grn_data:
-                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                        ir = (
+                            str(
+                                row.get(
+                                    "Import_Reference", row.get("import_reference", "")
+                                )
+                            )
+                            .strip()
+                            .upper()
+                        )
+                        grn = (
+                            str(row.get("GRN_Number", row.get("grn_number", "")))
+                            .strip()
+                            .upper()
+                        )
                         if ir and grn:
                             master_maps.append((grn, ir, str(row.get("Waybill", ""))))
             except:
@@ -71,12 +104,14 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         try:
             # Query only required fields as raw tuples to bypass SQLAlchemy ORM overhead
             db_grns = await db.execute(
-                select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
+                select(
+                    GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill
+                )
             )
             for ir_raw, grn_raw, wb_raw in db_grns.all():
                 ir = str(ir_raw or "").strip().upper()
                 if ir and grn_raw:
-                    for g in str(grn_raw).split(','):
+                    for g in str(grn_raw).split(","):
                         g_clean = g.strip().upper()
                         if g_clean:
                             master_maps.append((g_clean, ir, str(wb_raw or "")))
@@ -86,9 +121,9 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
         # C. Desde po_lookup.json (Si el robot ya encontró el GRN)
         if os.path.exists(PO_LOOKUP_JSON_PATH):
             try:
-                with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     po_cache = orjson.loads(f.read())
-                
+
                 # List comprehension is much faster than nested loops in pure Python
                 po_maps = [
                     (g_clean, ir, wb)
@@ -111,9 +146,7 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
         if master_maps:
             df_grn_master = pl.DataFrame(
-                master_maps,
-                schema=["grn_map", "ir_map", "wb_map"],
-                orient="row"
+                master_maps, schema=["grn_map", "ir_map", "wb_map"], orient="row"
             ).unique(subset=["grn_map"])
         else:
             df_grn_master = pl.DataFrame(
@@ -122,32 +155,42 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
 
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
-        if grn_pl is None: return []
+        if grn_pl is None:
+            return []
         if "Order_Number" not in grn_pl.columns:
             grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Number"))
         if "Order_Line" not in grn_pl.columns:
             grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Line"))
 
-        df_280 = grn_pl.select([
-            pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-            pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
-            pl.col("Quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False).fill_null(0.0),
-            pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().fill_null(""),
-            pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
-        ])
+        df_280 = grn_pl.select(
+            [
+                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
+                pl.col("Quantity")
+                .cast(pl.Utf8)
+                .str.replace_all(",", "")
+                .cast(pl.Float64, strict=False)
+                .fill_null(0.0),
+                pl.col("Order_Number")
+                .cast(pl.Utf8)
+                .str.strip_chars()
+                .str.to_uppercase()
+                .fill_null(""),
+                pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
+            ]
+        )
 
         # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
         # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
         df_expected_with_ir = df_280.join(
-            df_grn_master,
-            left_on="GRN_Number",
-            right_on="grn_map",
-            how="left"
-        ).with_columns([
-            pl.col("ir_map").fill_null("SIN I.R. MAESTRA"),
-            pl.col("wb_map").fill_null("SIN WAYBILL"),
-        ])
+            df_grn_master, left_on="GRN_Number", right_on="grn_map", how="left"
+        ).with_columns(
+            [
+                pl.col("ir_map").fill_null("SIN I.R. MAESTRA"),
+                pl.col("wb_map").fill_null("SIN WAYBILL"),
+            ]
+        )
 
         # 6. Cálculo de Totales Esperados por IR + Item
         total_exp_ir_item = df_expected_with_ir.group_by(["ir_map", "Item_Code"]).agg(
@@ -161,92 +204,152 @@ async def get_reconciliation_calculations(db: AsyncSession, archive_date: Option
             logs_grouped,
             left_on=["ir_map", "Item_Code"],
             right_on=["importReference", "itemCode"],
-            how="left"
+            how="left",
         )
 
         logs_sin_grn = logs_grouped.join(
             df_expected_with_ir.select(["ir_map", "Item_Code"]).unique(),
-            left_on=["importReference", "itemCode"], right_on=["ir_map", "Item_Code"],
-            how="anti"
-        ).with_columns([
-            pl.col("importReference").alias("ir_map"),
-            pl.col("Waybill_Log").alias("wb_map"),
-            pl.lit("SIN GRN").alias("GRN_Number"),
-            pl.col("itemCode").alias("Item_Code"),
-            pl.lit("No en reporte 280").alias("Item_Description"),
-            pl.lit(0.0).alias("Quantity"),
-            pl.lit(0.0).alias("Total_Esperado_IR"),
-            pl.lit("").alias("Order_Number"),
-            pl.lit("").alias("Order_Line")
-        ])
+            left_on=["importReference", "itemCode"],
+            right_on=["ir_map", "Item_Code"],
+            how="anti",
+        ).with_columns(
+            [
+                pl.col("importReference").alias("ir_map"),
+                pl.col("Waybill_Log").alias("wb_map"),
+                pl.lit("SIN GRN").alias("GRN_Number"),
+                pl.col("itemCode").alias("Item_Code"),
+                pl.lit("No en reporte 280").alias("Item_Description"),
+                pl.lit(0.0).alias("Quantity"),
+                pl.lit(0.0).alias("Total_Esperado_IR"),
+                pl.lit("").alias("Order_Number"),
+                pl.lit("").alias("Order_Line"),
+            ]
+        )
 
         # Unificar
-        common_cols = ["ir_map", "wb_map", "GRN_Number", "Item_Code", "Item_Description", "Quantity", "Order_Number", "Order_Line", "Total_Esperado_IR", "qtyReceived"]
-        final = pl.concat([final.select(common_cols), logs_sin_grn.select(common_cols)], how="diagonal")
+        common_cols = [
+            "ir_map",
+            "wb_map",
+            "GRN_Number",
+            "Item_Code",
+            "Item_Description",
+            "Quantity",
+            "Order_Number",
+            "Order_Line",
+            "Total_Esperado_IR",
+            "qtyReceived",
+        ]
+        final = pl.concat(
+            [final.select(common_cols), logs_sin_grn.select(common_cols)],
+            how="diagonal",
+        )
 
         # 9. Cálculos de Diferencia y Ubicaciones
-        final = final.with_columns([
-            pl.col("qtyReceived").fill_null(0.0),
-            (pl.col("qtyReceived").fill_null(0.0) - pl.col("Total_Esperado_IR")).alias("Diferencia")
-        ]).with_columns([
-            pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
-            pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"),
-        ])
+        final = final.with_columns(
+            [
+                pl.col("qtyReceived").fill_null(0.0),
+                (
+                    pl.col("qtyReceived").fill_null(0.0) - pl.col("Total_Esperado_IR")
+                ).alias("Diferencia"),
+            ]
+        ).with_columns(
+            [
+                pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
+                pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"),
+            ]
+        )
 
-        final = final.join(df_locations, left_on=["ir_map", "Item_Code"], right_on=["importReference", "itemCode"], how="left").with_columns([
-            pl.col("binLocation").fill_null(""),
-            pl.col("relocatedBin").fill_null("")
-        ])
+        final = final.join(
+            df_locations,
+            left_on=["ir_map", "Item_Code"],
+            right_on=["importReference", "itemCode"],
+            how="left",
+        ).with_columns(
+            [pl.col("binLocation").fill_null(""), pl.col("relocatedBin").fill_null("")]
+        )
 
         # Extraer el timestamp de los logs (el más reciente para el grupo)
-        df_timestamps = logs_pl.group_by(["importReference", "itemCode"]).agg([
-            pl.col("timestamp").last().alias("timestamp_log")
-        ])
-        final = final.join(df_timestamps, left_on=["ir_map", "Item_Code"], right_on=["importReference", "itemCode"], how="left")
+        df_timestamps = logs_pl.group_by(["importReference", "itemCode"]).agg(
+            [pl.col("timestamp").last().alias("timestamp_log")]
+        )
+        final = final.join(
+            df_timestamps,
+            left_on=["ir_map", "Item_Code"],
+            right_on=["importReference", "itemCode"],
+            how="left",
+        )
 
         # Ocultar diferencias duplicadas en la vista
         final = final.sort(["ir_map", "Item_Code", "GRN_Number"])
-        final = final.with_columns([
-            pl.col("GRN_Number").cum_count().over(["ir_map", "Item_Code"]).alias("_row_num"),
-            pl.col("GRN_Number").count().over(["ir_map", "Item_Code"]).alias("_group_size"),
-        ]).with_columns(
-            Diferencia=pl.when(pl.col("_row_num") == pl.col("_group_size"))
+        final = (
+            final.with_columns(
+                [
+                    pl.col("GRN_Number")
+                    .cum_count()
+                    .over(["ir_map", "Item_Code"])
+                    .alias("_row_num"),
+                    pl.col("GRN_Number")
+                    .count()
+                    .over(["ir_map", "Item_Code"])
+                    .alias("_group_size"),
+                ]
+            )
+            .with_columns(
+                Diferencia=pl.when(pl.col("_row_num") == pl.col("_group_size"))
                 .then(pl.col("Diferencia").cast(pl.Int64))
                 .otherwise(pl.lit(0, dtype=pl.Int64))
-        ).drop(["_row_num", "_group_size"])
+            )
+            .drop(["_row_num", "_group_size"])
+        )
 
         # 10. Resultado Final
-        return final.select([
-            pl.col("ir_map").alias("Import_Reference"),
-            pl.col("wb_map").alias("Waybill"),
-            pl.col("GRN_Number").alias("GRN"),
-            pl.col("Order_Line").alias("Order_Line"),
-            pl.col("Item_Code").alias("Codigo_Item"),
-            pl.col("Item_Description").alias("Descripcion"),
-            pl.col("binLocation").alias("Ubicacion"),
-            pl.col("relocatedBin").alias("Reubicado"),
-            pl.col("Cant_Linea").alias("Cant_Esperada"),
-            pl.col("Cant_Recibida"),
-            pl.col("Diferencia"),
-            pl.col("timestamp_log").alias("Timestamp")
-        ]).sort(["Import_Reference", "GRN"]).to_dicts()
+        return (
+            final.select(
+                [
+                    pl.col("ir_map").alias("Import_Reference"),
+                    pl.col("wb_map").alias("Waybill"),
+                    pl.col("GRN_Number").alias("GRN"),
+                    pl.col("Order_Line").alias("Order_Line"),
+                    pl.col("Item_Code").alias("Codigo_Item"),
+                    pl.col("Item_Description").alias("Descripcion"),
+                    pl.col("binLocation").alias("Ubicacion"),
+                    pl.col("relocatedBin").alias("Reubicado"),
+                    pl.col("Cant_Linea").alias("Cant_Esperada"),
+                    pl.col("Cant_Recibida"),
+                    pl.col("Diferencia"),
+                    pl.col("timestamp_log").alias("Timestamp"),
+                ]
+            )
+            .sort(["Import_Reference", "GRN"])
+            .to_dicts()
+        )
 
     except Exception as e:
         import traceback
+
         print(f"[RECONCILIATION ERROR]: {e}")
         print(traceback.format_exc())
         return []
 
-async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_auto: bool = False, client_timestamp: Optional[str] = None):
+
+async def create_snapshot(
+    db: AsyncSession,
+    data: List[dict],
+    username: str,
+    is_auto: bool = False,
+    client_timestamp: Optional[str] = None,
+):
     """Guarda un snapshot de conciliación en la DB."""
     prefix = "AUTO-" if is_auto else ""
-    
+
     # Priorizar el timestamp del cliente si viene (ej: para respetar la hora de la bodega)
-    base_time_str = client_timestamp if client_timestamp else datetime.datetime.now().isoformat()
-    
+    base_time_str = (
+        client_timestamp if client_timestamp else datetime.datetime.now().isoformat()
+    )
+
     try:
         # Formatear el archive_date (ID del lote) para que sea legible
-        dt_obj = datetime.datetime.fromisoformat(base_time_str.replace('Z', ''))
+        dt_obj = datetime.datetime.fromisoformat(base_time_str.replace("Z", ""))
         archive_date = f"{prefix}{dt_obj.strftime('%Y-%m-%d %H:%M:%S')}"
     except:
         archive_date = f"{prefix}{base_time_str}"
@@ -254,21 +357,22 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
     records = [
         ReconciliationHistory(
             archive_date=archive_date,
-            import_reference=row.get('Import_Reference', ''),
-            waybill=row.get('Waybill', ''),
-            grn=row.get('GRN', ''),
-            item_code=row.get('Codigo_Item', ''),
-            description=row.get('Descripcion', ''),
-            bin_location=row.get('Ubicacion', '') or '',
-            relocated_bin=row.get('Reubicado', '') or '',
-            qty_expected=int(row.get('Cant_Esperada', 0)),
-            qty_received=int(row.get('Cant_Recibida', 0)),
-            difference=int(row.get('Diferencia', 0)),
+            import_reference=row.get("Import_Reference", ""),
+            waybill=row.get("Waybill", ""),
+            grn=row.get("GRN", ""),
+            item_code=row.get("Codigo_Item", ""),
+            description=row.get("Descripcion", ""),
+            bin_location=row.get("Ubicacion", "") or "",
+            relocated_bin=row.get("Reubicado", "") or "",
+            qty_expected=int(row.get("Cant_Esperada", 0)),
+            qty_received=int(row.get("Cant_Recibida", 0)),
+            difference=int(row.get("Diferencia", 0)),
             username=username,
-            timestamp=row.get('Timestamp') or base_time_str
-        ) for row in data
+            timestamp=row.get("Timestamp") or base_time_str,
+        )
+        for row in data
     ]
-    
+
     db.add_all(records)
     await db.commit()
 
@@ -289,16 +393,23 @@ async def create_snapshot(db: AsyncSession, data: List[dict], username: str, is_
         await db.commit()
     except Exception as cleanup_err:
         print(f"[RECONCILIATION CLEANUP ERROR]: {cleanup_err}")
-        
+
     return archive_date
+
 
 async def auto_snapshot_before_update(db: AsyncSession, username: str):
     """Realiza un snapshot automático si hay datos pendientes de conciliación."""
     try:
         current_data = await get_reconciliation_calculations(db)
         if current_data and len(current_data) > 0:
-            user_str = username if isinstance(username, str) else getattr(username, 'username', str(username))
-            return await create_snapshot(db, current_data, f"AUTO({user_str})", is_auto=True)
+            user_str = (
+                username
+                if isinstance(username, str)
+                else getattr(username, "username", str(username))
+            )
+            return await create_snapshot(
+                db, current_data, f"AUTO({user_str})", is_auto=True
+            )
         return None
     except Exception as e:
         print(f"Error en snapshot automático: {e}")

@@ -1,14 +1,17 @@
 """
 Servicio de base de datos - Operaciones de logs (inbound).
 """
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func, desc
+from sqlalchemy import select, update, delete, func
 from app.models.sql_models import Log
 from typing import Dict, Any, Optional, List
 import datetime
-from sqlalchemy import distinct
 
-async def add_log(db: AsyncSession, username: str, action_type: str, message: str) -> bool:
+
+async def add_log(
+    db: AsyncSession, username: str, action_type: str, message: str
+) -> bool:
     """
     Agrega un registro genérico a la tabla de logs para auditoría.
     action_type: Tipo de acción (ej: 'PLANNER', 'INVENTORY', 'AUTH')
@@ -19,8 +22,8 @@ async def add_log(db: AsyncSession, username: str, action_type: str, message: st
         new_log = Log(
             timestamp=now,
             username=username,
-            importReference=action_type, # Usamos este campo como categoría para logs genéricos
-            itemDescription=message[:255]
+            importReference=action_type,  # Usamos este campo como categoría para logs genéricos
+            itemDescription=message[:255],
         )
         db.add(new_log)
         await db.commit()
@@ -30,30 +33,35 @@ async def add_log(db: AsyncSession, username: str, action_type: str, message: st
         await db.rollback()
         return False
 
-async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) -> Optional[int]:
+
+async def save_log_entry_db_async(
+    db: AsyncSession, entry_data: Dict[str, Any]
+) -> Optional[int]:
     """Guarda una entrada de log en la base de datos."""
     try:
         # DEDUPLICACIÓN: Verificar si ya existe un registro con este client_id
-        client_id = entry_data.get('client_id')
+        client_id = entry_data.get("client_id")
         if client_id:
             existing = await db.execute(select(Log).where(Log.client_id == client_id))
             if existing.scalar_one_or_none():
-                print(f"Logix: Registro duplicado detectado para client_id {client_id}. Ignorando.")
-                return 0 # Indica que no se insertó pero no es un error
-        
+                print(
+                    f"Logix: Registro duplicado detectado para client_id {client_id}. Ignorando."
+                )
+                return 0  # Indica que no se insertó pero no es un error
+
         new_log = Log(
-            timestamp=entry_data.get('timestamp'),
-            importReference=entry_data.get('importReference', ''),
-            waybill=entry_data.get('waybill'),
-            itemCode=entry_data.get('itemCode'),
-            itemDescription=entry_data.get('itemDescription'),
-            binLocation=entry_data.get('binLocation'),
-            relocatedBin=entry_data.get('relocatedBin'),
-            qtyReceived=entry_data.get('qtyReceived'),
-            qtyGrn=entry_data.get('qtyGrn'),
-            difference=entry_data.get('difference'),
-            username=entry_data.get('username'),
-            client_id=client_id
+            timestamp=entry_data.get("timestamp"),
+            importReference=entry_data.get("importReference", ""),
+            waybill=entry_data.get("waybill"),
+            itemCode=entry_data.get("itemCode"),
+            itemDescription=entry_data.get("itemDescription"),
+            binLocation=entry_data.get("binLocation"),
+            relocatedBin=entry_data.get("relocatedBin"),
+            qtyReceived=entry_data.get("qtyReceived"),
+            qtyGrn=entry_data.get("qtyGrn"),
+            difference=entry_data.get("difference"),
+            username=entry_data.get("username"),
+            client_id=client_id,
             # Nota: observaciones se omiite porque no existe en tabla MySQL
         )
         db.add(new_log)
@@ -66,38 +74,40 @@ async def save_log_entry_db_async(db: AsyncSession, entry_data: Dict[str, Any]) 
         return None
 
 
-async def update_log_entry_db_async(db: AsyncSession, log_id: int, entry_data_for_db: Dict[str, Any]) -> bool:
+async def update_log_entry_db_async(
+    db: AsyncSession, log_id: int, entry_data_for_db: Dict[str, Any]
+) -> bool:
     """Actualiza una entrada de log existente."""
     try:
         # Recuperar el log existente
         result = await db.execute(select(Log).where(Log.id == log_id))
         log = result.scalar_one_or_none()
-        
+
         if not log:
             return False
-            
+
         # Actualizar solo los campos proporcionados
-        if 'importReference' in entry_data_for_db:
-            log.importReference = entry_data_for_db['importReference']
-        if 'waybill' in entry_data_for_db:
-            log.waybill = entry_data_for_db['waybill']
-        if 'relocatedBin' in entry_data_for_db:
-            log.relocatedBin = entry_data_for_db['relocatedBin']
-        if 'qtyReceived' in entry_data_for_db:
-            log.qtyReceived = entry_data_for_db['qtyReceived']
-        if 'qtyGrn' in entry_data_for_db:
-            log.qtyGrn = entry_data_for_db['qtyGrn']
-            
+        if "importReference" in entry_data_for_db:
+            log.importReference = entry_data_for_db["importReference"]
+        if "waybill" in entry_data_for_db:
+            log.waybill = entry_data_for_db["waybill"]
+        if "relocatedBin" in entry_data_for_db:
+            log.relocatedBin = entry_data_for_db["relocatedBin"]
+        if "qtyReceived" in entry_data_for_db:
+            log.qtyReceived = entry_data_for_db["qtyReceived"]
+        if "qtyGrn" in entry_data_for_db:
+            log.qtyGrn = entry_data_for_db["qtyGrn"]
+
         # Recalcular la diferencia si qtyReceived y qtyGrn existen
         if log.qtyReceived is not None and log.qtyGrn is not None:
             try:
                 log.difference = float(log.qtyReceived) - float(log.qtyGrn)
             except ValueError:
                 pass
-                
-        if 'timestamp' in entry_data_for_db:
-            log.timestamp = entry_data_for_db['timestamp']
-            
+
+        if "timestamp" in entry_data_for_db:
+            log.timestamp = entry_data_for_db["timestamp"]
+
         await db.commit()
         return True
     except Exception as e:
@@ -111,33 +121,43 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
     try:
         # Cargamos registros donde archived_at es NULL o string vacío
         from sqlalchemy import or_
-        stmt = select(Log).where(
-            or_(Log.archived_at.is_(None), Log.archived_at == '')
-        ).order_by(Log.id.desc())
+
+        stmt = (
+            select(Log)
+            .where(or_(Log.archived_at.is_(None), Log.archived_at == ""))
+            .order_by(Log.id.desc())
+        )
         result = await db.execute(stmt)
         logs = result.scalars().all()
-        
+
         from app.services import csv_handler
+
         item_desc_cache = {}
         db_needs_commit = False
-        
+
         result_list = []
         for log in logs:
             desc = log.itemDescription
             if not desc or "No en" in desc:
                 item_code = log.itemCode
                 if item_code not in item_desc_cache:
-                    item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
-                    real_desc = item_details.get("Item_Description") if item_details else None
-                    item_desc_cache[item_code] = real_desc if (real_desc and "No en" not in real_desc) else desc
-                
+                    item_details = await csv_handler.get_item_details_from_master_csv(
+                        item_code, db=db
+                    )
+                    real_desc = (
+                        item_details.get("Item_Description") if item_details else None
+                    )
+                    item_desc_cache[item_code] = (
+                        real_desc if (real_desc and "No en" not in real_desc) else desc
+                    )
+
                 cached_desc = item_desc_cache[item_code]
                 if cached_desc and cached_desc != desc:
                     desc = cached_desc
                     log.itemDescription = desc
                     db.add(log)
                     db_needs_commit = True
-            
+
             # Auto-sanar diferencia
             diff = log.difference
             try:
@@ -151,34 +171,38 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                     db_needs_commit = True
             except (ValueError, TypeError):
                 pass
-            
-            result_list.append({
-                "id": log.id,
-                "timestamp": log.timestamp,
-                "importReference": log.importReference,
-                "waybill": log.waybill,
-                "itemCode": log.itemCode,
-                "itemDescription": desc,
-                "binLocation": log.binLocation,
-                "relocatedBin": log.relocatedBin,
-                "qtyReceived": log.qtyReceived,
-                "qtyGrn": log.qtyGrn,
-                "difference": diff,
-                "username": log.username,
-                "client_id": getattr(log, 'client_id', None),
-                "observaciones": ""  # Columna no existe en tabla MySQL
-            })
-            
+
+            result_list.append(
+                {
+                    "id": log.id,
+                    "timestamp": log.timestamp,
+                    "importReference": log.importReference,
+                    "waybill": log.waybill,
+                    "itemCode": log.itemCode,
+                    "itemDescription": desc,
+                    "binLocation": log.binLocation,
+                    "relocatedBin": log.relocatedBin,
+                    "qtyReceived": log.qtyReceived,
+                    "qtyGrn": log.qtyGrn,
+                    "difference": diff,
+                    "username": log.username,
+                    "client_id": getattr(log, "client_id", None),
+                    "observaciones": "",  # Columna no existe en tabla MySQL
+                }
+            )
+
         if db_needs_commit:
             await db.commit()
-            
+
         return result_list
     except Exception as e:
         print(f"DB Error (load_log_data_db_async): {e}")
         return []
 
 
-async def get_log_entry_by_id_async(db: AsyncSession, log_id: int) -> Optional[Dict[str, Any]]:
+async def get_log_entry_by_id_async(
+    db: AsyncSession, log_id: int
+) -> Optional[Dict[str, Any]]:
     """Obtiene una entrada de log por ID."""
     try:
         result = await db.execute(select(Log).where(Log.id == log_id))
@@ -197,7 +221,7 @@ async def get_log_entry_by_id_async(db: AsyncSession, log_id: int) -> Optional[D
                 "qtyGrn": log.qtyGrn,
                 "difference": log.difference,
                 "username": log.username,
-                "observaciones": ""  # Columna no existe en tabla MySQL
+                "observaciones": "",  # Columna no existe en tabla MySQL
             }
         return None
     except Exception as e:
@@ -205,18 +229,20 @@ async def get_log_entry_by_id_async(db: AsyncSession, log_id: int) -> Optional[D
         return None
 
 
-async def get_total_received_for_import_reference_async(db: AsyncSession, import_reference: str, item_code: str) -> int:
+async def get_total_received_for_import_reference_async(
+    db: AsyncSession, import_reference: str, item_code: str
+) -> int:
     """Obtiene el total recibido para una referencia de importación e item."""
     try:
         stmt = select(func.sum(Log.qtyReceived)).where(
             Log.importReference == import_reference,
             Log.itemCode == item_code,
-            Log.archived_at.is_(None)
+            Log.archived_at.is_(None),
         )
         result = await db.execute(stmt)
         total_received = result.scalar()
         return int(total_received) if total_received is not None else 0
-    except Exception as e: 
+    except Exception as e:
         print(f"DB Error (get_total_received_for_import_reference_async): {e}")
         return 0
 
@@ -225,8 +251,7 @@ async def get_total_received_for_item_async(db: AsyncSession, item_code: str) ->
     """Obtiene el total recibido para un item específico en los logs activos (no archivados)."""
     try:
         stmt = select(func.sum(Log.qtyReceived)).where(
-            Log.itemCode == item_code,
-            Log.archived_at.is_(None)
+            Log.itemCode == item_code, Log.archived_at.is_(None)
         )
         result = await db.execute(stmt)
         total = result.scalar()
@@ -234,6 +259,7 @@ async def get_total_received_for_item_async(db: AsyncSession, item_code: str) ->
     except Exception as e:
         print(f"Error calculando total recibido para {item_code}: {e}")
         return 0
+
 
 async def delete_log_entry_db_async(db: AsyncSession, log_id: int) -> bool:
     """Elimina una entrada de log."""
@@ -248,20 +274,27 @@ async def delete_log_entry_db_async(db: AsyncSession, log_id: int) -> bool:
         return False
 
 
-async def get_latest_relocated_bin_async(db: AsyncSession, item_code: str) -> Optional[str]:
+async def get_latest_relocated_bin_async(
+    db: AsyncSession, item_code: str
+) -> Optional[str]:
     """Obtiene el último bin de reubicación real (no virtual) para un item."""
     try:
         # Excluimos bines virtuales para que no se conviertan en la ubicación por defecto
         virtual_bins = ["XDOCK", "PUTAWAY", "STAGE", "TRANSITO", "RECIBO"]
-        
-        stmt = select(Log.relocatedBin).where(
-            Log.itemCode == item_code,
-            Log.relocatedBin.is_not(None),
-            Log.relocatedBin != '',
-            ~Log.relocatedBin.in_(virtual_bins),
-            Log.archived_at.is_(None)
-        ).order_by(Log.id.desc()).limit(1)
-        
+
+        stmt = (
+            select(Log.relocatedBin)
+            .where(
+                Log.itemCode == item_code,
+                Log.relocatedBin.is_not(None),
+                Log.relocatedBin != "",
+                ~Log.relocatedBin.in_(virtual_bins),
+                Log.archived_at.is_(None),
+            )
+            .order_by(Log.id.desc())
+            .limit(1)
+        )
+
         result = await db.execute(stmt)
         latest_bin = result.scalar_one_or_none()
         return latest_bin
@@ -269,23 +302,31 @@ async def get_latest_relocated_bin_async(db: AsyncSession, item_code: str) -> Op
         print(f"DB Error (get_latest_relocated_bin_async): {e}")
         return None
 
+
 async def archive_current_logs_db_async(db: AsyncSession) -> bool:
     """Archiva todos los logs activos asignándoles la fecha actual."""
     try:
-        current_time_iso = datetime.datetime.now().isoformat(timespec='seconds')
-        stmt = update(Log).where(Log.archived_at.is_(None)).values(archived_at=current_time_iso)
-        result = await db.execute(stmt)
+        current_time_iso = datetime.datetime.now().isoformat(timespec="seconds")
+        stmt = (
+            update(Log)
+            .where(Log.archived_at.is_(None))
+            .values(archived_at=current_time_iso)
+        )
+        await db.execute(stmt)
         await db.commit()
-        return True # Always return true, even if 0 rows updated
+        return True  # Always return true, even if 0 rows updated
     except Exception as e:
         print(f"DB Error (archive_current_logs_db_async): {e}")
         await db.rollback()
         return False
 
+
 async def restore_archived_logs_db_async(db: AsyncSession, version_date: str) -> bool:
     """Restaura los logs de una versión archivada específica a activos (archived_at = None)."""
     try:
-        stmt = update(Log).where(Log.archived_at == version_date).values(archived_at=None)
+        stmt = (
+            update(Log).where(Log.archived_at == version_date).values(archived_at=None)
+        )
         await db.execute(stmt)
         await db.commit()
         return True
@@ -299,10 +340,14 @@ async def get_archived_versions_db_async(db: AsyncSession) -> List[str]:
     """Obtiene una lista de las fechas de archivado únicas."""
     try:
         # Fetch all dates (including duplicates)
-        stmt = select(Log.archived_at).where(Log.archived_at.is_not(None)).order_by(Log.archived_at.desc())
+        stmt = (
+            select(Log.archived_at)
+            .where(Log.archived_at.is_not(None))
+            .order_by(Log.archived_at.desc())
+        )
         result = await db.execute(stmt)
         dates = result.scalars().all()
-        
+
         # Deduplicate preserving order (Python 3.7+ dict is insertion ordered)
         unique_versions = list(dict.fromkeys([d for d in dates if d]))
         return unique_versions
@@ -310,34 +355,46 @@ async def get_archived_versions_db_async(db: AsyncSession) -> List[str]:
         print(f"DB Error (get_archived_versions_db_async): {e}")
         return []
 
-async def load_archived_log_data_db_async(db: AsyncSession, version_date: str) -> List[Dict[str, Any]]:
+
+async def load_archived_log_data_db_async(
+    db: AsyncSession, version_date: str
+) -> List[Dict[str, Any]]:
     """Carga los logs de una versión archivada específica."""
     try:
-        stmt = select(Log).where(Log.archived_at == version_date).order_by(Log.id.desc())
+        stmt = (
+            select(Log).where(Log.archived_at == version_date).order_by(Log.id.desc())
+        )
         result = await db.execute(stmt)
         logs = result.scalars().all()
-        
+
         from app.services import csv_handler
+
         item_desc_cache = {}
         db_needs_commit = False
-        
+
         result_list = []
         for log in logs:
             desc = log.itemDescription
             if not desc or "No en" in desc:
                 item_code = log.itemCode
                 if item_code not in item_desc_cache:
-                    item_details = await csv_handler.get_item_details_from_master_csv(item_code, db=db)
-                    real_desc = item_details.get("Item_Description") if item_details else None
-                    item_desc_cache[item_code] = real_desc if (real_desc and "No en" not in real_desc) else desc
-                
+                    item_details = await csv_handler.get_item_details_from_master_csv(
+                        item_code, db=db
+                    )
+                    real_desc = (
+                        item_details.get("Item_Description") if item_details else None
+                    )
+                    item_desc_cache[item_code] = (
+                        real_desc if (real_desc and "No en" not in real_desc) else desc
+                    )
+
                 cached_desc = item_desc_cache[item_code]
                 if cached_desc and cached_desc != desc:
                     desc = cached_desc
                     log.itemDescription = desc
                     db.add(log)
                     db_needs_commit = True
-                    
+
             # Auto-sanar diferencia
             diff = log.difference
             try:
@@ -351,30 +408,33 @@ async def load_archived_log_data_db_async(db: AsyncSession, version_date: str) -
                     db_needs_commit = True
             except (ValueError, TypeError):
                 pass
-                
-            result_list.append({
-                "id": log.id,
-                "timestamp": log.timestamp,
-                "importReference": log.importReference,
-                "waybill": log.waybill,
-                "itemCode": log.itemCode,
-                "itemDescription": desc,
-                "binLocation": log.binLocation,
-                "relocatedBin": log.relocatedBin,
-                "qtyReceived": log.qtyReceived,
-                "qtyGrn": log.qtyGrn,
-                "difference": diff,
-                "username": log.username,
-                "observaciones": ""
-            })
-            
+
+            result_list.append(
+                {
+                    "id": log.id,
+                    "timestamp": log.timestamp,
+                    "importReference": log.importReference,
+                    "waybill": log.waybill,
+                    "itemCode": log.itemCode,
+                    "itemDescription": desc,
+                    "binLocation": log.binLocation,
+                    "relocatedBin": log.relocatedBin,
+                    "qtyReceived": log.qtyReceived,
+                    "qtyGrn": log.qtyGrn,
+                    "difference": diff,
+                    "username": log.username,
+                    "observaciones": "",
+                }
+            )
+
         if db_needs_commit:
             await db.commit()
-            
+
         return result_list
     except Exception as e:
         print(f"DB Error (load_archived_log_data_db_async): {e}")
         return []
+
 
 async def load_all_logs_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
     """Carga TODOS los logs de la base de datos (activos y archivados)."""
@@ -397,7 +457,7 @@ async def load_all_logs_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                 "difference": log.difference,
                 "archived_at": log.archived_at,
                 "username": log.username,
-                "observaciones": ""
+                "observaciones": "",
             }
             for log in logs
         ]

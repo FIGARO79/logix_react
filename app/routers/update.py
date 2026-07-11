@@ -1,5 +1,15 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
-from fastapi.responses import RedirectResponse
+from fastapi import (
+    APIRouter,
+    Request,
+    Form,
+    Depends,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Response,
+    BackgroundTasks,
+)
 from app.core.responses import ORJSONResponse
 import polars as pl
 import os
@@ -7,7 +17,6 @@ import shutil
 import orjson
 import datetime
 import numpy as np
-from urllib.parse import urlencode
 from io import BytesIO
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
@@ -16,35 +25,34 @@ from app.models.sql_models import Log
 
 # Importaciones relativas desde la estructura del proyecto
 from app.core.config import (
-    GRN_JSON_DATA_PATH, 
-    PO_LOOKUP_JSON_PATH, 
+    GRN_JSON_DATA_PATH,
+    PO_LOOKUP_JSON_PATH,
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
     RESERVATION_CSV_PATH,
     GRN_COLUMN_NAME_IN_CSV,
-    ADMIN_PASSWORD
+    ADMIN_PASSWORD,
 )
 from app.services.csv_handler import load_csv_data
 from app.services.csv_to_db import sync_master_csv_to_db
 from app.utils.auth import login_required
+
 
 def np_encoder(obj):
     if isinstance(obj, np.generic):
         return obj.item()
     return str(obj)
 
-router = APIRouter(
-    prefix="",
-    tags=["update"]
-)
+
+router = APIRouter(prefix="", tags=["update"])
+
 
 async def process_po_extractor_logic(file_path: str):
     """
     Procesa el archivo Excel de Purchase Order Extractor y genera el caché JSON.
     Esta función es compartida por la subida manual y el robot automático.
     """
-    from app.core.config import PO_LOOKUP_JSON_PATH
     import datetime
     import orjson
     import numpy as np
@@ -56,44 +64,60 @@ async def process_po_extractor_logic(file_path: str):
 
     try:
         # Definir columnas base y opcionales
-        base_cols = ["Waybill", "Import Ref Code", "Item Code", "Despatched Qty", "GRN Number"]
+        base_cols = [
+            "Waybill",
+            "Import Ref Code",
+            "Item Code",
+            "Despatched Qty",
+            "GRN Number",
+        ]
         opt_col = "Customer Reference"
-        
+
         # Leer todo el Excel primero para verificar columnas
         df_full = pl.read_excel(file_path)
-        
+
         # Filtrar columnas disponibles
         available_cols = [c for c in base_cols if c in df_full.columns]
         missing_base = [c for c in base_cols if c not in df_full.columns]
-        
+
         if missing_base:
             return False, f"Faltan columnas obligatorias: {missing_base}"
-            
+
         # Extraer datos base
-        df_po = df_full.select(available_cols).select(pl.all().cast(pl.Utf8)).fill_null("")
-        
+        df_po = (
+            df_full.select(available_cols).select(pl.all().cast(pl.Utf8)).fill_null("")
+        )
+
         # Manejar columna opcional "Customer Reference"
         if opt_col in df_full.columns:
-            df_po = df_po.with_columns(df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col))
+            df_po = df_po.with_columns(
+                df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col)
+            )
         else:
-            print(f"Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
+            print(
+                f"Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía."
+            )
             df_po = df_po.with_columns(pl.lit("").alias(opt_col))
-        
+
         # LIMPIEZA CRÍTICA
-        df_po = df_po.filter((pl.col("Waybill") != "") & (pl.col("Import Ref Code") != ""))
-        
+        df_po = df_po.filter(
+            (pl.col("Waybill") != "") & (pl.col("Import Ref Code") != "")
+        )
+
         # Normalizar datos
-        df_po = df_po.with_columns([
-            pl.col("Waybill").str.strip_chars().str.to_uppercase(),
-            pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
-            pl.col("Item Code").str.strip_chars().str.to_uppercase(),
-            pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
-            pl.col(opt_col).str.strip_chars().str.to_uppercase()
-        ])
+        df_po = df_po.with_columns(
+            [
+                pl.col("Waybill").str.strip_chars().str.to_uppercase(),
+                pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
+                pl.col("Item Code").str.strip_chars().str.to_uppercase(),
+                pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
+                pl.col(opt_col).str.strip_chars().str.to_uppercase(),
+            ]
+        )
 
         wb_lookup = {}
         ir_lookup = {}
-        customer_ref_to_grn = {} # Mapeo: Customer Reference -> {grns, ir, waybill}
+        customer_ref_to_grn = {}  # Mapeo: Customer Reference -> {grns, ir, waybill}
 
         # Procesar agrupado por Waybill
         for wb, group in df_po.group_by("Waybill"):
@@ -101,16 +125,18 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
-                items_list.append({
-                    "item_code": row["Item Code"],
-                    "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"],
-                    "customer_ref": row[opt_col]
-                })
-            
+                items_list.append(
+                    {
+                        "item_code": row["Item Code"],
+                        "qty": row["Despatched Qty"],
+                        "grn": row["GRN Number"],
+                        "customer_ref": row[opt_col],
+                    }
+                )
+
             wb_lookup[wb_str] = {
                 "import_ref": first_row["Import Ref Code"],
-                "items": items_list
+                "items": items_list,
             }
 
         # Generar mapeos basados en I.R. y Customer Reference
@@ -119,13 +145,15 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
-                items_list.append({
-                    "item_code": row["Item Code"],
-                    "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"],
-                    "customer_ref": row[opt_col]
-                })
-                
+                items_list.append(
+                    {
+                        "item_code": row["Item Code"],
+                        "qty": row["Despatched Qty"],
+                        "grn": row["GRN Number"],
+                        "customer_ref": row[opt_col],
+                    }
+                )
+
                 # Mapeo por Customer Reference (solo si existe)
                 cust_ref = row[opt_col]
                 if cust_ref:
@@ -133,17 +161,18 @@ async def process_po_extractor_logic(file_path: str):
                         customer_ref_to_grn[cust_ref] = {
                             "import_ref": ir_str,
                             "waybill": row["Waybill"],
-                            "grns": set()
+                            "grns": set(),
                         }
                     if row["GRN Number"]:
-                        grns_in_row = set(g.strip().upper() for g in row["GRN Number"].split(',') if g.strip())
+                        grns_in_row = set(
+                            g.strip().upper()
+                            for g in row["GRN Number"].split(",")
+                            if g.strip()
+                        )
                         customer_ref_to_grn[cust_ref]["grns"].update(grns_in_row)
-            
-            ir_lookup[ir_str] = {
-                "waybill": first_row["Waybill"],
-                "items": items_list
-            }
-        
+
+            ir_lookup[ir_str] = {"waybill": first_row["Waybill"], "items": items_list}
+
         # Convertir sets a listas para JSON
         for ref in customer_ref_to_grn:
             customer_ref_to_grn[ref]["grns"] = list(customer_ref_to_grn[ref]["grns"])
@@ -152,53 +181,62 @@ async def process_po_extractor_logic(file_path: str):
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
-            "updated_at": datetime.datetime.now().isoformat()
+            "updated_at": datetime.datetime.now().isoformat(),
         }
-        
+
         with open(PO_LOOKUP_JSON_PATH, "wb") as f:
             f.write(orjson.dumps(lookup_data, option=orjson.OPT_INDENT_2))
-        
+
         return True, "Caché de búsqueda generado correctamente."
     except Exception as e:
         print(f"Error procesando PO logic: {e}")
         return False, str(e)
 
+
 from pydantic import BaseModel
+
 
 class PORobotRequest(BaseModel):
     start_date: str
     end_date: str
 
-# Variable global para el estado del robot en memoria
-po_robot_status = {
-    "status": "idle",
-    "message": ""
-}
 
-@router.post('/api/run_po_robot', response_class=ORJSONResponse)
+# Variable global para el estado del robot en memoria
+po_robot_status = {"status": "idle", "message": ""}
+
+
+@router.post("/api/run_po_robot", response_class=ORJSONResponse)
 async def run_po_robot_api(
     payload: PORobotRequest,
     background_tasks: BackgroundTasks,
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     """
     Dispara el robot de descarga de Purchase Order y luego procesa el archivo.
     """
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return ORJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"}
+        )
 
     # Evitar múltiples ejecuciones concurrentes
     if po_robot_status["status"] == "running":
-        return ORJSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
+        return ORJSONResponse(
+            content={
+                "message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."
+            }
+        )
 
     async def execute_robot_task():
         global po_robot_status
         po_robot_status["status"] = "running"
-        po_robot_status["message"] = f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
-        
+        po_robot_status["message"] = (
+            f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
+        )
+
         from app.services.po_robot import run_po_robot
         from app.core.config import PO_EXTRACTOR_EXCEL_PATH
-        
+
         # 1. Ejecutar descarga de forma asíncrona nativa
         success, msg = await run_po_robot(payload.start_date, payload.end_date)
         if not success:
@@ -208,49 +246,67 @@ async def run_po_robot_api(
             return
 
         # 2. Procesar el archivo
-        success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
+        success_proc, msg_proc = await process_po_extractor_logic(
+            PO_EXTRACTOR_EXCEL_PATH
+        )
         if success_proc:
             po_robot_status["status"] = "success"
-            po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
+            po_robot_status["message"] = (
+                f"Descarga y proceso completados con éxito. {msg_proc}"
+            )
             print(f"[OK] Robot: {po_robot_status['message']}")
             # Recargar el caché de memoria general
             await load_csv_data()
         else:
             po_robot_status["status"] = "error"
-            po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
+            po_robot_status["message"] = (
+                f"Descarga OK pero error en proceso: {msg_proc}"
+            )
             print(f"[ERROR] Robot: {po_robot_status['message']}")
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
-    
-    return ORJSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
 
-@router.get('/api/po_robot_status')
+    return ORJSONResponse(
+        content={
+            "message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."
+        }
+    )
+
+
+@router.get("/api/po_robot_status")
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return ORJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"}
+        )
     # Log para depuración
-    print(f"[STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
+    print(
+        f"[STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}"
+    )
     return ORJSONResponse(content=po_robot_status)
 
+
 # --- Endpoint para subir y procesar los archivos (POST) ---
-@router.post('/api/update', response_class=ORJSONResponse)
+@router.post("/api/update", response_class=ORJSONResponse)
 async def update_files_post(
     request: Request,
     background_tasks: BackgroundTasks,
     item_master: UploadFile = File(None),
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
-    reservation_file: UploadFile = File(None), # Nuevo campo para Reservas (Xdock)
+    reservation_file: UploadFile = File(None),  # Nuevo campo para Reservas (Xdock)
     grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
-    po_extractor: UploadFile = File(None), # Nuevo campo para Purchase Order Extractor
+    po_extractor: UploadFile = File(None),  # Nuevo campo para Purchase Order Extractor
     update_option_280: str = Form(None),
     selected_grns_280: str = Form(None),
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     if not isinstance(username, str):
-        return ORJSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return ORJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"}
+        )
 
     files_uploaded = False
     message = ""
@@ -267,24 +323,32 @@ async def update_files_post(
     if grn_file and grn_file.filename:
         try:
             from app.services import reconciliation_service
-            auto_snap = await reconciliation_service.auto_snapshot_before_update(db, username)
+
+            auto_snap = await reconciliation_service.auto_snapshot_before_update(
+                db, username
+            )
             if auto_snap:
                 message += f"Snapshot de seguridad generado: {auto_snap}. "
 
             grn_bytes = grn_file.file.read()
             new_data_df = pl.read_csv(grn_bytes, infer_schema_length=0)
-            
+
             if selected_grns_280:
                 try:
                     selected_list = orjson.loads(selected_grns_280)
                     if selected_list:
-                        new_data_df = new_data_df.filter(pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(selected_list))
-                except: pass
+                        new_data_df = new_data_df.filter(
+                            pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(selected_list)
+                        )
+                except:
+                    pass
 
-            if update_option_280 == 'combine' and os.path.exists(GRN_CSV_FILE_PATH):
+            if update_option_280 == "combine" and os.path.exists(GRN_CSV_FILE_PATH):
                 existing_data_df = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0)
                 new_grns = new_data_df.get_column(GRN_COLUMN_NAME_IN_CSV).unique()
-                existing_data_df = existing_data_df.filter(~pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(new_grns))
+                existing_data_df = existing_data_df.filter(
+                    ~pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(new_grns)
+                )
                 combined_df = pl.concat([existing_data_df, new_data_df], how="vertical")
                 combined_df.write_csv(GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" combinado. '
@@ -293,17 +357,18 @@ async def update_files_post(
                 message += f'Archivo "{grn_file.filename}" reemplazado. '
             files_uploaded = True
         except Exception as e:
-            error += f'Error procesando GRN: {str(e)}. '
+            error += f"Error procesando GRN: {str(e)}. "
 
     # Manejo del archivo de Reservas (AURRSLAMP0006)
     if reservation_file and reservation_file.filename:
         with open(RESERVATION_CSV_PATH, "wb") as buffer:
             shutil.copyfileobj(reservation_file.file, buffer)
-        
+
         # [NUEVO] Generar caché rápido de Xdock en segundo plano
         from app.services.csv_handler import generate_reservation_cache
+
         background_tasks.add_task(generate_reservation_cache)
-        
+
         message += f'Archivo "{reservation_file.filename}" actualizado (Xdock). '
         files_uploaded = True
 
@@ -320,23 +385,26 @@ async def update_files_post(
             excel_bytes = grn_excel.file.read()
             excel_df = pl.read_excel(excel_bytes)
             data_list = excel_df.to_dicts()
-            with open(GRN_JSON_DATA_PATH, 'wb') as f:
+            with open(GRN_JSON_DATA_PATH, "wb") as f:
                 f.write(orjson.dumps(data_list, option=orjson.OPT_INDENT_2))
             message += f'Archivo Excel "{grn_excel.filename}" procesado. '
             files_uploaded = True
             from app.services.grn_service import seed_grn_from_excel
             from app.core.db import AsyncSessionLocal
+
             async def run_sync():
                 async with AsyncSessionLocal() as session:
                     await seed_grn_from_excel(session)
+
             background_tasks.add_task(run_sync)
         except Exception as e:
-            error += f'Error Excel GRN: {str(e)}. '
+            error += f"Error Excel GRN: {str(e)}. "
 
     # Manejo del Purchase Order Extractor
     if po_extractor and po_extractor.filename:
         try:
             from app.core.config import PO_EXTRACTOR_EXCEL_PATH
+
             po_path = PO_EXTRACTOR_EXCEL_PATH
             with open(po_path, "wb") as buffer:
                 shutil.copyfileobj(po_extractor.file, buffer)
@@ -347,26 +415,30 @@ async def update_files_post(
             else:
                 error += f"Error PO Extractor: {msg}. "
         except Exception as e:
-            error += f'Error PO Extractor (Crash): {str(e)}. '
+            error += f"Error PO Extractor (Crash): {str(e)}. "
 
     if files_uploaded:
         # Tareas en segundo plano
         background_tasks.add_task(load_csv_data)
-        
+
         # Si se subió el maestro de ítems, sincronizar también la base de datos SQL
         if item_master and item_master.filename:
             from app.core.db import AsyncSessionLocal
+
             async def run_sql_sync():
                 async with AsyncSessionLocal() as session:
                     await sync_master_csv_to_db(session)
+
             background_tasks.add_task(run_sql_sync)
 
         # [NUEVO] Ejecutar auditoría de recepción en segundo plano después de cargar datos
         from app.core.db import AsyncSessionLocal
         from app.services.inbound_auditor import run_inbound_audit
+
         async def run_auditor_sync():
             async with AsyncSessionLocal() as session:
                 await run_inbound_audit(session)
+
         background_tasks.add_task(run_auditor_sync)
 
         message += " Procesamiento en segundo plano iniciado."
@@ -376,7 +448,7 @@ async def update_files_post(
     return ORJSONResponse(content={"message": message or "No se subieron archivos."})
 
 
-@router.post('/api/reload_cache', response_class=ORJSONResponse)
+@router.post("/api/reload_cache", response_class=ORJSONResponse)
 async def reload_cache_api(username: str = Depends(login_required)):
     """Fuerza la recarga de los datos CSV en la memoria RAM."""
     try:
@@ -385,54 +457,79 @@ async def reload_cache_api(username: str = Depends(login_required)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al recargar caché: {e}")
 
+
 # --- Endpoint para previsualizar las GRNs de un archivo ---
 @router.post("/api/preview_grn_file")
-async def preview_grn_file(file: UploadFile = File(...), username: str = Depends(login_required)):
+async def preview_grn_file(
+    file: UploadFile = File(...), username: str = Depends(login_required)
+):
     try:
         contents = await file.read()
         df = pl.read_csv(contents, infer_schema_length=0)
         if GRN_COLUMN_NAME_IN_CSV not in df.columns:
-            return ORJSONResponse(status_code=400, content={"error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"})
-        grns = sorted(df.get_column(GRN_COLUMN_NAME_IN_CSV).drop_nulls().unique().to_list())
+            return ORJSONResponse(
+                status_code=400,
+                content={
+                    "error": f"No se encontró la columna {GRN_COLUMN_NAME_IN_CSV}"
+                },
+            )
+        grns = sorted(
+            df.get_column(GRN_COLUMN_NAME_IN_CSV).drop_nulls().unique().to_list()
+        )
         return ORJSONResponse(content={"grns": grns})
     except Exception as e:
         return ORJSONResponse(status_code=500, content={"error": str(e)})
 
+
 # --- Endpoint para la "Zona de Peligro" de limpiar la BD ---
-@router.post('/api/clear_database')
-async def clear_database_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+@router.post("/api/clear_database")
+async def clear_database_api(
+    request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)
+):
     if password != ADMIN_PASSWORD:
-        return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+        return ORJSONResponse(
+            status_code=401, content={"error": "Contraseña incorrecta"}
+        )
     await db.execute(delete(Log))
     await db.commit()
     return ORJSONResponse(content={"message": "Base de datos de logs limpiada"})
 
-@router.post('/api/export_all_log')
-async def export_all_log_api(request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)):
+
+@router.post("/api/export_all_log")
+async def export_all_log_api(
+    request: Request, password: str = Form(...), db: AsyncSession = Depends(get_db)
+):
     if password != ADMIN_PASSWORD:
-         return ORJSONResponse(status_code=401, content={"error": "Contraseña incorrecta"})
+        return ORJSONResponse(
+            status_code=401, content={"error": "Contraseña incorrecta"}
+        )
     try:
         from app.services import db_logs
         import polars as pl
         import openpyxl
-        
+
         logs_data = await db_logs.load_all_logs_db_async(db)
-        if not logs_data: return ORJSONResponse(status_code=404, content={"error": "No hay datos"})
-        
+        if not logs_data:
+            return ORJSONResponse(status_code=404, content={"error": "No hay datos"})
+
         df = pl.DataFrame(logs_data, infer_schema_length=None)
-        col_rename = {'timestamp': 'Date', 'importReference': 'Ref', 'itemCode': 'Item'}
+        col_rename = {"timestamp": "Date", "importReference": "Ref", "itemCode": "Item"}
         available = {k: v for k, v in col_rename.items() if k in df.columns}
         df_export = df.rename(available)
-        
+
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.append(df_export.columns)
         for row in df_export.iter_rows():
             ws.append(list(row))
-            
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
-        return Response(content=output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={"Content-Disposition": "attachment; filename=backup_logs.xlsx"})
+        return Response(
+            content=output.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=backup_logs.xlsx"},
+        )
     except Exception as e:
         return ORJSONResponse(status_code=500, content={"error": str(e)})

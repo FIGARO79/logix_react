@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
+
 def calculate_homography_dimensions(
-    qr_corners: List[Tuple[float, float]], 
-    box_corners: List[Tuple[float, float]], 
-    qr_real_size: float = 10.0
+    qr_corners: List[Tuple[float, float]],
+    box_corners: List[Tuple[float, float]],
+    qr_real_size: float = 10.0,
 ) -> Dict[str, float]:
     """
     Calcula dimensiones reales (Largo, Ancho) usando una matriz de homografía.
@@ -16,12 +17,15 @@ def calculate_homography_dimensions(
     try:
         # 1. Definir plano métrico del QR (Ideal: 0,0 a 10,10)
         # Los puntos deben seguir el mismo orden que vienen del detector (normalmente TL, TR, BR, BL)
-        ideal_qr = np.array([
-            [0, 0], 
-            [qr_real_size, 0], 
-            [qr_real_size, qr_real_size], 
-            [0, qr_real_size]
-        ], dtype="float32")
+        ideal_qr = np.array(
+            [
+                [0, 0],
+                [qr_real_size, 0],
+                [qr_real_size, qr_real_size],
+                [0, qr_real_size],
+            ],
+            dtype="float32",
+        )
 
         src_qr = np.array(qr_corners, dtype="float32")
         src_box = np.array(box_corners, dtype="float32")
@@ -35,7 +39,9 @@ def calculate_homography_dimensions(
 
         # 3. Proyectar los puntos de la caja al espacio métrico
         # cv2.perspectiveTransform espera un array de forma (1, N, 2)
-        transformed_box = cv2.perspectiveTransform(np.array([src_box], dtype="float32"), H)[0]
+        transformed_box = cv2.perspectiveTransform(
+            np.array([src_box], dtype="float32"), H
+        )[0]
 
         # 4. Calcular dimensiones
         # Largo: Distancia entre punto 0 y 1 (Superior)
@@ -46,7 +52,7 @@ def calculate_homography_dimensions(
         return {
             "length": round(float(length), 2),
             "width": round(float(width), 2),
-            "unit": "cm"
+            "unit": "cm",
         }
     except Exception as e:
         return {"error": str(e)}

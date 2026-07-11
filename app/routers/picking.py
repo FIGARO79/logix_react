@@ -1,62 +1,92 @@
 """
 Router para endpoints de picking.
 """
+
 import os
 import datetime
 import polars as pl
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from app.core.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
-from app.models.sql_models import PickingAudit as PickingAuditModel, PickingAuditItem, PickingPackageItem
-from app.utils.auth import login_required, api_login_required, permission_required
+from app.models.sql_models import (
+    PickingAudit as PickingAuditModel,
+    PickingAuditItem,
+    PickingPackageItem,
+)
+from app.utils.auth import permission_required
 from app.core.db import get_db
 
 router = APIRouter(prefix="/api", tags=["picking"])
 
+
 @router.get("/picking/order/{order_number}/{despatch_number}")
-async def get_picking_order(order_number: str, despatch_number: str, username: str = Depends(permission_required("picking"))):
+async def get_picking_order(
+    order_number: str,
+    despatch_number: str,
+    username: str = Depends(permission_required("picking")),
+):
     """Obtiene los detalles de un pedido de picking desde el CSV."""
     try:
         from app.core.config import PICKING_CSV_PATH
+
         if not os.path.exists(PICKING_CSV_PATH):
-            raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
+            raise HTTPException(
+                status_code=404, detail="El archivo de picking no se encuentra."
+            )
 
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
-        
+
         # Limpiar BOM si existe en los nombres de las columnas
-        df.columns = [c.lstrip('\ufeff') for c in df.columns]
-        
+        df.columns = [c.lstrip("\ufeff") for c in df.columns]
+
         # Identificar la columna de código de cliente disponible
-        customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
-        
-        required_columns = ["ORDER_", "DESPATCH_", "ITEM", "DESCRIPTION", "QTY", "CUSTOMER_NAME", "ORDER_LINE"]
+        customer_col = (
+            "CUSTOMER"
+            if "CUSTOMER" in df.columns
+            else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df.columns else None)
+        )
+
+        required_columns = [
+            "ORDER_",
+            "DESPATCH_",
+            "ITEM",
+            "DESCRIPTION",
+            "QTY",
+            "CUSTOMER_NAME",
+            "ORDER_LINE",
+        ]
         if not all(col in df.columns for col in required_columns) or not customer_col:
-            raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas (Falta CUSTOMER o CUSTOMER_CODE).")
+            raise HTTPException(
+                status_code=500,
+                detail="El archivo CSV no tiene las columnas esperadas (Falta CUSTOMER o CUSTOMER_CODE).",
+            )
 
         # Limpiar espacios en blanco en columnas clave y comas de miles en QTY
-        df = df.with_columns([
-            pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
-            pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars()
-        ])
+        df = df.with_columns(
+            [
+                pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
+                pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
+            ]
+        )
         if "QTY" in df.columns:
-            df = df.with_columns(pl.col("QTY").cast(pl.Utf8).str.replace_all(',', ''))
+            df = df.with_columns(pl.col("QTY").cast(pl.Utf8).str.replace_all(",", ""))
 
         # Limpiar inputs
         order_number_clean = str(order_number).strip()
         despatch_number_clean = str(despatch_number).strip()
 
         order_data = df.filter(
-            (pl.col("ORDER_") == order_number_clean) & 
-            (pl.col("DESPATCH_") == despatch_number_clean)
+            (pl.col("ORDER_") == order_number_clean)
+            & (pl.col("DESPATCH_") == despatch_number_clean)
         )
 
         if order_data.height == 0:
             raise HTTPException(status_code=404, detail="Pedido no encontrado.")
 
         # customer_col ya fue identificado arriba
-        
+
         # Renombrar columnas para consistencia interna
         rename_map = {
             "ORDER_": "Order Number",
@@ -65,21 +95,25 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
             "DESCRIPTION": "Item Description",
             "QTY": "Qty",
             "CUSTOMER_NAME": "Customer Name",
-            "ORDER_LINE": "Order Line"
+            "ORDER_LINE": "Order Line",
         }
         if customer_col:
             rename_map[customer_col] = "Customer Code"
-            
+
         order_data = order_data.rename(rename_map)
 
         # Limpiar espacios en blanco en los resultados
-        order_data = order_data.with_columns([
-            pl.col("Customer Code").cast(pl.Utf8).str.strip_chars() if "Customer Code" in order_data.columns else pl.lit(""),
-            pl.col("Customer Name").cast(pl.Utf8).str.strip_chars()
-        ])
+        order_data = order_data.with_columns(
+            [
+                pl.col("Customer Code").cast(pl.Utf8).str.strip_chars()
+                if "Customer Code" in order_data.columns
+                else pl.lit(""),
+                pl.col("Customer Name").cast(pl.Utf8).str.strip_chars(),
+            ]
+        )
 
         order_data = order_data.fill_null("")
-        
+
         return ORJSONResponse(content=order_data.to_dicts())
 
     except Exception as e:
@@ -87,55 +121,89 @@ async def get_picking_order(order_number: str, despatch_number: str, username: s
 
 
 @router.get("/picking/tracking")
-async def get_picking_tracking(username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
+async def get_picking_tracking(
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
     """Obtiene un resumen de todos los pedidos de picking desde el CSV para seguimiento."""
     try:
         from app.core.config import PICKING_CSV_PATH
+
         if not os.path.exists(PICKING_CSV_PATH):
-            raise HTTPException(status_code=404, detail="El archivo de picking no se encuentra.")
+            raise HTTPException(
+                status_code=404, detail="El archivo de picking no se encuentra."
+            )
 
         # Leer CSV
         df = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
-        
+
         # Limpiar BOM si existe en los nombres de las columnas
-        df.columns = [c.lstrip('\ufeff') for c in df.columns]
+        df.columns = [c.lstrip("\ufeff") for c in df.columns]
 
         # [CORRECCIÓN] Filtrar líneas vacías o nulas de ORDER_ antes de procesar
         df = df.filter(
-            (pl.col("ORDER_").is_not_null()) & 
-            (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() != "")
+            (pl.col("ORDER_").is_not_null())
+            & (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() != "")
         )
 
-        required_columns = ["ORDER_", "DESPATCH_", "CUSTOMER_NAME", "PICK_LIST_PRINTED_TIME", "Time_Zone_Hours"]
+        required_columns = [
+            "ORDER_",
+            "DESPATCH_",
+            "CUSTOMER_NAME",
+            "PICK_LIST_PRINTED_TIME",
+            "Time_Zone_Hours",
+        ]
         if not all(col in df.columns for col in required_columns):
             # Verificar si existe al menos CUSTOMER o CUSTOMER_CODE
             if "CUSTOMER" not in df.columns and "CUSTOMER_CODE" not in df.columns:
-                raise HTTPException(status_code=500, detail="El archivo CSV no tiene las columnas esperadas.")
+                raise HTTPException(
+                    status_code=500,
+                    detail="El archivo CSV no tiene las columnas esperadas.",
+                )
 
         # Identificar columna de cliente
         customer_col = "CUSTOMER" if "CUSTOMER" in df.columns else "CUSTOMER_CODE"
 
         # Limpiar datos clave antes de agrupar
-        df = df.with_columns([
-            pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
-            pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
-            pl.col(customer_col).cast(pl.Utf8).fill_null(""),
-            pl.col("CUSTOMER_NAME").cast(pl.Utf8).fill_null(""),
-            pl.col("PICK_LIST_PRINTED_TIME").cast(pl.Utf8).str.strip_chars().fill_null(""),
-            pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars().fill_null("")
-        ])
+        df = df.with_columns(
+            [
+                pl.col("ORDER_").cast(pl.Utf8).str.strip_chars(),
+                pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars(),
+                pl.col(customer_col).cast(pl.Utf8).fill_null(""),
+                pl.col("CUSTOMER_NAME").cast(pl.Utf8).fill_null(""),
+                pl.col("PICK_LIST_PRINTED_TIME")
+                .cast(pl.Utf8)
+                .str.strip_chars()
+                .fill_null(""),
+                pl.col("Time_Zone_Hours").cast(pl.Utf8).str.strip_chars().fill_null(""),
+            ]
+        )
 
         # Agrupar por ORDER_ y DESPATCH_ para contar líneas y conservar hora local de impresión
-        grouped = df.group_by(["ORDER_", "DESPATCH_", customer_col, "CUSTOMER_NAME"]).agg([
-            pl.col("ORDER_").len().alias("total_lines"),
-            pl.col("PICK_LIST_PRINTED_TIME").filter(pl.col("PICK_LIST_PRINTED_TIME") != "").first().alias("print_time"),
-            pl.col("Time_Zone_Hours").filter(pl.col("Time_Zone_Hours") != "").first().alias("time_zone")
-        ])
+        grouped = df.group_by(
+            ["ORDER_", "DESPATCH_", customer_col, "CUSTOMER_NAME"]
+        ).agg(
+            [
+                pl.col("ORDER_").len().alias("total_lines"),
+                pl.col("PICK_LIST_PRINTED_TIME")
+                .filter(pl.col("PICK_LIST_PRINTED_TIME") != "")
+                .first()
+                .alias("print_time"),
+                pl.col("Time_Zone_Hours")
+                .filter(pl.col("Time_Zone_Hours") != "")
+                .first()
+                .alias("time_zone"),
+            ]
+        )
 
         def format_local_print_time(raw_time: str, tz_value: str) -> str:
             """Devuelve la hora local del CSV formateada; si no existe, devuelve vacío."""
-            if raw_time is None or str(raw_time).strip() == "" or str(raw_time).lower() == "none":
-                return "" # No mostrar fecha si no hay dato en el CSV
+            if (
+                raw_time is None
+                or str(raw_time).strip() == ""
+                or str(raw_time).lower() == "none"
+            ):
+                return ""  # No mostrar fecha si no hay dato en el CSV
 
             raw_time_str = str(raw_time).strip()
             # ... resto de la lógica ...
@@ -149,7 +217,7 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
                     continue
 
             if not parsed_time:
-                return raw_time_str # Devolver valor crudo para diagnóstico si falla parseo
+                return raw_time_str  # Devolver valor crudo para diagnóstico si falla parseo
 
             tzinfo = None
             tz_str = "" if tz_value is None else str(tz_value).strip()
@@ -161,7 +229,9 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
                 hours_str = parts[0]
                 minutes_str = parts[1] if len(parts) > 1 else "0"
                 try:
-                    tz_delta = datetime.timedelta(hours=int(hours_str), minutes=int(minutes_str))
+                    tz_delta = datetime.timedelta(
+                        hours=int(hours_str), minutes=int(minutes_str)
+                    )
                     tzinfo = datetime.timezone(sign * tz_delta)
                 except ValueError:
                     tzinfo = None
@@ -170,49 +240,61 @@ async def get_picking_tracking(username: str = Depends(permission_required("pick
                 parsed_time = parsed_time.replace(tzinfo=tzinfo)
 
             return parsed_time.strftime("%Y-%m-%d %H:%M")
-        
+
         # Consultar pedidos auditados en la DB
-        result = await db.execute(select(PickingAuditModel.order_number, PickingAuditModel.despatch_number))
-        audited_pairs = {(row.order_number, row.despatch_number) for row in result.all()}
+        result = await db.execute(
+            select(PickingAuditModel.order_number, PickingAuditModel.despatch_number)
+        )
+        audited_pairs = {
+            (row.order_number, row.despatch_number) for row in result.all()
+        }
 
         # Construir respuesta
         tracking_data = []
         for row in grouped.iter_rows(named=True):
             order_num = str(row["ORDER_"] or "").strip()
             despatch_num = str(row["DESPATCH_"] or "").strip()
-            
-            if not order_num: # Doble validación preventiva
+
+            if not order_num:  # Doble validación preventiva
                 continue
 
-            tracking_data.append({
-                "order_number": order_num,
-                "despatch_number": despatch_num,
-                "customer_code": str(row[customer_col] or "").strip(),
-                "customer_name": str(row["CUSTOMER_NAME"] or "").strip(),
-                "total_lines": int(row["total_lines"]),
-                "print_date": format_local_print_time(row["print_time"], row["time_zone"]),
-                "is_audited": (order_num, despatch_num) in audited_pairs
-            })
-        
+            tracking_data.append(
+                {
+                    "order_number": order_num,
+                    "despatch_number": despatch_num,
+                    "customer_code": str(row[customer_col] or "").strip(),
+                    "customer_name": str(row["CUSTOMER_NAME"] or "").strip(),
+                    "total_lines": int(row["total_lines"]),
+                    "print_date": format_local_print_time(
+                        row["print_time"], row["time_zone"]
+                    ),
+                    "is_audited": (order_num, despatch_num) in audited_pairs,
+                }
+            )
+
         return ORJSONResponse(content=tracking_data)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-
-@router.get('/picking/packing_list/{audit_id}')
-async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db), username: str = Depends(permission_required("picking"))):
+@router.get("/picking/packing_list/{audit_id}")
+async def get_packing_list_data(
+    audit_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("picking")),
+):
     """API: Obtiene datos del packing list (bultos) para impresión."""
     try:
         # Obtener la auditoría
-        result = await db.execute(select(PickingAuditModel).where(PickingAuditModel.id == audit_id))
+        result = await db.execute(
+            select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
+        )
         audit = result.scalar_one_or_none()
-        
+
         if not audit:
             raise HTTPException(status_code=404, detail="Auditoría no encontrada")
-        
+
         # Obtener los items asignados a bultos
         result = await db.execute(
             select(PickingPackageItem)
@@ -220,32 +302,37 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
             .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
         )
         package_items = result.scalars().all()
-        
+
         # Obtener los items de la auditoría para fallback de order_line
         result_audit_items = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
         )
-        audit_items = {item.item_code: item.order_line for item in result_audit_items.scalars().all()}
-        
+        audit_items = {
+            item.item_code: item.order_line
+            for item in result_audit_items.scalars().all()
+        }
+
         # Organizar por bulto
         packages = {}
         for item in package_items:
             package_num = str(item.package_number)
             if package_num not in packages:
                 packages[package_num] = []
-            
+
             # Fallback para data antigua donde order_line podía estar vacío en la tabla de bultos
             order_line = item.order_line
             if not order_line:
                 order_line = audit_items.get(item.item_code, "")
-                
-            packages[package_num].append({
-                'order_line': order_line or '',
-                'item_code': item.item_code,
-                'description': item.description,
-                'quantity': item.qty_scan
-            })
-        
+
+            packages[package_num].append(
+                {
+                    "order_line": order_line or "",
+                    "item_code": item.item_code,
+                    "description": item.description,
+                    "quantity": item.qty_scan,
+                }
+            )
+
         total_packages = int(audit.packages or 0)
 
         response = {
@@ -255,15 +342,22 @@ async def get_packing_list_data(audit_id: int, db: AsyncSession = Depends(get_db
             "customer_name": str(audit.customer_name or ""),
             "timestamp": str(audit.timestamp) if audit.timestamp else "",
             "total_packages": total_packages,
-            "packages": packages
+            "packages": packages,
         }
         return ORJSONResponse(content=response)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo packing list: {str(e)}")
 
-@router.get('/picking_audit/{audit_id}/print')
-async def get_picking_audit_for_print(audit_id: int, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error obteniendo packing list: {str(e)}"
+        )
+
+
+@router.get("/picking_audit/{audit_id}/print")
+async def get_picking_audit_for_print(
+    audit_id: int,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
     """Obtiene una auditoría de picking para impresión. Sin restricción de fecha."""
     try:
         # Obtener la auditoría
@@ -271,18 +365,19 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
             select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
         )
         audit = result.scalar_one_or_none()
-        
+
         if not audit:
             raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
-        
+
         # Obtener los items
         result = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
         )
         items = result.scalars().all()
-        
+
         # Obtener dimensiones de bultos
         from app.models.sql_models import PickingPackage
+
         result = await db.execute(
             select(PickingPackage).where(PickingPackage.audit_id == audit_id)
         )
@@ -292,7 +387,7 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
                 "length": float(pd.length or 0),
                 "width": float(pd.width or 0),
                 "height": float(pd.height or 0),
-                "weight": float(pd.weight or 0)
+                "weight": float(pd.weight or 0),
             }
             for pd in result.scalars().all()
         ]
@@ -310,24 +405,28 @@ async def get_picking_audit_for_print(audit_id: int, username: str = Depends(per
                 {
                     "code": item.item_code,
                     "description": item.description,
-                    "order_line": item.order_line if item.order_line else '',
+                    "order_line": item.order_line if item.order_line else "",
                     "qty_req": item.qty_req,
                     "qty_scan": item.qty_scan,
-                    "edited": item.edited if item.edited else 0
+                    "edited": item.edited if item.edited else 0,
                 }
                 for item in items
-            ]
+            ],
         }
-        
+
         return ORJSONResponse(content=response)
-        
+
     except Exception as e:
         print(f"Database error in get_picking_audit_for_print: {e}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
-@router.get('/picking_audit/{audit_id}')
-async def get_picking_audit(audit_id: int, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
+@router.get("/picking_audit/{audit_id}")
+async def get_picking_audit(
+    audit_id: int,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
     """Obtiene una auditoría de picking para edición. Solo permite editar auditorías del mismo día."""
     try:
         # Obtener la auditoría
@@ -335,33 +434,34 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
             select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
         )
         audit = result.scalar_one_or_none()
-        
+
         if not audit:
             raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
-        
+
         # Verificar que sea del mismo día
         audit_date = datetime.datetime.fromisoformat(audit.timestamp).date()
         today = datetime.datetime.now().date()
-        
+
         if audit_date != today:
             raise HTTPException(
-                status_code=403, 
-                detail="Solo se pueden editar auditorías del mismo día."
+                status_code=403,
+                detail="Solo se pueden editar auditorías del mismo día.",
             )
-        
+
         # Obtener los items
         result = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
         )
         items = result.scalars().all()
-        
+
         # Obtener asignación de bultos
         from app.models.sql_models import PickingPackageItem
+
         result = await db.execute(
             select(PickingPackageItem).where(PickingPackageItem.audit_id == audit_id)
         )
         package_items = result.scalars().all()
-        
+
         packages_assignment = {}
         for pi in package_items:
             order_line = pi.order_line
@@ -376,6 +476,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
 
         # Obtener dimensiones de bultos
         from app.models.sql_models import PickingPackage
+
         result = await db.execute(
             select(PickingPackage).where(PickingPackage.audit_id == audit_id)
         )
@@ -385,7 +486,7 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
                 "length": float(pd.length or 0),
                 "width": float(pd.width or 0),
                 "height": float(pd.height or 0),
-                "weight": float(pd.weight or 0)
+                "weight": float(pd.weight or 0),
             }
             for pd in result.scalars().all()
         ]
@@ -407,21 +508,26 @@ async def get_picking_audit(audit_id: int, username: str = Depends(permission_re
                     "order_line": item.order_line,
                     "qty_req": item.qty_req,
                     "qty_scan": item.qty_scan,
-                    "edited": item.edited if item.edited else 0
+                    "edited": item.edited if item.edited else 0,
                 }
                 for item in items
-            ]
+            ],
         }
-        
+
         return ORJSONResponse(content=response)
-        
+
     except Exception as e:
         print(f"Database error in get_picking_audit: {e}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
-@router.put('/update_picking_audit/{audit_id}')
-async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
+@router.put("/update_picking_audit/{audit_id}")
+async def update_picking_audit(
+    audit_id: int,
+    audit_data: PickingAudit,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
     """Actualiza una auditoría de picking existente. Solo permite editar auditorías del mismo día."""
     try:
         # Verificar que la auditoría existe y es del mismo día
@@ -429,63 +535,73 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
             select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
         )
         existing_audit = result.scalar_one_or_none()
-        
+
         if not existing_audit:
             raise HTTPException(status_code=404, detail="Auditoría no encontrada.")
-        
+
         audit_date = datetime.datetime.fromisoformat(existing_audit.timestamp).date()
         today = datetime.datetime.now().date()
-        
+
         if audit_date != today:
             raise HTTPException(
                 status_code=403,
-                detail="Solo se pueden editar auditorías del mismo día."
+                detail="Solo se pueden editar auditorías del mismo día.",
             )
-        
+
         # Obtener items anteriores para comparar
         result = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit_id)
         )
-        old_items = {f"{item.item_code}:{item.order_line}": item for item in result.scalars().all()}
-        
+        old_items = {
+            f"{item.item_code}:{item.order_line}": item
+            for item in result.scalars().all()
+        }
+
         # Recalcular status según nuevas diferencias
-        differences_exist = any(item.qty_scan != item.qty_req for item in audit_data.items)
-        new_status = 'Con Diferencia' if differences_exist else 'Completo'
-        
+        differences_exist = any(
+            item.qty_scan != item.qty_req for item in audit_data.items
+        )
+        new_status = "Con Diferencia" if differences_exist else "Completo"
+
         # Actualizar auditoría principal
-        existing_audit.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+        existing_audit.timestamp = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat(timespec="seconds")
         existing_audit.status = new_status
         existing_audit.customer_code = audit_data.customer_code
         existing_audit.packages = audit_data.packages if audit_data.packages else 0
-        
+
         # Actualizar items
         for item in audit_data.items:
             difference = item.qty_scan - item.qty_req
             key = f"{item.code}:{item.order_line or ''}"
             old_item = old_items.get(key)
-            
+
             # Buscar el item en la base de datos de manera única usando audit_id, item_code y order_line
             result = await db.execute(
                 select(PickingAuditItem).where(
                     and_(
-                        PickingAuditItem.audit_id == audit_id, 
+                        PickingAuditItem.audit_id == audit_id,
                         PickingAuditItem.item_code == item.code,
-                        PickingAuditItem.order_line == (item.order_line or '')
+                        PickingAuditItem.order_line == (item.order_line or ""),
                     )
                 )
             )
             db_item = result.scalar_one_or_none()
-            
+
             if db_item:
                 # Marcar como editado si cambió qty_scan
                 db_item.qty_scan = item.qty_scan
                 db_item.difference = difference
-                db_item.edited = 1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
-        
+                db_item.edited = (
+                    1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
+                )
+
         # [NUEVO] Actualizar dimensiones de bultos
         if audit_data.packages_dimensions is not None:
             from app.models.sql_models import PickingPackage
             from sqlalchemy import delete
+
             await db.execute(
                 delete(PickingPackage).where(PickingPackage.audit_id == audit_id)
             )
@@ -496,7 +612,7 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                     length=dim.length,
                     width=dim.width,
                     height=dim.height,
-                    weight=dim.weight
+                    weight=dim.weight,
                 )
                 db.add(new_pkg_dim)
 
@@ -505,10 +621,13 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
             # Primero eliminar asignaciones previas
             from app.models.sql_models import PickingPackageItem
             from sqlalchemy import delete
+
             await db.execute(
-                delete(PickingPackageItem).where(PickingPackageItem.audit_id == audit_id)
+                delete(PickingPackageItem).where(
+                    PickingPackageItem.audit_id == audit_id
+                )
             )
-            
+
             for key, assignments in audit_data.packages_assignment.items():
                 if ":" in key:
                     parts = key.split(":", 1)
@@ -517,16 +636,18 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                 else:
                     item_code = key
                     order_line = ""
-                
+
                 # Buscar descripción
                 item_desc = ""
                 for i in audit_data.items:
                     match_code = i.code == item_code
-                    match_line = True if not order_line else (i.order_line == order_line)
+                    match_line = (
+                        True if not order_line else (i.order_line == order_line)
+                    )
                     if match_code and match_line:
                         item_desc = i.description
                         break
-                
+
                 for pkg_num, qty in assignments.items():
                     if qty > 0:
                         new_pkg_item = PickingPackageItem(
@@ -535,64 +656,102 @@ async def update_picking_audit(audit_id: int, audit_data: PickingAudit, username
                             item_code=item_code,
                             description=item_desc,
                             order_line=order_line,
-                            qty_scan=qty
+                            qty_scan=qty,
                         )
                         db.add(new_pkg_item)
-        
+
         await db.commit()
-        
-        return ORJSONResponse(content={
-            "message": "Auditoría actualizada con éxito",
-            "audit_id": audit_id,
-            "status": new_status
-        })
-        
+
+        return ORJSONResponse(
+            content={
+                "message": "Auditoría actualizada con éxito",
+                "audit_id": audit_id,
+                "status": new_status,
+            }
+        )
+
     except Exception as e:
         await db.rollback()
         print(f"Database error in update_picking_audit: {e}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
 
 
-@router.post('/save_picking_audit')
-async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(permission_required("picking")), db: AsyncSession = Depends(get_db)):
+@router.post("/save_picking_audit")
+async def save_picking_audit(
+    audit_data: PickingAudit,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
     """Guarda una auditoría de picking en la base de datos."""
     try:
         # Fallback para customer_code y name si vienen vacíos
-        if not audit_data.customer_code or not audit_data.customer_name or audit_data.customer_name == "N/A":
-             try:
-                 from app.core.config import PICKING_CSV_PATH
-                 if os.path.exists(PICKING_CSV_PATH):
-                     df_lookup = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
-                     df_lookup.columns = [c.lstrip('\ufeff') for c in df_lookup.columns]
-                     # Identificar columna
-                     c_col = "CUSTOMER" if "CUSTOMER" in df_lookup.columns else ("CUSTOMER_CODE" if "CUSTOMER_CODE" in df_lookup.columns else None)
-                     
-                     match = df_lookup.filter(
-                         (pl.col("ORDER_").cast(pl.Utf8).str.strip_chars() == audit_data.order_number.strip()) &
-                         (pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars() == audit_data.despatch_number.strip())
-                     )
-                     if match.height > 0:
-                         if not audit_data.customer_code:
-                             audit_data.customer_code = str(match[0, c_col] or "").strip()
-                         if not audit_data.customer_name or audit_data.customer_name == "N/A":
-                             audit_data.customer_name = str(match[0, "CUSTOMER_NAME"] or "").strip()
-             except Exception as lookup_err:
-                 print(f"Fallback lookup failed: {lookup_err}")
+        if (
+            not audit_data.customer_code
+            or not audit_data.customer_name
+            or audit_data.customer_name == "N/A"
+        ):
+            try:
+                from app.core.config import PICKING_CSV_PATH
+
+                if os.path.exists(PICKING_CSV_PATH):
+                    df_lookup = pl.read_csv(PICKING_CSV_PATH, infer_schema_length=0)
+                    df_lookup.columns = [c.lstrip("\ufeff") for c in df_lookup.columns]
+                    # Identificar columna
+                    c_col = (
+                        "CUSTOMER"
+                        if "CUSTOMER" in df_lookup.columns
+                        else (
+                            "CUSTOMER_CODE"
+                            if "CUSTOMER_CODE" in df_lookup.columns
+                            else None
+                        )
+                    )
+
+                    match = df_lookup.filter(
+                        (
+                            pl.col("ORDER_").cast(pl.Utf8).str.strip_chars()
+                            == audit_data.order_number.strip()
+                        )
+                        & (
+                            pl.col("DESPATCH_").cast(pl.Utf8).str.strip_chars()
+                            == audit_data.despatch_number.strip()
+                        )
+                    )
+                    if match.height > 0:
+                        if not audit_data.customer_code:
+                            audit_data.customer_code = str(
+                                match[0, c_col] or ""
+                            ).strip()
+                        if (
+                            not audit_data.customer_name
+                            or audit_data.customer_name == "N/A"
+                        ):
+                            audit_data.customer_name = str(
+                                match[0, "CUSTOMER_NAME"] or ""
+                            ).strip()
+            except Exception as lookup_err:
+                print(f"Fallback lookup failed: {lookup_err}")
 
         # 1. Crear la auditoría principal
         new_audit = PickingAuditModel(
             order_number=audit_data.order_number.strip(),
             despatch_number=audit_data.despatch_number.strip(),
-            customer_code=audit_data.customer_code.strip() if audit_data.customer_code else None,
-            customer_name=audit_data.customer_name.strip() if audit_data.customer_name else "N/A",
+            customer_code=audit_data.customer_code.strip()
+            if audit_data.customer_code
+            else None,
+            customer_name=audit_data.customer_name.strip()
+            if audit_data.customer_name
+            else "N/A",
             username=username,
-            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(
+                timespec="seconds"
+            ),
             status=audit_data.status,
-            packages=audit_data.packages if audit_data.packages else 0
+            packages=audit_data.packages if audit_data.packages else 0,
         )
         db.add(new_audit)
         await db.flush()  # Para obtener el ID
-        
+
         # 2. Insertar los items de la auditoría
         for item in audit_data.items:
             difference = item.qty_scan - item.qty_req
@@ -600,17 +759,18 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
                 audit_id=new_audit.id,
                 item_code=item.code,
                 description=item.description,
-                order_line=item.order_line if hasattr(item, 'order_line') else '',
+                order_line=item.order_line if hasattr(item, "order_line") else "",
                 qty_req=item.qty_req,
                 qty_scan=item.qty_scan,
                 difference=difference,
-                edited=0  # edited = 0 para nuevas auditorías
+                edited=0,  # edited = 0 para nuevas auditorías
             )
             db.add(new_item)
-        
+
         # 3. [NUEVO] Insertar dimensiones de bultos
         if audit_data.packages_dimensions:
             from app.models.sql_models import PickingPackage
+
             for dim in audit_data.packages_dimensions:
                 new_pkg_dim = PickingPackage(
                     audit_id=new_audit.id,
@@ -618,10 +778,10 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
                     length=dim.length,
                     width=dim.width,
                     height=dim.height,
-                    weight=dim.weight
+                    weight=dim.weight,
                 )
                 db.add(new_pkg_dim)
-        
+
         # 4. [NUEVO] Insertar asignación de bultos
         if audit_data.packages_assignment:
             # Ahora la llave puede ser "item_code" o "item_code:order_line"
@@ -630,16 +790,18 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
                     item_code, order_line = key.split(":", 1)
                 else:
                     item_code, order_line = key, ""
-                
+
                 # Buscar descripción del item en los items principales (ahora considerando line_number si existe)
                 item_desc = ""
                 for i in audit_data.items:
                     match_code = i.code == item_code
-                    match_line = True if not order_line else (i.order_line == order_line)
+                    match_line = (
+                        True if not order_line else (i.order_line == order_line)
+                    )
                     if match_code and match_line:
                         item_desc = i.description
                         break
-                
+
                 for pkg_num, qty in assignments.items():
                     if qty > 0:
                         new_pkg_item = PickingPackageItem(
@@ -648,13 +810,19 @@ async def save_picking_audit(audit_data: PickingAudit, username: str = Depends(p
                             item_code=item_code,
                             description=item_desc,
                             order_line=order_line,
-                            qty_scan=qty
+                            qty_scan=qty,
                         )
                         db.add(new_pkg_item)
 
         await db.commit()
-        
-        return ORJSONResponse(content={"message": "Auditoría de picking guardada con éxito", "audit_id": new_audit.id}, status_code=201)
+
+        return ORJSONResponse(
+            content={
+                "message": "Auditoría de picking guardada con éxito",
+                "audit_id": new_audit.id,
+            },
+            status_code=201,
+        )
 
     except Exception as e:
         await db.rollback()

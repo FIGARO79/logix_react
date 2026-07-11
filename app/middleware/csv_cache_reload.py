@@ -2,6 +2,7 @@
 Middleware para recargar caches CSV automáticamente cuando los archivos cambian.
 Garantiza que todos los workers de Granian detecten cambios en CSV.
 """
+
 import time
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware

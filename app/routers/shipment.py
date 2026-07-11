@@ -2,8 +2,8 @@
 Router para endpoints de envíos consolidados (Shipments).
 Permite agrupar múltiples auditorías de picking en un solo envío.
 """
+
 import datetime
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.responses import ORJSONResponse
 from sqlalchemy import select
@@ -11,9 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.sql_models import (
-    Shipment, ShipmentAudit,
+    Shipment,
+    ShipmentAudit,
     PickingAudit as PickingAuditModel,
-    PickingPackageItem, PickingAuditItem
+    PickingPackageItem,
+    PickingAuditItem,
 )
 from app.models.schemas import ShipmentCreate
 from app.utils.auth import permission_required
@@ -26,11 +28,13 @@ router = APIRouter(prefix="/api/shipments", tags=["shipments"])
 async def create_shipment(
     data: ShipmentCreate,
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Crear un envío consolidado a partir de una lista de audit_ids."""
     if not data.audit_ids:
-        raise HTTPException(status_code=400, detail="Debe seleccionar al menos una auditoría")
+        raise HTTPException(
+            status_code=400, detail="Debe seleccionar al menos una auditoría"
+        )
 
     # Verificar que todas las auditorías existen
     result = await db.execute(
@@ -39,14 +43,16 @@ async def create_shipment(
     audits = result.scalars().all()
 
     if len(audits) != len(data.audit_ids):
-        raise HTTPException(status_code=404, detail="Una o más auditorías no fueron encontradas")
+        raise HTTPException(
+            status_code=404, detail="Una o más auditorías no fueron encontradas"
+        )
 
     # Crear el envío
     shipment = Shipment(
         username=username,
         note=data.note,
         carrier=data.carrier,
-        created_at=datetime.datetime.now(datetime.timezone.utc).isoformat()
+        created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
     )
     db.add(shipment)
     await db.flush()  # Para obtener el ID
@@ -58,13 +64,16 @@ async def create_shipment(
 
     await db.commit()
 
-    return {"id": shipment.id, "message": f"Envío #{shipment.id} creado con {len(data.audit_ids)} pedido(s)"}
+    return {
+        "id": shipment.id,
+        "message": f"Envío #{shipment.id} creado con {len(data.audit_ids)} pedido(s)",
+    }
 
 
 @router.get("/")
 async def list_shipments(
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Listar todos los envíos con resumen de pedidos."""
     result = await db.execute(
@@ -80,25 +89,29 @@ async def list_shipments(
         audits_info = []
         for link in s.audit_links:
             audit = link.audit
-            audits_info.append({
-                "audit_id": audit.id,
-                "order_number": audit.order_number,
-                "despatch_number": audit.despatch_number,
-                "customer_code": str(audit.customer_code or "").strip(),
-                "customer_name": str(audit.customer_name or "N/A").strip(),
-                "packages": audit.packages or 0
-            })
+            audits_info.append(
+                {
+                    "audit_id": audit.id,
+                    "order_number": audit.order_number,
+                    "despatch_number": audit.despatch_number,
+                    "customer_code": str(audit.customer_code or "").strip(),
+                    "customer_name": str(audit.customer_name or "N/A").strip(),
+                    "packages": audit.packages or 0,
+                }
+            )
 
-        response.append({
-            "id": s.id,
-            "created_at": s.created_at,
-            "username": s.username,
-            "note": s.note or "",
-            "carrier": s.carrier or "",
-            "status": s.status,
-            "total_orders": len(audits_info),
-            "audits": audits_info
-        })
+        response.append(
+            {
+                "id": s.id,
+                "created_at": s.created_at,
+                "username": s.username,
+                "note": s.note or "",
+                "carrier": s.carrier or "",
+                "status": s.status,
+                "total_orders": len(audits_info),
+                "audits": audits_info,
+            }
+        )
 
     return response
 
@@ -107,7 +120,7 @@ async def list_shipments(
 async def get_shipment(
     shipment_id: int,
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Obtener detalle de un envío."""
     result = await db.execute(
@@ -123,14 +136,16 @@ async def get_shipment(
     audits_info = []
     for link in shipment.audit_links:
         audit = link.audit
-        audits_info.append({
-            "audit_id": audit.id,
-            "order_number": audit.order_number,
-            "despatch_number": audit.despatch_number,
-            "customer_code": str(audit.customer_code or "").strip(),
-            "customer_name": str(audit.customer_name or "N/A").strip(),
-            "packages": audit.packages or 0
-        })
+        audits_info.append(
+            {
+                "audit_id": audit.id,
+                "order_number": audit.order_number,
+                "despatch_number": audit.despatch_number,
+                "customer_code": str(audit.customer_code or "").strip(),
+                "customer_name": str(audit.customer_name or "N/A").strip(),
+                "packages": audit.packages or 0,
+            }
+        )
 
     return {
         "id": shipment.id,
@@ -139,7 +154,7 @@ async def get_shipment(
         "note": shipment.note or "",
         "carrier": shipment.carrier or "",
         "status": shipment.status,
-        "audits": audits_info
+        "audits": audits_info,
     }
 
 
@@ -147,7 +162,7 @@ async def get_shipment(
 async def get_consolidated_packing_list(
     shipment_id: int,
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Obtener datos del packing list consolidado, separado por pedido."""
     # Cargar envío con auditorías
@@ -172,7 +187,10 @@ async def get_consolidated_packing_list(
         audit_items_result = await db.execute(
             select(PickingAuditItem).where(PickingAuditItem.audit_id == audit.id)
         )
-        audit_items_map = {item.item_code: item.order_line for item in audit_items_result.scalars().all()}
+        audit_items_map = {
+            item.item_code: item.order_line
+            for item in audit_items_result.scalars().all()
+        }
 
         # Obtener items por bulto para esta auditoría
         pkg_result = await db.execute(
@@ -188,45 +206,51 @@ async def get_consolidated_packing_list(
             pkg_num = str(item.package_number)
             if pkg_num not in packages:
                 packages[pkg_num] = []
-                
+
             # Fallback para data antigua donde order_line podía estar vacío
             order_line = item.order_line
             if not order_line:
                 order_line = audit_items_map.get(item.item_code, "")
-                
-            packages[pkg_num].append({
-                "order_line": order_line or "",
-                "item_code": item.item_code,
-                "description": item.description or "",
-                "quantity": item.qty_scan
-            })
 
-        orders.append({
-            "audit_id": audit.id,
-            "order_number": str(audit.order_number or ""),
-            "despatch_number": str(audit.despatch_number or ""),
-            "customer_code": str(audit.customer_code or "").strip(),
-            "customer_name": str(audit.customer_name or "N/A").strip(),
-            "timestamp": str(audit.timestamp) if audit.timestamp else "",
-            "total_packages": int(audit.packages or 0),
-            "packages": packages
-        })
+            packages[pkg_num].append(
+                {
+                    "order_line": order_line or "",
+                    "item_code": item.item_code,
+                    "description": item.description or "",
+                    "quantity": item.qty_scan,
+                }
+            )
 
-    return ORJSONResponse(content={
-        "shipment_id": shipment.id,
-        "created_at": shipment.created_at,
-        "carrier": shipment.carrier or "",
-        "note": shipment.note or "",
-        "total_orders": len(orders),
-        "orders": orders
-    })
+        orders.append(
+            {
+                "audit_id": audit.id,
+                "order_number": str(audit.order_number or ""),
+                "despatch_number": str(audit.despatch_number or ""),
+                "customer_code": str(audit.customer_code or "").strip(),
+                "customer_name": str(audit.customer_name or "N/A").strip(),
+                "timestamp": str(audit.timestamp) if audit.timestamp else "",
+                "total_packages": int(audit.packages or 0),
+                "packages": packages,
+            }
+        )
+
+    return ORJSONResponse(
+        content={
+            "shipment_id": shipment.id,
+            "created_at": shipment.created_at,
+            "carrier": shipment.carrier or "",
+            "note": shipment.note or "",
+            "total_orders": len(orders),
+            "orders": orders,
+        }
+    )
 
 
 @router.get("/{shipment_id}/print")
 async def get_shipment_print_data(
     shipment_id: int,
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Alias para packing_list para mantener consistencia con otros módulos."""
     return await get_consolidated_packing_list(shipment_id, username, db)
@@ -236,12 +260,10 @@ async def get_shipment_print_data(
 async def cancel_shipment(
     shipment_id: int,
     username: str = Depends(permission_required("picking")),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Cancelar (soft-delete) un envío."""
-    result = await db.execute(
-        select(Shipment).where(Shipment.id == shipment_id)
-    )
+    result = await db.execute(select(Shipment).where(Shipment.id == shipment_id))
     shipment = result.scalars().first()
 
     if not shipment:

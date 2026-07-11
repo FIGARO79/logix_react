@@ -5,74 +5,99 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Configuración de Rutas ---
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Sube dos niveles (app/core -> project root)
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)  # Sube dos niveles (app/core -> project root)
 
-DATABASE_FOLDER = os.path.join(PROJECT_ROOT, 'databases')
-ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0250.csv')
-RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSLAMP0006.csv')
-GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0280.csv')
-PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, 'AURRSGLBD0240.csv')
-GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'GRN.xlsx')
-PO_EXTRACTOR_EXCEL_PATH = os.path.join(DATABASE_FOLDER, 'Purchase Order Extractor.xlsx')
+DATABASE_FOLDER = os.path.join(PROJECT_ROOT, "databases")
+ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0250.csv")
+RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSLAMP0006.csv")
+GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0280.csv")
+PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0240.csv")
+GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, "GRN.xlsx")
+PO_EXTRACTOR_EXCEL_PATH = os.path.join(DATABASE_FOLDER, "Purchase Order Extractor.xlsx")
 
 # --- Rutas de Archivos JSON (Centralizadas en static/json) ---
-JSON_FOLDER = os.path.join(PROJECT_ROOT, 'static', 'json')
+JSON_FOLDER = os.path.join(PROJECT_ROOT, "static", "json")
 os.makedirs(JSON_FOLDER, exist_ok=True)
 
 
-GRN_JSON_DATA_PATH = os.path.join(JSON_FOLDER, 'grn_master_data.json')
-PO_LOOKUP_JSON_PATH = os.path.join(JSON_FOLDER, 'po_lookup.json')
-PLANNER_CONFIG_PATH = os.path.join(JSON_FOLDER, 'planner_config.json')
-PLANNER_DATA_PATH = os.path.join(JSON_FOLDER, 'planner_data.json')
-SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, 'slotting_parameters.json')
-RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, 'reservation_cache.json')
-INBOUND_ALERTS_JSON_PATH = os.path.join(JSON_FOLDER, 'inbound_audit_alerts.json')
+GRN_JSON_DATA_PATH = os.path.join(JSON_FOLDER, "grn_master_data.json")
+PO_LOOKUP_JSON_PATH = os.path.join(JSON_FOLDER, "po_lookup.json")
+PLANNER_CONFIG_PATH = os.path.join(JSON_FOLDER, "planner_config.json")
+PLANNER_DATA_PATH = os.path.join(JSON_FOLDER, "planner_data.json")
+SLOTTING_PARAMS_PATH = os.path.join(JSON_FOLDER, "slotting_parameters.json")
+RESERVATION_JSON_PATH = os.path.join(JSON_FOLDER, "reservation_cache.json")
+INBOUND_ALERTS_JSON_PATH = os.path.join(JSON_FOLDER, "inbound_audit_alerts.json")
 
 # --- Carpeta Instance para datos de aplicación ---
-INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, 'instance')
+INSTANCE_FOLDER = os.path.join(PROJECT_ROOT, "instance")
 
 
 # --- Configuración de la Base de Datos ---
 # Detectar entorno: 'development' usa SQLite, 'production' usa MySQL
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'production').lower()
-DB_TYPE = os.getenv('DB_TYPE', 'sqlite' if ENVIRONMENT == 'development' else 'mysql')
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production").lower()
+DB_TYPE = os.getenv("DB_TYPE", "sqlite" if ENVIRONMENT == "development" else "mysql")
 
-if DB_TYPE == 'sqlite':
+if DB_TYPE == "sqlite":
     # Configuración para SQLite (Desarrollo Local / Portable)
     os.makedirs(INSTANCE_FOLDER, exist_ok=True)
-    DB_PATH = os.path.join(INSTANCE_FOLDER, 'logix_dev.db')
+    DB_PATH = os.path.join(INSTANCE_FOLDER, "logix_dev.db")
     ASYNC_DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
     print(f"Modo de Base de Datos: SQLite (Local) -> {DB_PATH}")
 else:
     # Configuración para MySQL (Producción o Local)
-    DB_USER = os.getenv('DB_USER', 'root')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = os.getenv('DB_PORT', '3306')
-    DB_NAME = os.getenv('DB_NAME', 'logix_db')
-    
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "3306")
+    DB_NAME = os.getenv("DB_NAME", "logix_db")
+
     # URL de conexión asíncrona para MySQL
-    ASYNC_DB_URL = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    
-    env_label = "🌐 [PRODUCCIÓN]" if ENVIRONMENT == 'production' else "💻 [DESARROLLO]"
+    ASYNC_DB_URL = (
+        f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
+
+    env_label = "🌐 [PRODUCCIÓN]" if ENVIRONMENT == "production" else "💻 [DESARROLLO]"
     print(f"{env_label} Base de Datos: MySQL")
     print(f"   Servidor: {DB_HOST}:{DB_PORT}")
     print(f"   Base de Datos: {DB_NAME}")
 
 # --- Configuración de Columnas CSV ---
 COLUMNS_TO_READ_MASTER = [
-    'Item_Code', 'Item_Description', 'ABC_Code_stockroom', 'Physical_Qty','Frozen_Qty','Weight_per_Unit',
-    'Bin_1', 'Aditional_Bin_Location','SupersededBy', 'SIC_Code_stockroom', 'Date_Last_Received',
-    'Stockroom', 'Item_Type', 'Item_Class', 'Item_Group_Major', 'SIC_Code_Company', 'Cost_per_Unit'
+    "Item_Code",
+    "Item_Description",
+    "ABC_Code_stockroom",
+    "Physical_Qty",
+    "Frozen_Qty",
+    "Weight_per_Unit",
+    "Bin_1",
+    "Aditional_Bin_Location",
+    "SupersededBy",
+    "SIC_Code_stockroom",
+    "Date_Last_Received",
+    "Stockroom",
+    "Item_Type",
+    "Item_Class",
+    "Item_Group_Major",
+    "SIC_Code_Company",
+    "Cost_per_Unit",
 ]
-GRN_COLUMN_NAME_IN_CSV = 'GRN_Number'
-COLUMNS_TO_READ_GRN = [GRN_COLUMN_NAME_IN_CSV, 'Item_Code', 'Quantity', 'Item_Description', 'Order_Number', 'Order_Line']
+GRN_COLUMN_NAME_IN_CSV = "GRN_Number"
+COLUMNS_TO_READ_GRN = [
+    GRN_COLUMN_NAME_IN_CSV,
+    "Item_Code",
+    "Quantity",
+    "Item_Description",
+    "Order_Number",
+    "Order_Line",
+]
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 # Cargar desde variables de entorno (OBLIGATORIAS)
-SECRET_KEY = os.getenv('SECRET_KEY')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-INTEGRATION_API_KEY = os.getenv('INTEGRATION_API_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+INTEGRATION_API_KEY = os.getenv("INTEGRATION_API_KEY")
 
 # Validar que las variables críticas estén configuradas
 if not INTEGRATION_API_KEY:

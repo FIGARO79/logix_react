@@ -4,47 +4,67 @@ from app.core.db import Base
 from typing import Optional
 import datetime
 
+
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True, autoincrement=True
+    )
+    username: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_approved: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     permissions: Mapped[Optional[str]] = mapped_column(String(500), default="")
 
-    reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+    reset_tokens = relationship(
+        "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
             "id": self.id,
             "username": self.username,
             "is_approved": self.is_approved,
-            "permissions": self.permissions
+            "permissions": self.permissions,
         }
+
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    token: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True, autoincrement=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False
+    )
+    token: Mapped[str] = mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
     expires_at: Mapped[str] = mapped_column(String(50), nullable=False)
     used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[str] = mapped_column(String(50), nullable=False)
 
     user = relationship("User", back_populates="reset_tokens")
 
+
 # --- Modelos de Aplicación (Legacy Schema) ---
+
 
 class Log(Base):
     __tablename__ = "logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
-    importReference: Mapped[str] = mapped_column(String(100), nullable=False, default='')
+    importReference: Mapped[str] = mapped_column(
+        String(100), nullable=False, default=""
+    )
     waybill: Mapped[Optional[str]] = mapped_column(String(100))
-    itemCode: Mapped[Optional[str]] = mapped_column(String(100)) # Index exists in raw SQL: idx_importReference_itemCode
+    itemCode: Mapped[Optional[str]] = mapped_column(
+        String(100)
+    )  # Index exists in raw SQL: idx_importReference_itemCode
     itemDescription: Mapped[Optional[str]] = mapped_column(String(255))
     binLocation: Mapped[Optional[str]] = mapped_column(String(100))
     relocatedBin: Mapped[Optional[str]] = mapped_column(String(100))
@@ -52,14 +72,18 @@ class Log(Base):
     qtyGrn: Mapped[Optional[int]] = mapped_column(Integer)
     difference: Mapped[Optional[int]] = mapped_column(Integer)
     username: Mapped[Optional[str]] = mapped_column(String(100))
-    client_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    client_id: Mapped[Optional[str]] = mapped_column(
+        String(100), unique=True, index=True, nullable=True
+    )
     archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
 
 class AppState(Base):
     __tablename__ = "app_state"
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[Optional[str]] = mapped_column(String(255))
+
 
 class CountSession(Base):
     __tablename__ = "count_sessions"
@@ -68,24 +92,34 @@ class CountSession(Base):
     user_username: Mapped[str] = mapped_column(String(100), nullable=False)
     start_time: Mapped[str] = mapped_column(String(50), nullable=False)
     end_time: Mapped[Optional[str]] = mapped_column(String(50))
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default='in_progress')
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="in_progress"
+    )
     inventory_stage: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
-    locations = relationship("SessionLocation", back_populates="session", cascade="all, delete-orphan")
-    counts = relationship("StockCount", back_populates="session", cascade="all, delete-orphan")
+    locations = relationship(
+        "SessionLocation", back_populates="session", cascade="all, delete-orphan"
+    )
+    counts = relationship(
+        "StockCount", back_populates="session", cascade="all, delete-orphan"
+    )
+
 
 class SessionLocation(Base):
     __tablename__ = "session_locations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("count_sessions.id"), nullable=False)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("count_sessions.id"), nullable=False
+    )
     location_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default='open')
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
     closed_at: Mapped[Optional[str]] = mapped_column(String(50))
     # Columna detectada en DB pero no en init_db original
     count_stage: Mapped[Optional[int]] = mapped_column(Integer)
 
     session = relationship("CountSession", back_populates="locations")
+
 
 class RecountList(Base):
     __tablename__ = "recount_list"
@@ -93,14 +127,17 @@ class RecountList(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
     stage_to_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default='pending')
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     # Index idx_recount_item_stage exists in raw SQL
+
 
 class StockCount(Base):
     __tablename__ = "stock_counts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("count_sessions.id"), nullable=False, index=True)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("count_sessions.id"), nullable=False, index=True
+    )
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
     item_description: Mapped[Optional[str]] = mapped_column(String(255))
@@ -111,6 +148,7 @@ class StockCount(Base):
 
     session = relationship("CountSession", back_populates="counts")
 
+
 class CycleCount(Base):
     __tablename__ = "cycle_counts"
 
@@ -118,7 +156,10 @@ class CycleCount(Base):
     item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
-    count_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("stock_counts.id"))
+    count_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("stock_counts.id")
+    )
+
 
 class PickingAudit(Base):
     __tablename__ = "picking_audits"
@@ -134,16 +175,25 @@ class PickingAudit(Base):
     # Columna detectada en DB
     packages: Mapped[Optional[int]] = mapped_column(Integer, default=0)
 
-    items = relationship("PickingAuditItem", back_populates="audit", cascade="all, delete-orphan")
-    package_items = relationship("PickingPackageItem", back_populates="audit", cascade="all, delete-orphan")
-    packages_metadata = relationship("PickingPackage", back_populates="audit", cascade="all, delete-orphan")
+    items = relationship(
+        "PickingAuditItem", back_populates="audit", cascade="all, delete-orphan"
+    )
+    package_items = relationship(
+        "PickingPackageItem", back_populates="audit", cascade="all, delete-orphan"
+    )
+    packages_metadata = relationship(
+        "PickingPackage", back_populates="audit", cascade="all, delete-orphan"
+    )
     shipment_links = relationship("ShipmentAudit", back_populates="audit")
+
 
 class PickingAuditItem(Base):
     __tablename__ = "picking_audit_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    audit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("picking_audits.id"), nullable=False, index=True
+    )
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
     order_line: Mapped[Optional[str]] = mapped_column(String(50))
@@ -155,11 +205,14 @@ class PickingAuditItem(Base):
 
     audit = relationship("PickingAudit", back_populates="items")
 
+
 class PickingPackageItem(Base):
     __tablename__ = "picking_package_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    audit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("picking_audits.id"), nullable=False, index=True
+    )
     package_number: Mapped[int] = mapped_column(Integer, nullable=False)
     order_line: Mapped[Optional[str]] = mapped_column(String(50))
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -168,11 +221,14 @@ class PickingPackageItem(Base):
 
     audit = relationship("PickingAudit", back_populates="package_items")
 
+
 class PickingPackage(Base):
     __tablename__ = "picking_packages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    audit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("picking_audits.id"), nullable=False, index=True
+    )
     package_number: Mapped[int] = mapped_column(Integer, nullable=False)
     length: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
     width: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
@@ -184,26 +240,37 @@ class PickingPackage(Base):
 
 class Shipment(Base):
     """Envío consolidado que agrupa múltiples auditorías de picking."""
+
     __tablename__ = "shipments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    created_at: Mapped[str] = mapped_column(String(50), nullable=False,
-        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    created_at: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
     username: Mapped[str] = mapped_column(String(100), nullable=False)
     note: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     carrier: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
 
-    audit_links = relationship("ShipmentAudit", back_populates="shipment", cascade="all, delete-orphan")
+    audit_links = relationship(
+        "ShipmentAudit", back_populates="shipment", cascade="all, delete-orphan"
+    )
 
 
 class ShipmentAudit(Base):
     """Tabla puente: vincula un envío con una auditoría de picking."""
+
     __tablename__ = "shipment_audits"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    shipment_id: Mapped[int] = mapped_column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    audit_id: Mapped[int] = mapped_column(Integer, ForeignKey("picking_audits.id"), nullable=False, index=True)
+    shipment_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("shipments.id"), nullable=False, index=True
+    )
+    audit_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("picking_audits.id"), nullable=False, index=True
+    )
 
     shipment = relationship("Shipment", back_populates="audit_links")
     audit = relationship("PickingAudit", back_populates="shipment_links")
@@ -248,6 +315,7 @@ class MasterItem(Base):
     superseded_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     updated_at: Mapped[str] = mapped_column(String(50), nullable=True)
 
+
 class GRNMaster(Base):
     __tablename__ = "grn_master"
 
@@ -263,12 +331,18 @@ class GRNMaster(Base):
     grn3_date: Mapped[Optional[str]] = mapped_column(String(50))
     grn1_grn3: Mapped[Optional[float]] = mapped_column(Numeric(10, 5))
     ct: Mapped[Optional[str]] = mapped_column(String(50))
-    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    created_at: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
 
-class ReconciliationHistory(Base) :
-    __tablename__ = 'reconciliation_history'
+
+class ReconciliationHistory(Base):
+    __tablename__ = "reconciliation_history"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    archive_date: Mapped[str] = mapped_column(String(50), index=True) # ID del lote (timestamp ISO)
+    archive_date: Mapped[str] = mapped_column(
+        String(50), index=True
+    )  # ID del lote (timestamp ISO)
     import_reference: Mapped[str] = mapped_column(String(100))
     waybill: Mapped[str] = mapped_column(String(100))
     grn: Mapped[str] = mapped_column(String(100))
@@ -280,65 +354,93 @@ class ReconciliationHistory(Base) :
     qty_received: Mapped[int] = mapped_column(Integer)
     difference: Mapped[int] = mapped_column(Integer)
     username: Mapped[str] = mapped_column(String(100))
-    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    timestamp: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
+
 
 # --- Modelos de IA y Aprendizaje ---
 
+
 class AIItemPattern(Base):
     """Aprendizaje de IA para ítems específicos."""
+
     __tablename__ = "ai_item_patterns"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     item_code: Mapped[str] = mapped_column(String(100), index=True)
     bin_code: Mapped[str] = mapped_column(String(100))
     frequency: Mapped[int] = mapped_column(Integer, default=1)
-    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    last_updated: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
+
 
 class AICategoryPattern(Base):
     """Aprendizaje de IA para categorías (SIC Codes)."""
+
     __tablename__ = "ai_category_patterns"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     sic_code: Mapped[str] = mapped_column(String(100), index=True)
     bin_code: Mapped[str] = mapped_column(String(100))
     frequency: Mapped[int] = mapped_column(Integer, default=1)
-    last_updated: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    last_updated: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
+
 
 # --- Modelos de Configuración y Logística (Migración JSON) ---
 
+
 class BinLocation(Base):
     """Configuración física de las ubicaciones del almacén."""
+
     __tablename__ = "bin_locations"
     bin_code: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
     zone: Mapped[str] = mapped_column(String(100), index=True)
     level: Mapped[str] = mapped_column(String(50), default="0")
     aisle: Mapped[Optional[str]] = mapped_column(String(50))
-    spot: Mapped[str] = mapped_column(String(50), default="Cold") # Hot, Cold, etc.
+    spot: Mapped[str] = mapped_column(String(50), default="Cold")  # Hot, Cold, etc.
     score: Mapped[int] = mapped_column(Integer, default=0)
+
 
 class SlottingRule(Base):
     """Reglas de rotación y afinidad (Turnover mapping)."""
+
     __tablename__ = "slotting_rules"
     sic_code: Mapped[str] = mapped_column(String(50), primary_key=True, index=True)
     ideal_spot: Mapped[str] = mapped_column(String(50), default="cold")
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
+
 class SpotCheck(Base):
     """Verificaciones de saldo independientes (no afectan conteos cíclicos)."""
+
     __tablename__ = "spot_checks"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bin_location: Mapped[str] = mapped_column(String(100), index=True)
     item_code: Mapped[str] = mapped_column(String(100), index=True)
     item_description: Mapped[Optional[str]] = mapped_column(String(255))
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    timestamp: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    timestamp: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    )
     username: Mapped[str] = mapped_column(String(100))
+
 
 class InboundAlert(Base):
     """Alertas del Agente de Auditoría de Inbound."""
+
     __tablename__ = "inbound_alerts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     alert_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.datetime.now().isoformat())
+    created_at: Mapped[str] = mapped_column(
+        String(50), default=lambda: datetime.datetime.now().isoformat()
+    )
     item_code: Mapped[str] = mapped_column(String(100), index=True)
     description: Mapped[Optional[str]] = mapped_column(Text)
     import_reference: Mapped[str] = mapped_column(String(100), index=True)
@@ -368,22 +470,30 @@ class InboundAlert(Base):
             "qty_expected": self.qty_expected,
             "qty_received": self.qty_received,
             "difference": self.difference,
-            "cost_per_unit": float(self.cost_per_unit) if self.cost_per_unit is not None else 0.0,
-            "financial_impact": float(self.financial_impact) if self.financial_impact is not None else 0.0,
+            "cost_per_unit": float(self.cost_per_unit)
+            if self.cost_per_unit is not None
+            else 0.0,
+            "financial_impact": float(self.financial_impact)
+            if self.financial_impact is not None
+            else 0.0,
             "alert_type": self.alert_type,
             "status": self.status,
             "draft_claim_email": self.draft_claim_email or "",
             "notes": self.notes or "",
             "resolved_at": self.resolved_at,
-            "resolution_notes": self.resolution_notes
+            "resolution_notes": self.resolution_notes,
         }
+
 
 class IRReconciliation(Base):
     """Historial de conciliación y avance de Import References."""
+
     __tablename__ = "ir_reconciliations"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
-    import_reference: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    import_reference: Mapped[str] = mapped_column(
+        String(100), nullable=False, unique=True, index=True
+    )
     total_lines: Mapped[int] = mapped_column(Integer, nullable=False)
     completed_lines: Mapped[int] = mapped_column(Integer, nullable=False)
     started_lines: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -411,5 +521,5 @@ class IRReconciliation(Base):
             "positive_diff_lines": self.positive_diff_lines,
             "total_grns": self.total_grns,
             "completed_grns": self.completed_grns,
-            "username": self.username
+            "username": self.username,
         }

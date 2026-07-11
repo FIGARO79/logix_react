@@ -1,24 +1,20 @@
-import os
 import datetime
-import orjson
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from sqlalchemy import select, func, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import reconciliation_service
 from app.models.sql_models import ReconciliationHistory, MasterItem, InboundAlert
 
+
 async def load_alerts(db: AsyncSession) -> List[Dict[str, Any]]:
     """Carga las alertas de auditoría desde la base de datos."""
     try:
         stmt = select(InboundAlert).order_by(
-            case(
-                (InboundAlert.status == "pending", 0),
-                else_=1
-            ),
+            case((InboundAlert.status == "pending", 0), else_=1),
             InboundAlert.financial_impact.desc(),
-            InboundAlert.created_at.desc()
+            InboundAlert.created_at.desc(),
         )
         res = await db.execute(stmt)
         alerts = res.scalars().all()
@@ -26,6 +22,7 @@ async def load_alerts(db: AsyncSession) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"[AUDITOR] Error cargando alertas de base de datos: {e}")
         return []
+
 
 def generate_claim_email(row: Dict[str, Any], recurrent_count: int) -> str:
     """Genera un borrador de correo de reclamo en español."""
@@ -68,6 +65,7 @@ LOGIX - Warehouse Management System
 """
     return email_body.strip()
 
+
 def generate_surplus_email(row: Dict[str, Any]) -> str:
     """Genera un borrador de correo informando sobre mercancía sobrante."""
     import_ref = row.get("Import_Reference", "N/A")
@@ -109,7 +107,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
     Auto-resuelve alertas pendientes si la diferencia ya está conciliada (diferencia == 0).
     """
     print("[AUDITOR AGENT] Iniciando auditoría de recepciones...")
-    
+
     # 1. Obtener los cálculos de la conciliación activa
     calculations = await reconciliation_service.get_reconciliation_calculations(db)
     if not calculations:
@@ -120,7 +118,12 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             total_alerts = total_res.scalar() or 0
         except:
             total_alerts = 0
-        return {"status": "no_data", "new_alerts": 0, "auto_resolved": 0, "total_alerts": total_alerts}
+        return {
+            "status": "no_data",
+            "new_alerts": 0,
+            "auto_resolved": 0,
+            "total_alerts": total_alerts,
+        }
 
     # Cargar alertas existentes
     try:
@@ -131,13 +134,12 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         print(f"[AUDITOR AGENT] Error al cargar alertas existentes de la DB: {e}")
         db_alerts = []
 
-    existing_keys = {
-        (a.import_reference, a.item_code, a.grn) 
-        for a in db_alerts
-    }
+    existing_keys = {(a.import_reference, a.item_code, a.grn) for a in db_alerts}
 
     # Pre-cargar costos unitarios de MasterItem para cálculo de impacto financiero en bulk
-    item_codes_all = {row.get("Codigo_Item") for row in calculations if row.get("Codigo_Item")}
+    item_codes_all = {
+        row.get("Codigo_Item") for row in calculations if row.get("Codigo_Item")
+    }
     cost_map = {}
     if item_codes_all:
         try:
@@ -152,20 +154,31 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
 
     # Pre-cargar recurrencias de historial de base de datos en bulk para resolver N+1
     shortage_item_codes = {
-        row.get("Codigo_Item") for row in calculations 
-        if row.get("Diferencia", 0) < 0 and (row.get("Import_Reference", ""), row.get("Codigo_Item", ""), row.get("GRN", "")) not in existing_keys
+        row.get("Codigo_Item")
+        for row in calculations
+        if row.get("Diferencia", 0) < 0
+        and (
+            row.get("Import_Reference", ""),
+            row.get("Codigo_Item", ""),
+            row.get("GRN", ""),
+        )
+        not in existing_keys
     }
-    
+
     recurrence_map = {}
     if shortage_item_codes:
         try:
-            stmt = select(
-                ReconciliationHistory.item_code,
-                ReconciliationHistory.import_reference
-            ).where(
-                ReconciliationHistory.item_code.in_(list(shortage_item_codes)),
-                ReconciliationHistory.difference < 0
-            ).distinct()
+            stmt = (
+                select(
+                    ReconciliationHistory.item_code,
+                    ReconciliationHistory.import_reference,
+                )
+                .where(
+                    ReconciliationHistory.item_code.in_(list(shortage_item_codes)),
+                    ReconciliationHistory.difference < 0,
+                )
+                .distinct()
+            )
             res = await db.execute(stmt)
             for item, imp_ref in res.all():
                 if item not in recurrence_map:
@@ -188,7 +201,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         import_ref = row.get("Import_Reference", "")
         item_code = row.get("Codigo_Item", "")
         grn = row.get("GRN", "")
-        
+
         # A. Faltantes (valores negativos)
         if difference < 0:
             # Evitar crear una alerta si ya existe una para esta combinación
@@ -200,7 +213,10 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             financial_impact = abs(difference) * cost_per_unit
 
             # Filtro de ruido
-            if abs(difference) <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
+            if (
+                abs(difference) <= NOISE_DIFF_LIMIT
+                and financial_impact < NOISE_VALUE_LIMIT
+            ):
                 continue
 
             # Obtener recurrencia desde el mapa bulk
@@ -210,8 +226,8 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
             # Clasificar el tipo de alerta
             alert_type = "recurrent_shortage" if recurrent_count > 0 else "shortage"
             notes = (
-                f"Faltante recurrente detectado. Este ítem tiene {recurrent_count} discrepancias previas." 
-                if recurrent_count > 0 
+                f"Faltante recurrente detectado. Este ítem tiene {recurrent_count} discrepancias previas."
+                if recurrent_count > 0
                 else "Discrepancia inicial de recepción (faltante) detectada."
             )
 
@@ -237,7 +253,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
                 draft_claim_email=draft_email,
                 notes=notes,
                 resolved_at=None,
-                resolution_notes=None
+                resolution_notes=None,
             )
 
             db.add(new_alert)
@@ -280,7 +296,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
                 draft_claim_email=draft_email,
                 notes="Excedente de recepción (sobrante) detectado.",
                 resolved_at=None,
-                resolution_notes=None
+                resolution_notes=None,
             )
 
             db.add(new_alert)
@@ -295,19 +311,25 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
                     InboundAlert.import_reference == import_ref,
                     InboundAlert.item_code == item_code,
                     InboundAlert.grn == grn,
-                    InboundAlert.status == "pending"
+                    InboundAlert.status == "pending",
                 )
                 res = await db.execute(delete_stmt)
                 alerts_auto_resolved += res.rowcount
             except Exception as delete_err:
-                print(f"[AUDITOR AGENT] Error eliminando alerta conciliada: {delete_err}")
+                print(
+                    f"[AUDITOR AGENT] Error eliminando alerta conciliada: {delete_err}"
+                )
 
     # Guardar las alertas si hubo adiciones o auto-resoluciones
     if new_alerts_added > 0 or alerts_auto_resolved > 0:
         await db.commit()
-        print(f"[AUDITOR AGENT] Auditoría finalizada. Nuevas: {new_alerts_added}, Auto-resueltas: {alerts_auto_resolved}.")
+        print(
+            f"[AUDITOR AGENT] Auditoría finalizada. Nuevas: {new_alerts_added}, Auto-resueltas: {alerts_auto_resolved}."
+        )
     else:
-        print("[AUDITOR AGENT] Auditoría finalizada. No se detectaron cambios ni discrepancias nuevas.")
+        print(
+            "[AUDITOR AGENT] Auditoría finalizada. No se detectaron cambios ni discrepancias nuevas."
+        )
 
     try:
         count_stmt = select(func.count(InboundAlert.id))
@@ -320,11 +342,13 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         "status": "success",
         "new_alerts": new_alerts_added,
         "auto_resolved": alerts_auto_resolved,
-        "total_alerts": total_alerts
+        "total_alerts": total_alerts,
     }
 
 
-async def resolve_alert(db: AsyncSession, alert_id: str, status: str, resolution_notes: str) -> bool:
+async def resolve_alert(
+    db: AsyncSession, alert_id: str, status: str, resolution_notes: str
+) -> bool:
     """Resuelve o descarta una alerta de auditoría."""
     try:
         stmt = select(InboundAlert).where(InboundAlert.alert_id == alert_id)
@@ -342,12 +366,13 @@ async def resolve_alert(db: AsyncSession, alert_id: str, status: str, resolution
         return False
 
 
-async def resolve_alerts_bulk(db: AsyncSession, alert_ids: List[str], status: str, resolution_notes: str) -> int:
+async def resolve_alerts_bulk(
+    db: AsyncSession, alert_ids: List[str], status: str, resolution_notes: str
+) -> int:
     """Resuelve o descarta un conjunto de alertas de auditoría de forma masiva."""
     try:
         stmt = select(InboundAlert).where(
-            InboundAlert.alert_id.in_(alert_ids),
-            InboundAlert.status == "pending"
+            InboundAlert.alert_id.in_(alert_ids), InboundAlert.status == "pending"
         )
         res = await db.execute(stmt)
         alerts = res.scalars().all()
@@ -369,20 +394,24 @@ async def resolve_alerts_bulk(db: AsyncSession, alert_ids: List[str], status: st
 async def clear_alerts(db: AsyncSession, target: str) -> Dict[str, Any]:
     """Limpia las alertas de la base de datos de auditoría."""
     try:
-        if target == 'all':
+        if target == "all":
             delete_stmt = delete(InboundAlert)
             await db.execute(delete_stmt)
             await db.commit()
-            return {"status": "success", "message": "Todas las alertas han sido eliminadas."}
-        elif target == 'history':
+            return {
+                "status": "success",
+                "message": "Todas las alertas han sido eliminadas.",
+            }
+        elif target == "history":
             delete_stmt = delete(InboundAlert).where(InboundAlert.status != "pending")
             await db.execute(delete_stmt)
             await db.commit()
-            return {"status": "success", "message": "El historial de alertas resueltas y descartadas ha sido limpiado."}
+            return {
+                "status": "success",
+                "message": "El historial de alertas resueltas y descartadas ha sido limpiado.",
+            }
         else:
             raise ValueError("Target de limpieza no válido")
     except Exception as e:
         print(f"[AUDITOR] Error limpiando alertas: {e}")
         raise e
-
-

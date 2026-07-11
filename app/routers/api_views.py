@@ -1,18 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy import text, select, desc, distinct, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc, distinct
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.utils.auth import get_current_user, login_required
+from app.utils.auth import login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
-from app.core.config import ASYNC_DB_URL
-from app.models.sql_models import PickingAudit, PickingAuditItem, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, GRNMaster, BinLocation
+from app.models.sql_models import (
+    PickingAudit,
+    PickingPackageItem,
+    CountSession,
+    CycleCountRecording,
+    ReconciliationHistory,
+    BinLocation,
+)
 
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/views", tags=["api_views"])
+
 
 # --- Pydantic Models ---
 class MenuItem(BaseModel):
@@ -21,13 +28,15 @@ class MenuItem(BaseModel):
     text: str
     icon: str
 
+
 class UserSession(BaseModel):
     username: str
     is_admin: bool = False
 
+
 class ReconciliationRow(BaseModel):
     GRN: Any
-    Codigo_Item: str 
+    Codigo_Item: str
     Descripcion: str
     Ubicacion: str
     Reubicado: str
@@ -37,6 +46,7 @@ class ReconciliationRow(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class PickingAuditSummary(BaseModel):
     id: int
@@ -51,11 +61,13 @@ class PickingAuditSummary(BaseModel):
     packages_assignment: Optional[Dict[str, Any]] = {}
     items: List[Dict[str, Any]]
 
+
 class PickingPackageItemModel(BaseModel):
     order_line: Optional[str] = ""
     item_code: str
     description: str
     quantity: int
+
 
 class PackingListResponse(BaseModel):
     order_number: str
@@ -65,6 +77,7 @@ class PackingListResponse(BaseModel):
     timestamp: str
     total_packages: int
     packages: Dict[str, List[PickingPackageItemModel]]
+
 
 class InboundLogItem(BaseModel):
     id: int
@@ -80,63 +93,78 @@ class InboundLogItem(BaseModel):
     difference: int
     observaciones: Optional[str]
 
+
 # --- DB Engine for Pandas ---
+
 
 @router.get("/reconciliation", response_model=Dict[str, Any])
 async def get_reconciliation_data(
     request: Request,
-    archive_date: Optional[str] = None, 
+    archive_date: Optional[str] = None,
     snapshot_date: Optional[str] = None,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         # 0. Obtener lista de versiones disponibles
         archive_versions = await db_logs.get_archived_versions_db_async(db)
-        snapshot_versions_res = await db.execute(select(distinct(ReconciliationHistory.archive_date)).order_by(desc(ReconciliationHistory.archive_date)))
+        snapshot_versions_res = await db.execute(
+            select(distinct(ReconciliationHistory.archive_date)).order_by(
+                desc(ReconciliationHistory.archive_date)
+            )
+        )
         snapshot_versions = [v for v in snapshot_versions_res.scalars().all()]
 
         # 1. Si se solicita un Snapshot (Congelado)
         if snapshot_date:
-            stmt = select(ReconciliationHistory).where(ReconciliationHistory.archive_date == snapshot_date)
+            stmt = select(ReconciliationHistory).where(
+                ReconciliationHistory.archive_date == snapshot_date
+            )
             res = await db.execute(stmt)
             rows = res.scalars().all()
-            
-            result_data = [{
-                "Import_Reference": r.import_reference,
-                "Waybill": r.waybill,
-                "GRN": r.grn,
-                "Order_Line": "",
-                "Codigo_Item": r.item_code,
-                "Descripcion": r.description,
-                "Ubicacion": "",
-                "Reubicado": "",
-                "Cant_Esperada": r.qty_expected,
-                "Cant_Recibida": r.qty_received,
-                "Diferencia": r.difference
-            } for r in rows]
+
+            result_data = [
+                {
+                    "Import_Reference": r.import_reference,
+                    "Waybill": r.waybill,
+                    "GRN": r.grn,
+                    "Order_Line": "",
+                    "Codigo_Item": r.item_code,
+                    "Descripcion": r.description,
+                    "Ubicacion": "",
+                    "Reubicado": "",
+                    "Cant_Esperada": r.qty_expected,
+                    "Cant_Recibida": r.qty_received,
+                    "Diferencia": r.difference,
+                }
+                for r in rows
+            ]
 
             return {
                 "data": result_data,
                 "archive_versions": archive_versions,
                 "snapshot_versions": snapshot_versions,
-                "current_snapshot_date": snapshot_date
+                "current_snapshot_date": snapshot_date,
             }
 
         # 2. Lógica de cálculo (Tiempo real o logs archivados) usando el servicio
-        result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
-        
+        result_data = await reconciliation_service.get_reconciliation_calculations(
+            db, archive_date
+        )
+
         return {
             "data": result_data,
             "archive_versions": archive_versions,
             "snapshot_versions": snapshot_versions,
-            "current_archive_date": archive_date
+            "current_archive_date": archive_date,
         }
 
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
 
 class HistoricalReconciliationRow(BaseModel):
     id: int
@@ -155,23 +183,29 @@ class HistoricalReconciliationRow(BaseModel):
     Snapshot_Date: str
     Usuario: str
 
+
 class HistoricalReconciliationResponse(BaseModel):
     data: List[HistoricalReconciliationRow]
 
+
 @router.get("/reconciliation/history", response_model=HistoricalReconciliationResponse)
 async def get_reconciliation_history(
-    snapshot_date: Optional[str] = Query(None, description="Filtrar por lote/snapshot específico"),
+    snapshot_date: Optional[str] = Query(
+        None, description="Filtrar por lote/snapshot específico"
+    ),
     grn: Optional[str] = Query(None, description="Filtrar por número de GRN"),
     waybill: Optional[str] = Query(None, description="Filtrar por número de Waybill"),
-    import_reference: Optional[str] = Query(None, description="Filtrar por Import Reference"),
+    import_reference: Optional[str] = Query(
+        None, description="Filtrar por Import Reference"
+    ),
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ) -> dict:
     """
     Busca registros en el histórico de snapshots aplicando filtros avanzados en la base de datos.
     """
     stmt = select(ReconciliationHistory)
-    
+
     # Aplicación dinámica de filtros
     if snapshot_date:
         stmt = stmt.where(ReconciliationHistory.archive_date == snapshot_date)
@@ -180,13 +214,17 @@ async def get_reconciliation_history(
     if waybill:
         stmt = stmt.where(ReconciliationHistory.waybill.ilike(f"%{waybill.strip()}%"))
     if import_reference:
-        stmt = stmt.where(ReconciliationHistory.import_reference.ilike(f"%{import_reference.strip()}%"))
-        
+        stmt = stmt.where(
+            ReconciliationHistory.import_reference.ilike(
+                f"%{import_reference.strip()}%"
+            )
+        )
+
     stmt = stmt.order_by(desc(ReconciliationHistory.timestamp))
-    
+
     result = await db.execute(stmt)
     rows = result.scalars().all()
-    
+
     data_mapped = [
         HistoricalReconciliationRow(
             id=r.id,
@@ -203,18 +241,19 @@ async def get_reconciliation_history(
             Diferencia=r.difference,
             Timestamp=r.timestamp,
             Snapshot_Date=r.archive_date,
-            Usuario=r.username
+            Usuario=r.username,
         )
         for r in rows
     ]
-    
+
     return {"data": data_mapped}
+
 
 @router.post("/reconciliation/restore_row/{row_id}")
 async def restore_historical_reconciliation_row(
     row_id: int,
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     """
     Restaura una fila de historial (Snapshot) como un log activo de Inbound (archived_at = None).
@@ -223,18 +262,22 @@ async def restore_historical_reconciliation_row(
     stmt = select(ReconciliationHistory).where(ReconciliationHistory.id == row_id)
     res = await db.execute(stmt)
     history_row = res.scalar_one_or_none()
-    
+
     if not history_row:
         raise HTTPException(status_code=404, detail="Fila histórica no encontrada")
-        
+
     # 2. Insertar una nueva entrada en la tabla logs
     from app.models.sql_models import Log
     import datetime
-    
+
     # Obtener descripción real si está disponible
-    item_details = await csv_handler.get_item_details_from_master_csv(history_row.item_code, db=db)
+    item_details = await csv_handler.get_item_details_from_master_csv(
+        history_row.item_code, db=db
+    )
     real_desc = item_details.get("Item_Description") if item_details else None
-    desc_to_use = real_desc if real_desc and "No en" not in real_desc else history_row.description
+    desc_to_use = (
+        real_desc if real_desc and "No en" not in real_desc else history_row.description
+    )
 
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     new_log = Log(
@@ -249,53 +292,71 @@ async def restore_historical_reconciliation_row(
         qtyGrn=history_row.qty_expected,
         difference=history_row.difference,
         username=username,
-        archived_at=None  # Asegurar que esté activo
+        archived_at=None,  # Asegurar que esté activo
     )
-    
+
     try:
         db.add(new_log)
         await db.commit()
-        return {"message": "Registro de log restaurado a activo correctamente", "log_id": new_log.id}
+        return {
+            "message": "Registro de log restaurado a activo correctamente",
+            "log_id": new_log.id,
+        }
     except Exception as e:
         await db.rollback()
         print(f"Error restaurando fila histórica {row_id}: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al restaurar el registro")
+        raise HTTPException(
+            status_code=500, detail="Error interno al restaurar el registro"
+        )
+
 
 class RestoreRowsBulkRequest(BaseModel):
     row_ids: List[int]
+
 
 @router.post("/reconciliation/restore_rows_bulk")
 async def restore_historical_reconciliation_rows_bulk(
     payload: RestoreRowsBulkRequest,
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     """
     Restaura múltiples filas de historial (Snapshots) como logs activos de Inbound (archived_at = None).
     """
     if not payload.row_ids:
-        raise HTTPException(status_code=400, detail="Debe especificar al menos un row_id")
-        
+        raise HTTPException(
+            status_code=400, detail="Debe especificar al menos un row_id"
+        )
+
     # 1. Buscar las filas en la tabla de historial
-    stmt = select(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+    stmt = select(ReconciliationHistory).where(
+        ReconciliationHistory.id.in_(payload.row_ids)
+    )
     res = await db.execute(stmt)
     history_rows = res.scalars().all()
-    
+
     if not history_rows:
-        raise HTTPException(status_code=404, detail="No se encontraron las filas históricas especificadas")
-        
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontraron las filas históricas especificadas",
+        )
+
     # 2. Insertar las nuevas entradas en la tabla logs
     from app.models.sql_models import Log
     import datetime
-    
+
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     new_logs = []
     for r in history_rows:
         # Obtener descripción real si está disponible
-        item_details = await csv_handler.get_item_details_from_master_csv(r.item_code, db=db)
+        item_details = await csv_handler.get_item_details_from_master_csv(
+            r.item_code, db=db
+        )
         real_desc = item_details.get("Item_Description") if item_details else None
-        desc_to_use = real_desc if real_desc and "No en" not in real_desc else r.description
-        
+        desc_to_use = (
+            real_desc if real_desc and "No en" not in real_desc else r.description
+        )
+
         new_logs.append(
             Log(
                 timestamp=now,
@@ -309,10 +370,10 @@ async def restore_historical_reconciliation_rows_bulk(
                 qtyGrn=r.qty_expected,
                 difference=r.difference,
                 username=username,
-                archived_at=None  # Asegurar que esté activo
+                archived_at=None,  # Asegurar que esté activo
             )
         )
-    
+
     try:
         db.add_all(new_logs)
         await db.commit()
@@ -320,92 +381,120 @@ async def restore_historical_reconciliation_rows_bulk(
     except Exception as e:
         await db.rollback()
         print(f"Error restaurando filas históricas en lote: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al restaurar los registros")
+        raise HTTPException(
+            status_code=500, detail="Error interno al restaurar los registros"
+        )
 
 
 class DeleteRowsBulkRequest(BaseModel):
     row_ids: List[int]
 
+
 @router.post("/reconciliation/delete_rows_bulk")
 async def delete_historical_reconciliation_rows_bulk(
     payload: DeleteRowsBulkRequest,
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     """
     Elimina físicamente múltiples filas de historial (Snapshots) de la base de datos.
     """
     if not payload.row_ids:
-        raise HTTPException(status_code=400, detail="Debe especificar al menos un row_id")
-        
+        raise HTTPException(
+            status_code=400, detail="Debe especificar al menos un row_id"
+        )
+
     try:
         # 1. Buscar las filas en la tabla de historial para verificar su existencia
-        stmt = select(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+        stmt = select(ReconciliationHistory).where(
+            ReconciliationHistory.id.in_(payload.row_ids)
+        )
         res = await db.execute(stmt)
         history_rows = res.scalars().all()
-        
+
         if not history_rows:
-            raise HTTPException(status_code=404, detail="No se encontraron las filas históricas especificadas")
-            
+            raise HTTPException(
+                status_code=404,
+                detail="No se encontraron las filas históricas especificadas",
+            )
+
         # 2. Proceder a la eliminación
         from sqlalchemy import delete
-        delete_stmt = delete(ReconciliationHistory).where(ReconciliationHistory.id.in_(payload.row_ids))
+
+        delete_stmt = delete(ReconciliationHistory).where(
+            ReconciliationHistory.id.in_(payload.row_ids)
+        )
         await db.execute(delete_stmt)
         await db.commit()
-        
-        return {"message": f"Se eliminaron {len(history_rows)} registros correctamente de los snapshots"}
+
+        return {
+            "message": f"Se eliminaron {len(history_rows)} registros correctamente de los snapshots"
+        }
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
         print(f"Error eliminando filas históricas en lote: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al eliminar los registros")
+        raise HTTPException(
+            status_code=500, detail="Error interno al eliminar los registros"
+        )
 
 
 class ReconciliationArchiveRequest(BaseModel):
     data: List[dict]
     client_timestamp: Optional[str] = None
 
+
 from fastapi import BackgroundTasks
+
 
 @router.post("/reconciliation/archive")
 async def archive_reconciliation_snapshot(
-    payload: ReconciliationArchiveRequest, 
+    payload: ReconciliationArchiveRequest,
     background_tasks: BackgroundTasks,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         archive_date = await reconciliation_service.create_snapshot(
-            db, 
-            payload.data, 
-            username, 
-            client_timestamp=payload.client_timestamp
+            db, payload.data, username, client_timestamp=payload.client_timestamp
         )
-        
+
         # [NUEVO] Ejecutar auditoría de recepción en segundo plano
         from app.services.inbound_auditor import run_inbound_audit
+
         background_tasks.add_task(run_inbound_audit, db)
-        
-        return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
+
+        return {
+            "message": "Instantánea guardada correctamente",
+            "archive_date": archive_date,
+        }
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get('/view_picking_audits', response_model=List[PickingAuditSummary])
-async def view_picking_audits_api(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
+
+@router.get("/view_picking_audits", response_model=List[PickingAuditSummary])
+async def view_picking_audits_api(
+    request: Request,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db),
+):
     # Usar selectinload para cargar items y package_items en una sola consulta eficiente
     result = await db.execute(
         select(PickingAudit)
-        .options(selectinload(PickingAudit.items), selectinload(PickingAudit.package_items))
+        .options(
+            selectinload(PickingAudit.items), selectinload(PickingAudit.package_items)
+        )
         .order_by(PickingAudit.id.desc())
     )
     audits_orm = result.scalars().all()
-    
+
     audits = []
     for audit_orm in audits_orm:
         # Los items ya están cargados en memoria gracias a selectinload
@@ -418,16 +507,19 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
                 "qty_req": item.qty_req,
                 "qty_scan": item.qty_scan,
                 "difference": item.difference,
-                "edited": item.edited if item.edited else 0
-            } for item in audit_orm.items
+                "edited": item.edited if item.edited else 0,
+            }
+            for item in audit_orm.items
         ]
-        
+
         # Los package_items también están cargados en memoria
         packages_assignment = {}
         for pi in audit_orm.package_items:
             order_line = pi.order_line
             if not order_line:
-                match = next((i for i in items_data if i["item_code"] == pi.item_code), None)
+                match = next(
+                    (i for i in items_data if i["item_code"] == pi.item_code), None
+                )
                 if match:
                     order_line = match["order_line"]
             key = f"{pi.item_code}:{order_line or ''}"
@@ -435,101 +527,112 @@ async def view_picking_audits_api(request: Request, username: str = Depends(logi
                 packages_assignment[key] = {}
             packages_assignment[key][str(pi.package_number)] = pi.qty_scan
 
-        audits.append({
-            "id": audit_orm.id,
-            "order_number": audit_orm.order_number,
-            "despatch_number": audit_orm.despatch_number,
-            "customer_code": audit_orm.customer_code,
-            "customer_name": audit_orm.customer_name,
-            "username": audit_orm.username,
-            "timestamp": audit_orm.timestamp,
-            "status": audit_orm.status,
-            "packages": audit_orm.packages,
-            "packages_assignment": packages_assignment,
-            "items": items_data
-        })
+        audits.append(
+            {
+                "id": audit_orm.id,
+                "order_number": audit_orm.order_number,
+                "despatch_number": audit_orm.despatch_number,
+                "customer_code": audit_orm.customer_code,
+                "customer_name": audit_orm.customer_name,
+                "username": audit_orm.username,
+                "timestamp": audit_orm.timestamp,
+                "status": audit_orm.status,
+                "packages": audit_orm.packages,
+                "packages_assignment": packages_assignment,
+                "items": items_data,
+            }
+        )
 
     return audits
 
-@router.get('/view_counts', response_model=Dict[str, Any])
+
+@router.get("/view_counts", response_model=Dict[str, Any])
 async def get_counts_data(
-    request: Request, 
-    username: str = Depends(login_required), 
-    db: AsyncSession = Depends(get_db)
+    request: Request,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db),
 ):
-    from app.services.csv_handler import master_qty_map
-    
+
     all_counts = await db_counts.load_all_counts_db_async(db)
-    
+
     # Obtener información de sesiones (usuario y etapa)
     session_map = {}
-    session_ids = list({c.get('session_id') for c in all_counts if c.get('session_id') is not None})
+    session_ids = list(
+        {c.get("session_id") for c in all_counts if c.get("session_id") is not None}
+    )
     if session_ids:
         try:
-            result = await db.execute(select(CountSession).where(CountSession.id.in_(session_ids)))
+            result = await db.execute(
+                select(CountSession).where(CountSession.id.in_(session_ids))
+            )
             sessions = result.scalars().all()
-            session_map = {s.id: {'user': s.user_username, 'stage': s.inventory_stage} for s in sessions}
+            session_map = {
+                s.id: {"user": s.user_username, "stage": s.inventory_stage}
+                for s in sessions
+            }
         except Exception:
-             # Fallback if session lookup fails
-             pass
+            # Fallback if session lookup fails
+            pass
 
-    
     # Enriquecer los conteos con información del sistema y sesión
     enriched_counts = []
     usernames_set = set()
-    
+
     for count in all_counts:
-        item_code = count.get('item_code')
+        item_code = count.get("item_code")
         # Ensure system_qty is an integer or None (handle 'nan' from pandas/csv if any)
         system_qty_raw = csv_handler.master_qty_map.get(item_code)
         try:
-            system_qty = int(float(system_qty_raw)) if system_qty_raw is not None else None
+            system_qty = (
+                int(float(system_qty_raw)) if system_qty_raw is not None else None
+            )
         except (ValueError, TypeError):
-             system_qty = None
+            system_qty = None
 
-        counted_qty = int(count.get('counted_qty', 0))
+        counted_qty = int(count.get("counted_qty", 0))
         difference = (counted_qty - system_qty) if system_qty is not None else None
-        
-        session_info = session_map.get(count.get('session_id'), {})
-        user = count.get('username') or session_info.get('user')
-        
+
+        session_info = session_map.get(count.get("session_id"), {})
+        user = count.get("username") or session_info.get("user")
+
         if user:
             usernames_set.add(user)
-        
+
         enriched = {
-            'id': count.get('id'),
-            'session_id': count.get('session_id'),
-            'inventory_stage': session_info.get('stage'),
-            'username': user,
-            'timestamp': count.get('timestamp'),
-            'item_code': item_code,
-            'item_description': count.get('item_description'),
-            'counted_location': count.get('counted_location'),
-            'counted_qty': counted_qty,
-            'system_qty': system_qty,
-            'difference': difference,
-            'bin_location_system': count.get('bin_location_system')
+            "id": count.get("id"),
+            "session_id": count.get("session_id"),
+            "inventory_stage": session_info.get("stage"),
+            "username": user,
+            "timestamp": count.get("timestamp"),
+            "item_code": item_code,
+            "item_description": count.get("item_description"),
+            "counted_location": count.get("counted_location"),
+            "counted_qty": counted_qty,
+            "system_qty": system_qty,
+            "difference": difference,
+            "bin_location_system": count.get("bin_location_system"),
         }
         enriched_counts.append(enriched)
-    
-    return {
-        "counts": enriched_counts,
-        "usernames": sorted(list(usernames_set))
-    }
 
-@router.get('/view_counts/recordings', response_model=List[Dict[str, Any]])
+    return {"counts": enriched_counts, "usernames": sorted(list(usernames_set))}
+
+
+@router.get("/view_counts/recordings", response_model=List[Dict[str, Any]])
 async def get_cycle_count_recordings(
-    request: Request, 
-    username: str = Depends(login_required), 
-    db: AsyncSession = Depends(get_db)
+    request: Request,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db),
 ):
     import time
+
     start_time = time.time()
     from app.models.sql_models import MasterItem
-    
+
     # Cargar registros de la DB
     t1 = time.time()
-    result = await db.execute(select(CycleCountRecording).order_by(CycleCountRecording.id.desc()))
+    result = await db.execute(
+        select(CycleCountRecording).order_by(CycleCountRecording.id.desc())
+    )
     recordings = result.scalars().all()
     print(f"Query recordings: {time.time() - t1:.2f}s")
 
@@ -538,7 +641,7 @@ async def get_cycle_count_recordings(
 
     # OPTIMIZACIÓN: Batch query para todos los item codes de una vez
     item_codes = list({rec.item_code for rec in recordings})
-    
+
     # Consultar todos los items necesarios en una sola query
     t2 = time.time()
     result_items = await db.execute(
@@ -546,48 +649,60 @@ async def get_cycle_count_recordings(
     )
     master_items = result_items.scalars().all()
     print(f"Query master_items ({len(item_codes)} codes): {time.time() - t2:.2f}s")
-    
+
     # Crear un mapa para lookup rápido
     t3 = time.time()
     master_map = {item.item_code: item for item in master_items}
     print(f"Build master_map: {time.time() - t3:.2f}s")
 
     data = []
-    
+
     t4 = time.time()
     for rec in recordings:
         # Buscar detalles en el mapa (O(1) lookup)
         master_item = master_map.get(rec.item_code)
-        
+
         # Valores por defecto si no se encuentra
         cost = 0.0
         weight = 0.0
-        
+
         if master_item:
             try:
                 # Convertir Numeric a float de forma segura
-                cost = float(master_item.cost_per_unit) if master_item.cost_per_unit is not None else 0.0
+                cost = (
+                    float(master_item.cost_per_unit)
+                    if master_item.cost_per_unit is not None
+                    else 0.0
+                )
                 # Intentar extraer peso numérico
-                weight_str = str(master_item.weight_per_unit or "0").replace(" KG", "").replace(",", ".")
+                weight_str = (
+                    str(master_item.weight_per_unit or "0")
+                    .replace(" KG", "")
+                    .replace(",", ".")
+                )
                 weight = float(weight_str) if weight_str else 0.0
             except (ValueError, TypeError):
                 pass
 
-        data.append({
-            "id": rec.id,
-            "planned_date": rec.planned_date,
-            "executed_date": rec.executed_date,
-            "item_code": rec.item_code,
-            "item_description": rec.item_description or (master_item.description if master_item else "N/A"),
-            "bin_location": rec.bin_location,
-            "system_qty": rec.system_qty,
-            "physical_qty": rec.physical_qty,
-            "difference": rec.difference,
-            "username": rec.username or "N/A",
-            "abc_code": rec.abc_code or (master_item.abc_code if master_item else "C"),
-            "unit_cost": cost,
-            "unit_weight": weight
-        })
+        data.append(
+            {
+                "id": rec.id,
+                "planned_date": rec.planned_date,
+                "executed_date": rec.executed_date,
+                "item_code": rec.item_code,
+                "item_description": rec.item_description
+                or (master_item.description if master_item else "N/A"),
+                "bin_location": rec.bin_location,
+                "system_qty": rec.system_qty,
+                "physical_qty": rec.physical_qty,
+                "difference": rec.difference,
+                "username": rec.username or "N/A",
+                "abc_code": rec.abc_code
+                or (master_item.abc_code if master_item else "C"),
+                "unit_cost": cost,
+                "unit_weight": weight,
+            }
+        )
         stockroom = ""
         item_type = ""
         item_class = ""
@@ -599,16 +714,20 @@ async def get_cycle_count_recordings(
             # Ahora tenemos todos los campos necesarios en la tabla
             try:
                 # Limpiar comas antes de convertir a float
-                cost_str = str(master_item.cost_per_unit).replace(',', '')
+                cost_str = str(master_item.cost_per_unit).replace(",", "")
                 cost = float(cost_str) if master_item.cost_per_unit else 0.0
             except (ValueError, TypeError):
                 cost = 0.0
-            
+
             try:
-                weight = float(master_item.weight_per_unit) if master_item.weight_per_unit else 0.0
+                weight = (
+                    float(master_item.weight_per_unit)
+                    if master_item.weight_per_unit
+                    else 0.0
+                )
             except (ValueError, TypeError):
                 weight = 0.0
-                
+
             stockroom = master_item.stockroom or ""
             item_type = master_item.item_type or ""
             item_class = master_item.item_class or ""
@@ -621,75 +740,86 @@ async def get_cycle_count_recordings(
         value_diff = diff * cost
         count_value = (rec.physical_qty) * cost
 
-        data.append({
-            "stockroom": stockroom,
-            "item_code": rec.item_code,
-            "description": rec.item_description,
-            "item_type": item_type,
-            "item_class": item_class,
-            "group_major": group_major,
-            "sic_company": sic_company,
-            "sic_stockroom": sic_stockroom,
-            "weight": weight,
-            "abc_code": rec.abc_code,
-            "bin_location": rec.bin_location,
-            "system_qty": rec.system_qty,
-            "physical_qty": rec.physical_qty,
-            "difference": rec.difference,
-            "value_diff": value_diff,
-            "cost": cost,
-            "count_value": count_value,
-            "executed_date": rec.executed_date,
-            "username": rec.username
-        })
-    
+        data.append(
+            {
+                "stockroom": stockroom,
+                "item_code": rec.item_code,
+                "description": rec.item_description,
+                "item_type": item_type,
+                "item_class": item_class,
+                "group_major": group_major,
+                "sic_company": sic_company,
+                "sic_stockroom": sic_stockroom,
+                "weight": weight,
+                "abc_code": rec.abc_code,
+                "bin_location": rec.bin_location,
+                "system_qty": rec.system_qty,
+                "physical_qty": rec.physical_qty,
+                "difference": rec.difference,
+                "value_diff": value_diff,
+                "cost": cost,
+                "count_value": count_value,
+                "executed_date": rec.executed_date,
+                "username": rec.username,
+            }
+        )
+
     print(f"Build response data: {time.time() - t4:.2f}s")
     print(f"TOTAL endpoint time: {time.time() - start_time:.2f}s")
 
     return data
 
-@router.get('/view_logs', response_model=List[InboundLogItem])
+
+@router.get("/view_logs", response_model=List[InboundLogItem])
 async def get_inbound_logs(
-    request: Request, 
-    username: str = Depends(login_required), 
-    db: AsyncSession = Depends(get_db)
+    request: Request,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db),
 ):
     all_logs = await db_logs.load_log_data_db_async(db)
     # Convert logs dictionary list to Pydantic models or let FastAPI do it (it validates against response_model)
     # Ensure keys match InboundLogItem
-    
+
     # Simple correction if keys differ
     cleaned_logs = []
     for log in all_logs:
-        cleaned_logs.append({
-             **log,
-             # Ensure numeric fields are actually numbers if they come as strings
-             "qtyReceived": int(log.get('qtyReceived')) if str(log.get('qtyReceived')).isdigit() else 0,
-             "difference": int(log.get('difference')) if str(log.get('difference')).replace('-','').isdigit() else 0,
-             "Quantity": int(log.get('Quantity')) if str(log.get('Quantity')).isdigit() else 0, # Map to quantity if needed
-             "quantity": int(log.get('Quantity')) if str(log.get('Quantity')).isdigit() else 0, # Case insensitive fix
-        })
-        
+        cleaned_logs.append(
+            {
+                **log,
+                # Ensure numeric fields are actually numbers if they come as strings
+                "qtyReceived": int(log.get("qtyReceived"))
+                if str(log.get("qtyReceived")).isdigit()
+                else 0,
+                "difference": int(log.get("difference"))
+                if str(log.get("difference")).replace("-", "").isdigit()
+                else 0,
+                "Quantity": int(log.get("Quantity"))
+                if str(log.get("Quantity")).isdigit()
+                else 0,  # Map to quantity if needed
+                "quantity": int(log.get("Quantity"))
+                if str(log.get("Quantity")).isdigit()
+                else 0,  # Case insensitive fix
+            }
+        )
+
     return cleaned_logs
 
 
-@router.get('/packing_list/{audit_id}', response_model=PackingListResponse)
+@router.get("/packing_list/{audit_id}", response_model=PackingListResponse)
 async def get_packing_list_data(
-    request: Request, 
-    audit_id: int, 
-    username: str = Depends(login_required), 
-    db: AsyncSession = Depends(get_db)
+    request: Request,
+    audit_id: int,
+    username: str = Depends(login_required),
+    db: AsyncSession = Depends(get_db),
 ):
-    
+
     # Obtener la auditoría
-    result = await db.execute(
-        select(PickingAudit).where(PickingAudit.id == audit_id)
-    )
+    result = await db.execute(select(PickingAudit).where(PickingAudit.id == audit_id))
     audit = result.scalar_one_or_none()
-    
+
     if not audit:
         raise HTTPException(status_code=404, detail="Auditoría no encontrada")
-    
+
     # Obtener los items asignados a bultos
     result = await db.execute(
         select(PickingPackageItem)
@@ -697,21 +827,23 @@ async def get_packing_list_data(
         .order_by(PickingPackageItem.package_number, PickingPackageItem.item_code)
     )
     package_items = result.scalars().all()
-    
+
     # Organizar por bulto
     packages = {}
     for item in package_items:
         package_num = str(item.package_number)
         if package_num not in packages:
             packages[package_num] = []
-        
-        packages[package_num].append({
-            'order_line': item.order_line or "",
-            'item_code': item.item_code,
-            'description': item.description,
-            'quantity': item.qty_scan
-        })
-    
+
+        packages[package_num].append(
+            {
+                "order_line": item.order_line or "",
+                "item_code": item.item_code,
+                "description": item.description,
+                "quantity": item.qty_scan,
+            }
+        )
+
     # Preparar datos
     try:
         total_packages = int(audit.packages or 0)
@@ -722,7 +854,7 @@ async def get_packing_list_data(
         if v is None:
             return ""
         try:
-            return v.strftime('%Y-%m-%d %H:%M')  # para datetime
+            return v.strftime("%Y-%m-%d %H:%M")  # para datetime
         except Exception:
             return str(v)
 
@@ -733,14 +865,15 @@ async def get_packing_list_data(
         customer_name=_to_str(audit.customer_name),
         timestamp=_to_str(audit.timestamp),
         total_packages=total_packages,
-        packages=packages
+        packages=packages,
     )
 
-@router.get('/occupancy_stats', response_model=Dict[str, Any])
+
+@router.get("/occupancy_stats", response_model=Dict[str, Any])
 async def get_occupancy_stats(
     request: Request,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
     try:
@@ -748,15 +881,17 @@ async def get_occupancy_stats(
         return report
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get('/occupancy_detail', response_model=List[Dict[str, Any]])
+
+@router.get("/occupancy_detail", response_model=List[Dict[str, Any]])
 async def get_occupancy_detail(
     zone: str,
     level: Optional[int] = None,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Obtiene el detalle de cada bin para una zona y nivel específicos."""
     try:
@@ -765,11 +900,12 @@ async def get_occupancy_detail(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get('/valid_bins', response_model=List[str])
+
+@router.get("/valid_bins", response_model=List[str])
 async def get_valid_bins_api(
     request: Request,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Obtiene la lista de todos los códigos de ubicación de slotting válidos."""
     try:
@@ -780,4 +916,3 @@ async def get_valid_bins_api(
     except Exception as e:
         print(f"Error al obtener bins válidos: {e}")
         return []
-

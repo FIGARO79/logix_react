@@ -1,40 +1,49 @@
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+
 class LogEntry(BaseModel):
     """Modelo para registros de entrada de mercancía."""
+
     importReference: str
     waybill: str
     itemCode: str
     quantity: int
-    relocatedBin: Optional[str] = ''
+    relocatedBin: Optional[str] = ""
     client_id: Optional[str] = None
     qtyGrn: Optional[int] = None
 
 
 class CloseLocationRequest(BaseModel):
     """Modelo para cerrar una ubicación en conteo."""
+
     session_id: int
     location_code: str
 
+
 class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
+
     code: str
     description: str
-    order_line: Optional[str] = ''
+    order_line: Optional[str] = ""
     qty_req: int
     qty_scan: int
 
+
 class PackageDimension(BaseModel):
     """Modelo para dimensiones físicas de un bulto."""
+
     package_number: int
     length: float
     width: float
     height: float
     weight: Optional[float] = 0
 
+
 class PickingAudit(BaseModel):
     """Modelo para auditoría completa de picking."""
+
     order_number: str
     despatch_number: str
     customer_name: str
@@ -43,7 +52,10 @@ class PickingAudit(BaseModel):
     items: List[PickingAuditItem]
     packages: Optional[int] = 0  # Cantidad de bultos/paquetes
     packages_assignment: Optional[dict] = {}  # Asignación de artículos a bultos
-    packages_dimensions: Optional[List[PackageDimension]] = [] # Dimensiones de cada bulto
+    packages_dimensions: Optional[
+        List[PackageDimension]
+    ] = []  # Dimensiones de cada bulto
+
 
 class CountExecutionItem(BaseModel):
     item_code: str
@@ -52,9 +64,11 @@ class CountExecutionItem(BaseModel):
     physical_qty: int = Field(..., ge=0)
     abc_code: Optional[str] = None
 
+
 class CountExecutionRequest(BaseModel):
     date: str
     items: List[CountExecutionItem]
+
 
 class GRNMasterBase(BaseModel):
     import_reference: str
@@ -69,8 +83,10 @@ class GRNMasterBase(BaseModel):
     grn1_grn3: Optional[float] = None
     ct: Optional[str] = None
 
+
 class GRNMasterCreate(GRNMasterBase):
     pass
+
 
 class GRNMasterUpdate(BaseModel):
     grn_number: Optional[str] = None
@@ -83,6 +99,7 @@ class GRNMasterUpdate(BaseModel):
     grn1_grn3: Optional[float] = None
     ct: Optional[str] = None
 
+
 class GRNMasterResponse(GRNMasterBase):
     id: int
     created_at: str
@@ -90,13 +107,17 @@ class GRNMasterResponse(GRNMasterBase):
     class Config:
         from_attributes = True
 
+
 class ShipmentCreate(BaseModel):
     """Modelo para crear un envío consolidado."""
+
     audit_ids: List[int]
     note: Optional[str] = None
     carrier: Optional[str] = None
 
+
 class GRNBulkDeleteRequest(BaseModel):
     """Modelo para la eliminación masiva de GRNs."""
+
     grn_numbers: List[str]
     password: str
