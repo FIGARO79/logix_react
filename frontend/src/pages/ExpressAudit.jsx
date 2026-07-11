@@ -12,7 +12,6 @@ const ExpressAudit = () => {
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
     const [physicalQty, setPhysicalQty] = useState('');
-    const [loading, setLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [recentAudits, setRecentAudits] = useState([]);
 
@@ -41,7 +40,6 @@ const ExpressAudit = () => {
     const handleSearchItem = async (codeToSearch) => {
         const code = codeToSearch || itemCode;
         if (!code) return;
-        setLoading(true);
         try {
             const res = await fetch(`/api/express_audit/find/${encodeURIComponent(code)}`);
             if (res.ok) {
@@ -60,7 +58,6 @@ const ExpressAudit = () => {
                 setItemData(null);
             }
         } catch (e) { toast.error("Error de búsqueda"); }
-        finally { setLoading(false); }
     };
 
     const handleItemChange = (val) => {

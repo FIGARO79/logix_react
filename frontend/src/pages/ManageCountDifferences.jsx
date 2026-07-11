@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 
 const ManageCountDifferences = () => {
@@ -22,7 +22,7 @@ const ManageCountDifferences = () => {
 
     useEffect(() => {
         filterTable();
-    }, [data, filterItemCode, filterType]);
+    }, [filterTable]);
 
     const loadData = async () => {
         setLoading(true);
@@ -39,7 +39,7 @@ const ManageCountDifferences = () => {
         }
     };
 
-    const filterTable = () => {
+    const filterTable = useCallback(() => {
         let res = [...data];
         const code = filterItemCode.toUpperCase();
 
@@ -52,7 +52,7 @@ const ManageCountDifferences = () => {
         else if (filterType === 'zero') res = res.filter(item => item.difference === 0);
 
         setFilteredData(res);
-    };
+    }, [data, filterItemCode, filterType]);
 
     // --- Acciones de Edición ---
     const handleEditClick = (item) => {

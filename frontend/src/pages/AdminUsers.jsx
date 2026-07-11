@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
@@ -10,7 +10,7 @@ const AdminUsers = () => {
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await fetch('/api/admin/users');
             if (res.status === 401) {
@@ -23,12 +23,12 @@ const AdminUsers = () => {
         } catch (err) {
             setError(err.message);
         }
-    };
+    }, [navigate]);
 
     useEffect(() => {
         fetchUsers();
         if (setTitle) setTitle("Gestión de Usuarios");
-    }, [setTitle]);
+    }, [setTitle, fetchUsers]);
 
     const handleApprove = async (id) => {
         if (!window.confirm("¿Aprobar este usuario?")) return;

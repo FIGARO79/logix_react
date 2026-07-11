@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
@@ -69,9 +69,9 @@ const Planner = () => {
     // Recalcular métricas cada vez que cambian los detalles del plan o las fechas
     useEffect(() => {
         calculateDashboard();
-    }, [planDetails, config]);
+    }, [calculateDashboard]);
 
-    const calculateDashboard = () => {
+    const calculateDashboard = useCallback(() => {
         if (!planDetails.length) return;
 
         // 1. Conteos Únicos por Categoría (A, B, C)
@@ -143,7 +143,7 @@ const Planner = () => {
             totalDaily: workingDays ? ((req.A + req.B + req.C) / workingDays).toFixed(1) : 0,
             monthlyPlanned: { ...monthly, Total: monthlyTotal }
         });
-    };
+    }, [planDetails, config, holidaysText]);
 
     const handleUpdatePlan = async () => {
         setLoading(true);

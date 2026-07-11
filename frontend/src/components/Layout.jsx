@@ -210,7 +210,7 @@ const Layout = () => {
                 tab.id === activeTabId ? { ...tab, path: location.pathname } : tab
             ));
         }
-    }, [location.pathname, activeTabId]);
+    }, [location.pathname, activeTabId, tabs]);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 

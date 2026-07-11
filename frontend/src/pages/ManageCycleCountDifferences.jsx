@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const COLUMNS = [
@@ -18,7 +18,7 @@ const ManageCycleCountDifferences = () => {
     const { setTitle } = useOutletContext();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+
 
     // Filtros
     const [year, setYear] = useState(new Date().getFullYear());
@@ -78,7 +78,7 @@ const ManageCycleCountDifferences = () => {
         setTitle("Gestión de Diferencias");
     }, [setTitle]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const params = {
@@ -93,15 +93,15 @@ const ManageCycleCountDifferences = () => {
             const result = await res.json();
             setData(result);
         } catch (err) {
-            setError(err.message);
+            console.error(err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [year, month, onlyDifferences]);
 
     useEffect(() => {
         fetchData();
-    }, [year, month, onlyDifferences, refreshTrigger]);
+    }, [fetchData, refreshTrigger]);
 
 
     const handleEdit = (item) => {

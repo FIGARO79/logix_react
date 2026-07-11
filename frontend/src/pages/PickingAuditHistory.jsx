@@ -76,25 +76,6 @@ const PickingAuditHistory = () => {
         setIsEditModalOpen(true);
     };
 
-    const handleQtyChange = (idx, value) => {
-        const val = parseInt(value) || 0;
-        const newAudit = { ...editingAudit };
-        const item = newAudit.items[idx];
-        const key = `${item.item_code}:${item.order_line || ''}`;
-
-        if (newAudit.packages > 0) {
-            if (!newAudit.packages_assignment) newAudit.packages_assignment = {};
-            if (!newAudit.packages_assignment[key]) newAudit.packages_assignment[key] = {};
-            const packageKeys = Object.keys(newAudit.packages_assignment[key]);
-            const targetPkg = packageKeys.length > 0 ? packageKeys[0] : "1";
-            newAudit.packages_assignment[key][targetPkg] = val;
-            item.qty_scan = Object.values(newAudit.packages_assignment[key]).reduce((a, b) => a + (parseInt(b) || 0), 0);
-        } else {
-            item.qty_scan = val;
-        }
-        item.difference = item.qty_scan - item.qty_req;
-        setEditingAudit(newAudit);
-    };
 
     const handleSaveEdit = async () => {
         setIsSubmitting(true);

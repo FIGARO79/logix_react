@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" }) => {
-    const scannerRef = useRef(null);
     const html5QrCode = useRef(null);
 
     const playBeep = () => {
@@ -20,7 +19,9 @@ const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" 
             gainNode.connect(audioCtx.destination);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {}
+        } catch (e) {
+            // Ignorar errores de autoplay del contexto de audio
+        }
     };
 
     useEffect(() => {
@@ -45,7 +46,7 @@ const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" 
                             onScan(cleanCode);
                         }
                     },
-                    (errorMessage) => {
+                    (_errorMessage) => {
                         // Errores de escaneo silenciosos
                     }
                 );

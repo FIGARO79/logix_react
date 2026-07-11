@@ -8,7 +8,7 @@ const ViewCounts = () => {
     const [counts, setCounts] = useState([]);
     const [filteredCounts, setFilteredCounts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+
     const [stats, setStats] = useState({
         total_items_to_count: 0,
         total_items_counted: 0,
@@ -42,7 +42,7 @@ const ViewCounts = () => {
                 setStats(dataStats);
             }
         } catch (err) {
-            setError(err.message);
+            console.error(err);
         } finally {
             setLoading(false);
         }

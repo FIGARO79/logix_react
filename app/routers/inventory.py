@@ -5,17 +5,16 @@ import datetime
 
 from io import BytesIO
 from urllib.parse import urlencode
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 import numpy as np
 from openpyxl.utils import get_column_letter
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response
 from app.core.responses import ORJSONResponse
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
 
-from app.core.config import ASYNC_DB_URL
 from app.core.db import get_db
 from app.services import db_counts, csv_handler
 from app.utils.auth import login_required, admin_login_required, permission_required
@@ -24,7 +23,6 @@ from app.services.csv_to_db import sync_master_csv_to_db
 
 # --- Inicialización ---
 router = APIRouter(tags=["inventory"])
-async_engine = create_async_engine(ASYNC_DB_URL)
 
 
 async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, Any]]:

@@ -206,7 +206,7 @@ const ConsolidatedPackingList = () => {
 
                         {/* La información del cliente se mostrará por cada pedido a continuación si hay múltiples clientes */}
 
-                        {data.orders.map((order, orderIndex) => {
+                        {data.orders.map((order) => {
                             const sortedPkgKeys = order.packages
                                 ? Object.keys(order.packages).sort((a, b) => parseInt(a) - parseInt(b))
                                 : [];

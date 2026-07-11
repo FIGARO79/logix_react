@@ -14,11 +14,10 @@ def verify_api_key(x_api_key: str = Header(..., description="API Key para integr
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return x_api_key
 
-@router.post("/upload/csv")
+@router.post("/upload/csv", dependencies=[Depends(verify_api_key)])
 async def upload_ssrs_csv(
     report_name: str, 
-    file: UploadFile = File(...), 
-    api_key: str = Depends(verify_api_key)
+    file: UploadFile = File(...)
 ):
     """
     Endpoint diseñado para recibir archivos CSV directamente desde Microsoft Power Automate.

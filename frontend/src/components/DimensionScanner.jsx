@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ObjectDetector, FilesetResolver } from '@mediapipe/tasks-vision';
 
 const STATES = {
@@ -27,7 +27,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
     const [instruction, setInstruction] = useState("BUSCANDO QR EN EL SUELO...");
     const [capturedImage, setCapturedImage] = useState(null);
     const [magnifier, setMagnifier] = useState({ visible: false, x: 0, y: 0, pointKey: null });
-    const [selectedPoint, setSelectedPoint] = useState(null);
+
 
     const [gizmoPoints, setGizmoPoints] = useState({
         origin: { x: 50, y: 70 },
@@ -57,6 +57,8 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
         window.addEventListener('deviceorientation', handleOrientation);
         return () => window.removeEventListener('deviceorientation', handleOrientation);
     }, []);
+
+    const isScanning = flowState === STATES.SCANNING;
 
     useEffect(() => {
         let stream = null;
@@ -157,7 +159,9 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                         } else {
                             if (!isCalibrated) setInstruction("COLOQUE EL QR EN EL SUELO (CENTRO)");
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        // Omitir error de lectura de código de barras
+                    }
                 }
 
                 // --- Lógica de Detección de Caja ---
@@ -182,7 +186,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
             if (stream) stream.getTracks().forEach(t => t.stop());
             if (detectorRef.current) detectorRef.current.close();
         };
-    }, [isCalibrated, flowState === STATES.SCANNING]);
+    }, [isCalibrated, isScanning]);
 
     const handleCapture = async () => {
         if (!videoRef.current || !canvasRef.current) return;
@@ -384,7 +388,7 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                                 {Object.entries(gizmoPoints).map(([key, point]) => (
                                     <div 
                                         key={key}
-                                        onMouseDown={(e) => { setSelectedPoint(key); handlePointMove(key, e); }}
+                                        onMouseDown={(e) => handlePointMove(key, e)}
                                         onTouchMove={(e) => handlePointMove(key, e)}
                                         onTouchEnd={() => setMagnifier(prev => ({ ...prev, visible: false }))}
                                         onMouseUp={() => setMagnifier(prev => ({ ...prev, visible: false }))}

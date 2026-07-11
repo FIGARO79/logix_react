@@ -5,7 +5,7 @@ const DB_VERSION = 4;
 
 const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion) {
+        upgrade(db, _oldVersion) {
             // Tabla para registros de Inbound que aún no se han subido
             if (!db.objectStoreNames.contains('pending_sync')) {
                 db.createObjectStore('pending_sync', { keyPath: 'id' });

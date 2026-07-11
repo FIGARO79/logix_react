@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const Update = () => {
@@ -105,7 +105,7 @@ const Update = () => {
         return () => clearInterval(interval);
     }, [isRobotRunning]);
 
-    const fetchPreviewGrns = async (file) => {
+    const fetchPreviewGrns = useCallback(async (file) => {
         setIsPreviewing(true); setPreviewedFile(file);
         try {
             const formData = new FormData(); formData.append('file', file);
@@ -117,7 +117,7 @@ const Update = () => {
         } catch (err) {
             setMessages({ success: '', error: "ERROR AL PREVISUALIZAR GRNS" });
         } finally { setIsPreviewing(false); }
-    };
+    }, []);
 
     useEffect(() => {
         const grnFile = files.find(f => {
@@ -126,7 +126,7 @@ const Update = () => {
         });
         if (grnFile && grnFile !== previewedFile && !isPreviewing) fetchPreviewGrns(grnFile);
         else if (!grnFile) { setAvailableGrns([]); setSelectedGrns([]); setPreviewedFile(null); }
-    }, [files]);
+    }, [files, previewedFile, isPreviewing, fetchPreviewGrns]);
 
     const handleFiles = (newFiles) => { setFiles(prev => [...prev, ...Array.from(newFiles)]); };
     const removeFile = (idx) => { setFiles(prev => prev.filter((_, i) => i !== idx)); };

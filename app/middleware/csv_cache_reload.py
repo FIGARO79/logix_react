@@ -34,5 +34,3 @@ class CSVCacheReloadMiddleware(BaseHTTPMiddleware):
         # Continuar con el request normal
         response = await call_next(request)
         return response
-
-        return response

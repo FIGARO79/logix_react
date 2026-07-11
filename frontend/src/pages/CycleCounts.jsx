@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,7 +8,7 @@ import { getDB, savePendingSync } from '../utils/offlineDb';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
-    const { isOnline, pendingCount, syncPendingData } = useOffline();
+    const { isOnline } = useOffline();
 
     useEffect(() => { setTitle("Inventario W2W"); }, [setTitle]);
 
@@ -35,16 +35,16 @@ const CycleCounts = () => {
     // Check Active Session on Mount
     useEffect(() => {
         checkActiveSession();
-    }, []);
+    }, [checkActiveSession]);
 
     // Update Sidebar when Location or Session changes
     useEffect(() => {
         if (activeSession) {
             updateSidebarData();
         }
-    }, [activeSession, countedLocation]);
+    }, [activeSession, countedLocation, updateSidebarData]);
 
-    const checkActiveSession = async () => {
+    const checkActiveSession = useCallback(async () => {
         setCheckingSession(true);
         try {
             if (isOnline) {
@@ -75,7 +75,7 @@ const CycleCounts = () => {
         } finally {
             setCheckingSession(false);
         }
-    };
+    }, [isOnline]);
 
     const startSession = async () => {
         if (!isOnline) {
@@ -123,7 +123,7 @@ const CycleCounts = () => {
         }
     };
 
-    const updateSidebarData = async () => {
+    const updateSidebarData = useCallback(async () => {
         if (!activeSession) return;
 
         // Offline compatibility: solo fetch si estamos online
@@ -158,7 +158,7 @@ const CycleCounts = () => {
                 }));
             setLocationCounts(localMatches);
         }
-    };
+    }, [activeSession, isOnline, countedLocation]);
 
     const fetchItemData = async (code) => {
         if (!code) return;
