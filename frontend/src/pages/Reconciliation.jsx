@@ -100,6 +100,19 @@ const Reconciliation = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname]);
 
+    // Intervalo de actualización silenciosa de los datos en tiempo real (cada 10 segundos)
+    useEffect(() => {
+        if (location.pathname !== '/reconciliation' || currentSnapshot || isHistoricalMode || currentVersion) return;
+
+        const interval = setInterval(() => {
+            if (navigator.onLine) {
+                fetchData({}, true); // Carga silenciosa
+            }
+        }, 10000); // 10 segundos
+
+        return () => clearInterval(interval);
+    }, [location.pathname, currentSnapshot, isHistoricalMode, currentVersion]);
+
     const handleArchiveSnapshot = async () => {
         if (!data || data.length === 0) return alert("No hay datos para archivar");
         if (!confirm("¿Deseas guardar una instantánea (SNAPSHOT) de esta conciliación?")) return;
