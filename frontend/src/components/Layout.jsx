@@ -198,8 +198,20 @@ const Layout = () => {
     }, [activeTabId]);
 
     const lastActiveTabId = useRef(activeTabId);
+    const targetTabIdRef = useRef(null);
 
     useEffect(() => {
+        // Si estamos cambiando de pestaña, esperar a que activeTabId se sincronice
+        // con la pestaña de destino (targetTabIdRef) para evitar sobrescribir el path
+        // de la pestaña inactiva en renders intermedios desalineados.
+        if (targetTabIdRef.current !== null) {
+            const targetTab = tabs.find(t => t.id === targetTabIdRef.current);
+            if (activeTabId !== targetTabIdRef.current || (targetTab && location.pathname !== targetTab.path)) {
+                return;
+            }
+            targetTabIdRef.current = null; // Sincronización completada, limpiar
+        }
+
         if (lastActiveTabId.current !== activeTabId) {
             lastActiveTabId.current = activeTabId;
             return;
@@ -222,6 +234,7 @@ const Layout = () => {
         const newId = 'tab-' + Date.now();
         const newTab = { id: newId, path: '/dashboard', label: 'Inicio' };
         setTabs([...tabs, newTab]);
+        targetTabIdRef.current = newId;
         setActiveTabId(newId);
         navigate('/dashboard');
     };
@@ -229,8 +242,10 @@ const Layout = () => {
     const closeTab = (e, id) => {
         e.stopPropagation();
         if (tabs.length === 1) {
-            setTabs([{ id: 'tab-' + Date.now(), path: '/dashboard', label: 'Inicio' }]);
-            setActiveTabId(tabs[0].id);
+            const newId = 'tab-' + Date.now();
+            setTabs([{ id: newId, path: '/dashboard', label: 'Inicio' }]);
+            targetTabIdRef.current = newId;
+            setActiveTabId(newId);
             navigate('/dashboard');
             return;
         }
@@ -238,6 +253,7 @@ const Layout = () => {
         setTabs(newTabs);
         if (activeTabId === id) {
             const lastTab = newTabs[newTabs.length - 1];
+            targetTabIdRef.current = lastTab.id;
             setActiveTabId(lastTab.id);
             navigate(lastTab.path);
         }
@@ -246,6 +262,7 @@ const Layout = () => {
     const switchTab = (id) => {
         const tab = tabs.find(t => t.id === id);
         if (tab) {
+            targetTabIdRef.current = id;
             setActiveTabId(id);
             navigate(tab.path);
         }
