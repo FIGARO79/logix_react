@@ -352,7 +352,7 @@ const Reconciliation = () => {
                             <input
                                 type="text"
                                 placeholder="BUSCAR REGISTRO..."
-                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium uppercase tracking-wider"
+                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-normal uppercase tracking-wider"
                                 style={{ paddingLeft: '32px', paddingRight: filterText ? '30px' : '12px' }}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
@@ -393,7 +393,7 @@ const Reconciliation = () => {
                         <select
                             value={currentVersion}
                             onChange={handleVersionChange}
-                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-normal bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">LOGS ACTUALES</option>
                             {archiveVersions.map(v => (
@@ -406,7 +406,7 @@ const Reconciliation = () => {
                         <select
                             value={currentSnapshot}
                             onChange={handleSnapshotChange}
-                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
+                            className="w-full h-9 p-1 text-[12px] text-zinc-900 font-normal bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase"
                         >
                             <option value="">INSTANTÁNEAS</option>
                             {snapshotVersions.map(v => (
@@ -420,13 +420,13 @@ const Reconciliation = () => {
                             <>
                                 <button
                                     onClick={handleRestoreRowsBulk}
-                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
+                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
                                 >
                                     Desarchivar ({selectedRowIds.length})
                                 </button>
                                 <button
                                     onClick={handleDeleteRowsBulk}
-                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-red-600 hover:bg-red-700 transition-colors"
+                                    className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap bg-red-600 hover:bg-red-700 transition-colors"
                                 >
                                     Eliminar ({selectedRowIds.length})
                                 </button>
@@ -436,7 +436,7 @@ const Reconciliation = () => {
                         {currentVersion && (
                             <button
                                 onClick={handleUnarchiveVersion}
-                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
+                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap bg-amber-600 hover:bg-amber-700 transition-colors"
                             >
                                 Desarchivar Lote
                             </button>
@@ -444,7 +444,7 @@ const Reconciliation = () => {
 
                         <button
                             onClick={() => setShowHistoryFilters(!showHistoryFilters)}
-                            className="h-9 px-3 text-[12px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap hover:bg-zinc-50 transition-colors"
+                            className="h-9 px-3 text-[12px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap hover:bg-zinc-50 transition-colors"
                         >
                             {showHistoryFilters ? "Ocultar BD" : "Buscar BD"}
                         </button>
@@ -457,7 +457,7 @@ const Reconciliation = () => {
                                 params.append('timezone_offset', new Date().getTimezoneOffset());
                                 window.location.href = `/api/export_reconciliation?${params.toString()}`;
                             }}
-                            className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                            className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                         >
                             Exportar
                         </button>
@@ -465,7 +465,7 @@ const Reconciliation = () => {
                         {!currentSnapshot && (
                             <button
                                 onClick={handleArchiveSnapshot}
-                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-9 px-3 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-normal active:scale-95 whitespace-nowrap" style={{ background: '#285f94' }} onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'} onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                             >
                                 Snapshot
                             </button>
@@ -476,14 +476,14 @@ const Reconciliation = () => {
                 {/* Panel de filtros históricos de base de datos */}
                 {showHistoryFilters && (
                     <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100 mt-2">
-                        <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-semibold pl-1">Búsqueda en Histórico (BD):</span>
+                        <span className="text-[9px] uppercase tracking-normal text-zinc-400 font-normal pl-1">Búsqueda en Histórico (BD):</span>
 
                         <input
                             type="text"
                             placeholder="GRN..."
                             value={filterGRN}
                             onChange={(e) => setFilterGRN(e.target.value)}
-                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-normal w-32 focus:border-[#285f94]"
                         />
 
                         <input
@@ -491,7 +491,7 @@ const Reconciliation = () => {
                             placeholder="WAYBILL..."
                             value={filterWaybill}
                             onChange={(e) => setFilterWaybill(e.target.value)}
-                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-normal w-32 focus:border-[#285f94]"
                         />
 
                         <input
@@ -499,12 +499,12 @@ const Reconciliation = () => {
                             placeholder="I.R...."
                             value={filterImportRef}
                             onChange={(e) => setFilterImportRef(e.target.value)}
-                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-medium w-32 focus:border-[#285f94]"
+                            className="h-8 text-[11px] px-2 bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-normal w-32 focus:border-[#285f94]"
                         />
 
                         <button
                             onClick={() => fetchData()}
-                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm uppercase tracking-wider bg-zinc-700 hover:bg-zinc-800 transition-colors active:scale-95"
+                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm uppercase tracking-normal bg-zinc-700 hover:bg-zinc-800 transition-colors active:scale-95"
                         >
                             Buscar BD
                         </button>
@@ -524,7 +524,7 @@ const Reconciliation = () => {
                         )}
 
                         {isHistoricalMode && (
-                            <span className="text-[9px] uppercase tracking-widest text-[#285f94] font-bold ml-auto flex items-center gap-1.5 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100">
+                            <span className="text-[9px] uppercase tracking-normal text-[#285f94] font-normal ml-auto flex items-center gap-1.5 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#285f94] animate-pulse"></span>
                                 Modo Histórico Activo
                             </span>
@@ -536,7 +536,7 @@ const Reconciliation = () => {
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
                 <div className="bg-white border border-zinc-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
                     {loading ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-zinc-400 text-sm font-medium">
+                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-zinc-400 text-sm font-normal">
                             Cargando...
                         </div>
                     ) : (
@@ -566,7 +566,7 @@ const Reconciliation = () => {
                                                 <th
                                                     key={head.id}
                                                     onClick={() => head.id !== 'actions' && requestSort(head.id)}
-                                                    className={`px-3 py-2.5 text-[12px] font-medium text-white/90 ${head.id !== 'actions' ? 'cursor-pointer select-none' : ''} whitespace-nowrap uppercase tracking-wider transition-colors`}
+                                                    className={`px-3 py-2.5 text-[12px] font-normal text-white/90 ${head.id !== 'actions' ? 'cursor-pointer select-none' : ''} whitespace-nowrap uppercase tracking-normal transition-colors`}
                                                     style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
                                                     onMouseEnter={e => head.id !== 'actions' && (e.currentTarget.style.background = '#2a3c4e')}
                                                     onMouseLeave={e => head.id !== 'actions' && (e.currentTarget.style.background = '')}
