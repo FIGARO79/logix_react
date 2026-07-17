@@ -18,6 +18,11 @@ const PickingAuditHistory = () => {
     const [shipmentNote, setShipmentNote] = useState('');
     const [shipmentCarrier, setShipmentCarrier] = useState('');
     const [creatingShipment, setCreatingShipment] = useState(false);
+    const [newItemCode, setNewItemCode] = useState('');
+    const [newItemLine, setNewItemLine] = useState('');
+    const [newItemDesc, setNewItemDesc] = useState('');
+    const [newItemQtyReq, setNewItemQtyReq] = useState('');
+    const [isAddingItem, setIsAddingItem] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -87,7 +92,8 @@ const PickingAuditHistory = () => {
                 customer_name: editingAudit.customer_name || 'N/A',
                 status: editingAudit.status,
                 items: editingAudit.items.map(item => ({
-                    code: item.item_code,
+                    id: item.id || null,
+                    code: item.item_code || item.code,
                     description: item.description,
                     order_line: item.order_line || '',
                     qty_req: item.qty_req,
@@ -128,6 +134,85 @@ const PickingAuditHistory = () => {
         }
         if (hasAssignments) { toast.warning(`El bulto ${lastPkg} tiene ítems asignados.`); return; }
         setEditingAudit(prev => ({ ...prev, packages: Math.max(0, prev.packages - 1) }));
+    };
+
+    const handleItemCodeLookup = async (code) => {
+        if (!code || code.length < 3) return;
+        try {
+            const res = await fetch(`/api/search_items?q=${code}`, { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const match = data.find(item => item.itemCode.toUpperCase() === code.toUpperCase());
+                    if (match) {
+                        setNewItemDesc(match.description);
+                    } else if (data[0]) {
+                        setNewItemDesc(data[0].description);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error looking up item code", err);
+        }
+    };
+
+    const handleConfirmAddItem = () => {
+        if (!newItemCode.trim()) {
+            toast.error("El código de artículo es requerido");
+            return;
+        }
+        const qtyReq = parseInt(newItemQtyReq) || 0;
+        if (qtyReq <= 0) {
+            toast.error("La cantidad requerida debe ser mayor a 0");
+            return;
+        }
+
+        const itemCodeClean = newItemCode.trim().toUpperCase();
+        
+        const exists = editingAudit.items.some(
+            item => (item.item_code || item.code || '').toUpperCase() === itemCodeClean &&
+                    (item.order_line || '') === (newItemLine.trim())
+        );
+        if (exists) {
+            toast.error("Este artículo ya existe en esta línea");
+            return;
+        }
+
+        const newItem = {
+            id: null,
+            item_code: itemCodeClean,
+            code: itemCodeClean,
+            description: newItemDesc.trim() || "Item manual",
+            order_line: newItemLine.trim(),
+            qty_req: qtyReq,
+            qty_scan: 0,
+            edited: 1
+        };
+
+        setEditingAudit(prev => {
+            const updatedItems = [...prev.items, newItem];
+            const key = `${newItem.item_code}:${newItem.order_line || ''}`;
+            const updatedAssignments = {
+                ...prev.packages_assignment,
+                [key]: {}
+            };
+            return {
+                ...prev,
+                items: updatedItems,
+                packages_assignment: updatedAssignments
+            };
+        });
+
+        setIsAddingItem(false);
+        resetNewItemForm();
+        toast.success("Artículo agregado a la auditoría");
+    };
+
+    const resetNewItemForm = () => {
+        setNewItemCode('');
+        setNewItemLine('');
+        setNewItemDesc('');
+        setNewItemQtyReq('');
     };
 
     const handlePkgQtyChange = (itemIdx, pkgNum, value) => {
@@ -211,6 +296,33 @@ const PickingAuditHistory = () => {
         finally { setCreatingShipment(false); }
     };
 
+    const handleDeleteSelected = async () => {
+        if (selectedIds.size === 0) return;
+        const confirmMsg = selectedIds.size === 1
+            ? "¿Está seguro que desea eliminar la auditoría seleccionada? Esta acción es irreversible."
+            : `¿Está seguro que desea eliminar las ${selectedIds.size} auditorías seleccionadas? Esta acción es irreversible.`;
+        
+        if (!window.confirm(confirmMsg)) return;
+        
+        try {
+            const res = await fetch('/api/delete_picking_audits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audit_ids: [...selectedIds] }),
+                credentials: 'include'
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Error al eliminar auditorías');
+            }
+            toast.success("Auditorías eliminadas correctamente");
+            setSelectedIds(new Set());
+            await fetchAudits();
+        } catch (err) {
+            toast.error(err.message);
+        }
+    };
+
     return (
         <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
@@ -233,7 +345,21 @@ const PickingAuditHistory = () => {
                         <table className="min-w-full leading-normal">
                             <thead>
                                 <tr className="bg-zinc-50 border-b border-zinc-200">
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-center w-10">Envío</th>
+                                    <th className="px-4 py-1.5 text-center w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={audits.length > 0 && audits.every(a => selectedIds.has(a.id))}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedIds(new Set(audits.map(a => a.id)));
+                                                } else {
+                                                    setSelectedIds(new Set());
+                                                }
+                                            }}
+                                            className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer animate-all"
+                                            title="Seleccionar todo"
+                                        />
+                                    </th>
                                     <th className="px-4 py-1.5 text-center w-8"></th>
                                     <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">ID</th>
                                     <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Orden</th>
@@ -411,6 +537,12 @@ const PickingAuditHistory = () => {
                     >
                         Consolidar Envío
                     </button>
+                    <button 
+                        onClick={handleDeleteSelected} 
+                        className="bg-red-600 text-white px-6 py-1.5 rounded-full text-[10px] font-medium  uppercase tracking-widest hover:bg-red-700 transition-colors"
+                    >
+                        Eliminar
+                    </button>
                     <button onClick={() => setSelectedIds(new Set())} className="text-zinc-700 hover:text-white transition-colors">✕</button>
                 </div>
             )}
@@ -528,6 +660,84 @@ const PickingAuditHistory = () => {
                                     })}
                                 </tbody>
                             </table>
+
+                            {/* Formulario para agregar artículo no escaneado */}
+                            <div className="mt-6 border-t border-zinc-100 pt-6">
+                                {!isAddingItem ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddingItem(true)}
+                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-all hover:bg-blue-100"
+                                    >
+                                        ＋ Agregar Artículo no Escaneado
+                                    </button>
+                                ) : (
+                                    <div className="bg-zinc-50 p-5 border border-zinc-200 rounded flex flex-wrap gap-4 items-end transition-all">
+                                        <div className="flex flex-col gap-1 w-24">
+                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Línea</label>
+                                            <input
+                                                type="text"
+                                                value={newItemLine}
+                                                onChange={e => setNewItemLine(e.target.value)}
+                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white"
+                                                placeholder="Ej: 60"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 w-44">
+                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Código</label>
+                                            <input
+                                                type="text"
+                                                value={newItemCode}
+                                                onChange={e => {
+                                                    setNewItemCode(e.target.value);
+                                                    handleItemCodeLookup(e.target.value);
+                                                }}
+                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white font-mono"
+                                                placeholder="Ej: 73411217"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Descripción</label>
+                                            <input
+                                                type="text"
+                                                value={newItemDesc}
+                                                onChange={e => setNewItemDesc(e.target.value)}
+                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white"
+                                                placeholder="Descripción del artículo"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 w-24">
+                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Cant. Req.</label>
+                                            <input
+                                                type="number"
+                                                value={newItemQtyReq}
+                                                onChange={e => setNewItemQtyReq(e.target.value)}
+                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white font-mono"
+                                                placeholder="Ej: 5"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleConfirmAddItem}
+                                                className="px-5 py-2 bg-zinc-900 text-white text-[10px] font-medium uppercase tracking-widest hover:bg-zinc-800 h-9 transition-colors"
+                                            >
+                                                Confirmar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsAddingItem(false);
+                                                    resetNewItemForm();
+                                                }}
+                                                className="px-4 py-2 text-[10px] font-medium uppercase tracking-widest text-zinc-600 hover:text-zinc-900 h-9 transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className="flex justify-end gap-4 pt-8 border-t border-zinc-100">
                             <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-2 text-[11px] font-medium  uppercase tracking-widest text-zinc-600 hover:text-zinc-900">Cancelar</button>

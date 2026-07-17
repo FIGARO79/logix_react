@@ -503,6 +503,7 @@ async def get_picking_audit(
             "packages_dimensions": packages_dimensions,
             "items": [
                 {
+                    "id": item.id,
                     "code": item.item_code,
                     "description": item.description,
                     "order_line": item.order_line,
@@ -577,17 +578,28 @@ async def update_picking_audit(
             key = f"{item.code}:{item.order_line or ''}"
             old_item = old_items.get(key)
 
-            # Buscar el item en la base de datos de manera única usando audit_id, item_code y order_line
-            result = await db.execute(
-                select(PickingAuditItem).where(
-                    and_(
-                        PickingAuditItem.audit_id == audit_id,
-                        PickingAuditItem.item_code == item.code,
-                        PickingAuditItem.order_line == (item.order_line or ""),
+            # Buscar el item en la base de datos de manera única usando el id si está disponible
+            db_item = None
+            if item.id is not None:
+                result = await db.execute(
+                    select(PickingAuditItem).where(PickingAuditItem.id == item.id)
+                )
+                db_item = result.scalar_one_or_none()
+
+            if db_item is None:
+                # Fallback usando audit_id, item_code y order_line (pero controlando múltiples filas si existen)
+                result = await db.execute(
+                    select(PickingAuditItem).where(
+                        and_(
+                            PickingAuditItem.audit_id == audit_id,
+                            PickingAuditItem.item_code == item.code,
+                            PickingAuditItem.order_line == (item.order_line or ""),
+                        )
                     )
                 )
-            )
-            db_item = result.scalar_one_or_none()
+                db_items = result.scalars().all()
+                if db_items:
+                    db_item = db_items[0]
 
             if db_item:
                 # Marcar como editado si cambió qty_scan
@@ -596,6 +608,19 @@ async def update_picking_audit(
                 db_item.edited = (
                     1 if (old_item and old_item.qty_scan != item.qty_scan) else 0
                 )
+            else:
+                # Si es un item nuevo, insertarlo
+                new_item = PickingAuditItem(
+                    audit_id=audit_id,
+                    item_code=item.code,
+                    description=item.description,
+                    order_line=item.order_line or "",
+                    qty_req=item.qty_req,
+                    qty_scan=item.qty_scan,
+                    difference=difference,
+                    edited=1,
+                )
+                db.add(new_item)
 
         # [NUEVO] Actualizar dimensiones de bultos
         if audit_data.packages_dimensions is not None:
@@ -827,4 +852,43 @@ async def save_picking_audit(
     except Exception as e:
         await db.rollback()
         print(f"Database error in save_picking_audit: {e}")
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")
+
+
+@router.post("/delete_picking_audits")
+async def delete_picking_audits_bulk(
+    payload: dict,
+    username: str = Depends(permission_required("picking")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Elimina múltiples auditorías de picking en lote."""
+    audit_ids = payload.get("audit_ids", [])
+    if not audit_ids:
+        return ORJSONResponse(content={"message": "No se proporcionaron IDs"}, status_code=400)
+    
+    try:
+        from app.models.sql_models import PickingAudit as PickingAuditModel, ShipmentAudit
+        from sqlalchemy import delete
+
+        for audit_id in audit_ids:
+            # Buscar la auditoría
+            result = await db.execute(
+                select(PickingAuditModel).where(PickingAuditModel.id == audit_id)
+            )
+            audit = result.scalar_one_or_none()
+
+            if audit:
+                # 1. Eliminar vínculos con envíos
+                await db.execute(
+                    delete(ShipmentAudit).where(ShipmentAudit.audit_id == audit_id)
+                )
+                # 2. Eliminar la auditoría ( SQLAlchemy cascade delete-orphan se encargará del resto )
+                await db.delete(audit)
+        
+        await db.commit()
+        return ORJSONResponse(content={"message": "Auditorías eliminadas con éxito"})
+
+    except Exception as e:
+        await db.rollback()
+        print(f"Database error in delete_picking_audits_bulk: {e}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {e}")

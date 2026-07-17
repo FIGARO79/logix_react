@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const PackingListPrint = ({ setTitle }) => {
-    const { id } = useParams();
+const PackingListPrint = ({ setTitle, id: propId }) => {
+    const { id: paramId } = useParams();
     const navigate = useNavigate();
+    const id = propId || paramId;
 
     useEffect(() => {
+        if (!id || id === 'undefined') return;
         if (setTitle) {
             setTitle(`Packing List #${id}`);
         }
@@ -15,6 +17,7 @@ const PackingListPrint = ({ setTitle }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!id || id === 'undefined') return;
         // 1. Fetch Data
         const fetchData = async () => {
             try {

@@ -133,13 +133,12 @@ const OccupancyDashboard = () => {
                                 const isZoneSelected = selectedCell && selectedCell.zone === zoneName && selectedCell.level === null;
                                 return (
                                     <tr key={zoneName} className="hover:bg-zinc-50/50 transition-colors">
-                                        <td 
+                                        <td
                                             onClick={() => handleCellClick(zoneName, null)}
-                                            className={`px-6 py-4 cursor-pointer transition-all duration-200 ${
-                                                isZoneSelected 
-                                                    ? 'bg-zinc-100 border-l-4 border-black font-semibold' 
-                                                    : 'hover:bg-zinc-100/70'
-                                            }`}
+                                            className={`px-6 py-4 cursor-pointer transition-all duration-200 ${isZoneSelected
+                                                ? 'bg-zinc-100 border-l-4 border-black font-semibold'
+                                                : 'hover:bg-zinc-100/70'
+                                                }`}
                                         >
                                             <div className="text-[12px] font-normal text-black uppercase tracking-tight flex items-center gap-1.5">
                                                 <span className="hover:underline">{zoneName}</span>
@@ -162,7 +161,7 @@ const OccupancyDashboard = () => {
                                             return (
                                                 <td key={level} className="px-1 py-2">
                                                     {levelData.total > 0 ? (
-                                                        <div 
+                                                        <div
                                                             onClick={() => handleCellClick(zoneName, level)}
                                                             className={`
                                                                 w-full h-16 flex flex-col items-center justify-center rounded-sm border
@@ -266,27 +265,26 @@ const OccupancyDashboard = () => {
                                                 {bins.length} Bins
                                             </span>
                                         </div>
-                                        
+
                                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                                             {bins.map(bin => {
-                                                const occupancyColor = 
+                                                const occupancyColor =
                                                     bin.occupancy_pct === 0 ? 'bg-zinc-100 text-black border-zinc-200 font-normal' :
-                                                    bin.occupancy_pct < 30 ? 'bg-emerald-200 text-black border-emerald-300 font-normal' :
-                                                    bin.occupancy_pct < 75 ? 'bg-amber-200 text-black border-amber-300 font-normal' :
-                                                    'bg-red-300 text-black border-red-300 font-normal';
+                                                        bin.occupancy_pct < 30 ? 'bg-emerald-200 text-black border-emerald-300 font-normal' :
+                                                            bin.occupancy_pct < 75 ? 'bg-amber-200 text-black border-amber-300 font-normal' :
+                                                                'bg-red-300 text-black border-red-300 font-normal';
 
                                                 return (
-                                                    <div 
-                                                        key={bin.bin_code} 
+                                                    <div
+                                                        key={bin.bin_code}
                                                         className={`border p-2.5 rounded-sm flex flex-col justify-between h-20 ${occupancyColor} shadow-sm`}
                                                     >
                                                         <div className="flex justify-between items-start">
                                                             <span className="text-[12px] font-normal font-mono tracking-tight text-black">{bin.bin_code}</span>
-                                                            <span className={`text-[12px] uppercase font-normal px-1 rounded-sm ${
-                                                                bin.spot === 'Hot' 
-                                                                    ? 'bg-orange-500 text-white' 
-                                                                    : 'bg-blue-500 text-white'
-                                                            }`}>
+                                                            <span className={`text-[12px] uppercase font-normal px-1 rounded-sm ${bin.spot === 'Hot'
+                                                                ? 'bg-orange-500 text-white'
+                                                                : 'bg-blue-500 text-white'
+                                                                }`}>
                                                                 {bin.spot}
                                                             </span>
                                                         </div>
@@ -316,7 +314,7 @@ const OccupancyDashboard = () => {
 
                 {/* 1. Spatial Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm">
-                    <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[14px] font-normal text-black uppercase tracking-normal mb-4 border-b border-zinc-100 pb-2">
                         Distribución de Bins por Zona
                     </h3>
                     <div className="space-y-4">
@@ -327,11 +325,11 @@ const OccupancyDashboard = () => {
                                 return (
                                     <div key={zone} className="flex justify-between items-end border-b border-zinc-50 pb-1.5">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[12px] font-normal text-black">{zone}</span>
+                                            <span className="text-[14px] font-normal text-black">{zone}</span>
                                         </div>
-                                        <span className="text-black font-normal text-[12px]">
-                                            {count} <span className="text-[10px] uppercase ml-0.5 text-zinc-400 font-normal">Units</span>
-                                            <span className="text-black font-mono text-[11px] ml-2">({percentage}%)</span>
+                                        <span className="text-black font-normal text-[14px]">
+                                            {count} <span className="text-[14px] ml-0.5 text-black font-normal">Units</span>
+                                            <span className="text-black font-normal text-[14px] ml-2">({percentage}%)</span>
                                         </span>
                                     </div>
                                 );
@@ -342,10 +340,10 @@ const OccupancyDashboard = () => {
 
                 {/* 2. SKU Volume Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm text-black">
-                    <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[14px] font-normal text-black uppercase tracking-normal mb-4 border-b border-zinc-100 pb-2">
                         Densidad de SKUs por Zona
                     </h3>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {(() => {
                             const totalItems = Object.values(data.analytics.zones_by_items).reduce((acc, val) => acc + val, 0);
                             return Object.entries(data.analytics.zones_by_items).map(([zone, count]) => {
@@ -354,11 +352,11 @@ const OccupancyDashboard = () => {
                                 const itemPct = totalItems > 0 ? ((count / totalItems) * 100).toFixed(1) : 0;
                                 return (
                                     <div key={zone}>
-                                        <div className="flex justify-between text-[12px] font-normal text-black mb-1.5 uppercase tracking-tighter">
+                                        <div className="flex justify-between text-[14px] font-normal text-black mb-1 tracking-normal">
                                             <span>{zone}</span>
-                                            <span className="text-black font-normal text-[12px]">
+                                            <span className="text-black font-normal text-[14px]">
                                                 {count}
-                                                <span className="text-black font-mono text-[11px] ml-2">({itemPct}%)</span>
+                                                <span className="text-black font-normal text-[14px] ml-2">({itemPct}%)</span>
                                             </span>
                                         </div>
                                         <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
@@ -373,18 +371,18 @@ const OccupancyDashboard = () => {
 
                 {/* 3. Operational Risk (Hot Aisles) */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm text-black">
-                    <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-6 border-b border-zinc-100 pb-2">
+                    <h3 className="text-[14px] font-normal text-black uppercase tracking-normal mb-4 border-b border-zinc-100 pb-2">
                         Densidad Crítica (Pasillos Principales)
                     </h3>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {Object.entries(data.analytics.top_aisles).map(([aisle, count], idx) => {
                             const maxVal = Object.values(data.analytics.top_aisles)[0] || 1;
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={aisle}>
-                                    <div className="flex justify-between text-[12px] font-normal text-black mb-1.5 uppercase tracking-tighter">
+                                    <div className="flex justify-between text-[14px] font-normal text-black mb-1 tracking-normal">
                                         <span>Pasillo {aisle}</span>
-                                        <span className="text-black font-normal text-[12px]">{count}</span>
+                                        <span className="text-black font-normal text-[14px]">{count}</span>
                                     </div>
                                     <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                                         <div

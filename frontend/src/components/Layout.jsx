@@ -141,7 +141,7 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
             <TabProvider value={contextValue}>
                 {/* Solo renderizar el componente si ha sido inicializado (Lazy Load) */}
                 {initialized ? (
-                    <Component setTitle={tabSetTitle} />
+                    <Component setTitle={tabSetTitle} {...resolved.params} />
                 ) : (
                     <div className="flex items-center justify-center h-full text-slate-400 text-xs uppercase tracking-tight bg-[#fafafa]">
                         <span>Cargando módulo...</span>

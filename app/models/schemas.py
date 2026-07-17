@@ -24,6 +24,7 @@ class CloseLocationRequest(BaseModel):
 class PickingAuditItem(BaseModel):
     """Modelo para items en auditoría de picking."""
 
+    id: Optional[int] = None
     code: str
     description: str
     order_line: Optional[str] = ""

@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const EditCount = () => {
-    const { id } = useParams();
+const EditCount = ({ id: propId }) => {
+    const { id: paramId } = useParams();
     const navigate = useNavigate();
+    const id = propId || paramId;
     const [count, setCount] = useState(null);
     const [countedQty, setCountedQty] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!id || id === 'undefined') return;
         const fetchCount = async () => {
             try {
                 const res = await fetch(`/api/counts/${id}`);
