@@ -11,66 +11,6 @@ const Planner = () => {
     const [stats, setStats] = useState({ executed: {}, delta: {} }); // Placeholder para stats reales
     const [holidaysText, setHolidaysText] = useState('');
 
-    useEffect(() => {
-        setTitle("Planeación de Conteos");
-    }, [setTitle]);
-
-    // Estado calculado para el Dashboard
-    const [dashboardMetrics, setDashboardMetrics] = useState({
-        counts: { A: 0, B: 0, C: 0 },
-        req: { A: 0, B: 0, C: 0 },
-        daily: { A: 0, B: 0, C: 0 },
-        workingDays: 0,
-        totalReq: 0,
-        totalDaily: 0,
-        monthlyPlanned: {
-            A: Array(12).fill(0),
-            B: Array(12).fill(0),
-            C: Array(12).fill(0),
-            Total: Array(12).fill(0)
-        }
-    });
-
-    // Carga inicial
-    useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                // 1. Configuración
-                const resConfig = await fetch('/api/planner/config');
-                if (resConfig.ok) {
-                    const data = await resConfig.json();
-                    setConfig(data);
-                    setHolidaysText(data.holidays ? data.holidays.join('\n') : '');
-                }
-
-                // 2. Plan Actual (Items planos)
-                const resPlan = await fetch('/api/planner/current_plan');
-                if (resPlan.ok) {
-                    const data = await resPlan.json();
-                    // El endpoint devuelve objeto {details: []} usualmente si se guardó
-                    const items = Array.isArray(data) ? data : (data.details || []);
-                    setPlanDetails(items);
-                }
-
-                // 3. Ejecución (Stats)
-                const resStats = await fetch('/api/planner/execution/stats');
-                if (resStats.ok) {
-                    const data = await resStats.json();
-                    setStats(data);
-                }
-
-            } catch (error) {
-                console.error("Error cargando datos planner:", error);
-            }
-        };
-        loadInitialData();
-    }, []);
-
-    // Recalcular métricas cada vez que cambian los detalles del plan o las fechas
-    useEffect(() => {
-        calculateDashboard();
-    }, [calculateDashboard]);
-
     const calculateDashboard = useCallback(() => {
         if (!planDetails.length) return;
 
@@ -144,6 +84,67 @@ const Planner = () => {
             monthlyPlanned: { ...monthly, Total: monthlyTotal }
         });
     }, [planDetails, config, holidaysText]);
+
+    useEffect(() => {
+        setTitle("Planeación de Conteos");
+    }, [setTitle]);
+
+    // Estado calculado para el Dashboard
+    const [dashboardMetrics, setDashboardMetrics] = useState({
+        counts: { A: 0, B: 0, C: 0 },
+        req: { A: 0, B: 0, C: 0 },
+        daily: { A: 0, B: 0, C: 0 },
+        workingDays: 0,
+        totalReq: 0,
+        totalDaily: 0,
+        monthlyPlanned: {
+            A: Array(12).fill(0),
+            B: Array(12).fill(0),
+            C: Array(12).fill(0),
+            Total: Array(12).fill(0)
+        }
+    });
+
+    // Carga inicial
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                // 1. Configuración
+                const resConfig = await fetch('/api/planner/config');
+                if (resConfig.ok) {
+                    const data = await resConfig.json();
+                    setConfig(data);
+                    setHolidaysText(data.holidays ? data.holidays.join('\n') : '');
+                }
+
+                // 2. Plan Actual (Items planos)
+                const resPlan = await fetch('/api/planner/current_plan');
+                if (resPlan.ok) {
+                    const data = await resPlan.json();
+                    // El endpoint devuelve objeto {details: []} usualmente si se guardó
+                    const items = Array.isArray(data) ? data : (data.details || []);
+                    setPlanDetails(items);
+                }
+
+                // 3. Ejecución (Stats)
+                const resStats = await fetch('/api/planner/execution/stats');
+                if (resStats.ok) {
+                    const data = await resStats.json();
+                    setStats(data);
+                }
+
+            } catch (error) {
+                console.error("Error cargando datos planner:", error);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+
+    // Recalcular métricas cada vez que cambian los detalles del plan o las fechas
+    useEffect(() => {
+        calculateDashboard();
+    }, [calculateDashboard]);
 
     const handleUpdatePlan = async () => {
         setLoading(true);

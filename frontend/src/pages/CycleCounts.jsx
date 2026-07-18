@@ -32,17 +32,7 @@ const CycleCounts = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scanTarget, setScanTarget] = useState(null); // 'location' or 'item'
 
-    // Check Active Session on Mount
-    useEffect(() => {
-        checkActiveSession();
-    }, [checkActiveSession]);
 
-    // Update Sidebar when Location or Session changes
-    useEffect(() => {
-        if (activeSession) {
-            updateSidebarData();
-        }
-    }, [activeSession, countedLocation, updateSidebarData]);
 
     const checkActiveSession = useCallback(async () => {
         setCheckingSession(true);
@@ -159,6 +149,18 @@ const CycleCounts = () => {
             setLocationCounts(localMatches);
         }
     }, [activeSession, isOnline, countedLocation]);
+
+    // Check Active Session on Mount
+    useEffect(() => {
+        checkActiveSession();
+    }, [checkActiveSession]);
+
+    // Update Sidebar when Location or Session changes
+    useEffect(() => {
+        if (activeSession) {
+            updateSidebarData();
+        }
+    }, [activeSession, countedLocation, updateSidebarData]);
 
     const fetchItemData = async (code) => {
         if (!code) return;

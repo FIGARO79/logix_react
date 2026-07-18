@@ -132,20 +132,13 @@ class SlottingService:
         try:
             import logix_rust_core
 
-            storage_json = orjson.dumps(storage).decode("utf-8")
-            turnover_json = orjson.dumps(turnover_map).decode("utf-8")
-            zone_rules_json = orjson.dumps(zone_rules).decode("utf-8")
-            mix_limits_json = orjson.dumps(mix_limits).decode("utf-8")
-            item_details_json = orjson.dumps(item_details).decode("utf-8")
-            occupancy_json = orjson.dumps(occupancy).decode("utf-8")
-
             rust_res = logix_rust_core.get_suggested_bin_rust(
-                storage_json,
-                turnover_json,
-                zone_rules_json,
-                mix_limits_json,
-                item_details_json,
-                occupancy_json,
+                storage,
+                turnover_map,
+                zone_rules,
+                mix_limits,
+                item_details,
+                occupancy,
                 sic_code,
             )
             return rust_res
