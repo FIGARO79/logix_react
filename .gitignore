@@ -95,3 +95,7 @@ start_wsl.sh
 
 # Agentes IA y herramientas locales
 .agents/
+
+# Rust target directory
+rust_core/target/
+
