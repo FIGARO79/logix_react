@@ -99,3 +99,6 @@ start_wsl.sh
 # Rust target directory
 rust_core/target/
 
+# Carpetas de extensiones y agentes
+.gemini/
+.specify/
