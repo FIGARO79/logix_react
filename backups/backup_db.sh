@@ -14,7 +14,7 @@ set -euo pipefail
 
 # --- CONFIGURACIÓN ---
 ENV_FILE="/home/debian/logix_cl/.env"
-BACKUP_DIR="/home/debian/logix_cl/instance"
+BACKUP_DIR="/home/debian/logix_cl/backups"
 RETENTION_DAYS=7
 
 # Verificar que exista el archivo de configuración .env
@@ -30,11 +30,15 @@ DB_HOST=$(grep -E "^DB_HOST=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r' | tr -d 
 DB_PORT=$(grep -E "^DB_PORT=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'")
 DB_NAME=$(grep -E "^DB_NAME=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'")
 
-# Valores por defecto en caso de no estar definidos en el .env
+# Verificar que se hayan cargado las credenciales esenciales
+if [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ] || [ -z "$DB_NAME" ]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [ERROR] Faltan credenciales de base de datos en $ENV_FILE" >&2
+    exit 1
+fi
+
+# Valores por defecto para host y puerto si no están definidos
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-3306}
-DB_USER=${DB_USER:-logix_user}
-DB_NAME=${DB_NAME:-logix_db}
 
 # Generar el nombre de archivo con marca de tiempo (YYYYMMDD_HHMMSS)
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")

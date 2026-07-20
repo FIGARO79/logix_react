@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: /home/debian/logix)
+# SCRIPT DE ACTUALIZACIÓN (Entorno Unificado: $PROJECT_DIR)
 # ==============================================================================
 # Ejecuta este script después de hacer cambios en el código para aplicarlos.
 # Uso: ./apply_changes.sh
@@ -25,6 +25,12 @@ if [ -d "$PROJECT_DIR/venv" ]; then
     echo "   Sincronizando dependencias de Python con uv..."
     $HOME/.local/bin/uv pip sync requirements.txt --python "$PROJECT_DIR/venv"
     
+    if [ -d "$PROJECT_DIR/rust_core" ]; then
+        echo "   🦀 Compilando e instalando módulo Rust (rust_core)..."
+        "$PROJECT_DIR/venv/bin/maturin" build --release --manifest-path "$PROJECT_DIR/rust_core/Cargo.toml"
+        $HOME/.local/bin/uv pip install --force-reinstall "$PROJECT_DIR/rust_core/target/wheels"/*.whl --python "$PROJECT_DIR/venv"
+    fi
+
     echo "   Verificando migraciones de base de datos..."
     # Correr migraciones manualmente para asegurar que la DB esté al día
     "$PROJECT_DIR/venv/bin/python" -m alembic upgrade head
@@ -65,5 +71,5 @@ echo ""
 echo "========================================================"
 echo "✅ ACTUALIZACIÓN COMPLETADA EN EL ENTORNO UNIFICADO"
 echo "========================================================"
-echo "Los cambios están activos en /home/debian/logix"
+echo "Los cambios están activos en $PROJECT_DIR"
 echo "Refresca tu navegador para ver los cambios."
