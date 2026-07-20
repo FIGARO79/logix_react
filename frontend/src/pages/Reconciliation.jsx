@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
@@ -62,6 +62,17 @@ const Reconciliation = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        // Auto-refresh every 10 seconds if not looking at historical or offline data
+        const interval = setInterval(() => {
+            if (navigator.onLine && location.pathname === '/reconciliation' && !currentVersion && !currentSnapshot) {
+                fetchData({}, true); // silent fetch
+            }
+        }, 10000);
+        
+        return () => clearInterval(interval);
+    }, [location.pathname, currentVersion, currentSnapshot]);
 
     // Recargar datos automáticamente cuando la pestaña vuelve a estar activa
     useEffect(() => {
@@ -136,14 +147,18 @@ const Reconciliation = () => {
         return sortableItems;
     }, [data, sortConfig]);
 
+    const deferredFilterText = useDeferredValue(filterText);
+
     const filteredData = useMemo(() => {
         return sortedData.filter(item => {
-            if (!filterText) return true;
+            if (!deferredFilterText) return true;
             return Object.values(item).some(val =>
-                String(val).toLowerCase().includes(filterText.toLowerCase())
+                String(val).toLowerCase().includes(deferredFilterText.toLowerCase())
             );
         });
-    }, [sortedData, filterText]);
+    }, [sortedData, deferredFilterText]);
+
+    const displayedData = useMemo(() => filteredData.slice(0, 200), [filteredData]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -333,8 +348,8 @@ const Reconciliation = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredData.length > 0 ? (
-                                            filteredData.map((row, idx) => (
+                                        {displayedData.length > 0 ? (
+                                            displayedData.map((row, idx) => (
                                                 <tr
                                                     key={idx}
                                                     className="transition-colors hover:z-10 relative"
@@ -370,7 +385,7 @@ const Reconciliation = () => {
 
                             {/* Footer */}
                             <div className="flex items-center gap-3 px-4 py-2 border-t border-zinc-100 bg-white text-[10px] text-zinc-500">
-                                <span>Mostrando <span className="font-semibold text-zinc-700">{filteredData.length}</span> registros</span>
+                                <span>Mostrando <span className="font-semibold text-zinc-700">{displayedData.length}</span> de <span className="font-semibold text-zinc-700">{filteredData.length}</span> registros</span>
                                 {!isOfflineData && (
                                     <span className="flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>

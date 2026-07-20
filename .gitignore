@@ -95,3 +95,9 @@ start_wsl.sh
 
 # Agentes IA y herramientas locales
 .agents/
+
+# Rust y artefactos de compilación
+rust_core/target/
+Cargo.lock
+**/*.rs.bk
+*.whl

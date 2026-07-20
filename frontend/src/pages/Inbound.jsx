@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
@@ -190,6 +190,16 @@ const Inbound = () => {
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
+
+    useEffect(() => {
+        // Auto-refresh logs every 10 seconds if online and not viewing history
+        const logsInterval = setInterval(() => {
+            if (navigator.onLine && !currentVersion) {
+                loadLogs();
+            }
+        }, 10000);
+        return () => clearInterval(logsInterval);
+    }, [currentVersion]);
 
     const loadSlottingBins = async () => {
         try {
@@ -490,14 +500,16 @@ const Inbound = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [irStats, importRef]);
 
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+
     // Filter logs based on search term
-    const filteredLogs = logs.filter(log =>
-        (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.itemDescription && log.itemDescription.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredLogs = useMemo(() => logs.filter(log =>
+        (log.itemCode && log.itemCode.toLowerCase().includes(deferredSearchTerm.toLowerCase())) ||
+        (log.waybill && log.waybill.toLowerCase().includes(deferredSearchTerm.toLowerCase())) ||
+        (log.importReference && log.importReference.toLowerCase().includes(deferredSearchTerm.toLowerCase())) ||
+        (log.itemDescription && log.itemDescription.toLowerCase().includes(deferredSearchTerm.toLowerCase())) ||
+        (log.username && log.username.toLowerCase().includes(deferredSearchTerm.toLowerCase()))
+    ), [logs, deferredSearchTerm]);
 
     const itemsPerPage = 50;
     const paginatedLogs = useMemo(() => {
@@ -1061,6 +1073,33 @@ const Inbound = () => {
 
                             {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                                    {/* 1. Columna Izquierda: XDOCK Totals */}
+                                    {effectiveXdockPending > 0 ? (
+                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
+                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                            <div className="flex flex-col gap-0.5 text-black font-medium">
+                                                <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
+                                                <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
+                                            </div>
+                                        </div>
+                                    ) : <div className="hidden sm:block"></div>}
+
+                                    {/* 2. Columna Centro: XDOCK Clientes */}
+                                    {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
+                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
+                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                            <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium">
+                                                {itemData.xdockCustomers.map((c, idx) => (
+                                                    <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
+                                                        <div className="pr-2 text-black uppercase truncate font-medium"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
+                                                        <span className="text-red-700 whitespace-nowrap font-medium">{c?.qty || 0} UN</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
+
+                                    {/* 3. Columna Derecha: Sugerida (Slotting) */}
                                     {itemData?.suggestedBin ? (
                                         <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
                                             <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
@@ -1081,30 +1120,6 @@ const Inbound = () => {
                                             </div>
                                         </div>
                                     ) : <div className="hidden sm:block"></div>}
-
-                                    {effectiveXdockPending > 0 ? (
-                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
-                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
-                                            <div className="flex flex-col gap-0.5 text-black font-medium">
-                                                <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
-                                                <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
-                                            </div>
-                                        </div>
-                                    ) : <div className="hidden sm:block"></div>}
-
-                                    {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
-                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
-                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
-                                            <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium">
-                                                {itemData.xdockCustomers.map((c, idx) => (
-                                                    <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                        <div className="pr-2 text-black uppercase truncate font-medium"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                        <span className="text-red-700 whitespace-nowrap font-medium">{c?.qty || 0} UN</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
                                 </div>
                             )}
 

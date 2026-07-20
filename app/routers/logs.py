@@ -128,8 +128,7 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     item_details = await csv_handler.get_item_details_from_master_csv(item_code_form, db=db)
     if not item_details:
         raise HTTPException(status_code=404, detail="El código de ítem no existe en el maestro.")
-
-    expected_qty = await csv_handler.get_expected_quantity_by_ir_and_item(item_code_form, data.importReference, db=db)
+    expected_qty = (await csv_handler.get_expected_quantity_from_grn_for_import_ref(data.importReference, item_code_form, db=db)) or 0
     
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(db, item_code_form)
     original_bin = item_details.get('Bin_1', '')
@@ -156,7 +155,43 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
 
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
     
+    # Actualizar conciliacion IR automaticamente
+    from app.routers.inbound import recalculate_ir_stats
+    from app.models.sql_models import IRReconciliation
+    from sqlalchemy import select
+
     if log_id is not None and log_id > 0:
+        try:
+            target_ir = data.importReference.strip().upper()
+            stats = await recalculate_ir_stats(db, target_ir)
+            if stats:
+                stmt_recon = select(IRReconciliation).where(IRReconciliation.import_reference == target_ir)
+                res_recon = await db.execute(stmt_recon)
+                recon = res_recon.scalars().first()
+                if not recon:
+                    recon = IRReconciliation(
+                        timestamp=datetime.datetime.now().isoformat(),
+                        import_reference=target_ir,
+                        username="SISTEMA"
+                    )
+                    db.add(recon)
+                else:
+                    recon.timestamp = datetime.datetime.now().isoformat()
+                
+                recon.total_lines = stats.get("total_lines", 0)
+                recon.completed_lines = stats.get("completed_lines", 0)
+                recon.started_lines = stats.get("started_lines", 0)
+                recon.expected_units = stats.get("expected_units", 0)
+                recon.received_units = stats.get("received_units", 0)
+                recon.ok_lines = stats.get("ok_lines", 0)
+                recon.negative_diff_lines = stats.get("negative_diff_lines", 0)
+                recon.positive_diff_lines = stats.get("positive_diff_lines", 0)
+                recon.total_grns = stats.get("total_grns", 0)
+                recon.completed_grns = stats.get("completed_grns", 0)
+                await db.commit()
+        except Exception as e:
+            print(f"Error al actualizar conciliacion automatica: {e}")
+            
         return JSONResponse(content={"message": "Registro guardado correctamente", "id": log_id})
     elif log_id == 0:
         raise HTTPException(status_code=409, detail="Registro duplicado detectado (client_id).")
