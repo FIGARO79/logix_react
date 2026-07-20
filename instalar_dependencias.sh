@@ -38,6 +38,12 @@ fi
 echo "[INFO] Sincronizando librerías desde requirements.txt con uv..."
 $HOME/.local/bin/uv pip sync requirements.txt --python "$VENV_PATH"
 
+if [ -d "rust_core" ]; then
+    echo "[INFO] Compilando e instalando módulo Rust (rust_core)..."
+    "$VENV_PATH/bin/maturin" build --release --manifest-path "rust_core/Cargo.toml"
+    $HOME/.local/bin/uv pip install rust_core/target/wheels/*.whl --python "$VENV_PATH"
+fi
+
 if [ $? -eq 0 ]; then
     echo ""
     echo "[EXITO] Todo listo. Ahora puedes ejecutar ./iniciar_app.sh"
