@@ -1,17 +1,30 @@
-He creado el script 
-setup_server.sh
- en la carpeta principal.
+# 🚀 Instrucciones para Despliegue en Máquinas Virtuales (Azure / VPS)
 
-Este script es una joya para el futuro. Cuando tengas tu Máquina Virtual (VM) de Azure con Ubuntu recién creada, solo tendrás que hacer esto:
+He creado dos scripts de autoinstalación en la carpeta `vm_setup/` para preparar tu entorno desde cero según el sistema operativo que elijas:
 
-Copiar este archivo al servidor.
-Darle permisos: chmod +x setup_server.sh
-Ejecutarlo: sudo ./setup_server.sh
-¿Qué hará automáticamente por ti?
+- `setup_server_ubuntu.sh` (Para Ubuntu 22.04 / 24.04)
+- `setup_server_debian.sh` (Para Debian 11 / 12)
 
-✅ Actualizar el sistema operativo.
-✅ Instalar Python 3.12, MySQL Server y Nginx.
-✅ Crear la base de datos logix_db y el usuario automáticamente.
-✅ Configurar Nginx para que tu app sea visible en la web (Puerto 80).
-✅ Crear un servicio systemd para que la app se reinicie sola si el servidor se apaga.
-Es básicamente un "Autoinstalador" de Logix para Linux. Guárdalo bien junto con tu código.
+Estos scripts son una joya para el futuro. Cuando levantes tu Máquina Virtual (VM) recién creada, solo tendrás que hacer esto:
+
+1. **Copiar el archivo correspondiente al servidor.**
+2. **Darle permisos de ejecución:** 
+   ```bash
+   chmod +x setup_server_ubuntu.sh
+   # o chmod +x setup_server_debian.sh
+   ```
+3. **Ejecutarlo como superusuario:** 
+   ```bash
+   sudo ./setup_server_ubuntu.sh
+   ```
+
+### ¿Qué harán automáticamente por ti?
+
+✅ **Actualizar el sistema operativo** a la última versión.
+✅ **Instalar Python 3 y compiladores base** para el backend FastAPI.
+✅ **Instalar Node.js (v20)** para compilar el frontend React.
+✅ **Instalar Rust y Cargo** (necesarios para el núcleo de alto rendimiento `logix_rust_core`).
+✅ **Instalar MySQL / MariaDB**, crear la base de datos `logix_db` y el usuario automáticamente.
+✅ **Instalar Nginx** y herramientas esenciales como git, curl y unzip.
+
+Estos scripts actúan como el "Autoinstalador Global" de Logix para Linux, garantizando que tengas todos los cimientos perfectos (React, FastAPI y Rust) listos para que clones el repositorio y levantes el sistema en minutos.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Logix WMS - Azure VM Autoinstaller (Ubuntu 22.04 / 24.04)
+# Logix WMS - Azure/VPS Autoinstaller (Ubuntu 22.04/24.04)
 # Ejecutar con sudo: sudo ./setup_server.sh
 
 set -e
@@ -11,7 +11,7 @@ echo "📦 Actualizando paquetes del sistema..."
 apt-get update && apt-get upgrade -y
 
 # 2. Instalar dependencias base (Python, MySQL, Nginx, Compiladores)
-echo "🐍 Instalando dependencias base (Python, MySQL, Nginx, C++)..."
+echo "🐍 Instalando dependencias base (Python, Base de Datos, Nginx, C++)..."
 apt-get install -y python3 python3-venv python3-pip python3-dev \
     mysql-server default-libmysqlclient-dev build-essential \
     nginx curl git pkg-config unzip
@@ -32,7 +32,7 @@ if ! command -v cargo &> /dev/null; then
     source /opt/rust/env
 fi
 
-# 5. Configurar MySQL
+# 5. Configurar Base de Datos
 echo "🗄️ Configurando Base de Datos MySQL..."
 systemctl start mysql || true
 systemctl enable mysql || true
