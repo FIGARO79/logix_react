@@ -2,10 +2,11 @@
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Frontend-React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![Rust](https://img.shields.io/badge/Core-Rust_PyO3-DEA584?style=for-the-badge&logo=rust&logoColor=black)](https://www.rust-lang.org/)
 [![Polars](https://img.shields.io/badge/Engine-Polars-CD792C?style=for-the-badge)](https://www.pola.rs/)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](https://github.com/FIGARO79/logix_react)
 
-**Logix WMS** es un sistema integral de gestión de almacenes (Warehouse Management System) diseñado para operaciones de alta eficiencia. Combina un motor de datos ultrarrápido basado en **Polars** con una interfaz moderna y reactiva, permitiendo un control total sobre el inventario, optimización de espacios y conciliación de datos críticos.
+**Logix WMS** es un sistema integral de gestión de almacenes (Warehouse Management System) diseñado para operaciones de alta eficiencia. Combina un núcleo de alto rendimiento escrito nativamente en **Rust (PyO3)** y un motor de datos basado en **Polars** con una interfaz moderna y reactiva, permitiendo un control total sobre el inventario, optimización de espacios y conciliación de datos críticos a velocidades insuperables.
 
 ---
 
@@ -22,9 +23,11 @@ graph LR
     
     subgraph "Server Side (Backend)"
         D[FastAPI / Granian] --> E[SQLAlchemy 2.0]
-        D --> F[Polars / Data Engine]
+        D --> F[Rust Core / PyO3]
+        D --> I[Polars]
         E --> G[(MySQL / SQLite)]
         F --> H[(CSV Master Data)]
+        I --> H
     end
     
     A -- "REST API (JSON)" --> D
@@ -60,7 +63,8 @@ graph LR
 
 ### Backend (`app/`)
 - **Core**: FastAPI (Python 3.10+) con servidor **Granian**.
-- **Data**: Polars & NumPy (procesamiento de millones de filas en milisegundos).
+- **Heavy Processing**: Módulo nativo en **Rust** (`logix_rust_core`) compilado con Maturin/PyO3 para procesamiento intensivo y conciliaciones.
+- **Data**: Polars & NumPy (procesamiento de tablas masivas).
 - **ORM**: SQLAlchemy 2.0 con soporte asíncrono (**aiomysql**/**aiosqlite**).
 - **Seguridad**: RBAC, HSTS, Rate Limiting (SlowAPI) y JWT/Sessions.
 
@@ -117,12 +121,12 @@ El sistema incluye herramientas de administración vía CLI:
 
 ---
 
-## 🔄 Actualizaciones Recientes (Q2 2026)
-- **Matriz de Almacén**: Soporte para layouts complejos mediante importación masiva de Excel.
+## 🔄 Actualizaciones Recientes (Q3 2026)
+- **Núcleo Nativo en Rust**: Migración de la lógica intensiva de procesamiento de datos y mapas maestros a un módulo nativo en Rust (`logix_rust_core`) usando PyO3, incrementando masivamente el rendimiento.
+- **Memoria IA en SQL**: Migración del archivo `ai_slotting_memory.json` a persistencia en base de datos SQL para mayor robustez y velocidad en la gestión de patrones de IA.
 - **Seguridad de Sesiones**: Implementación de esquemas de seguridad reforzados para entornos multi-usuario.
-- **Optimización de Polars**: Reducción del tiempo de conciliación en un 40% mediante carga perezosa (lazy loading).
 
 ---
 
 **Mantenido por**: [FIGARO79](https://github.com/FIGARO79)  
-**Última actualización**: Mayo 2026
+**Última actualización**: Julio 2026
