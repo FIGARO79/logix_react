@@ -42,6 +42,8 @@ struct MixLimits {
 }
 
 #[derive(Debug)]
+#[allow(non_snake_case)]
+#[allow(dead_code)]
 struct ItemDetails {
     Bin_1: String,
     Item_Code: String,
@@ -277,18 +279,16 @@ fn get_suggested_bin_rust(
     // Reglas de Negocio
     let is_cantilever = cantilever_kw.iter().any(|kw| description.contains(kw));
 
-    let mut target_zone: Option<String> = None;
     let mut target_levels: Option<Vec<i32>> = None;
     let mut forbidden_zones: Vec<String> = Vec::new();
     let mut target_score_min: Option<i32> = None;
     let mut target_score_max: Option<i32> = None;
 
-    if is_cantilever {
-        target_zone = Some("Cantilever".to_string());
+    let target_zone = if is_cantilever {
+        Some("Cantilever".to_string())
     } else if weight > 0.0 && weight < minuteria_weight_max {
-        target_zone = Some(minuteria_zone.clone());
+        Some(minuteria_zone.clone())
     } else if exile_sics.contains(&sic_code) {
-        target_zone = Some("Rack".to_string());
         if weight > heavy_weight_min {
             let mut lvls: Vec<i32> = exile_levels.iter().cloned().filter(|&lvl| lvl >= 3).collect();
             if lvls.is_empty() {
@@ -298,23 +298,24 @@ fn get_suggested_bin_rust(
         } else {
             target_levels = Some(exile_levels);
         }
+        Some("Rack".to_string())
     } else if weight > heavy_weight_min {
-        target_zone = Some("Rack".to_string());
         target_levels = Some(heavy_levels);
+        Some("Rack".to_string())
     } else if sic_code == "W" || sic_code == "X" {
-        target_zone = Some("Rack".to_string());
         target_levels = Some(high_rotation_levels);
         target_score_min = Some(high_rotation_min_score);
         target_score_max = Some(high_rotation_max_score);
+        Some("Rack".to_string())
     } else if sic_code == "Y" || sic_code == "K" {
-        target_zone = Some("Rack".to_string());
         target_levels = Some(medium_rotation_levels);
         target_score_min = Some(medium_rotation_min_score);
         target_score_max = Some(medium_rotation_max_score);
+        Some("Rack".to_string())
     } else {
-        target_zone = Some("Rack".to_string());
         target_levels = Some(default_levels);
-    }
+        Some("Rack".to_string())
+    };
 
     if target_zone.is_none() {
         forbidden_zones.push("Cantilever".to_string());
@@ -586,18 +587,16 @@ fn get_suggested_bins_batch_rust(
             let weight_val_clean = item_details.Weight_per_Unit.replace(',', "");
             let weight: f64 = weight_val_clean.parse().unwrap_or(0.0);
 
-            let mut target_zone: Option<String> = None;
             let mut target_levels: Option<Vec<i32>> = None;
             let mut forbidden_zones: Vec<String> = Vec::new();
             let mut target_score_min: Option<i32> = None;
             let mut target_score_max: Option<i32> = None;
 
-            if is_cantilever {
-                target_zone = Some("Cantilever".to_string());
+            let target_zone = if is_cantilever {
+                Some("Cantilever".to_string())
             } else if weight > 0.0 && weight < minuteria_weight_max_val {
-                target_zone = Some(minuteria_zone_val.clone());
+                Some(minuteria_zone_val.clone())
             } else if exile_sics_val.contains(&sic_code) {
-                target_zone = Some("Rack".to_string());
                 if weight > heavy_weight_min_val {
                     let mut lvls: Vec<i32> = exile_levels_val.iter().cloned().filter(|&lvl| lvl >= 3).collect();
                     if lvls.is_empty() {
@@ -607,23 +606,24 @@ fn get_suggested_bins_batch_rust(
                 } else {
                     target_levels = Some(exile_levels_val.clone());
                 }
+                Some("Rack".to_string())
             } else if weight > heavy_weight_min_val {
-                target_zone = Some("Rack".to_string());
                 target_levels = Some(heavy_levels_val.clone());
+                Some("Rack".to_string())
             } else if sic_code == "W" || sic_code == "X" {
-                target_zone = Some("Rack".to_string());
                 target_levels = Some(high_rotation_levels_val.clone());
                 target_score_min = Some(high_rotation_min_score_val);
                 target_score_max = Some(high_rotation_max_score_val);
+                Some("Rack".to_string())
             } else if sic_code == "Y" || sic_code == "K" {
-                target_zone = Some("Rack".to_string());
                 target_levels = Some(medium_rotation_levels_val.clone());
                 target_score_min = Some(medium_rotation_min_score_val);
                 target_score_max = Some(medium_rotation_max_score_val);
+                Some("Rack".to_string())
             } else {
-                target_zone = Some("Rack".to_string());
                 target_levels = Some(default_levels_val.clone());
-            }
+                Some("Rack".to_string())
+            };
 
             if target_zone.is_none() {
                 forbidden_zones.push("Cantilever".to_string());
