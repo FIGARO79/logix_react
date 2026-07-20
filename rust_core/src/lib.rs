@@ -59,6 +59,7 @@ struct Candidate {
     score: i32,
 }
 
+
 /// Suma una lista de números enteros de 64 bits a alta velocidad.
 #[pyfunction]
 fn sum_list_rust(numbers: Vec<i64>) -> PyResult<i64> {
@@ -720,11 +721,213 @@ fn get_suggested_bins_batch_rust(
     Ok(results)
 }
 
+// --- CSV HANDLING ---
+
+use csv::ReaderBuilder;
+
+/// Procesa el CSV de reservaciones y genera un caché consolidado.
+#[pyfunction]
+fn generate_reservation_cache_rust<'py>(
+    py: Python<'py>,
+    file_path: &str,
+) -> PyResult<Bound<'py, PyDict>> {
+    let mut reader = match ReaderBuilder::new()
+        .has_headers(true)
+        .from_path(file_path)
+    {
+        Ok(r) => r,
+        Err(_) => return Ok(PyDict::new_bound(py)),
+    };
+
+    let headers = match reader.headers() {
+        Ok(h) => h.clone(),
+        Err(_) => return Ok(PyDict::new_bound(py)),
+    };
+
+    let mut item_col_idx = None;
+    let mut qty_col_idx = None;
+    let mut cust_col_idx = None;
+    let mut so_col_idx = None;
+
+    for (i, h) in headers.iter().enumerate() {
+        let hl = h.to_lowercase();
+        if item_col_idx.is_none() && (hl == "item_code" || hl.contains("item")) {
+            item_col_idx = Some(i);
+        }
+        if qty_col_idx.is_none()
+            && (hl.contains("quantity_reserved") || hl.contains("qty") || hl.contains("quantity"))
+        {
+            qty_col_idx = Some(i);
+        }
+        if cust_col_idx.is_none()
+            && (hl == "customer_name" || hl.contains("cust") || hl.contains("name"))
+        {
+            cust_col_idx = Some(i);
+        }
+        if so_col_idx.is_none() && (hl.contains("so_number") || hl.contains("so_num")) {
+            so_col_idx = Some(i);
+        }
+    }
+
+    if item_col_idx.is_none() || qty_col_idx.is_none() {
+        return Ok(PyDict::new_bound(py));
+    }
+
+    let item_idx = item_col_idx.unwrap();
+    let qty_idx = qty_col_idx.unwrap();
+
+    let mut group_map: HashMap<(String, String), f64> = HashMap::new();
+
+    for result in reader.records() {
+        let record = match result {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        let item_key = record.get(item_idx).unwrap_or("").trim().to_uppercase();
+        let qty_str = record.get(qty_idx).unwrap_or("0").replace(",", "");
+        let qty_val: f64 = qty_str.parse().unwrap_or(0.0);
+        
+        let cust_val = if let Some(idx) = cust_col_idx {
+            let val = record.get(idx).unwrap_or("").trim();
+            if val.is_empty() { "SIN NOMBRE".to_string() } else { val.to_string() }
+        } else {
+            "SIN NOMBRE".to_string()
+        };
+        
+        let so_val = if let Some(idx) = so_col_idx {
+            record.get(idx).unwrap_or("").trim().to_string()
+        } else {
+            "".to_string()
+        };
+
+        if !item_key.is_empty() && qty_val > 0.0 && !so_val.is_empty() {
+            let entry = group_map.entry((item_key, cust_val)).or_insert(0.0);
+            *entry += qty_val;
+        }
+    }
+
+    let mut final_map: HashMap<String, (i64, Vec<(String, i64)>)> = HashMap::new();
+
+    for ((item, cust), qty) in group_map {
+        let qty_i64 = qty as i64;
+        let entry = final_map.entry(item).or_insert((0, Vec::new()));
+        entry.0 += qty_i64;
+        entry.1.push((cust, qty_i64));
+    }
+
+    let py_dict = PyDict::new_bound(py);
+    for (item, (total, customers)) in final_map {
+        let item_dict = PyDict::new_bound(py);
+        item_dict.set_item("total", total)?;
+
+        let py_customers = PyList::empty_bound(py);
+        for (cust_name, cust_qty) in customers {
+            let cust_dict = PyDict::new_bound(py);
+            cust_dict.set_item("name", cust_name)?;
+            cust_dict.set_item("qty", cust_qty)?;
+            py_customers.append(cust_dict)?;
+        }
+        item_dict.set_item("customers", py_customers)?;
+
+        py_dict.set_item(item, item_dict)?;
+    }
+
+    Ok(py_dict)
+}
+
+use serde_json::Value;
+
+/// Lee múltiples JSONs y la base de datos para armar el mapa maestro de GRN -> IR/Waybill a máxima velocidad.
+#[pyfunction]
+fn build_master_maps_rust(
+    db_grns: Vec<(Option<String>, Option<String>, Option<String>)>,
+    grn_json_path: &str,
+    po_lookup_path: &str,
+) -> PyResult<Vec<(String, String, String)>> {
+    let mut master_maps: Vec<(String, String, String)> = Vec::new();
+
+    // 1. A. Desde grn_master_data.json
+    if let Ok(data) = std::fs::read_to_string(grn_json_path) {
+        if let Ok(json) = serde_json::from_str::<Value>(&data) {
+            if let Some(arr) = json.as_array() {
+                for row in arr {
+                    let ir = row.get("Import_Reference")
+                        .or_else(|| row.get("import_reference"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim().to_uppercase();
+                    let grn = row.get("GRN_Number")
+                        .or_else(|| row.get("grn_number"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim().to_uppercase();
+                    let wb = row.get("Waybill")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !ir.is_empty() && !grn.is_empty() {
+                        master_maps.push((grn, ir, wb));
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. B. Desde DB GRN Master
+    for (ir_raw, grn_raw, wb_raw) in db_grns {
+        let ir = ir_raw.unwrap_or_default().trim().to_uppercase();
+        let grns = grn_raw.unwrap_or_default();
+        let wb = wb_raw.unwrap_or_default();
+        if !ir.is_empty() && !grns.is_empty() {
+            for g in grns.split(',') {
+                let g_clean = g.trim().to_uppercase();
+                if !g_clean.is_empty() {
+                    master_maps.push((g_clean, ir.clone(), wb.clone()));
+                }
+            }
+        }
+    }
+
+    // 3. C. Desde po_lookup.json
+    if let Ok(data) = std::fs::read_to_string(po_lookup_path) {
+        if let Ok(json) = serde_json::from_str::<Value>(&data) {
+            if let Some(wb_to_data) = json.get("wb_to_data").and_then(|v| v.as_object()) {
+                for (wb_raw, data_obj) in wb_to_data {
+                    let ir = data_obj.get("import_ref")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim().to_uppercase();
+                    let wb = wb_raw.trim().to_uppercase();
+                    if !ir.is_empty() {
+                        if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                            for item in items {
+                                if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
+                                    for g in grn_val.split(',') {
+                                        let g_clean = g.trim().to_uppercase();
+                                        if !g_clean.is_empty() {
+                                            master_maps.push((g_clean, ir.clone(), wb.clone()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(master_maps)
+}
+
 /// Módulo de extensión de Python en Rust.
 #[pymodule]
 fn logix_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_list_rust, m)?)?;
     m.add_function(wrap_pyfunction!(get_suggested_bin_rust, m)?)?;
     m.add_function(wrap_pyfunction!(get_suggested_bins_batch_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(generate_reservation_cache_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(build_master_maps_rust, m)?)?;
     Ok(())
 }

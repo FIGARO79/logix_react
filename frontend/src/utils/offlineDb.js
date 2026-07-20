@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 4;
+const DB_VERSION = 9;
 
 const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {

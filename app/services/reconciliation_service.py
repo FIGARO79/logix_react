@@ -70,79 +70,31 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 3. Construir Mapa Maestro de GRN -> IR/Waybill
+        # 3. Construir Mapa Maestro de GRN -> IR/Waybill usando Rust (Alta velocidad)
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
-        master_maps = []
-
-        # A. Desde grn_master_data.json
-        if os.path.exists(GRN_JSON_DATA_PATH):
-            try:
-                with open(GRN_JSON_DATA_PATH, "rb") as f:
-                    grn_data = orjson.loads(f.read())
-                if isinstance(grn_data, list):
-                    for row in grn_data:
-                        ir = (
-                            str(
-                                row.get(
-                                    "Import_Reference", row.get("import_reference", "")
-                                )
-                            )
-                            .strip()
-                            .upper()
-                        )
-                        grn = (
-                            str(row.get("GRN_Number", row.get("grn_number", "")))
-                            .strip()
-                            .upper()
-                        )
-                        if ir and grn:
-                            master_maps.append((grn, ir, str(row.get("Waybill", ""))))
-            except:
-                pass
-
-        # B. Desde DB GRN Master
         try:
-            # Query only required fields as raw tuples to bypass SQLAlchemy ORM overhead
+            # Extraer DB GRNs primero
             db_grns = await db.execute(
-                select(
-                    GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill
-                )
+                select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
             )
-            for ir_raw, grn_raw, wb_raw in db_grns.all():
-                ir = str(ir_raw or "").strip().upper()
-                if ir and grn_raw:
-                    for g in str(grn_raw).split(","):
-                        g_clean = g.strip().upper()
-                        if g_clean:
-                            master_maps.append((g_clean, ir, str(wb_raw or "")))
+            db_grns_raw = [
+                (row.import_reference, row.grn_number, row.waybill)
+                for row in db_grns.all()
+            ]
         except Exception as e:
             print(f"[RECONCILIATION] Error loading DB GRNs: {e}")
+            db_grns_raw = []
 
-        # C. Desde po_lookup.json (Si el robot ya encontró el GRN)
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                    po_cache = orjson.loads(f.read())
-
-                # List comprehension is much faster than nested loops in pure Python
-                po_maps = [
-                    (g_clean, ir, wb)
-                    for wb_raw, data in po_cache.get("wb_to_data", {}).items()
-                    if data
-                    for ir in [str(data.get("import_ref", "")).strip().upper()]
-                    if ir
-                    for wb in [str(wb_raw).strip().upper()]
-                    for item in data.get("items", [])
-                    if item
-                    for grn_val in [item.get("grn")]
-                    if grn_val
-                    for g in str(grn_val).split(",")
-                    for g_clean in [g.strip().upper()]
-                    if g_clean
-                ]
-                master_maps.extend(po_maps)
-            except Exception as e:
-                print(f"[RECONCILIATION] Error loading po_lookup: {e}")
+        try:
+            import logix_rust_core
+            master_maps = logix_rust_core.build_master_maps_rust(
+                db_grns_raw,
+                str(GRN_JSON_DATA_PATH),
+                str(PO_LOOKUP_JSON_PATH)
+            )
+        except Exception as e:
+            print(f"[RECONCILIATION] Error construyendo master maps en Rust: {e}")
+            master_maps = []
 
         if master_maps:
             df_grn_master = pl.DataFrame(

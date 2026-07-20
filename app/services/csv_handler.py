@@ -25,116 +25,20 @@ _mtime_grn = 0.0
 
 
 async def generate_reservation_cache():
-    """Carga y procesa el CSV de reservaciones para Xdock."""
+    """Carga y procesa el CSV de reservaciones para Xdock usando Rust."""
     global reservation_qty_map
     if not os.path.exists(RESERVATION_CSV_PATH):
         reservation_qty_map = {}
         return
 
     try:
-        df = pl.read_csv(
-            RESERVATION_CSV_PATH, infer_schema_length=0, ignore_errors=True
-        )
-        cols = df.columns
-
-        # Búsqueda robusta y prioritariamente específica de columnas
-        item_col = next(
-            (c for c in cols if c.lower() == "item_code" or "item" in c.lower()), None
-        )
-
-        # Priorizar 'Quantity_reserved' sobre otros nombres de cantidad
-        qty_col = next((c for c in cols if "quantity_reserved" in c.lower()), None)
-        if not qty_col:
-            qty_col = next(
-                (c for c in cols if "qty" in c.lower() or "quantity" in c.lower()), None
-            )
-
-        cust_col = next(
-            (
-                c
-                for c in cols
-                if c.lower() == "customer_name" or "customer_name" in c.lower()
-            ),
-            None,
-        )
-        if not cust_col:
-            cust_col = next(
-                (c for c in cols if "cust" in c.lower() or "name" in c.lower()), None
-            )
-
-        so_col = next(
-            (c for c in cols if "so_number" in c.lower() or "so_num" in c.lower()), None
-        )
-
-        if item_col and qty_col:
-            # Limpiar datos y normalizar
-            cleaned_df = df.with_columns(
-                [
-                    pl.col(item_col)
-                    .str.strip_chars()
-                    .str.to_uppercase()
-                    .alias("item_key"),
-                    pl.col(qty_col)
-                    .str.replace_all(",", "")
-                    .cast(pl.Float64, strict=False)
-                    .fill_null(0.0)
-                    .alias("qty_val"),
-                    pl.col(cust_col)
-                    .str.strip_chars()
-                    .fill_null("SIN NOMBRE")
-                    .alias("cust_val")
-                    if cust_col
-                    else pl.lit("SIN NOMBRE").alias("cust_val"),
-                    pl.col(so_col).str.strip_chars().fill_null("").alias("so_val")
-                    if so_col
-                    else pl.lit("").alias("so_val"),
-                ]
-            )
-
-            # Filtrar solo registros con cantidad real pendiente mayor a cero y que tengan asociada una orden
-            filtered_df = cleaned_df.filter(
-                (pl.col("item_key") != "")
-                & (pl.col("qty_val") > 0)
-                & (pl.col("so_val") != "")
-            )
-
-            if filtered_df.height > 0:
-                # Agrupar por ítem y cliente para consolidar cantidades individuales
-                group_by_cols = ["item_key", "cust_val"]
-                cust_summary = filtered_df.group_by(group_by_cols).agg(
-                    pl.col("qty_val").sum().alias("cust_qty")
-                )
-
-                # Formatear a la estructura {"name": cliente, "qty": cantidad} usando structs en Polars
-                cust_struct = cust_summary.with_columns(
-                    pl.struct(
-                        [
-                            pl.col("cust_val").alias("name"),
-                            pl.col("cust_qty").cast(pl.Int64).alias("qty"),
-                        ]
-                    ).alias("cust_info")
-                )
-
-                # Consolidar por ítem calculando total general y recopilando clientes
-                final_summary = cust_struct.group_by("item_key").agg(
-                    [
-                        pl.col("cust_qty").sum().alias("total"),
-                        pl.col("cust_info").alias("customers"),
-                    ]
-                )
-
-                # Almacenar en caché RAM dict
-                reservation_qty_map = {
-                    str(r["item_key"]): {
-                        "total": int(r["total"]),
-                        "customers": r["customers"],
-                    }
-                    for r in final_summary.to_dicts()
-                }
-            else:
-                reservation_qty_map = {}
+        import logix_rust_core
+        reservation_qty_map = logix_rust_core.generate_reservation_cache_rust(RESERVATION_CSV_PATH)
+    except ImportError:
+        print("Fallback: logix_rust_core no encontrado. Generando cache vacío.")
+        reservation_qty_map = {}
     except Exception as e:
-        print(f"Error generando cache de reservaciones: {e}")
+        print(f"Error generando cache de reservaciones en Rust: {e}")
         reservation_qty_map = {}
 
 
