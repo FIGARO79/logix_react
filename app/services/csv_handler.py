@@ -63,11 +63,11 @@ async def load_csv_data():
                 [
                     pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
                     pl.col("Physical_Qty")
-                    .str.replace_all(",", "")
+                    .str.replace_all(",", ".")
                     .cast(pl.Float64, strict=False)
                     .fill_null(0.0),
                     pl.col("Frozen_Qty")
-                    .str.replace_all(",", "")
+                    .str.replace_all(",", ".")
                     .cast(pl.Float64, strict=False)
                     .fill_null(0.0),
                 ]
@@ -98,7 +98,7 @@ async def load_csv_data():
             ).with_columns(
                 [
                     pl.col("Quantity")
-                    .str.replace_all(",", "")
+                    .str.replace_all(",", ".")
                     .cast(pl.Float64, strict=False)
                     .fill_null(0.0)
                 ]

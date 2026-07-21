@@ -47,7 +47,7 @@ async def get_reconciliation_calculations(
                 pl.col("waybill").cast(pl.Utf8).fill_null(""),
                 pl.col("qtyReceived")
                 .cast(pl.Utf8)
-                .str.replace_all(",", "")
+                .str.replace_all(",", ".")
                 .cast(pl.Float64, strict=False)
                 .fill_null(0.0),
             ]
@@ -119,7 +119,7 @@ async def get_reconciliation_calculations(
                 pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
                 pl.col("Quantity")
                 .cast(pl.Utf8)
-                .str.replace_all(",", "")
+                .str.replace_all(",", ".")
                 .cast(pl.Float64, strict=False)
                 .fill_null(0.0),
                 pl.col("Order_Number")
