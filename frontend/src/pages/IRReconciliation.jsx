@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const IRReconciliation = () => {
     const { setTitle } = useOutletContext();
-    const [reconciliations, setReconciliations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
 
     const normalizeDate = (dateString) => {
@@ -30,29 +29,20 @@ const IRReconciliation = () => {
         });
     };
 
-    const loadReconciliations = useCallback(async () => {
-        setLoading(true);
-        try {
+    const { data: reconciliations = [], isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['ir_reconciliations'],
+        queryFn: async () => {
             const res = await fetch('/api/inbound/ir_reconciliation', { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                setReconciliations(data);
-                setError(null);
-            } else {
-                throw new Error("No se pudo cargar el historial de conciliaciones");
-            }
-        } catch (e) {
-            console.error("Error loading IR reconciliations", e);
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+            if (!res.ok) throw new Error("No se pudo cargar el historial de conciliaciones");
+            return res.json();
+        },
+        refetchInterval: 15000,
+        refetchOnWindowFocus: false
+    });
 
     useEffect(() => {
         setTitle("Tablero de Control IR");
-        loadReconciliations();
-    }, [setTitle, loadReconciliations]);
+    }, [setTitle]);
 
     const handleDelete = async (id) => {
         if (!confirm("¿Está seguro de eliminar este registro de conciliación del historial?")) return;
@@ -62,7 +52,7 @@ const IRReconciliation = () => {
                 credentials: 'include'
             });
             if (res.ok) {
-                setReconciliations(prev => prev.filter(r => r.id !== id));
+                queryClient.invalidateQueries(['ir_reconciliations']);
             } else {
                 alert("Error al eliminar el registro");
             }
@@ -114,7 +104,7 @@ const IRReconciliation = () => {
                         </div>
 
                         <button
-                            onClick={loadReconciliations}
+                            onClick={() => refetch()}
                             className="h-9 px-4 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
                             title="Recargar datos"
                         >

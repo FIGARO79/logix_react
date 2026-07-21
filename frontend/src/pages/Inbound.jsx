@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
 import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
-
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
@@ -56,8 +56,10 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { pendingCount, syncPendingData } = useOffline();
+    const queryClient = useQueryClient();
 
     useEffect(() => { setTitle("Recepción"); }, [setTitle]);
+
 
 
     // --- Estados del Formulario ---
@@ -69,7 +71,6 @@ const Inbound = () => {
 
     // --- Estados de Datos ---
     const [itemData, setItemData] = useState(null);
-    const [logs, setLogs] = useState([]);
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -99,6 +100,109 @@ const Inbound = () => {
         grnProgressPercent: 0
     });
 
+    const { data: logs = [], refetch: loadLogs } = useQuery({
+        queryKey: ['inbound_logs', currentVersion],
+        queryFn: async () => {
+            let apiLogs = [];
+            const version = currentVersion;
+            try {
+                const url = version
+                    ? `/api/get_logs?version_date=${version}`
+                    : `/api/get_logs`;
+                const res = await fetch(url, { credentials: 'include' });
+                if (res.ok) {
+                    apiLogs = await res.json();
+                    if (!version || version === '') {
+                        await cacheData('inbound_logs', apiLogs);
+                    }
+                } else {
+                    console.error("Failed to load logs:", res.status, res.statusText);
+                    if (res.status === 401) window.location.href = '/login';
+                }
+            } catch (e) {
+                console.error("Error loading logs from API", e);
+                if (!version || version === '') {
+                    apiLogs = await getCachedData('inbound_logs') || [];
+                    console.log("Cargado desde caché local:", apiLogs.length, "registros");
+                }
+            }
+
+            let pendingLogs = [];
+            if (!version || version === '') {
+                try {
+                    const db = await getDB();
+                    const pending = await db.getAll('pending_sync');
+                    pendingLogs = pending.map(p => ({
+                        ...p.payload,
+                        id: p.id,
+                        timestamp: p.timestamp,
+                        username: 'LOCAL (Sync)',
+                        isPending: true,
+                        itemDescription: p.payload.itemDescription || 'Cargando...'
+                    }));
+                } catch (e) { console.error("Error loading pending logs", e); }
+            }
+
+            const logMap = new Map();
+            pendingLogs.forEach(log => {
+                const key = log.id;
+                logMap.set(key, log);
+            });
+            apiLogs.forEach(log => {
+                const key = log.client_id || `server_${log.id}`;
+                logMap.set(key, log);
+            });
+
+            const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
+                const timeA = new Date(a.timestamp).getTime();
+                const timeB = new Date(b.timestamp).getTime();
+                if (timeB !== timeA) return timeB - timeA;
+                return (b.id || 0) - (a.id || 0);
+            });
+
+            let grnMap = {};
+            try {
+                const db = await getDB();
+                const itemsToQuery = allLogsSorted.map(log => ({
+                    itemCode: log.itemCode,
+                    importRef: log.importReference || log.importRef || ''
+                }));
+                grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
+            } catch (e) { console.error("Error loading GRN info", e); }
+
+            const totalsMap = {};
+            const latestEntryMap = {};
+
+            allLogsSorted.forEach(log => {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+                totalsMap[key] = (totalsMap[key] || 0) + qty;
+
+                if (!latestEntryMap[key]) {
+                    latestEntryMap[key] = log.id;
+                }
+            });
+
+            return allLogsSorted.map(log => {
+                const code = log.itemCode;
+                const ir = log.importReference || log.importRef || '';
+                const key = `${code}|${ir}`;
+                const expected = log.qtyGrn || grnMap[key] || log.quantity || 0;
+                const totalReceived = totalsMap[key] || 0;
+                const isLatest = latestEntryMap[key] === log.id;
+
+                return {
+                    ...log,
+                    expected_qty: expected,
+                    difference: isLatest ? (totalReceived - expected) : 0
+                };
+            });
+        },
+        refetchInterval: () => currentVersion ? false : 15000,
+        refetchOnWindowFocus: false
+    });
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
         let normalized = dateString.trim().replace(' ', 'T');
@@ -158,13 +262,12 @@ const Inbound = () => {
     };
 
     useEffect(() => {
-        loadLogs();
         loadVersions();
         loadSlottingBins();
 
         // Check inicial
         runAutoSync();
-        syncPendingInbound().then(() => loadLogs());
+        syncPendingInbound().then(() => queryClient.invalidateQueries(['inbound_logs']));
 
         // Intervalo de revisión cada 10 minutos
         const syncInterval = setInterval(() => {
@@ -180,18 +283,6 @@ const Inbound = () => {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // Intervalo de actualización silenciosa de la tabla de logs (cada 15 segundos)
-    useEffect(() => {
-        // Solo programar el intervalo para la versión actual
-        if (currentVersion) return;
-
-        const interval = setInterval(() => {
-            loadLogs();
-        }, 15000);
-
-        return () => clearInterval(interval);
-    }, [currentVersion]);
 
     const loadSlottingBins = async () => {
         let binsLoaded = false;
@@ -556,13 +647,13 @@ const Inbound = () => {
     }, [irStats, importRef]);
 
     // Filter logs based on search term
-    const filteredLogs = logs.filter(log =>
+    const filteredLogs = useMemo(() => logs.filter(log =>
         (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.itemDescription && log.itemDescription.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    ), [logs, searchTerm]);
 
     // Generar QR para la etiqueta cuando cambia el item o el código
     useEffect(() => {
@@ -578,120 +669,6 @@ const Inbound = () => {
 
     // --- Funciones API ---
 
-    const loadLogs = async (version = '') => {
-        setCurrentVersion(version);
-        let apiLogs = [];
-        try {
-            const url = version
-                ? `/api/get_logs?version_date=${version}`
-                : `/api/get_logs`;
-            const res = await fetch(url, { credentials: 'include' });
-            if (res.ok) {
-                apiLogs = await res.json();
-                // Guardar en caché para acceso offline posterior
-                if (!version || version === '') {
-                    await cacheData('inbound_logs', apiLogs);
-                }
-            } else {
-                console.error("Failed to load logs:", res.status, res.statusText);
-                if (res.status === 401) window.location.href = '/login';
-            }
-        } catch (e) {
-            console.error("Error loading logs from API", e);
-            // Intentar cargar desde caché si estamos offline o la API falla
-            if (!version || version === '') {
-                apiLogs = await getCachedData('inbound_logs') || [];
-                console.log("Cargado desde caché local:", apiLogs.length, "registros");
-            }
-        }
-
-        // Cargar logs pendientes de IndexedDB
-        let pendingLogs = [];
-        if (!version || version === '') {
-            try {
-                const db = await getDB();
-                const pending = await db.getAll('pending_sync');
-                pendingLogs = pending.map(p => ({
-                    ...p.payload,
-                    id: p.id,
-                    timestamp: p.timestamp,
-                    username: 'LOCAL (Sync)',
-                    isPending: true,
-                    itemDescription: p.payload.itemDescription || 'Cargando...'
-                }));
-            } catch (e) { console.error("Error loading pending logs", e); }
-        }
-
-        // Deduplicación estricta usando Map por UUID (client_id)
-        // El Map garantiza que solo exista una entrada por UUID, priorizando la del servidor
-        const logMap = new Map();
-
-        // 1. Primero los pendientes locales (prioridad más baja)
-        pendingLogs.forEach(log => {
-            const key = log.id; // UUID generado por crypto.randomUUID()
-            logMap.set(key, log);
-        });
-
-        // 2. Después los del servidor (sobrescriben cualquier pendiente con el mismo client_id)
-        apiLogs.forEach(log => {
-            const key = log.client_id || `server_${log.id}`; // Priorizar client_id UUID
-            logMap.set(key, log);
-        });
-
-        // 3. Ordenar por fecha (más reciente primero)
-        const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
-            const timeA = new Date(a.timestamp).getTime();
-            const timeB = new Date(b.timestamp).getTime();
-            if (timeB !== timeA) return timeB - timeA;
-            return (b.id || 0) - (a.id || 0); // Desempate determinista por ID
-        });
-
-        let grnMap = {};
-        try {
-            const db = await getDB();
-            // Cargar lo esperado por itemCode + importReference de forma optimizada
-            const itemsToQuery = allLogsSorted.map(log => ({
-                itemCode: log.itemCode,
-                importRef: log.importReference || log.importRef || ''
-            }));
-            grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
-        } catch (e) { console.error("Error loading GRN info", e); }
-
-        // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
-        const totalsMap = {};
-        const latestEntryMap = {}; // Guarda ID del primer log encontrado para cada itemCode|importReference (ya ordenados)
-
-        allLogsSorted.forEach(log => {
-            const code = log.itemCode;
-            const ir = log.importReference || log.importRef || '';
-            const key = `${code}|${ir}`;
-            const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
-            totalsMap[key] = (totalsMap[key] || 0) + qty;
-
-            if (!latestEntryMap[key]) {
-                latestEntryMap[key] = log.id;
-            }
-        });
-
-        // Agregar información de esperado y diferencia (solo en el primer registro de la lista para cada ítem en esa I.R.)
-        const logsWithGRN = allLogsSorted.map(log => {
-            const code = log.itemCode;
-            const ir = log.importReference || log.importRef || '';
-            const key = `${code}|${ir}`;
-            const expected = log.qtyGrn || grnMap[key] || log.quantity || 0;
-            const totalReceived = totalsMap[key] || 0;
-            const isLatest = latestEntryMap[key] === log.id;
-
-
-            return {
-                ...log,
-                expected_qty: expected,
-                difference: isLatest ? (totalReceived - expected) : 0
-            };
-        });
-
-        setLogs(logsWithGRN);
-    };
 
     const loadVersions = async () => {
         try {
@@ -1283,7 +1260,8 @@ const Inbound = () => {
                             </div>
 
                             <select
-                                onChange={(e) => loadLogs(e.target.value)}
+                                onChange={(e) => setCurrentVersion(e.target.value)}
+                                value={currentVersion}
                                 className="h-9 p-1 text-[12px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
                             >
                                 <option value="">ACTUAL</option>

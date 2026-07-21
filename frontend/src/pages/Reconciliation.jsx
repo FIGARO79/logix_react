@@ -2,17 +2,15 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
     const location = useLocation();
     useEffect(() => { setTitle("Conciliación"); }, [setTitle]);
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [filterText, setFilterText] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'GRN', direction: 'ascending' });
-    const [archiveVersions, setArchiveVersions] = useState([]);
-    const [snapshotVersions, setSnapshotVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [currentSnapshot, setCurrentSnapshot] = useState('');
     const [isOfflineData, setIsOfflineData] = useState(false);
@@ -21,97 +19,56 @@ const Reconciliation = () => {
     const [filterGRN, setFilterGRN] = useState('');
     const [filterWaybill, setFilterWaybill] = useState('');
     const [filterImportRef, setFilterImportRef] = useState('');
-    const [isHistoricalMode, setIsHistoricalMode] = useState(false);
+
     const [showHistoryFilters, setShowHistoryFilters] = useState(false);
     const [selectedRowIds, setSelectedRowIds] = useState([]);
 
 
-    // Fetch data
-    const fetchData = async (params = {}, silent = false) => {
-        if (!silent) setLoading(true);
-        setIsOfflineData(false);
+    const isHistoricalMode = !!(currentSnapshot || filterGRN || filterWaybill || filterImportRef);
 
-        if (navigator.onLine) {
+    const { data: queryData = { data: [], archive_versions: [], snapshot_versions: [] }, isLoading: loading, refetch } = useQuery({
+        queryKey: ['reconciliation', currentVersion, currentSnapshot, filterGRN, filterWaybill, filterImportRef],
+        queryFn: async () => {
+            setIsOfflineData(false);
+            if (!navigator.onLine) {
+                const cachedData = await getCachedData('last_reconciliation');
+                if (cachedData) setIsOfflineData(true);
+                return { data: cachedData || [], archive_versions: [], snapshot_versions: [] };
+            }
+
             const queryParams = new URLSearchParams();
-
-            const snapshotVal = params.snapshot_date !== undefined ? params.snapshot_date : currentSnapshot;
-            const grnVal = params.grn !== undefined ? params.grn : filterGRN;
-            const waybillVal = params.waybill !== undefined ? params.waybill : filterWaybill;
-            const importRefVal = params.import_reference !== undefined ? params.import_reference : filterImportRef;
-
-            const isQueryingHistory = !!(snapshotVal || grnVal || waybillVal || importRefVal);
-            setIsHistoricalMode(isQueryingHistory);
-
             let url = `/api/views/reconciliation`;
-            if (isQueryingHistory) {
+            if (isHistoricalMode) {
                 url = `/api/views/reconciliation/history`;
-                if (snapshotVal) queryParams.append('snapshot_date', snapshotVal);
-                if (grnVal) queryParams.append('grn', grnVal);
-                if (waybillVal) queryParams.append('waybill', waybillVal);
-                if (importRefVal) queryParams.append('import_reference', importRefVal);
+                if (currentSnapshot) queryParams.append('snapshot_date', currentSnapshot);
+                if (filterGRN) queryParams.append('grn', filterGRN);
+                if (filterWaybill) queryParams.append('waybill', filterWaybill);
+                if (filterImportRef) queryParams.append('import_reference', filterImportRef);
             } else {
-                const archiveVal = params.archive_date !== undefined ? params.archive_date : currentVersion;
-                if (archiveVal) queryParams.append('archive_date', archiveVal);
+                if (currentVersion) queryParams.append('archive_date', currentVersion);
             }
 
-            try {
-                const res = await fetch(`${url}?${queryParams.toString()}`);
-                if (res.ok) {
-                    const response = await res.json();
-                    if (response.data) {
-                        setData(response.data);
-                        setSelectedRowIds([]);
-                        if (!isQueryingHistory && !params.archive_date) {
-                            await cacheData('last_reconciliation', response.data);
-                        }
-                    }
-                    if (response.archive_versions) setArchiveVersions(response.archive_versions);
-                    if (response.snapshot_versions) setSnapshotVersions(response.snapshot_versions);
-                    setLoading(false);
-                    return;
+            const res = await fetch(`${url}?${queryParams.toString()}`);
+            if (res.ok) {
+                const response = await res.json();
+                setSelectedRowIds([]);
+                if (!isHistoricalMode && !currentVersion) {
+                    await cacheData('last_reconciliation', response.data);
                 }
-            } catch (err) {
-                console.error("Error fetching reconciliation data:", err);
+                return response;
             }
-        }
+            throw new Error('Failed to fetch data');
+        },
+        refetchInterval: () => {
+            if (location.pathname !== '/reconciliation' || currentSnapshot || isHistoricalMode || currentVersion || !navigator.onLine) return false;
+            return 10000;
+        },
+        refetchOnWindowFocus: false
+    });
 
-        try {
-            const cachedData = await getCachedData('last_reconciliation');
-            if (cachedData) {
-                setData(cachedData);
-                setIsOfflineData(true);
-            }
-        } catch (e) {
-            console.error("Error loading cached reconciliation:", e);
-        }
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Recargar datos automáticamente cuando la pestaña vuelve a estar activa
-    useEffect(() => {
-        if (location.pathname === '/reconciliation') {
-            fetchData({}, true); // Recarga silenciosa sin parpadeo conservando filtros y estados
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.pathname]);
-
-    // Intervalo de actualización silenciosa de los datos en tiempo real (cada 10 segundos)
-    useEffect(() => {
-        if (location.pathname !== '/reconciliation' || currentSnapshot || isHistoricalMode || currentVersion) return;
-
-        const interval = setInterval(() => {
-            if (navigator.onLine) {
-                fetchData({}, true); // Carga silenciosa
-            }
-        }, 10000); // 10 segundos
-
-        return () => clearInterval(interval);
-    }, [location.pathname, currentSnapshot, isHistoricalMode, currentVersion]);
+    const data = useMemo(() => queryData?.data || [], [queryData]);
+    const archiveVersions = useMemo(() => queryData?.archive_versions || [], [queryData]);
+    const snapshotVersions = useMemo(() => queryData?.snapshot_versions || [], [queryData]);
 
     const handleArchiveSnapshot = async () => {
         if (!data || data.length === 0) return alert("No hay datos para archivar");
@@ -129,7 +86,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 const result = await res.json();
                 alert(`Instantánea guardada correctamente: ${result.archive_date}`);
-                fetchData();
+                queryClient.invalidateQueries(['reconciliation']);
             } else {
                 alert("Error al guardar la instantánea");
             }
@@ -153,7 +110,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Lote desarchivado con éxito");
                 setCurrentVersion('');
-                fetchData({ archive_date: '', snapshot_date: '' });
+                queryClient.invalidateQueries(['reconciliation']);
             } else {
                 const err = await res.json();
                 alert(`Error al desarchivar: ${err.detail || 'Error desconocido'}`);
@@ -178,7 +135,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Registros restaurados con éxito como logs activos.");
                 setSelectedRowIds([]);
-                fetchData();
+                queryClient.invalidateQueries(['reconciliation']);
             } else {
                 const err = await res.json();
                 alert(`Error al restaurar: ${err.detail || 'Error desconocido'}`);
@@ -203,7 +160,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Registros eliminados con éxito.");
                 setSelectedRowIds([]);
-                fetchData();
+                queryClient.invalidateQueries(['reconciliation']);
             } else {
                 const err = await res.json();
                 alert(`Error al eliminar: ${err.detail || 'Error desconocido'}`);
@@ -213,9 +170,6 @@ const Reconciliation = () => {
         }
     };
 
-
-
-
     const handleVersionChange = (e) => {
         const val = e.target.value;
         setCurrentVersion(val);
@@ -223,14 +177,12 @@ const Reconciliation = () => {
         setFilterGRN('');
         setFilterWaybill('');
         setFilterImportRef('');
-        fetchData({ archive_date: val, snapshot_date: '', grn: '', waybill: '', import_reference: '' });
     };
 
     const handleSnapshotChange = (e) => {
         const val = e.target.value;
         setCurrentSnapshot(val);
         setCurrentVersion('');
-        fetchData({ snapshot_date: val, archive_date: '' });
     };
 
 
@@ -503,7 +455,7 @@ const Reconciliation = () => {
                         />
 
                         <button
-                            onClick={() => fetchData()}
+                            onClick={() => refetch()}
                             className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm uppercase tracking-normal bg-zinc-700 hover:bg-zinc-800 transition-colors active:scale-95"
                         >
                             Buscar BD
@@ -515,7 +467,6 @@ const Reconciliation = () => {
                                     setFilterGRN('');
                                     setFilterWaybill('');
                                     setFilterImportRef('');
-                                    fetchData({ grn: '', waybill: '', import_reference: '' });
                                 }}
                                 className="h-8 px-2 text-[11px] text-zinc-500 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors active:scale-95"
                             >

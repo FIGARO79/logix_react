@@ -121,8 +121,7 @@ async def get_reconciliation_calculations(
                 pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
                 pl.col("Quantity")
                 .cast(pl.Utf8)
-                .str.replace_all(",", "")
-                .cast(pl.Float64, strict=False)
+                .map_elements(csv_handler.parse_quantity_smart, return_dtype=pl.Float64)
                 .fill_null(0.0),
                 pl.col("Order_Number")
                 .cast(pl.Utf8)

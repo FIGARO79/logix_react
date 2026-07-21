@@ -24,6 +24,37 @@ _mtime_master = 0.0
 _mtime_grn = 0.0
 
 
+def parse_quantity_smart(val) -> float:
+    if val is None:
+        return 0.0
+    val_str = str(val).strip()
+    if not val_str:
+        return 0.0
+    
+    if "," in val_str and "." in val_str:
+        last_comma = val_str.rfind(",")
+        last_dot = val_str.rfind(".")
+        if last_comma > last_dot:
+            # Formato europeo: 1.200,50
+            val_str = val_str.replace(".", "").replace(",", ".")
+        else:
+            # Formato US: 1,200.50
+            val_str = val_str.replace(",", "")
+    elif "," in val_str:
+        parts = val_str.split(",")
+        if len(parts[-1]) != 3:
+            # Decimal con coma (ej. 9,0 o 12,50)
+            val_str = val_str.replace(",", ".")
+        else:
+            # Separador de miles ambiguo, asume entero (ej. 1,200)
+            val_str = val_str.replace(",", "")
+            
+    try:
+        return float(val_str)
+    except ValueError:
+        return 0.0
+
+
 async def generate_reservation_cache():
     """Carga y procesa el CSV de reservaciones para Xdock usando Rust."""
     global reservation_qty_map
@@ -63,12 +94,10 @@ async def load_csv_data():
                 [
                     pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
                     pl.col("Physical_Qty")
-                    .str.replace_all(",", "")
-                    .cast(pl.Float64, strict=False)
+                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
                     .fill_null(0.0),
                     pl.col("Frozen_Qty")
-                    .str.replace_all(",", "")
-                    .cast(pl.Float64, strict=False)
+                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
                     .fill_null(0.0),
                 ]
             )
@@ -98,8 +127,7 @@ async def load_csv_data():
             ).with_columns(
                 [
                     pl.col("Quantity")
-                    .str.replace_all(",", "")
-                    .cast(pl.Float64, strict=False)
+                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
                     .fill_null(0.0)
                 ]
             )
