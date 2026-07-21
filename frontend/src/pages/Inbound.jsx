@@ -238,8 +238,22 @@ const Inbound = () => {
             const allGrns = await db.getAll('grn_pending') || [];
             const targetIr = importRef.trim().toUpperCase();
             
-            // 1. Obtener GRNs asociadas a la IR desde po_lookup
-            const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            // 1. Obtener GRNs asociadas a la IR desde po_lookup (IndexedDB con fallback API)
+            let poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            if ((!poInfo || !poInfo.items) && navigator.onLine) {
+                try {
+                    const res = await fetch(`/api/inbound/lookup_reference?import_ref=${encodeURIComponent(targetIr)}`, { credentials: 'include' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.items) {
+                            poInfo = { items: data.items };
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error fetching online lookup_reference for stats:", e);
+                }
+            }
+
             const associatedGrns = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
@@ -299,6 +313,23 @@ const Inbound = () => {
                 }
                 groupedIrLines[code].total_expected += parseInt(line.total_expected) || 0;
             });
+
+            // Si grn_pending está vacío en IndexedDB, extraer las líneas esperadas directamente de poInfo.items
+            if (Object.keys(groupedIrLines).length === 0 && poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const code = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                    const qty = parseInt(it.qty || it.Quantity || 0);
+                    if (code && qty > 0) {
+                        if (!groupedIrLines[code]) {
+                            groupedIrLines[code] = {
+                                Item_Code: code,
+                                total_expected: 0
+                            };
+                        }
+                        groupedIrLines[code].total_expected += qty;
+                    }
+                });
+            }
 
             const uniqueIrLines = Object.values(groupedIrLines);
             let totalLines = uniqueIrLines.length;
@@ -644,6 +675,7 @@ const Inbound = () => {
         });
 
         setLogs(logsWithGRN);
+        calculateIRStats();
     };
 
     const loadVersions = async () => {

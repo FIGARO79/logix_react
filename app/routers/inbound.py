@@ -35,11 +35,15 @@ async def lookup_reference(
                 data = cache.get("wb_to_data", {}).get(val)
                 if data:
                     result["import_ref"] = data.get("import_ref", result["import_ref"])
+                    if "items" in data:
+                        result["items"] = data.get("items")
             elif import_ref:
                 val = import_ref.strip().upper()
                 data = cache.get("ir_to_data", {}).get(val)
                 if data:
                     result["waybill"] = data.get("waybill", result["waybill"])
+                    if "items" in data:
+                        result["items"] = data.get("items")
             
             return result
         except Exception as e:
