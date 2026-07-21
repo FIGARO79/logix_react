@@ -87,16 +87,70 @@ async def find_item(
         fallback_bin=traditional_suggested_bin,
     )
 
-    # 3. VALIDACIÓN DE CAPACIDAD PARA LA IA
+    # 3. VALIDACIÓN DE CAPACIDAD Y REGLAS DE ZONA PARA LA IA
     final_suggested_bin = ai_predicted_bin
     is_ai_prediction = ai_predicted_bin != traditional_suggested_bin
 
-    if is_ai_prediction:
-        occupancy = await slotting_service._get_bins_occupancy(db)
-        current_skus = occupancy.get(ai_predicted_bin.upper(), 0)
-        if current_skus >= 4:
+    if is_ai_prediction and ai_predicted_bin:
+        config = await slotting_service._get_layout_config(db)
+        storage = config.get("storage", {})
+        zone_rules = config.get("zone_rules", {})
+        mix_limits = config.get("mix_limits", {})
+
+        pred_bin_info = storage.get(ai_predicted_bin.upper(), {})
+        pred_zone = str(pred_bin_info.get("zone", "")).strip()
+        try:
+            pred_level = int(float(str(pred_bin_info.get("level", 0))))
+        except (ValueError, TypeError):
+            pred_level = 0
+
+        minuteria_weight_max = float(zone_rules.get("minuteria_weight_max", 0.1))
+        minuteria_zone = zone_rules.get("minuteria_zone", "Minuteria").strip()
+        cantilever_kw = [
+            k.strip().upper()
+            for k in zone_rules.get("cantilever_keywords", "ROD, INTEGRAL STEEL").split(",")
+            if k.strip()
+        ]
+        description = str(item_details.get("Item_Description", "")).upper()
+        is_cantilever = any(kw in description for kw in cantilever_kw)
+
+        weight = 0.0
+        try:
+            w_val = (
+                item_details.get("Weight_per_Unit")
+                or item_details.get("weight_per_unit")
+                or item_details.get("weight", "0")
+            )
+            weight = float(str(w_val).replace(",", "")) if w_val else 0.0
+        except Exception:
+            pass
+
+        # Regla 1: Ítem pesado o Cantilever NO puede ir a Minutería
+        is_pred_minuteria = (
+            pred_zone.upper() == "MINUTERIA"
+            or pred_zone.upper() == minuteria_zone.upper()
+        )
+        if is_pred_minuteria and (weight > minuteria_weight_max or is_cantilever):
             final_suggested_bin = traditional_suggested_bin
             is_ai_prediction = False
+        else:
+            # Regla 2: Límite dinámico de capacidad por zona
+            limit_minuteria = int(mix_limits.get("minuteria_max_skus", 3))
+            limit_n2 = int(mix_limits.get("nivel2_max_skus", 6))
+            limit_others = int(mix_limits.get("otros_niveles_max_skus", 4))
+
+            if is_pred_minuteria:
+                allowed_limit = limit_minuteria
+            elif pred_level == 2:
+                allowed_limit = limit_n2
+            else:
+                allowed_limit = limit_others
+
+            occupancy = await slotting_service._get_bins_occupancy(db)
+            current_skus = occupancy.get(ai_predicted_bin.upper(), 0)
+            if current_skus >= allowed_limit:
+                final_suggested_bin = traditional_suggested_bin
+                is_ai_prediction = False
 
     # 4. Información de Cross-Docking (Xdock)
     xdock_data = await csv_handler.get_xdock_info(item_code)

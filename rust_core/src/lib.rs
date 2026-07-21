@@ -157,11 +157,18 @@ fn get_suggested_bin_rust(
             .and_then(|v| v.extract::<String>().ok())
             .unwrap_or_default()
     };
+    let mut weight_str = get_item_string("Weight_per_Unit");
+    if weight_str.is_empty() {
+        weight_str = get_item_string("weight_per_unit");
+    }
+    if weight_str.is_empty() {
+        weight_str = get_item_string("weight");
+    }
     let item_details = ItemDetails {
         Bin_1: get_item_string("Bin_1"),
         Item_Code: get_item_string("Item_Code"),
         Item_Description: get_item_string("Item_Description"),
-        Weight_per_Unit: get_item_string("Weight_per_Unit"),
+        Weight_per_Unit: weight_str,
     };
 
     // 6. Convertir occupancy_dict (String -> i32)
@@ -287,7 +294,7 @@ fn get_suggested_bin_rust(
 
     let target_zone = if is_cantilever {
         Some("Cantilever".to_string())
-    } else if weight > 0.0 && weight < minuteria_weight_max {
+    } else if weight > 0.0 && weight <= minuteria_weight_max {
         Some(minuteria_zone.clone())
     } else if exile_sics.contains(&sic_code) {
         if weight > heavy_weight_min {
@@ -530,11 +537,18 @@ fn get_suggested_bins_batch_rust(
                     .unwrap_or_default()
             };
             
+            let mut weight_str = get_item_string("Weight_per_Unit");
+            if weight_str.is_empty() {
+                weight_str = get_item_string("weight_per_unit");
+            }
+            if weight_str.is_empty() {
+                weight_str = get_item_string("weight");
+            }
             let item_details = ItemDetails {
                 Bin_1: get_item_string("Bin_1"),
                 Item_Code: get_item_string("Item_Code"),
                 Item_Description: get_item_string("Item_Description"),
-                Weight_per_Unit: get_item_string("Weight_per_Unit"),
+                Weight_per_Unit: weight_str,
             };
             
             let sic_code = get_item_string("SIC_Code_stockroom").trim().to_uppercase();
@@ -595,7 +609,7 @@ fn get_suggested_bins_batch_rust(
 
             let target_zone = if is_cantilever {
                 Some("Cantilever".to_string())
-            } else if weight > 0.0 && weight < minuteria_weight_max_val {
+            } else if weight > 0.0 && weight <= minuteria_weight_max_val {
                 Some(minuteria_zone_val.clone())
             } else if exile_sics_val.contains(&sic_code) {
                 if weight > heavy_weight_min_val {

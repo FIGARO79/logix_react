@@ -181,7 +181,11 @@ class SlottingService:
 
         weight = 0.0
         try:
-            weight_val = item_details.get("Weight_per_Unit", "0")
+            weight_val = (
+                item_details.get("Weight_per_Unit")
+                or item_details.get("weight_per_unit")
+                or item_details.get("weight", "0")
+            )
             weight = float(str(weight_val).replace(",", "")) if weight_val else 0.0
         except:
             pass
@@ -246,7 +250,7 @@ class SlottingService:
 
         if is_cantilever:
             target_zone = "Cantilever"
-        elif 0 < weight < minuteria_weight_max:
+        elif 0 < weight <= minuteria_weight_max:
             target_zone = minuteria_zone
         elif sic_code in exile_sics:
             target_zone = "Rack"
