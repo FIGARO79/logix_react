@@ -26,9 +26,16 @@ if [ -d "$PROJECT_DIR/venv" ]; then
     $HOME/.local/bin/uv pip sync requirements.txt --python "$PROJECT_DIR/venv"
     
     if [ -d "$PROJECT_DIR/rust_core" ]; then
-        echo "   🦀 Compilando e instalando módulo Rust (rust_core)..."
-        "$PROJECT_DIR/venv/bin/maturin" build --release --manifest-path "$PROJECT_DIR/rust_core/Cargo.toml"
-        $HOME/.local/bin/uv pip install "$PROJECT_DIR/rust_core/target/wheels"/*.whl --python "$PROJECT_DIR/venv"
+        RUST_CHANGES=$(git status --porcelain "$PROJECT_DIR/rust_core" 2>/dev/null || true)
+        RUST_DIFF=$(git diff --quiet HEAD -- "$PROJECT_DIR/rust_core" 2>/dev/null; echo $?)
+        IS_INSTALLED=$("$PROJECT_DIR/venv/bin/python" -c "import logix_rust_core" 2>/dev/null && echo "yes" || echo "no")
+
+        if [ -z "$RUST_CHANGES" ] && [ "$RUST_DIFF" -eq 0 ] && [ "$IS_INSTALLED" = "yes" ]; then
+            echo "   🦀 Módulo Rust (rust_core) sin cambios. Omitiendo recompilación."
+        else
+            echo "   🦀 Compilando e instalando módulo Rust (rust_core)..."
+            VIRTUAL_ENV="$PROJECT_DIR/venv" "$PROJECT_DIR/venv/bin/maturin" develop --release --manifest-path "$PROJECT_DIR/rust_core/Cargo.toml"
+        fi
     fi
 
     echo "   Verificando migraciones de base de datos..."

@@ -4,7 +4,9 @@ Genera un archivo Excel con los conteos sugeridos basado en la clasificación AB
 """
 
 import datetime
+import logging
 import random
+from collections import defaultdict
 from io import BytesIO
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,6 +21,8 @@ from app.utils.auth import permission_required
 import orjson
 import os
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/planner", tags=["planner"])
 
@@ -468,14 +472,23 @@ async def get_items_with_differences(
     if not prev_items:
         return {"items": [], "total_items_with_diff": 0}
 
-    item_codes = [r.item_code for r in prev_items]
+    # Deduplicar prev_items por item_code (mantener la última ocurrencia)
+    seen_codes = set()
+    unique_prev_items = []
+    for r in reversed(prev_items):
+        if r.item_code not in seen_codes:
+            seen_codes.add(r.item_code)
+            unique_prev_items.append(r)
+    unique_prev_items.reverse()
+
+    item_codes = [r.item_code for r in unique_prev_items]
     res_master = await db.execute(
         select(MasterItem).where(MasterItem.item_code.in_(item_codes))
     )
     master_map = {m.item_code: m for m in res_master.scalars().all()}
 
     enriched = []
-    for prev in prev_items:
+    for prev in unique_prev_items:
         m = master_map.get(prev.item_code)
         enriched.append(
             {
@@ -506,54 +519,76 @@ async def save_daily_execution(
     """Guarda conteos con validación estricta de system_qty desde el servidor."""
     try:
         today_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        item_codes = [it.item_code for it in execution_data.items]
+
+        # 1. Deduplicar items del payload por item_code (conservando el último enviado)
+        unique_items_dict = {it.item_code: it for it in execution_data.items}
+        unique_items = list(unique_items_dict.values())
+        item_codes = list(unique_items_dict.keys())
+
+        if not item_codes:
+            return {"message": "Guardados: 0 nuevos, 0 actualizados."}
+
+        # 2. Carga rápida en lote de información maestra y registros existentes
         res_master = await db.execute(
             select(MasterItem).where(MasterItem.item_code.in_(item_codes))
         )
         master_map = {m.item_code: m for m in res_master.scalars().all()}
 
-        saved, updated = 0, 0
-        for item in execution_data.items:
-            m_item = master_map.get(item.item_code)
-            if not m_item:
-                continue
-
-            physical = item.physical_qty
-            system = m_item.physical_qty or 0
-
-            res_exist = await db.execute(
-                select(CycleCountRecording).where(
-                    CycleCountRecording.item_code == item.item_code,
-                    CycleCountRecording.planned_date == execution_data.date,
-                )
+        res_exist = await db.execute(
+            select(CycleCountRecording).where(
+                CycleCountRecording.planned_date == execution_data.date,
+                CycleCountRecording.item_code.in_(item_codes),
             )
-            existing = res_exist.scalar_one_or_none()
+        )
+        existing_records = res_exist.scalars().all()
 
-            if existing:
-                existing.physical_qty, existing.system_qty = physical, system
-                existing.difference, existing.username, existing.executed_date = (
-                    physical - system,
-                    username,
-                    today_iso,
-                )
-                updated += 1
+        existing_map = defaultdict(list)
+        for r in existing_records:
+            existing_map[r.item_code].append(r)
+
+        saved, updated = 0, 0
+        for item in unique_items:
+            m_item = master_map.get(item.item_code)
+            physical = item.physical_qty
+            system = (m_item.physical_qty if m_item else item.system_qty) or 0
+            diff = physical - system
+
+            existing_list = existing_map.get(item.item_code, [])
+
+            if existing_list:
+                for existing in existing_list:
+                    existing.physical_qty = physical
+                    existing.system_qty = system
+                    existing.difference = diff
+                    existing.username = username
+                    existing.executed_date = today_iso
+                updated += len(existing_list)
             else:
-                bin_loc = m_item.bin_1
-                if m_item.additional_bin:
-                    bin_loc = f"{bin_loc} | {m_item.additional_bin}"
+                description = (
+                    m_item.description if m_item else item.description
+                ) or item.item_code
+                bin_loc = "N/A"
+                if m_item:
+                    bin_loc = m_item.bin_1 or "N/A"
+                    if m_item.additional_bin:
+                        bin_loc = f"{bin_loc} | {m_item.additional_bin}"
+                elif item.bin_location:
+                    bin_loc = item.bin_location
+
+                abc_code = (m_item.abc_code if m_item else item.abc_code) or "C"
 
                 db.add(
                     CycleCountRecording(
                         planned_date=execution_data.date,
                         executed_date=today_iso,
                         item_code=item.item_code,
-                        item_description=m_item.description,
-                        bin_location=bin_loc,
+                        item_description=description[:255] if description else None,
+                        bin_location=bin_loc[:100] if bin_loc else None,
                         system_qty=system,
                         physical_qty=physical,
-                        difference=physical - system,
-                        username=username,
-                        abc_code=m_item.abc_code,
+                        difference=diff,
+                        username=username[:100] if username else username,
+                        abc_code=abc_code[:10] if abc_code else None,
                     )
                 )
                 saved += 1
@@ -562,6 +597,7 @@ async def save_daily_execution(
         return {"message": f"Guardados: {saved} nuevos, {updated} actualizados."}
     except Exception as e:
         await db.rollback()
+        logger.error(f"Error en save_daily_execution: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
