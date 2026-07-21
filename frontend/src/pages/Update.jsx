@@ -9,6 +9,7 @@ const Update = () => {
     const [files, setFiles] = useState([]);
     const [updateOption, setUpdateOption] = useState('combine');
     const [isRobotRunning, setIsRobotRunning] = useState(false);
+    const [robotMessage, setRobotMessage] = useState({ type: '', text: '' });
 
     // Robot Date States
     const today = new Date();
@@ -76,9 +77,24 @@ const Update = () => {
     useEffect(() => {
         setTitle("Datos Maestros");
         fetchSyncStatus();
+        
+        // Verificar si el robot ya está ejecutándose al cargar la vista
+        const checkInitialRobotStatus = async () => {
+            try {
+                const res = await fetch('/api/po_robot_status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'running') {
+                        setIsRobotRunning(true);
+                        setRobotMessage({ type: 'info', text: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
+                    }
+                }
+            } catch (err) { console.error("Error al consultar estado inicial del robot:", err); }
+        };
+        checkInitialRobotStatus();
     }, [setTitle]);
 
-    // Polling robot status
+    // Polling robot status independientemente de la carga de archivos
     useEffect(() => {
         let interval;
         if (isRobotRunning) {
@@ -88,15 +104,15 @@ const Update = () => {
                     if (res.ok) {
                         const data = await res.json();
                         if (data.status === 'success') {
-                            setMessages({ success: data.message, error: '', info: '' });
+                            setRobotMessage({ type: 'success', text: data.message });
                             setIsRobotRunning(false);
                             fetchSyncStatus();
                         } else if (data.status === 'error') {
-                            setMessages({ success: '', error: data.message, info: '' });
+                            setRobotMessage({ type: 'error', text: data.message });
                             setIsRobotRunning(false);
                             fetchSyncStatus();
                         } else if (data.status === 'running') {
-                            setMessages({ success: '', error: '', info: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
+                            setRobotMessage({ type: 'info', text: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
                         }
                     }
                 } catch (err) { console.error(err); }
@@ -163,7 +179,8 @@ const Update = () => {
 
     const handleRunRobot = async () => {
         if (!window.confirm("¿INICIAR ROBOT DE DESCARGA?")) return;
-        setIsRobotRunning(true); setMessages({ success: '', error: '', info: 'SINCRONIZANDO CON PORTAL...' });
+        setIsRobotRunning(true);
+        setRobotMessage({ type: 'info', text: 'SINCRONIZANDO CON PORTAL...' });
         const fmt = (iso) => iso.split('-').reverse().join('/');
         try {
             const res = await fetch('/api/run_po_robot', {
@@ -171,8 +188,14 @@ const Update = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start_date: fmt(robotStartDate), end_date: fmt(robotEndDate) })
             });
-            if (!res.ok) { setIsRobotRunning(false); setMessages({ success: '', error: "ERROR AL ACTIVAR ROBOT" }); }
-        } catch (err) { setIsRobotRunning(false); }
+            if (!res.ok) {
+                setIsRobotRunning(false);
+                setRobotMessage({ type: 'error', text: "ERROR AL ACTIVAR ROBOT" });
+            }
+        } catch (err) {
+            setIsRobotRunning(false);
+            setRobotMessage({ type: 'error', text: "ERROR DE CONEXIÓN AL ACTIVAR ROBOT" });
+        }
     };
 
     const fetchMaestroGrns = async () => {
@@ -250,7 +273,7 @@ const Update = () => {
                             <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">Robot de Sincronización</h3>
                             <p className="text-[12px] text-black uppercase font-normal tracking-tight mt-1">Descarga automática de PO / Waybill desde Portal</p>
                         </div>
-                        <span className={`text-[12px] font-normal text-black px-2 py-0.5 rounded border ${isRobotRunning ? 'bg-blue-50 border-blue-200' : 'bg-zinc-100 border-zinc-200'}`}>
+                        <span className={`text-[12px] font-normal text-black px-2 py-0.5 rounded border ${isRobotRunning ? 'bg-blue-50 border-blue-200 text-blue-700 font-semibold' : 'bg-zinc-100 border-zinc-200'}`}>
                             {isRobotRunning ? 'ACTIVE' : 'IDLE'}
                         </span>
                     </div>
@@ -272,6 +295,19 @@ const Update = () => {
                             {isRobotRunning ? 'EJECUTANDO...' : 'SINCRO PORTAL'}
                         </button>
                     </div>
+
+                    {robotMessage.text && (
+                        <div className={`mt-4 px-4 py-3 border text-[12px] font-normal uppercase tracking-widest flex items-center justify-between ${
+                            robotMessage.type === 'error' ? 'bg-red-50 text-black border-red-100' :
+                            robotMessage.type === 'success' ? 'bg-emerald-50 text-black border-emerald-100' :
+                            'bg-blue-50 text-black border-blue-100 animate-pulse'
+                        }`}>
+                            <span>{robotMessage.text}</span>
+                            {robotMessage.type !== 'info' && (
+                                <button onClick={() => setRobotMessage({ type: '', text: '' })} className="ml-4 text-black hover:underline text-[10px]">CERRAR</button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* File Upload Section */}
