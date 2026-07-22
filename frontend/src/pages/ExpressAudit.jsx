@@ -130,19 +130,19 @@ const ExpressAudit = () => {
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleString('es-CO', { 
-            day: '2-digit', 
-            month: '2-digit', 
+        return new Date(dateStr).toLocaleString('es-CO', {
+            day: '2-digit',
+            month: '2-digit',
             year: 'numeric',
-            hour: '2-digit', 
-            minute: '2-digit' 
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
     return (
-        <div className="w-full px-4 py-4 space-y-4 max-w-6xl mx-auto">
+        <div className="container-wrapper max-w-6xl mx-auto px-4 py-4 space-y-4">
             <ToastContainer position="top-right" autoClose={2000} />
-            
+
             <style>{`
                 input[type=number]::-webkit-inner-spin-button,
                 input[type=number]::-webkit-outer-spin-button {
@@ -154,219 +154,207 @@ const ExpressAudit = () => {
                 }
             `}</style>
 
-            <div className="space-y-5">
-                
+            <div className="space-y-4">
+
                 {/* Tarjeta Principal de Auditoría Express */}
-                <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                    
-                    {/* Header Limpio (Sin Icono ni Badges) */}
-                    <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex justify-between items-center">
+                <div className="bg-white border border-gray-200 shadow rounded-lg overflow-hidden p-6 space-y-4">
+
+                    {/* Encabezado Limpio */}
+                    <div className="flex justify-between items-center border-b pb-3">
                         <div>
-                            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                            <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase tracking-tight">
                                 Ciclo Manual (Auditoría Express)
                             </h2>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">
-                                Conteo ciego y verificación rápida de ubicaciones
+                            <p className="text-[10px] text-gray-500 uppercase font-medium text-gray-900">
+                                Conteo ciego y verificación rápida de ubicaciones W2W
                             </p>
                         </div>
-                        <button 
-                            onClick={resetAll} 
-                            className="btn-sap btn-secondary text-[10px] font-semibold uppercase tracking-widest px-3 h-[32px] rounded-lg transition-all active:scale-95"
+                        <button
+                            onClick={resetAll}
+                            className="btn-sap btn-secondary text-xs font-medium text-gray-900 uppercase h-[36px] px-4"
                         >
                             Reiniciar Sesión
                         </button>
                     </div>
-                    
-                    <div className="p-5 space-y-4">
-                        
+
+                    <div className="space-y-4">
+
                         {/* Campos Ubicación y SKU */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Ubicación (BIN) */}
                             <div>
-                                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
                                     Ubicación (BIN)*
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <input 
+                                    <input
                                         ref={binRef}
-                                        type="text" 
+                                        type="text"
                                         value={binLocation}
                                         onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                         onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
-                                        className="font-mono text-sm font-semibold text-slate-900 bg-slate-50/50 border border-slate-300 focus:border-[#1e4a74] focus:bg-white focus:ring-2 focus:ring-[#1e4a74]/10 outline-none uppercase flex-grow h-[38px] px-3 rounded-lg transition-all box-border"
-                                        placeholder="SCAN BIN (ej. RD72B)"
+                                        className="uppercase font-medium text-gray-900 text-[#1e4a74] h-[40px] flex-grow px-3 border rounded"
+                                        placeholder="SCAN BIN (EJ. RD72B)"
                                     />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
-                                        className="btn-sap btn-secondary !h-[38px] !w-[38px] !p-0 shrink-0 flex items-center justify-center rounded-lg box-border"
+                                        className="btn-sap btn-secondary h-[30px] w-[30px] !p-0 flex items-center justify-center shrink-0"
                                         title="Escanear Código de Ubicación"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                                         </svg>
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Identificación SKU */}
                             <div>
-                                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
                                     Identificación (SKU)*
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <input 
+                                    <input
                                         ref={itemRef}
-                                        type="text" 
+                                        type="text"
                                         value={itemCode}
                                         onChange={(e) => handleItemChange(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearchItem(e.target.value)}
-                                        className="font-mono text-sm font-semibold text-[#1e4a74] bg-slate-50/50 border border-slate-300 focus:border-[#1e4a74] focus:bg-white focus:ring-2 focus:ring-[#1e4a74]/10 outline-none uppercase flex-grow h-[38px] px-3 rounded-lg transition-all box-border"
-                                        placeholder="SCAN SKU (ej. 64278542)"
+                                        className="uppercase font-medium text-gray-900 text-[#1e4a74] h-[30px] flex-grow px-3 border rounded"
+                                        placeholder="SCAN SKU (EJ. 64278542)"
                                     />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
-                                        className="btn-sap btn-secondary !h-[38px] !w-[38px] !p-0 shrink-0 flex items-center justify-center rounded-lg box-border"
+                                        className="btn-sap btn-secondary h-[30px] w-[30px] !p-0 flex items-center justify-center shrink-0"
                                         title="Escanear Código de Artículo"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                                         </svg>
                                     </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleSearchItem(itemCode)} 
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSearchItem(itemCode)}
                                         disabled={isSearching}
-                                        className="btn-sap btn-secondary !h-[38px] px-4 font-semibold text-[10px] uppercase tracking-wider flex items-center justify-center shrink-0 rounded-lg box-border"
+                                        className="btn-sap btn-secondary h-[30px] px-4 font-medium text-gray-900 text-[10px] uppercase shrink-0"
                                     >
                                         {isSearching ? '...' : 'Buscar'}
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Descripción del Producto */}
-                        <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
-                            <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                        <div>
+                            <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
                                 Descripción del Producto
-                            </span>
-                            <div className="text-xs font-semibold uppercase tracking-tight text-slate-900 min-h-[20px] flex items-center">
-                                {itemData ? (
-                                    <span>{itemData.description}</span>
-                                ) : (
-                                    <span className="text-slate-400 font-normal italic lowercase">
-                                        — ingrese o escanee un SKU para consultar datos —
-                                    </span>
-                                )}
+                            </label>
+                            <div className="data-field bg-gray-50 h-[40px] flex items-center px-3 border rounded text-xs font-medium text-gray-900 text-gray-700 uppercase">
+                                {itemData ? itemData.description : '— ESPERANDO SKU —'}
                             </div>
                         </div>
-                        
-                        {/* Cantidad Observada & Botón de Guardado (Sin Iconos) */}
+
+                        {/* Cantidad Observada & Botón de Guardado */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div>
-                                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
                                     Cantidad Observada (Físico)*
                                 </label>
                                 <div className="flex items-center">
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setPhysicalQty(prev => Math.max(0, (parseInt(prev || 0) - 1)).toString())}
-                                        className="w-[38px] h-[38px] border border-slate-300 border-r-0 rounded-l-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition-colors active:scale-95 select-none"
+                                        className="w-[30px] h-[30px] border bg-gray-100 font-medium text-gray-900 flex items-center justify-center select-none"
                                     >
                                         -
                                     </button>
-                                    <input 
+                                    <input
                                         ref={qtyRef}
-                                        type="number" 
+                                        type="number"
                                         value={physicalQty}
                                         onChange={(e) => setPhysicalQty(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                        className="font-mono text-lg font-bold text-center text-slate-900 border border-slate-300 focus:border-[#1e4a74] focus:ring-2 focus:ring-[#1e4a74]/10 outline-none w-full h-[38px] px-2 bg-white"
+                                        className="text-center font-medium text-gray-900 text-lg h-[30px] flex-grow border-y border-gray-300"
                                         placeholder="0"
                                         required
                                         min="0"
                                     />
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setPhysicalQty(prev => ((parseInt(prev || 0)) + 1).toString())}
-                                        className="w-[38px] h-[38px] border border-slate-300 border-l-0 rounded-r-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition-colors active:scale-95 select-none"
+                                        className="w-[30px] h-[30px] border bg-gray-100 font-medium text-gray-900 flex items-center justify-center select-none"
                                     >
                                         +
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div>
-                                <button 
+                                <button
                                     onClick={handleSave}
                                     disabled={isSaving || !itemData}
-                                    className={`h-[38px] px-6 w-full text-[11px] font-bold text-white rounded-lg shadow-sm flex items-center justify-center uppercase tracking-widest active:scale-95 transition-all ${
-                                        isSaving || !itemData 
-                                            ? 'bg-slate-300 border border-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
-                                            : 'bg-[#285f94] hover:bg-[#1e4a74] border border-[#1e4a74]'
-                                    }`}
+                                    className="btn-sap btn-primary h-[30px] px-8 w-full text-[10px] font-medium text-gray-900 uppercase tracking-widest"
                                 >
                                     {isSaving ? "Guardando..." : "Confirmar Registro"}
                                 </button>
                             </div>
                         </div>
-                        
-                        {/* Panel de Análisis de Inventario (Sin Iconos ni Badges) */}
-                        <div className="pt-4 border-t border-slate-200 space-y-3">
-                            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-800">
+
+                        {/* Panel de Análisis de Inventario */}
+                        <div className="pt-4 border-t space-y-3">
+                            <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 uppercase tracking-wider">
                                 Análisis de Inventario
                             </h3>
-                            
-                            <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs text-center">
-                                    <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+
+                            <div className="grid grid-cols-3 gap-4 bg-gray-50 border rounded-lg p-3 text-center">
+                                <div>
+                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
                                         Stock Sistema
                                     </span>
-                                    <div className="text-xl font-extrabold text-slate-900 mt-1 font-mono">
+                                    <div className="text-xl font-medium text-gray-900 text-gray-900 mt-1">
                                         {itemData?.system_qty ?? 0}
                                     </div>
                                 </div>
-                                
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs text-center">
-                                    <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+
+                                <div>
+                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
                                         Auditoría Física
                                     </span>
-                                    <div className="text-xl font-extrabold text-slate-900 mt-1 font-mono">
+                                    <div className="text-xl font-medium text-gray-900 text-gray-900 mt-1">
                                         {physicalQty === '' ? 0 : physicalQty}
                                     </div>
                                 </div>
-                                
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs text-center">
-                                    <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+
+                                <div>
+                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
                                         Diferencia
                                     </span>
-                                    <div className={`text-xl font-extrabold mt-1 font-mono ${
-                                        difference > 0 ? 'text-blue-700' : difference < 0 ? 'text-red-600' : 'text-emerald-600'
-                                    }`}>
+                                    <div className={`text-xl font-medium text-gray-900 mt-1 ${difference > 0 ? 'text-blue-700' : difference < 0 ? 'text-red-700' : 'text-emerald-700'
+                                        }`}>
                                         {difference > 0 ? `+${difference}` : difference}
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* Estado de Ubicación (Limpio Sin Iconos) */}
+
+                            {/* Estado de Ubicación */}
                             {itemData && binLocation && (
-                                <div className={`p-3 rounded-xl border flex items-center transition-all ${
-                                    binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() 
-                                        ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950' 
-                                        : 'bg-amber-50/90 border-amber-300 text-amber-950'
-                                }`}>
+                                <div className={`p-3 rounded border flex items-center ${binLocation.toUpperCase() === itemData.system_bin?.toUpperCase()
+                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                                        : 'bg-red-50 border-red-200 text-red-950'
+                                    }`}>
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold uppercase tracking-wider leading-tight">
-                                            {binLocation.toUpperCase() === itemData.system_bin?.toUpperCase() 
-                                                ? 'Ubicación Correcta' 
+                                        <span className="text-xs font-medium text-gray-900 uppercase tracking-wider leading-tight">
+                                            {binLocation.toUpperCase() === itemData.system_bin?.toUpperCase()
+                                                ? 'Ubicación Correcta'
                                                 : 'Discrepancia de Ubicación Detectada'}
                                         </span>
                                         {binLocation.toUpperCase() !== itemData.system_bin?.toUpperCase() && (
-                                            <span className="text-[10px] font-semibold text-slate-600 uppercase mt-0.5">
-                                                Ubicación Principal en Sistema: <span className="font-mono text-amber-900 font-bold">{itemData.system_bin || 'NO DEFINIDA'}</span>
+                                            <span className="text-[10px] font-medium text-gray-900 uppercase mt-0.5">
+                                                Ubicación Principal en Sistema: {itemData.system_bin || 'NO DEFINIDA'}
                                             </span>
                                         )}
                                     </div>
@@ -375,61 +363,56 @@ const ExpressAudit = () => {
                         </div>
                     </div>
                 </div>
-                
-                {/* Tarjeta de Historial Reciente (Limpio Sin Iconos/Badges) */}
-                <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                    <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+
+                {/* Tarjeta de Historial Reciente */}
+                <div className="bg-white border border-gray-200 shadow rounded-lg overflow-hidden p-6">
+                    <div className="flex justify-between items-center border-b pb-3 mb-4">
+                        <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase tracking-tight">
                             Historial de Auditorías Recientes
                         </h2>
                     </div>
-                    
+
                     <div className="overflow-x-auto max-h-[380px]">
                         <table className="w-full text-xs border-collapse">
                             <thead className="bg-slate-100 text-slate-700 sticky top-0 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Fecha / Hora</th>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Usuario</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider">BIN</th>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">SKU / Artículo</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider">Físico</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider">Delta</th>
+                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">Fecha / Hora</th>
+                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">Usuario</th>
+                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">BIN</th>
+                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">SKU / Artículo</th>
+                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">Físico</th>
+                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">Delta</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                            <tbody className="divide-y divide-gray-200 bg-white">
                                 {recentAudits.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-4 py-12 text-center text-slate-400 uppercase tracking-widest text-[11px] font-medium">
+                                        <td colSpan="6" className="px-4 py-12 text-center text-gray-400 uppercase tracking-widest text-[11px] font-medium text-gray-900">
                                             No se han registrado auditorías recientes en esta sesión
                                         </td>
                                     </tr>
                                 ) : (
                                     recentAudits.map((audit, idx) => (
-                                        <tr key={audit.id || idx} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/60 transition-colors`}>
-                                            <td className="px-4 py-2.5 text-slate-600 font-mono text-[11px]">{formatDate(audit.executed_date)}</td>
-                                            <td className="px-4 py-2.5 text-slate-800 font-semibold uppercase">{audit.username || 'Sistema'}</td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                <span className="font-mono font-bold text-slate-900 text-[11px]">
-                                                    {audit.bin_location}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-2.5 font-semibold text-[#1e4a74]">
+                                        <tr key={audit.id || idx} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                                            <td className="px-4 py-2.5 text-gray-600 font-mono text-[11px]">{formatDate(audit.executed_date)}</td>
+                                            <td className="px-4 py-2.5 text-gray-800 font-medium text-gray-900 uppercase">{audit.username || 'Sistema'}</td>
+                                            <td className="px-4 py-2.5 text-center font-medium text-gray-900">{audit.bin_location}</td>
+                                            <td className="px-4 py-2.5 font-medium text-gray-900 text-[#1e4a74]">
                                                 <div className="font-mono text-xs">{audit.item_code}</div>
                                                 {audit.item_description && (
-                                                    <div className="text-[10px] text-slate-500 font-normal truncate max-w-[300px]">
+                                                    <div className="text-[10px] text-gray-500 font-normal truncate max-w-[300px]">
                                                         {audit.item_description}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2.5 text-center font-bold text-slate-900 font-mono text-sm">{audit.physical_qty}</td>
+                                            <td className="px-4 py-2.5 text-center font-medium text-gray-900 font-mono text-sm">{audit.physical_qty}</td>
                                             <td className="px-4 py-2.5 text-center">
-                                                <span className={`font-mono font-bold text-xs ${
-                                                    audit.difference > 0 
-                                                        ? 'text-blue-800' 
-                                                        : audit.difference < 0 
-                                                            ? 'text-red-800' 
-                                                            : 'text-emerald-800'
-                                                }`}>
+                                                <span className={`font-mono font-medium text-gray-900 text-xs ${audit.difference > 0
+                                                        ? 'text-blue-700'
+                                                        : audit.difference < 0
+                                                            ? 'text-red-700'
+                                                            : 'text-emerald-700'
+                                                    }`}>
                                                     {audit.difference > 0 ? `+${audit.difference}` : audit.difference}
                                                 </span>
                                             </td>
@@ -441,7 +424,7 @@ const ExpressAudit = () => {
                     </div>
                 </div>
             </div>
-            
+
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
         </div>
     );

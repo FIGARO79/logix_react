@@ -1009,7 +1009,7 @@ const Inbound = () => {
                                         <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
                                         <button
                                             type="button"
-                                            className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
+                                            className="btn-sap btn-secondary w-[30px] h-[30px] !p-0 flex items-center justify-center"
                                             onClick={findItem}
                                             disabled={loading}
                                         >
@@ -1022,7 +1022,7 @@ const Inbound = () => {
                                         {!editId && (
                                             <button
                                                 type="button"
-                                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
+                                                className="btn-sap btn-secondary w-[30px] h-[30px] !p-0 flex items-center justify-center"
                                                 onClick={() => setScannerOpen(true)}
                                                 title="Escanear"
                                             >
