@@ -38,8 +38,8 @@ async def find_item_for_audit(
         latest_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
         effective_bin = latest_bin if latest_bin else item_details.get("Bin_1", "N/A")
 
-        # Obtener stock total esperado (físico actual en sistema)
-        system_qty = await csv_handler.get_total_expected_quantity_for_item(item_code)
+        # Obtener stock total esperado (físico actual en el maestro de ítems)
+        system_qty = int(item_details.get("Physical_Qty") or 0)
 
         return {
             "item_code": item_code.upper(),
