@@ -114,19 +114,19 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
                     pl.col("Physical_Qty")
                     .cast(pl.Utf8)
-                    .str.replace(",", "")
+                    .str.replace_all(",", "")
                     .cast(pl.Float64, strict=False)
                     .fill_null(0)
                     .cast(pl.Int64),
                     pl.col("Frozen_Qty")
                     .cast(pl.Utf8)
-                    .str.replace(",", "")
+                    .str.replace_all(",", "")
                     .cast(pl.Float64, strict=False)
                     .fill_null(0)
                     .cast(pl.Int64),
                     pl.col("Cost_per_Unit")
                     .cast(pl.Utf8)
-                    .str.replace(",", "")
+                    .str.replace_all(",", "")
                     .cast(pl.Float64, strict=False)
                     if "Cost_per_Unit" in available_columns
                     else pl.lit(0.0).alias("Cost_per_Unit"),

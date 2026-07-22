@@ -67,7 +67,7 @@ async def get_dashboard_stats(
                 pl.col("Item_Code"),
                 pl.col("Cost_per_Unit")
                 .cast(pl.Utf8)
-                .str.replace(",", "")
+                .str.replace_all(",", "")
                 .cast(pl.Float64, strict=False)
                 .fill_null(0.0)
                 .alias("cost"),
