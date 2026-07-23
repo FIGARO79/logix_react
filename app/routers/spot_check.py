@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/spot_check", tags=["spot_check"])
 
 class SpotCheckPayload(BaseModel):
     bin_location: str
+    system_bin: str = "N/A"
     item_code: str
     item_description: str
     quantity: int
@@ -41,9 +42,14 @@ async def find_item_for_spot_check(
         if not item_details:
             raise HTTPException(status_code=404, detail="Item no encontrado")
 
+        latest_bin = await db_logs.get_latest_relocated_bin_async(db, item_code)
+        system_bin = latest_bin if latest_bin else item_details.get("Bin_1", "N/A")
+
         return {
             "item_code": item_code.upper(),
             "description": item_details.get("Item_Description", "SIN DESCRIPCIÓN"),
+            "system_bin": system_bin,
+            "additional_locations": item_details.get("Aditional_Bin_Location", ""),
         }
     except HTTPException:
         raise
@@ -65,6 +71,7 @@ async def list_spot_checks(
             {
                 "id": c.id,
                 "bin_location": c.bin_location,
+                "system_bin": getattr(c, "system_bin", None) or "N/A",
                 "item_code": c.item_code,
                 "item_description": c.item_description,
                 "quantity": c.quantity,
@@ -94,7 +101,8 @@ async def export_spot_checks(
         data = [
             {
                 "Fecha": c.timestamp,
-                "Ubicación": c.bin_location,
+                "Ubicación Encontrada": c.bin_location,
+                "Ubicación Asignada": getattr(c, "system_bin", None) or "N/A",
                 "SKU": c.item_code,
                 "Descripción": c.item_description,
                 "Cantidad": c.quantity,
@@ -154,6 +162,7 @@ async def save_spot_check(
     try:
         new_entry = SpotCheck(
             bin_location=payload.bin_location.strip().upper(),
+            system_bin=payload.system_bin.strip().upper() if payload.system_bin else "N/A",
             item_code=payload.item_code.strip().upper(),
             item_description=payload.item_description,
             quantity=payload.quantity,

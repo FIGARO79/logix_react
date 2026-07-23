@@ -63,24 +63,39 @@ const SpotCheck = () => {
         
         try {
             if (isOnline) {
-                const res = await fetch(`/api/search_items?q=${encodeURIComponent(q)}`);
+                const res = await fetch(`/api/spot_check/find/${encodeURIComponent(q)}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.length === 0) {
-                        toast.warn("Item no encontrado");
-                    } else if (data.length === 1) {
-                        const item = data[0];
-                        setItemData({
-                            item_code: item.itemCode,
-                            description: item.description
-                        });
-                        setItemCode(item.itemCode);
-                        setTimeout(() => qtyRef.current?.focus(), 100);
-                    } else {
-                        setSearchResults(data);
-                    }
+                    setItemData({
+                        item_code: data.item_code,
+                        description: data.description,
+                        system_bin: data.system_bin || 'N/A',
+                        additional_locations: data.additional_locations || ''
+                    });
+                    setItemCode(data.item_code);
+                    setTimeout(() => qtyRef.current?.focus(), 100);
                 } else {
-                    toast.error("Error en la búsqueda");
+                    const searchRes = await fetch(`/api/search_items?q=${encodeURIComponent(q)}`);
+                    if (searchRes.ok) {
+                        const data = await searchRes.json();
+                        if (data.length === 0) {
+                            toast.warn("Item no encontrado");
+                        } else if (data.length === 1) {
+                            const item = data[0];
+                            setItemData({
+                                item_code: item.itemCode,
+                                description: item.description,
+                                system_bin: item.binLocation || item.bin_1 || 'N/A',
+                                additional_locations: item.aditionalBins || ''
+                            });
+                            setItemCode(item.itemCode);
+                            setTimeout(() => qtyRef.current?.focus(), 100);
+                        } else {
+                            setSearchResults(data);
+                        }
+                    } else {
+                        toast.error("Error en la búsqueda");
+                    }
                 }
             } else {
                 // Modo Offline: buscar en IndexedDB master_items
@@ -92,7 +107,9 @@ const SpotCheck = () => {
                 if (exactMatch) {
                     setItemData({
                         item_code: exactMatch.Item_Code,
-                        description: exactMatch.Item_Description
+                        description: exactMatch.Item_Description,
+                        system_bin: exactMatch.Bin_1 || 'N/A',
+                        additional_locations: exactMatch.Aditional_Bin_Location || ''
                     });
                     setItemCode(exactMatch.Item_Code);
                     setTimeout(() => qtyRef.current?.focus(), 100);
@@ -108,14 +125,18 @@ const SpotCheck = () => {
                     } else if (filtered.length === 1) {
                         setItemData({
                             item_code: filtered[0].Item_Code,
-                            description: filtered[0].Item_Description
+                            description: filtered[0].Item_Description,
+                            system_bin: filtered[0].Bin_1 || 'N/A',
+                            additional_locations: filtered[0].Aditional_Bin_Location || ''
                         });
                         setItemCode(filtered[0].Item_Code);
                         setTimeout(() => qtyRef.current?.focus(), 100);
                     } else {
                         setSearchResults(filtered.map(f => ({
                             itemCode: f.Item_Code,
-                            description: f.Item_Description
+                            description: f.Item_Description,
+                            system_bin: f.Bin_1 || 'N/A',
+                            additional_locations: f.Aditional_Bin_Location || ''
                         })));
                     }
                 }
@@ -127,7 +148,9 @@ const SpotCheck = () => {
     const selectItemFromResult = (item) => {
         setItemData({
             item_code: item.itemCode,
-            description: item.description
+            description: item.description,
+            system_bin: item.system_bin || item.binLocation || 'N/A',
+            additional_locations: item.additional_locations || item.aditionalBins || ''
         });
         setItemCode(item.itemCode);
         setSearchResults([]);
@@ -151,6 +174,7 @@ const SpotCheck = () => {
 
         const payload = {
             bin_location: binLocation.toUpperCase(),
+            system_bin: (itemData.system_bin || 'N/A').toUpperCase(),
             item_code: itemData.item_code,
             item_description: itemData.description,
             quantity: parseInt(physicalQty),
@@ -387,29 +411,38 @@ const SpotCheck = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-zinc-900 text-white text-[9px] uppercase tracking-widest">
                                     <tr>
-                                        <th className="px-4 py-3">Hora</th>
-                                        <th className="px-4 py-3">Bin</th>
-                                        <th className="px-4 py-3">Item</th>
-                                        <th className="px-4 py-3 text-center">Cant</th>
-                                        <th className="px-4 py-3">Usuario</th>
+                                        <th className="px-3 py-3">Hora</th>
+                                        <th className="px-3 py-3">Bin Encontrado</th>
+                                        <th className="px-3 py-3">Bin Default</th>
+                                        <th className="px-3 py-3">Item</th>
+                                        <th className="px-3 py-3 text-center">Cant</th>
+                                        <th className="px-3 py-3">Usuario</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-[10px]">
                                     {recentChecks.length === 0 ? (
-                                        <tr><td colSpan="5" className="px-4 py-12 text-center text-zinc-400 font-medium  uppercase">No hay registros recientes</td></tr>
+                                        <tr><td colSpan="6" className="px-4 py-12 text-center text-zinc-400 font-medium uppercase">No hay registros recientes</td></tr>
                                     ) : (
-                                        recentChecks.map((check) => (
-                                            <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                <td className="px-4 py-3 text-zinc-600 font-medium  font-mono">{formatDate(check.timestamp)}</td>
-                                                <td className="px-4 py-3 font-black text-black text-sm">{check.bin_location}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-medium  text-[#1e4a74] text-sm">{check.item_code}</div>
-                                                    <div className="text-[9px] text-zinc-800 font-medium truncate max-w-[250px]">{check.item_description}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
-                                                <td className="px-4 py-3 uppercase text-zinc-600 font-medium ">{check.username}</td>
-                                            </tr>
-                                        ))
+                                        recentChecks.map((check) => {
+                                            const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
+                                            return (
+                                                <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                                                    <td className="px-3 py-3 text-zinc-600 font-medium font-mono">{formatDate(check.timestamp)}</td>
+                                                    <td className="px-3 py-3 font-black text-sm">
+                                                        <span className={`px-2 py-0.5 rounded font-mono ${isMatch ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
+                                                            {check.bin_location}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-3 font-mono font-bold text-zinc-700">{check.system_bin || check.default_bin || 'N/A'}</td>
+                                                    <td className="px-3 py-3">
+                                                        <div className="font-bold text-[#1e4a74] text-sm">{check.item_code}</div>
+                                                        <div className="text-[9px] text-zinc-600 font-medium truncate max-w-[200px]">{check.item_description}</div>
+                                                    </td>
+                                                    <td className="px-3 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
+                                                    <td className="px-3 py-3 uppercase text-zinc-600 font-medium">{check.username}</td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>

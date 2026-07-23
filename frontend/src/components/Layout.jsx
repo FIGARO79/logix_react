@@ -373,6 +373,7 @@ const Layout = () => {
                         <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
                         <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
+                        <MenuItem to="/spot-check" label="Spot Check (Audit Bines)" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
