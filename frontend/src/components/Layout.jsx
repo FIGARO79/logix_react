@@ -304,8 +304,8 @@ const Layout = () => {
                             >
                                 <span className="tab-label">{tab.label}</span>
                                 <div className="tab-actions flex items-center gap-1 ml-2">
-                                    <button 
-                                        onClick={(e) => refreshTab(e, tab.id)} 
+                                    <button
+                                        onClick={(e) => refreshTab(e, tab.id)}
                                         className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                         title="Refrescar datos"
                                     >
@@ -373,7 +373,7 @@ const Layout = () => {
                         <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
                         <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
                         <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
-                        <MenuItem to="/spot-check" label="Spot Check (Audit Bines)" onClick={toggleMenu} />
+                        <MenuItem to="/spot-check" label="Spot Check" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
@@ -385,7 +385,7 @@ const Layout = () => {
                             className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left"
                             style={{ justifyContent: 'flex-start' }}
                             onClick={async () => {
-                                try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } 
+                                try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
                                 finally { window.location.href = '/login'; }
                             }}
                         >
