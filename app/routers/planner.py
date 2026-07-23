@@ -662,7 +662,68 @@ async def update_cycle_count_diff(
     r = res.scalar_one_or_none()
     if not r:
         raise HTTPException(status_code=404, detail="No encontrado")
-    r.physical_qty = data["physical_qty"]
+
+    # Actualizar la cantidad física contada
+    if "physical_qty" in data and data["physical_qty"] is not None:
+        r.physical_qty = int(data["physical_qty"])
+
+    # Se PRESERVA r.system_qty (foto histórica teórica del sistema en la fecha del conteo)
+    # Recalcular la diferencia contra el system_qty histórico guardado
     r.difference = r.physical_qty - r.system_qty
+
+    if r.difference == 0:
+        r.status = "closed"
+        r.closed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    else:
+        if not r.status or r.status == "closed":
+            r.status = "pending"
+
     await db.commit()
-    return {"message": "Actualizado"}
+    await db.refresh(r)
+    return {
+        "message": "Actualizado correctamente",
+        "id": r.id,
+        "physical_qty": r.physical_qty,
+        "system_qty": r.system_qty,
+        "difference": r.difference,
+        "status": r.status,
+    }
+
+
+@router.post("/recalculate_all_differences")
+async def recalculate_all_differences(
+    username: str = Depends(permission_required("planner")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Re-verifica las diferencias de todos los registros usando SU cantidad teórica histórica
+    guardada en el registro (sin modificar el historial de la base de datos).
+    """
+    try:
+        res_recordings = await db.execute(select(CycleCountRecording))
+        recordings = res_recordings.scalars().all()
+
+        if not recordings:
+            return {"message": "No hay registros de conteo.", "updated": 0}
+
+        updated_count = 0
+        for r in recordings:
+            # Preservar r.system_qty histórico congelado
+            r.difference = r.physical_qty - r.system_qty
+            if r.difference == 0:
+                r.status = "closed"
+            else:
+                if not r.status or r.status == "closed":
+                    r.status = "pending"
+            updated_count += 1
+
+        await db.commit()
+        return {
+            "message": f"Diferencias verificadas para {updated_count} registros respetando la foto histórica.",
+            "updated": updated_count,
+        }
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+

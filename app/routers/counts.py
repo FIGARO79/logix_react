@@ -57,9 +57,25 @@ async def get_dashboard_stats(
 
         total_active_skus = 0
         if master_pl is not None and "Item_Code" in master_pl.columns:
-            total_active_skus = master_pl.select(pl.col("Item_Code").n_unique())[0, 0]
+            if "Physical_Qty" in master_pl.columns:
+                # Contar como activos ÚNICAMENTE los SKUs que tienen cantidad física mayor a cero (> 0)
+                active_master = master_pl.filter(pl.col("Physical_Qty") > 0)
+                total_active_skus = active_master.select(pl.col("Item_Code").n_unique())[0, 0]
+            else:
+                total_active_skus = master_pl.select(pl.col("Item_Code").n_unique())[0, 0]
+
+        if total_active_skus == 0:
+            # Fallback SQL filtrando physical_qty > 0
+            res_active = await db.execute(
+                select(MasterItem).where(MasterItem.physical_qty > 0)
+            )
+            active_items = res_active.scalars().all()
+            if active_items:
+                total_active_skus = len({m.item_code for m in active_items if m.item_code})
+
         if total_active_skus == 0:
             total_active_skus = len(recordings)
+
 
         # Convertir recordings a Polars DataFrame
         rec_list = []
