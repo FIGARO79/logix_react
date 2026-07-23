@@ -291,6 +291,15 @@ class CycleCountRecording(Base):
     username: Mapped[str] = mapped_column(String(100))
     abc_code: Mapped[Optional[str]] = mapped_column(String(10))
     source: Mapped[Optional[str]] = mapped_column(String(50), default="planner")
+    root_cause: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String(50), default="closed")
+    count_attempt: Mapped[Optional[int]] = mapped_column(Integer, default=1)
+    created_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    closed_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    person_hours: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), default=0.5)
+    stockroom: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    criticality: Mapped[Optional[str]] = mapped_column(String(50), default="Standard")
+
 
 
 class MasterItem(Base):

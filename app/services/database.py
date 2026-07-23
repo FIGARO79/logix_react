@@ -9,6 +9,31 @@ from alembic import command
 from app.core.config import PROJECT_ROOT
 
 
+async def ensure_cycle_count_columns():
+    """Garantiza la existencia de las nuevas columnas en cycle_count_recordings si no existían."""
+    from app.core.db import engine
+    from sqlalchemy import text
+    columns_to_add = [
+        ("root_cause", "VARCHAR(100)"),
+        ("status", "VARCHAR(50) DEFAULT 'closed'"),
+        ("count_attempt", "INTEGER DEFAULT 1"),
+        ("created_at", "VARCHAR(50)"),
+        ("closed_at", "VARCHAR(50)"),
+        ("person_hours", "DECIMAL(10,2) DEFAULT 0.5"),
+        ("stockroom", "VARCHAR(50)"),
+        ("criticality", "VARCHAR(50) DEFAULT 'Standard'"),
+    ]
+    try:
+        async with engine.begin() as conn:
+            for col_name, col_type in columns_to_add:
+                try:
+                    await conn.execute(text(f"ALTER TABLE cycle_count_recordings ADD COLUMN {col_name} {col_type}"))
+                except Exception:
+                    pass  # La columna ya existe
+    except Exception as e:
+        print(f"Aviso actualizando esquema cycle_count_recordings: {e}")
+
+
 async def run_migrations():
     """Ejecuta las migraciones de Alembic para actualizar el esquema de la base de datos."""
     print("Verificando y aplicando migraciones de base de datos...")
@@ -22,5 +47,6 @@ async def run_migrations():
         print("Migraciones aplicadas correctamente.")
     except Exception as e:
         print(f"Error crítico ejecutando migraciones: {e}")
-        # Opcional: Levantar excepción si queremos que falle el arranque si la DB no está bien
-        # raise e
+    
+    await ensure_cycle_count_columns()
+
