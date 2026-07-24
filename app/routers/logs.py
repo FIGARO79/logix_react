@@ -232,6 +232,11 @@ async def add_log(
         latest_relocated_bin if latest_relocated_bin else original_bin
     )
 
+    prev_received = await db_logs.get_total_received_for_import_reference_async(
+        db, data.importReference, item_code_form
+    )
+    cum_received = prev_received + data.quantity
+
     entry_data = data.dict()
     entry_data["username"] = username
     # Usar timestamp del frontend si viene, sino el del servidor (como fallback)
@@ -239,7 +244,7 @@ async def add_log(
         entry_data["timestamp"] = datetime.datetime.now().isoformat()
     entry_data["qtyGrn"] = expected_qty
     entry_data["qtyReceived"] = data.quantity
-    entry_data["difference"] = data.quantity - expected_qty
+    entry_data["difference"] = cum_received - expected_qty
 
     entry_data["itemDescription"] = item_details.get("Item_Description", "")
     entry_data["binLocation"] = effective_bin_location
@@ -426,71 +431,25 @@ async def export_log(
         "Diferencia",
     ]
 
-    # ── LÓGICA DE ALINEACIÓN DE SALDOS (RECONCILIACIÓN DE EXCEL) ─────────────
-    # 1. Obtener cantidad esperada del GRN CSV (280) por itemCode
-    unique_items = list({log["itemCode"] for log in logs if log.get("itemCode")})
-    expected_280_map = {}
-    for item in unique_items:
-        expected_280_map[item] = await csv_handler.get_total_expected_quantity_for_item(
-            item
-        )
-
-    # 2. Calcular total recibido por itemCode y encontrar el log más reciente
-    #    Ordenamos por ID descendente para marcar la "última" fila del item.
-    logs_sorted = sorted(logs, key=lambda x: x.get("id") or 0, reverse=True)
-
-    totals_map = {}
-    latest_id_map = {}
-
-    for log in logs_sorted:
-        code = log.get("itemCode")
-        if not code:
-            continue
-        totals_map[code] = totals_map.get(code, 0) + int(log.get("qtyReceived") or 0)
-        if code not in latest_id_map:
-            latest_id_map[code] = log.get("id")
-
-    # 3. Enriquecer logs CON ALINEACIÓN Y FORMATO DE FECHA
+    # ── APLICAR FORMATO DE FECHA (CON TIMEZONE OFFSET) ─────────────────────────
     enriched = []
-    for log in logs_sorted:
-        code = log.get("itemCode")
-        is_latest = latest_id_map.get(code) == log.get("id")
-
-        expected_280 = expected_280_map.get(code, 0)
-        total_rec = totals_map.get(code, 0)
-        expected_po = int(log.get("qtyGrn") or 0)
-
-        # Formatear fecha aplicando el desfase del cliente
+    for log in logs:
         ts_raw = log.get("timestamp", "")
         formatted_date = ts_raw
         try:
-            # Limpiar posibles variaciones de formato ISO
             clean_ts = str(ts_raw).replace(" ", "T").replace("Z", "")
             dt_obj = datetime.datetime.fromisoformat(clean_ts)
-
-            # Si no tiene zona horaria, asumimos UTC para poder aplicar el offset
             if dt_obj.tzinfo is None:
                 dt_obj = dt_obj.replace(tzinfo=datetime.timezone.utc)
-
-            # Aplicar el desfase (timezone_offset viene en minutos)
             local_dt = dt_obj - datetime.timedelta(minutes=timezone_offset)
-            formatted_date = local_dt.replace(
-                tzinfo=None
-            )  # Excel no soporta tzinfo en datetime objects fácilmente
+            formatted_date = local_dt.replace(tzinfo=None)
         except Exception as e:
             print(f"Error procesando fecha en export: {e}")
             formatted_date = ts_raw
 
-        enriched.append(
-            {
-                **log,
-                "timestamp": formatted_date,
-                # Solo mostramos el total esperado de la PO y la diferencia del 280 en la última fila del ítem
-                # para que el reporte sea sumable sin duplicidades.
-                "qtyGrn": expected_po if is_latest else 0,
-                "difference": (total_rec - expected_280) if is_latest else 0,
-            }
-        )
+        log_entry = dict(log)
+        log_entry["timestamp"] = formatted_date
+        enriched.append(log_entry)
 
     # ─────────────────────────────────────────────────────────────────────────
     df_pl = pl.DataFrame(enriched, infer_schema_length=None)

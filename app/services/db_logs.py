@@ -116,6 +116,95 @@ async def update_log_entry_db_async(
         return False
 
 
+async def align_log_totals(
+    logs: List[Dict[str, Any]], db: Optional[AsyncSession] = None
+) -> List[Dict[str, Any]]:
+    """
+    Alinea las cantidades recibidas, esperadas (qtyGrn) y diferencias para cada grupo
+    (archived_at, importReference, itemCode).
+
+    Resuelve el problema en la exportación de históricos donde un ítem recibido
+    en múltiples registros para la misma Import Reference duplicaba la cantidad esperada
+    (qtyGrn) y generaba diferencias negativas erróneas por cada línea.
+    """
+    if not logs:
+        return []
+
+    from app.services import csv_handler
+
+    logs_copy = [dict(log) for log in logs]
+    logs_sorted = sorted(logs_copy, key=lambda x: x.get("id") or 0, reverse=True)
+
+    totals_received: Dict[tuple, int] = {}
+    expected_map: Dict[tuple, int] = {}
+    latest_id_map: Dict[tuple, int] = {}
+
+    for log in logs_sorted:
+        archived = str(log.get("archived_at") or "")
+        ref = str(log.get("importReference") or "").strip().upper()
+        item = str(log.get("itemCode") or "").strip().upper()
+        if not item:
+            continue
+
+        group_key = (archived, ref, item)
+
+        try:
+            qty_rec = int(float(log.get("qtyReceived") or 0))
+        except (ValueError, TypeError):
+            qty_rec = 0
+
+        totals_received[group_key] = totals_received.get(group_key, 0) + qty_rec
+
+        if group_key not in latest_id_map:
+            latest_id_map[group_key] = log.get("id")
+
+        try:
+            cur_exp = int(float(log.get("qtyGrn") or 0))
+        except (ValueError, TypeError):
+            cur_exp = 0
+
+        if cur_exp > expected_map.get(group_key, 0):
+            expected_map[group_key] = cur_exp
+
+    for group_key in list(totals_received.keys()):
+        if expected_map.get(group_key, 0) == 0:
+            ref, item = group_key[1], group_key[2]
+            exp_po = 0
+            if ref and item:
+                exp_po = await csv_handler.get_expected_quantity_from_po(ref, item)
+            if (not exp_po or exp_po == 0) and item:
+                exp_po = await csv_handler.get_total_expected_quantity_for_item(item)
+            if exp_po:
+                expected_map[group_key] = int(exp_po)
+
+    aligned_logs = []
+    for log in logs_copy:
+        archived = str(log.get("archived_at") or "")
+        ref = str(log.get("importReference") or "").strip().upper()
+        item = str(log.get("itemCode") or "").strip().upper()
+
+        if not item:
+            aligned_logs.append(log)
+            continue
+
+        group_key = (archived, ref, item)
+        is_latest = (log.get("id") == latest_id_map.get(group_key))
+
+        tot_rec = totals_received.get(group_key, 0)
+        tot_exp = expected_map.get(group_key, 0)
+
+        if is_latest:
+            log["qtyGrn"] = tot_exp
+            log["difference"] = tot_rec - tot_exp
+        else:
+            log["qtyGrn"] = 0
+            log["difference"] = 0
+
+        aligned_logs.append(log)
+
+    return aligned_logs
+
+
 async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
     """Carga todos los logs activos (no archivados) de la base de datos."""
     try:
@@ -158,20 +247,6 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                     db.add(log)
                     db_needs_commit = True
 
-            # Auto-sanar diferencia
-            diff = log.difference
-            try:
-                expected_qty = float(log.qtyGrn or 0)
-                received_qty = float(log.qtyReceived or 0)
-                correct_diff = int(received_qty - expected_qty)
-                if diff != correct_diff:
-                    diff = correct_diff
-                    log.difference = diff
-                    db.add(log)
-                    db_needs_commit = True
-            except (ValueError, TypeError):
-                pass
-
             result_list.append(
                 {
                     "id": log.id,
@@ -184,7 +259,7 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                     "relocatedBin": log.relocatedBin,
                     "qtyReceived": log.qtyReceived,
                     "qtyGrn": log.qtyGrn,
-                    "difference": diff,
+                    "difference": log.difference,
                     "username": log.username,
                     "client_id": getattr(log, "client_id", None),
                     "observaciones": "",  # Columna no existe en tabla MySQL
@@ -194,7 +269,7 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
         if db_needs_commit:
             await db.commit()
 
-        return result_list
+        return await align_log_totals(result_list, db=db)
     except Exception as e:
         print(f"DB Error (load_log_data_db_async): {e}")
         return []
@@ -395,20 +470,6 @@ async def load_archived_log_data_db_async(
                     db.add(log)
                     db_needs_commit = True
 
-            # Auto-sanar diferencia
-            diff = log.difference
-            try:
-                expected_qty = float(log.qtyGrn or 0)
-                received_qty = float(log.qtyReceived or 0)
-                correct_diff = int(received_qty - expected_qty)
-                if diff != correct_diff:
-                    diff = correct_diff
-                    log.difference = diff
-                    db.add(log)
-                    db_needs_commit = True
-            except (ValueError, TypeError):
-                pass
-
             result_list.append(
                 {
                     "id": log.id,
@@ -421,7 +482,7 @@ async def load_archived_log_data_db_async(
                     "relocatedBin": log.relocatedBin,
                     "qtyReceived": log.qtyReceived,
                     "qtyGrn": log.qtyGrn,
-                    "difference": diff,
+                    "difference": log.difference,
                     "username": log.username,
                     "observaciones": "",
                 }
@@ -430,7 +491,7 @@ async def load_archived_log_data_db_async(
         if db_needs_commit:
             await db.commit()
 
-        return result_list
+        return await align_log_totals(result_list, db=db)
     except Exception as e:
         print(f"DB Error (load_archived_log_data_db_async): {e}")
         return []
@@ -442,7 +503,7 @@ async def load_all_logs_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
         stmt = select(Log).order_by(Log.id.desc())
         result = await db.execute(stmt)
         logs = result.scalars().all()
-        return [
+        raw_list = [
             {
                 "id": log.id,
                 "timestamp": log.timestamp,
@@ -461,6 +522,7 @@ async def load_all_logs_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
             }
             for log in logs
         ]
+        return await align_log_totals(raw_list, db=db)
     except Exception as e:
         print(f"DB Error (load_all_logs_db_async): {e}")
         return []

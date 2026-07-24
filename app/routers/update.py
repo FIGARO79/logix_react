@@ -507,6 +507,7 @@ async def export_all_log_api(
         from app.services import db_logs
         import polars as pl
         import openpyxl
+        from openpyxl.utils import get_column_letter
 
         logs_data = await db_logs.load_all_logs_db_async(db)
         if not logs_data:
@@ -519,9 +520,26 @@ async def export_all_log_api(
 
         wb = openpyxl.Workbook()
         ws = wb.active
+        ws.title = "HistoricoLogs"
         ws.append(df_export.columns)
         for row in df_export.iter_rows():
             ws.append(list(row))
+
+        # Auto-ajustar ancho de columnas
+        for i, col_name in enumerate(df_export.columns, start=1):
+            col_letter = get_column_letter(i)
+            try:
+                col_data = df_export[col_name].cast(pl.Utf8, strict=False)
+                max_data = col_data.str.len_chars().max() or 0
+            except Exception:
+                max_data = (
+                    max([len(str(v)) for v in df_export[col_name]])
+                    if len(df_export) > 0
+                    else 0
+                )
+            ws.column_dimensions[col_letter].width = float(
+                max(int(max_data), len(col_name)) + 2
+            )
 
         output = BytesIO()
         wb.save(output)
