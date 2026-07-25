@@ -812,7 +812,23 @@ const Inbound = () => {
                             if (filteredCusts.length > 0) {
                                 const filteredTot = filteredCusts.reduce((acc, c) => acc + (typeof c === 'object' ? (Number(c.qty) || 0) : 0), 0);
                                 totalRes = filteredTot;
-                                xdockCustomersList = filteredCusts;
+                                let remDeduct = localCumulative;
+                                const custsWithPending = [];
+                                for (const c of filteredCusts) {
+                                    if (typeof c === 'object') {
+                                        const cQty = Number(c.qty) || 0;
+                                        if (remDeduct >= cQty) {
+                                            remDeduct -= cQty;
+                                        } else {
+                                            const pendingQty = cQty - remDeduct;
+                                            remDeduct = 0;
+                                            custsWithPending.push({ ...c, qty: pendingQty });
+                                        }
+                                    } else {
+                                        custsWithPending.push(c);
+                                    }
+                                }
+                                xdockCustomersList = custsWithPending;
                             } else {
                                 totalRes = 0;
                                 xdockCustomersList = [];

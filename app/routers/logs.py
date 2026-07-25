@@ -155,10 +155,31 @@ async def find_item(
     # 4. Información de Cross-Docking (Xdock)
     xdock_data = await csv_handler.get_xdock_info(item_code, import_reference=import_reference)
     total_reserved = xdock_data.get("total", 0)
-    xdock_customers = xdock_data.get("customers", [])
+    raw_customers = xdock_data.get("customers", [])
 
-    already_received = await db_logs.get_total_received_for_item_async(db, item_code)
+    already_received = await db_logs.get_total_received_for_import_reference_async(
+        db, import_reference, item_code
+    )
     xdock_pending = max(0, total_reserved - already_received)
+
+    # Deducir secuencialmente lo recibido para actualizar las cantidades pendientes por cliente
+    xdock_customers = []
+    rem_deduct = float(already_received)
+
+    for c in raw_customers:
+        if isinstance(c, dict):
+            c_qty = float(c.get("qty", 0.0))
+            if rem_deduct >= c_qty:
+                rem_deduct -= c_qty
+            else:
+                pending_c_qty = c_qty - rem_deduct
+                rem_deduct = 0.0
+                c_copy = dict(c)
+                c_copy["qty"] = pending_c_qty
+                c_copy["original_qty"] = c_qty
+                xdock_customers.append(c_copy)
+        else:
+            xdock_customers.append(c)
 
     # 5. ELIMINADO: Ya no sobreescribimos final_suggested_bin con "XDOCK" aquí.
     # El frontend manejará el indicador visual de XDOCK basado en xdock_pending.

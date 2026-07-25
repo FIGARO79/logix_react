@@ -248,15 +248,28 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
         except Exception as e:
             print(f"Error consultando po_lookup para PO numbers: {e}")
 
-    # B. Consultar desde df_grn_cache (Reporte 280) si está cargado
+    # B. Consultar desde df_grn_cache (Reporte 280) usando las GRNs asociadas si está cargado
     global df_grn_cache
     if df_grn_cache is not None and "Order_Number" in df_grn_cache.columns:
         try:
-            target_grns = await get_grn_numbers_for_import_ref(import_ref_clean)
-            if target_grns:
+            grns = set()
+            from app.core.config import PO_LOOKUP_JSON_PATH
+            if os.path.exists(PO_LOOKUP_JSON_PATH):
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                    cache = orjson.loads(f.read())
+                ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
+                for it in ir_data.get("items", []):
+                    grn_val = it.get("grn", "")
+                    if grn_val:
+                        for g in str(grn_val).split(","):
+                            g_clean = g.strip().upper()
+                            if g_clean:
+                                grns.add(g_clean)
+
+            if grns:
                 res = df_grn_cache.filter(
                     (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code_clean) &
-                    (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(target_grns)))
+                    (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(grns)))
                 )
                 if res.height > 0:
                     for order_num in res.select(pl.col("Order_Number")).to_series().to_list():
