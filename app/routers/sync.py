@@ -93,7 +93,10 @@ async def get_master_sync_data(user: str = Depends(login_required)):
             grn_data[item]["grns"][grn] = qty
             grn_data[item]["total_expected"] += qty
 
-    # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
+    # 3. Xdock (Reservations) - Asegurar que el caché esté cargado y actualizado
+    await csv_handler.reload_cache_if_needed()
+    if not csv_handler.reservation_qty_map:
+        await csv_handler.generate_reservation_cache()
     xdock_data = csv_handler.reservation_qty_map
 
     # 4. PO Lookup (Waybill <-> Import Ref)

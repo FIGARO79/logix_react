@@ -761,25 +761,96 @@ fn generate_reservation_cache_rust<'py>(
     let mut item_col_idx = None;
     let mut qty_col_idx = None;
     let mut cust_col_idx = None;
+    let mut cust_code_col_idx = None;
     let mut so_col_idx = None;
 
+    // 1. Item Code: Prioriza "item_code", luego "item"
     for (i, h) in headers.iter().enumerate() {
-        let hl = h.to_lowercase();
-        if item_col_idx.is_none() && (hl == "item_code" || hl.contains("item")) {
+        let hl = h.trim().to_lowercase();
+        if hl == "item_code" || hl.contains("item_code") {
             item_col_idx = Some(i);
+            break;
         }
-        if qty_col_idx.is_none()
-            && (hl.contains("quantity_reserved") || hl.contains("qty") || hl.contains("quantity"))
-        {
+    }
+    if item_col_idx.is_none() {
+        for (i, h) in headers.iter().enumerate() {
+            let hl = h.trim().to_lowercase();
+            if hl.contains("item") {
+                item_col_idx = Some(i);
+                break;
+            }
+        }
+    }
+
+    // 2. Quantity: Prioridad absoluta para "action_qty" (manejando " Action_QTY" con espacios)
+    for (i, h) in headers.iter().enumerate() {
+        let hl = h.trim().to_lowercase();
+        if hl == "action_qty" || hl.contains("action_qty") || hl.contains("action") {
             qty_col_idx = Some(i);
+            break;
         }
-        if cust_col_idx.is_none()
-            && (hl == "customer_name" || hl.contains("cust") || hl.contains("name"))
-        {
+    }
+    if qty_col_idx.is_none() {
+        for (i, h) in headers.iter().enumerate() {
+            let hl = h.trim().to_lowercase();
+            if hl == "quantity_reserved" || hl.contains("quantity_reserved") || hl.contains("reserved") {
+                qty_col_idx = Some(i);
+                break;
+            }
+        }
+    }
+    if qty_col_idx.is_none() {
+        for (i, h) in headers.iter().enumerate() {
+            let hl = h.trim().to_lowercase();
+            if hl.contains("qty") || hl.contains("quantity") {
+                qty_col_idx = Some(i);
+                break;
+            }
+        }
+    }
+
+    // 3. Customer Name: Prioriza "customer_name" o que contenga "customer", excluyendo "supplier" e "item"
+    for (i, h) in headers.iter().enumerate() {
+        let hl = h.trim().to_lowercase();
+        if hl == "customer_name" || hl.contains("customer_name") {
             cust_col_idx = Some(i);
+            break;
         }
-        if so_col_idx.is_none() && (hl.contains("so_number") || hl.contains("so_num")) {
+    }
+    if cust_col_idx.is_none() {
+        for (i, h) in headers.iter().enumerate() {
+            let hl = h.trim().to_lowercase();
+            if hl.contains("customer") {
+                cust_col_idx = Some(i);
+                break;
+            }
+        }
+    }
+    if cust_col_idx.is_none() {
+        for (i, h) in headers.iter().enumerate() {
+            let hl = h.trim().to_lowercase();
+            if !hl.contains("supplier") && !hl.contains("item") && (hl.contains("cust") || hl.contains("name")) {
+                cust_col_idx = Some(i);
+                break;
+            }
+        }
+    }
+
+    // 3b. Customer Code: "customer_code" o "cust_code"
+    for (i, h) in headers.iter().enumerate() {
+        let hl = h.trim().to_lowercase();
+        if hl == "customer_code" || hl.contains("customer_code") || (hl.contains("cust") && hl.contains("code")) {
+            cust_code_col_idx = Some(i);
+            break;
+        }
+    }
+
+    // 4. SO Number: "so_number" o "so_num"
+    for (i, h) in headers.iter().enumerate() {
+        let hl = h.trim().to_lowercase();
+        if hl == "so_number" || hl.contains("so_number") || hl.contains("so_num") {
             so_col_idx = Some(i);
+            break;
         }
     }
 
@@ -802,20 +873,28 @@ fn generate_reservation_cache_rust<'py>(
         let qty_str = record.get(qty_idx).unwrap_or("0").replace(",", "");
         let qty_val: f64 = qty_str.parse().unwrap_or(0.0);
         
-        let cust_val = if let Some(idx) = cust_col_idx {
-            let val = record.get(idx).unwrap_or("").trim();
-            if val.is_empty() { "SIN NOMBRE".to_string() } else { val.to_string() }
+        let cust_code_val = if let Some(idx) = cust_code_col_idx {
+            record.get(idx).unwrap_or("").trim()
         } else {
-            "SIN NOMBRE".to_string()
-        };
-        
-        let so_val = if let Some(idx) = so_col_idx {
-            record.get(idx).unwrap_or("").trim().to_string()
-        } else {
-            "".to_string()
+            ""
         };
 
-        if !item_key.is_empty() && qty_val > 0.0 && !so_val.is_empty() {
+        let cust_name_val = if let Some(idx) = cust_col_idx {
+            record.get(idx).unwrap_or("").trim()
+        } else {
+            ""
+        };
+
+        let cust_val = match (cust_code_val.is_empty(), cust_name_val.is_empty()) {
+            (false, false) => format!("{} - {}", cust_code_val, cust_name_val),
+            (false, true) => cust_code_val.to_string(),
+            (true, false) => cust_name_val.to_string(),
+            (true, true) => "SIN NOMBRE".to_string(),
+        };
+        
+        let is_so_valid = so_col_idx.map_or(true, |idx| !record.get(idx).unwrap_or("").trim().is_empty());
+
+        if !item_key.is_empty() && qty_val > 0.0 && is_so_valid {
             let entry = group_map.entry((item_key, cust_val)).or_insert(0.0);
             *entry += qty_val;
         }

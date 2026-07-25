@@ -22,6 +22,7 @@ reservation_qty_map: Dict[str, Dict[str, Any]] = {}
 _last_check = 0.0
 _mtime_master = 0.0
 _mtime_grn = 0.0
+_mtime_reservation = 0.0
 
 
 def parse_quantity_smart(val) -> float:
@@ -57,14 +58,16 @@ def parse_quantity_smart(val) -> float:
 
 async def generate_reservation_cache():
     """Carga y procesa el CSV de reservaciones para Xdock usando Rust."""
-    global reservation_qty_map
+    global reservation_qty_map, _mtime_reservation
     if not os.path.exists(RESERVATION_CSV_PATH):
         reservation_qty_map = {}
         return
 
+    _mtime_reservation = os.path.getmtime(RESERVATION_CSV_PATH)
     try:
         import logix_rust_core
         reservation_qty_map = logix_rust_core.generate_reservation_cache_rust(RESERVATION_CSV_PATH)
+        print(f"[XDOCK] Caching {len(reservation_qty_map)} items from {RESERVATION_CSV_PATH}")
     except ImportError:
         print("Fallback: logix_rust_core no encontrado. Generando cache vacío.")
         reservation_qty_map = {}
@@ -144,7 +147,7 @@ async def load_csv_data():
 
 
 async def reload_cache_if_needed():
-    global _last_check, _mtime_master, _mtime_grn
+    global _last_check, _mtime_master, _mtime_grn, _mtime_reservation
     now = time.time()
     if now - _last_check < 5:
         return
@@ -157,6 +160,11 @@ async def reload_cache_if_needed():
     if (
         os.path.exists(GRN_CSV_FILE_PATH)
         and os.path.getmtime(GRN_CSV_FILE_PATH) > _mtime_grn
+    ):
+        needs_reload = True
+    if (
+        os.path.exists(RESERVATION_CSV_PATH)
+        and os.path.getmtime(RESERVATION_CSV_PATH) > _mtime_reservation
     ):
         needs_reload = True
     if needs_reload:
