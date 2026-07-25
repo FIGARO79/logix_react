@@ -26,7 +26,7 @@ const AdminInventory = () => {
     const [reopenLocationCode, setReopenLocationCode] = useState('');
     const [adminMsg, setAdminMsg] = useState('');
 
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const res = await fetch('/api/admin/inventory/summary');
             if (!res.ok) throw new Error("Error al cargar estadísticas");
@@ -36,12 +36,7 @@ const AdminInventory = () => {
         } catch (err) {
             setError(err.message);
         }
-    };
-
-    useEffect(() => {
-        fetchStats();
-        if (setTitle) setTitle("Adm. Inventario");
-    }, [setTitle]);
+    }, []);
 
     const handleAction = async (actionUrl, confirmText) => {
         if (!window.confirm(confirmText)) return;
@@ -55,6 +50,11 @@ const AdminInventory = () => {
             const data = await res.json();
             setMessage(data.message);
             fetchStats();
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                bc.close();
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -71,22 +71,43 @@ const AdminInventory = () => {
             if (!resAll.ok) throw new Error("Error cargando conteos");
             const data = await resAll.json();
             setCounts(data);
-            setFilteredCounts(data);
+            setFilteredCounts(selectedUser ? data.filter(c => c.username === selectedUser) : data);
             const distinctUsers = [...new Set(data.map(c => c.username).filter(Boolean))].sort();
             setUsernames(distinctUsers);
             if (resStats.ok) setCountStats(await resStats.json());
         } catch (err) {
             setError(err.message);
         }
-    }, []);
+    }, [selectedUser]);
 
     useEffect(() => {
+        fetchStats();
         if (activeTab === 'counts') fetchCounts();
-    }, [activeTab, fetchCounts]);
+        if (setTitle) setTitle("Adm. Inventario");
 
-    useEffect(() => {
-        setFilteredCounts(selectedUser ? counts.filter(c => c.username === selectedUser) : counts);
-    }, [selectedUser, counts]);
+        const interval = setInterval(() => {
+            if (navigator.onLine && !document.hidden) {
+                fetchStats();
+                if (activeTab === 'counts') fetchCounts();
+            }
+        }, 5000);
+
+        let bc;
+        if (typeof BroadcastChannel !== 'undefined') {
+            bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (event.data?.type === 'CYCLE_COUNT_MUTATED') {
+                    fetchStats();
+                    fetchCounts();
+                }
+            };
+        }
+
+        return () => {
+            clearInterval(interval);
+            if (bc) bc.close();
+        };
+    }, [setTitle, activeTab, fetchStats, fetchCounts]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("¿Eliminar este registro?")) return;

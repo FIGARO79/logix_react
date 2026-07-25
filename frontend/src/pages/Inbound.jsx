@@ -752,11 +752,9 @@ const Inbound = () => {
                         .filter(l => l.payload.itemCode === normalizedCode && l.payload.relocatedBin)
                         .pop();
 
-                    // Calcular remanente XDOCK localmente 
+                    // Calcular acumulado local
                     const itemLogs = logs.filter(l => l.itemCode === normalizedCode);
                     const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
-                    const totalRes = xdockInfo ? xdockInfo.total : 0;
-                    const xdockRemanente = Math.max(0, totalRes - localCumulative);
 
                     let offlineSuggestedBin = null;
                     if (recentRelocation) {
@@ -765,7 +763,7 @@ const Inbound = () => {
                         offlineSuggestedBin = localItem.Bin_1;
                     }
 
-                    // Obtener desglose offline
+                    // Obtener desglose offline y po_lookup
                     const allPos = await db.getAll('po_lookup') || [];
                     const offlineBreakdown = [];
                     for (const po of allPos) {
@@ -792,6 +790,38 @@ const Inbound = () => {
                         }
                     }
 
+                    // Filtrar Xdock exclusivamente por PO_Number de la IR en offline
+                    let totalRes = xdockInfo ? xdockInfo.total : 0;
+                    let xdockCustomersList = xdockInfo ? xdockInfo.customers : [];
+                    if (importRef && xdockInfo?.customers?.length > 0 && allPos.length > 0) {
+                        const targetPos = new Set();
+                        for (const po of allPos) {
+                            if (po.type === 'ir' && String(po.value).toUpperCase() === importRef.toUpperCase() && po.items) {
+                                for (const it of po.items) {
+                                    if (String(it.item_code).toUpperCase() === normalizedCode && it.customer_ref) {
+                                        targetPos.add(String(it.customer_ref).toUpperCase());
+                                    }
+                                }
+                            }
+                        }
+                        if (targetPos.size > 0) {
+                            const filteredCusts = xdockInfo.customers.filter(c => {
+                                const po = typeof c === 'object' ? (c.po_number || '') : '';
+                                return po && targetPos.has(String(po).toUpperCase());
+                            });
+                            if (filteredCusts.length > 0) {
+                                const filteredTot = filteredCusts.reduce((acc, c) => acc + (typeof c === 'object' ? (Number(c.qty) || 0) : 0), 0);
+                                totalRes = filteredTot;
+                                xdockCustomersList = filteredCusts;
+                            } else {
+                                totalRes = 0;
+                                xdockCustomersList = [];
+                            }
+                        }
+                    }
+
+                    const xdockRemanente = Math.max(0, totalRes - localCumulative);
+
                     const expectedQty = await getGRNExpectedQty(db, normalizedCode, importRef);
 
                     setItemData({
@@ -804,7 +834,7 @@ const Inbound = () => {
                         defaultQtyGrn: expectedQty,
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
-                        xdockCustomers: xdockInfo ? xdockInfo.customers : [],
+                        xdockCustomers: xdockCustomersList,
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin,
                         expectedBreakdown: offlineBreakdown
@@ -1073,12 +1103,16 @@ const Inbound = () => {
                                             <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
                                                 <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
                                                 <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium ">
-                                                    {itemData.xdockCustomers.map((c, idx) => (
-                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                            <div className="pr-2 text-black uppercase truncate font-medium "><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                            <span className="text-red-700 whitespace-nowrap font-medium ">{c?.qty || 0} UN</span>
-                                                        </div>
-                                                    ))}
+                                                    {itemData.xdockCustomers.map((c, idx) => {
+                                                        const custName = typeof c === 'string' ? c : (c?.name || c?.customer_name || 'SIN NOMBRE');
+                                                        const custQty = (typeof c === 'object' && c?.qty !== undefined) ? `${c.qty} UN` : null;
+                                                        return (
+                                                            <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
+                                                                <div className="pr-2 text-black uppercase truncate font-medium "><span className="text-[9px]">{custName}</span></div>
+                                                                {custQty && <span className="text-red-700 whitespace-nowrap font-medium ">{custQty}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium  italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}

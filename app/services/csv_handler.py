@@ -224,14 +224,98 @@ async def get_total_expected_quantity_for_item(item_code: str):
     return int(res.select(pl.col("Quantity").sum())[0, 0] or 0) if res.height > 0 else 0
 
 
-async def get_xdock_info(item_code: str):
-    """Retorna dict con total y lista de clientes de Xdock."""
+async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_code: str) -> set:
+    po_numbers = set()
+    import_ref_clean = import_reference.strip().upper()
+    item_code_clean = item_code.strip().upper()
+    if not import_ref_clean or not item_code_clean:
+        return po_numbers
+
+    # A. Consultar desde po_lookup.json (ir_to_data)
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                cache = orjson.loads(f.read())
+            ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
+            items = ir_data.get("items", [])
+            for it in items:
+                if str(it.get("item_code", "")).strip().upper() == item_code_clean:
+                    cust_ref = str(it.get("customer_ref", "")).strip().upper()
+                    if cust_ref:
+                        po_numbers.add(cust_ref)
+        except Exception as e:
+            print(f"Error consultando po_lookup para PO numbers: {e}")
+
+    # B. Consultar desde df_grn_cache (Reporte 280) si está cargado
+    global df_grn_cache
+    if df_grn_cache is not None and "Order_Number" in df_grn_cache.columns:
+        try:
+            target_grns = await get_grn_numbers_for_import_ref(import_ref_clean)
+            if target_grns:
+                res = df_grn_cache.filter(
+                    (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code_clean) &
+                    (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(target_grns)))
+                )
+                if res.height > 0:
+                    for order_num in res.select(pl.col("Order_Number")).to_series().to_list():
+                        if order_num and str(order_num).strip():
+                            po_numbers.add(str(order_num).strip().upper())
+        except Exception as e:
+            print(f"Error consultando df_grn_cache para PO numbers: {e}")
+
+    return po_numbers
+
+
+async def get_xdock_info(item_code: str, import_reference: Optional[str] = None):
+    """Retorna dict con total y lista de clientes de Xdock.
+    Si se especifica import_reference, filtra exclusivamente las reservas que corresponden
+    a las PO_Number / Customer Reference asociadas a esa Import Reference e ítem.
+    """
     global reservation_qty_map
     if not reservation_qty_map:
         await generate_reservation_cache()
-    return reservation_qty_map.get(
-        item_code.upper().strip(), {"total": 0, "customers": []}
+
+    item_code_clean = item_code.upper().strip()
+    raw_data = reservation_qty_map.get(
+        item_code_clean, {"total": 0, "customers": [], "po_number": "", "po_numbers": []}
     )
+
+    if not import_reference or not str(import_reference).strip():
+        return raw_data
+
+    target_pos = await get_po_numbers_for_import_ref_and_item(import_reference, item_code_clean)
+    if not target_pos:
+        return raw_data
+
+    raw_customers = raw_data.get("customers", [])
+    filtered_customers = []
+    filtered_total = 0.0
+    filtered_pos = set()
+
+    for c in raw_customers:
+        c_po = ""
+        if isinstance(c, dict):
+            c_po = str(c.get("po_number", "")).strip().upper()
+
+        if c_po and c_po in target_pos:
+            filtered_customers.append(c)
+            if isinstance(c, dict):
+                filtered_total += float(c.get("qty", 0.0))
+            filtered_pos.add(c_po)
+
+    if filtered_customers:
+        po_str = " / ".join(sorted(filtered_pos))
+        return {
+            "total": filtered_total,
+            "reserved_qty": filtered_total,
+            "customers": filtered_customers,
+            "po_number": po_str,
+            "po_numbers": list(filtered_pos),
+        }
+
+    return {"total": 0, "customers": [], "po_number": "", "po_numbers": []}
 
 
 async def get_locations_with_stock_count():

@@ -40,10 +40,19 @@ export const downloadMasterData = async () => {
         await xdockStore.clear();
         for (const [code, info] of Object.entries(data.xdock_reservations)) {
             if (code && code !== 'null' && code !== 'undefined') {
-                if (typeof info === 'object') {
-                    xdockStore.put({ Item_Code: code, total: info.total, customers: info.customers });
+                if (typeof info === 'object' && info !== null) {
+                    const totalVal = info.total !== undefined ? info.total : (info.reserved_qty !== undefined ? info.reserved_qty : 0);
+                    let custArr = [];
+                    if (Array.isArray(info.customers)) {
+                        custArr = info.customers;
+                    } else if (info.customer_name) {
+                        custArr = [info.customer_name];
+                    }
+                    const custNameStr = typeof info.customer_name === 'string' && info.customer_name ? info.customer_name : custArr.map(c => typeof c === 'object' ? (c.name || c.customer_name || 'Desconocido') : c).join(' / ');
+                    xdockStore.put({ Item_Code: code, total: totalVal, customers: custArr, reserved_qty: totalVal, customer_name: custNameStr, po_number: info.po_number || info.po_date || '' });
                 } else {
-                    xdockStore.put({ Item_Code: code, total: info, customers: [] });
+                    const totalVal = Number(info) || 0;
+                    xdockStore.put({ Item_Code: code, total: totalVal, customers: [] });
                 }
             }
         }

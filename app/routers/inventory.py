@@ -582,17 +582,25 @@ async def advance_inventory_stage_api(
         delete(RecountList).where(RecountList.stage_to_count == next_stage)
     )
 
-    items_for_recount = []
-    for item in counted_items:
-        item_code = item.item_code
-        total_counted = item.total_counted
-        system_qty = csv_handler.master_qty_map.get(item_code)
-        system_qty = int(system_qty) if system_qty is not None else 0
+    counted_items_list = [(str(item.item_code), float(item.total_counted or 0.0)) for item in counted_items]
+    system_map = {k: float(v) for k, v in csv_handler.master_qty_map.items()}
 
-        if total_counted != system_qty:
-            items_for_recount.append(
-                {"item_code": item_code, "stage_to_count": next_stage}
-            )
+    try:
+        import logix_rust_core
+        items_for_recount = logix_rust_core.calculate_recount_items_rust(
+            counted_items_list,
+            system_map,
+            next_stage
+        )
+    except Exception as e:
+        print(f"Fallback Python para reconteo: {e}")
+        items_for_recount = []
+        for item_code, total_counted in counted_items_list:
+            system_qty = system_map.get(item_code, 0.0)
+            if total_counted != system_qty:
+                items_for_recount.append(
+                    {"item_code": item_code, "stage_to_count": next_stage}
+                )
 
     if items_for_recount:
         await db.execute(insert(RecountList), items_for_recount)
