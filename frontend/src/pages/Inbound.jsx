@@ -886,7 +886,17 @@ const Inbound = () => {
                             body: JSON.stringify(payload)
                         });
                     }
-                    if (res.ok) { loadLogs(); resetForm(); return; }
+                    if (res.ok) {
+                        queryClient.invalidateQueries(['inbound_logs']);
+                        queryClient.invalidateQueries(['reconciliation']);
+                        queryClient.invalidateQueries(['ir_reconciliations']);
+                        if (typeof BroadcastChannel !== 'undefined') {
+                            const bc = new BroadcastChannel('logix_events');
+                            bc.postMessage({ type: 'INBOUND_MUTATED' });
+                            bc.close();
+                        }
+                        loadLogs(); resetForm(); return;
+                    }
                 } catch (e) { console.error("Connection error, falling back to offline save", e); }
             }
 
@@ -894,6 +904,14 @@ const Inbound = () => {
             await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
             if (navigator.onLine) {
                 syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
+            }
+            queryClient.invalidateQueries(['inbound_logs']);
+            queryClient.invalidateQueries(['reconciliation']);
+            queryClient.invalidateQueries(['ir_reconciliations']);
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'INBOUND_MUTATED' });
+                bc.close();
             }
             if (!hasWarnedOffline) {
                 if (!navigator.onLine) {

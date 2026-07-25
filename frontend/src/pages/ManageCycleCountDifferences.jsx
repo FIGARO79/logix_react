@@ -101,6 +101,29 @@ const ManageCycleCountDifferences = () => {
 
     useEffect(() => {
         fetchData();
+
+        // Polling de fondo cada 8 segundos
+        const timer = setInterval(() => {
+            if (navigator.onLine && !document.hidden) {
+                fetchData();
+            }
+        }, 8000);
+
+        // Listener en tiempo real entre pestañas/pantallas
+        let bc;
+        if (typeof BroadcastChannel !== 'undefined') {
+            bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (event.data?.type === 'CYCLE_COUNT_MUTATED' || event.data?.type === 'INBOUND_MUTATED') {
+                    fetchData();
+                }
+            };
+        }
+
+        return () => {
+            clearInterval(timer);
+            if (bc) bc.close();
+        };
     }, [fetchData, refreshTrigger]);
 
 
@@ -122,6 +145,11 @@ const ManageCycleCountDifferences = () => {
             if (res.ok) {
                 setEditingItem(null);
                 setRefreshTrigger(prev => prev + 1); // Recargar datos
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const bc = new BroadcastChannel('logix_events');
+                    bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                    bc.close();
+                }
                 alert("Cantidad actualizada correctamente");
             } else {
                 const err = await res.json();

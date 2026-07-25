@@ -226,6 +226,11 @@ const CycleCounts = () => {
                 });
 
                 if (res.ok) {
+                    if (typeof BroadcastChannel !== 'undefined') {
+                        const bc = new BroadcastChannel('logix_events');
+                        bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                        bc.close();
+                    }
                     toast.success("Conteo guardado");
                     clearFormAfterSave();
                     return;
@@ -234,12 +239,22 @@ const CycleCounts = () => {
 
             // Guardar offline si falla o no hay conexión
             await savePendingSync('counts', payload);
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                bc.close();
+            }
             toast.info("Guardado localmente (Offline)");
             clearFormAfterSave();
 
         } catch (e) {
             console.error(e);
             await savePendingSync('counts', payload);
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                bc.close();
+            }
             toast.info("Guardado localmente (Offline)");
             clearFormAfterSave();
         }

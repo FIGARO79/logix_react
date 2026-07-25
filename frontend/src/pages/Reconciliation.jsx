@@ -51,7 +51,6 @@ const Reconciliation = () => {
             const res = await fetch(`${url}?${queryParams.toString()}`);
             if (res.ok) {
                 const response = await res.json();
-                setSelectedRowIds([]);
                 if (!isHistoricalMode && !currentVersion) {
                     await cacheData('last_reconciliation', response.data);
                 }
@@ -61,10 +60,24 @@ const Reconciliation = () => {
         },
         refetchInterval: () => {
             if (location.pathname !== '/reconciliation' || currentSnapshot || isHistoricalMode || currentVersion || !navigator.onLine) return false;
-            return 10000;
+            return 5000; // Polling activo cada 5 segundos
         },
-        refetchOnWindowFocus: false
+        refetchOnWindowFocus: true,
+        refetchOnMount: 'always',
+        staleTime: 0
     });
+
+    useEffect(() => {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (event.data?.type === 'INBOUND_MUTATED') {
+                    refetch();
+                }
+            };
+            return () => bc.close();
+        }
+    }, [refetch]);
 
     const data = useMemo(() => queryData?.data || [], [queryData]);
     const archiveVersions = useMemo(() => queryData?.archive_versions || [], [queryData]);
