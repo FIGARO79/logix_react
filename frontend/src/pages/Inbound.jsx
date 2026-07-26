@@ -786,7 +786,21 @@ const Inbound = () => {
                     // Calcular remanente XDOCK localmente 
                     const itemLogs = logs.filter(l => l.itemCode === normalizedCode && (l.importReference === importRef || l.importRef === importRef));
                     const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
-                    const totalRes = xdockInfo ? xdockInfo.total : 0;
+                    
+                    let filteredXdockCustomers = xdockInfo ? xdockInfo.customers : [];
+                    if (importRef && xdockInfo && Array.isArray(xdockInfo.customers)) {
+                        const cleanRef = importRef.trim().toUpperCase();
+                        const matchingCust = xdockInfo.customers.filter(c => 
+                            (c.po_number && c.po_number.trim().toUpperCase() === cleanRef) ||
+                            (c.name && c.name.toUpperCase().includes(cleanRef))
+                        );
+                        if (matchingCust.length > 0) {
+                            filteredXdockCustomers = matchingCust;
+                        }
+                    }
+                    const totalRes = filteredXdockCustomers.length > 0
+                        ? filteredXdockCustomers.reduce((acc, c) => acc + (parseFloat(c.qty) || 0), 0)
+                        : (xdockInfo ? xdockInfo.total : 0);
                     const xdockRemanente = Math.max(0, totalRes - localCumulative);
 
                     let offlineSuggestedBin = null;
@@ -841,7 +855,7 @@ const Inbound = () => {
                         defaultQtyGrn: expectedQty,
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
-                        xdockCustomers: xdockInfo ? xdockInfo.customers : [],
+                        xdockCustomers: filteredXdockCustomers,
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin,
                         expectedBreakdown: offlineBreakdown

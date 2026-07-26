@@ -81,7 +81,7 @@ async def find_item(
             is_ai_prediction = False
 
     # 4. Información de Cross-Docking (Xdock)
-    xdock_data = await csv_handler.get_xdock_info(item_code)
+    xdock_data = await csv_handler.get_xdock_info(item_code, import_reference=import_reference)
     total_reserved = xdock_data.get("total", 0)
     xdock_customers = xdock_data.get("customers", [])
 
