@@ -414,16 +414,14 @@ async def get_expected_quantity_from_grn_for_import_ref(
     import_reference: str, item_code: str, db: Optional[AsyncSession] = None
 ) -> Optional[int]:
     """
-    Busca la cantidad esperada de un artículo específico en el archivo de GRN (AURRSGLBD0280.csv)
-    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json, grn_master_data.json y GRNMaster en DB.
-    Retorna None si la GRN no está cargada o no hay GRNs asociadas.
+    Busca la cantidad esperada de un artículo específico para una Import Reference / PO dada.
+    Prioriza Reporte 280 (GRN) y si no hay GRNs generadas aún en 280, utiliza la cantidad esperada de la PO en po_lookup.json.
     """
-    global df_grn_cache
     if not import_reference or not item_code:
         return None
 
-    import_reference = import_reference.strip().upper()
-    item_code = item_code.strip().upper()
+    ref_clean = import_reference.strip().upper()
+    item_clean = item_code.strip().upper()
 
     from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
     from app.models.sql_models import GRNMaster
@@ -431,31 +429,55 @@ async def get_expected_quantity_from_grn_for_import_ref(
     import orjson
 
     grns = set()
+    expected_po_qty = 0
 
     # A. Consultar desde po_lookup.json
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 cache = orjson.loads(f.read())
-            # Desde ir_to_data
-            ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
-            items = ir_data.get("items", [])
-            for it in items:
-                grn_val = it.get("grn", "")
-                if grn_val:
-                    for g in str(grn_val).split(","):
-                        if g.strip():
-                            grns.add(g.strip().upper())
-            # Desde wb_to_data
-            for wb, data in cache.get("wb_to_data", {}).items():
-                ir = str(data.get("import_ref", "")).strip().upper()
-                if ir == import_reference:
-                    for item in data.get("items", []):
-                        grn_val = item.get("grn", "")
+
+            ir_to_data = cache.get("ir_to_data", {})
+            wb_to_data = cache.get("wb_to_data", {})
+
+            # 1. Búsqueda por iR exacta
+            if ref_clean in ir_to_data:
+                for it in ir_to_data[ref_clean].get("items", []):
+                    if str(it.get("item_code", "")).strip().upper() == item_clean:
+                        try:
+                            expected_po_qty += int(float(it.get("qty", 0)))
+                        except: pass
+                        grn_val = it.get("grn", "")
                         if grn_val:
                             for g in str(grn_val).split(","):
-                                if g.strip():
-                                    grns.add(g.strip().upper())
+                                if g.strip(): grns.add(g.strip().upper())
+
+            # 2. Búsqueda por Waybill directa
+            if ref_clean in wb_to_data:
+                for it in wb_to_data[ref_clean].get("items", []):
+                    if str(it.get("item_code", "")).strip().upper() == item_clean:
+                        try:
+                            expected_po_qty += int(float(it.get("qty", 0)))
+                        except: pass
+                        grn_val = it.get("grn", "")
+                        if grn_val:
+                            for g in str(grn_val).split(","):
+                                if g.strip(): grns.add(g.strip().upper())
+
+            # 3. Búsqueda por customer_ref / PO Number (ej: N230731) si aún no encontramos GRNs o match
+            if not grns:
+                for ir_key, ir_val in ir_to_data.items():
+                    for it in ir_val.get("items", []):
+                        if str(it.get("item_code", "")).strip().upper() == item_clean:
+                            c_ref = str(it.get("customer_ref", "") or it.get("po_number", "") or "").strip().upper()
+                            if c_ref == ref_clean:
+                                try:
+                                    expected_po_qty += int(float(it.get("qty", 0)))
+                                except: pass
+                                grn_val = it.get("grn", "")
+                                if grn_val:
+                                    for g in str(grn_val).split(","):
+                                        if g.strip(): grns.add(g.strip().upper())
         except Exception as e:
             print(f"Error leyendo po_lookup para buscar GRNs: {e}")
 
@@ -466,29 +488,19 @@ async def get_expected_quantity_from_grn_for_import_ref(
                 grn_data = orjson.loads(f.read())
             if isinstance(grn_data, list):
                 for row in grn_data:
-                    ir = (
-                        str(
-                            row.get("Import_Reference", row.get("import_reference", ""))
-                        )
-                        .strip()
-                        .upper()
-                    )
-                    grn = (
-                        str(row.get("GRN_Number", row.get("grn_number", "")))
-                        .strip()
-                        .upper()
-                    )
-                    if ir == import_reference and grn:
+                    ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                    if ir == ref_clean and grn:
                         grns.add(grn)
         except Exception as e:
             print(f"Error leyendo grn_master_data para buscar GRNs: {e}")
 
-    # C. Consultar desde la Base de Datos SQL GRNMaster
+    # C. Consultar desde DB GRNMaster
     if db:
         try:
             db_grns = await db.execute(
                 select(GRNMaster.grn_number).where(
-                    func.upper(GRNMaster.import_reference) == import_reference
+                    func.upper(GRNMaster.import_reference) == ref_clean
                 )
             )
             for grn_num_raw in db_grns.scalars().all():
@@ -500,30 +512,31 @@ async def get_expected_quantity_from_grn_for_import_ref(
         except Exception as e:
             print(f"Error consultando GRNMaster en DB para buscar GRNs: {e}")
 
-    if not grns:
-        return None
+    # D. Si tenemos GRNs, consultar en Reporte 280 (df_grn_cache)
+    if grns:
+        await reload_cache_if_needed()
+        if df_grn_cache is not None:
+            grn_list_str = [str(g) for g in grns]
+            try:
+                res = df_grn_cache.filter(
+                    (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_clean)
+                    & (
+                        pl.col("GRN_Number")
+                        .cast(pl.Utf8)
+                        .str.strip_chars()
+                        .str.to_uppercase()
+                        .is_in(grn_list_str)
+                    )
+                )
+                if res.height > 0:
+                    total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
+                    return total_qty
+            except Exception as e:
+                print(f"Error consultando cantidad en cache de GRN: {e}")
 
-    await reload_cache_if_needed()
-    if df_grn_cache is None:
-        return None
-
-    grn_list_str = [str(g) for g in grns]
-
-    try:
-        res = df_grn_cache.filter(
-            (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
-            & (
-                pl.col("GRN_Number")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase()
-                .is_in(grn_list_str)
-            )
-        )
-        if res.height > 0:
-            total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
-            return total_qty
-    except Exception as e:
-        print(f"Error consultando cantidad en cache de GRN: {e}")
+    # Fallback: Si no hay líneas en 280 aún para esas GRNs, retornar la cantidad esperada de la PO en po_lookup
+    if expected_po_qty > 0:
+        return expected_po_qty
 
     return None
+
