@@ -135,11 +135,12 @@ async def get_grn_to_ir_cached(db: AsyncSession) -> dict:
             except: pass
 
         try:
+            from app.routers.update import parse_grns
             db_grns = await db.execute(select(GRNMaster))
             for g_master in db_grns.scalars().all():
                 ir = str(g_master.import_reference).strip().upper()
                 if ir and g_master.grn_number:
-                    for g in str(g_master.grn_number).split(','):
+                    for g in parse_grns(str(g_master.grn_number)):
                         if g.strip():
                             grn_to_ir[g.strip().upper()] = ir
         except: pass
@@ -147,12 +148,13 @@ async def get_grn_to_ir_cached(db: AsyncSession) -> dict:
         po_cache = get_po_lookup_cached()
         if po_cache:
             try:
+                from app.routers.update import parse_grns
                 for wb, data in po_cache.get("wb_to_data", {}).items():
                     ir = str(data.get("import_ref", "")).strip().upper()
                     for item in data.get("items", []):
                         grn_val = str(item.get("grn", "")).strip().upper()
                         if grn_val and ir:
-                            for g in grn_val.split(','):
+                            for g in parse_grns(grn_val):
                                 if g.strip():
                                     grn_to_ir[g.strip().upper()] = ir
                 for ir_key, data in po_cache.get("ir_to_data", {}).items():
@@ -160,7 +162,7 @@ async def get_grn_to_ir_cached(db: AsyncSession) -> dict:
                     for item in data.get("items", []):
                         grn_val = str(item.get("grn", "")).strip().upper()
                         if grn_val and ir:
-                            for g in grn_val.split(','):
+                            for g in parse_grns(grn_val):
                                 if g.strip():
                                     grn_to_ir[g.strip().upper()] = ir
             except: pass

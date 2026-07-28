@@ -300,11 +300,12 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     # B. Desde DB GRN Master
     if db:
         try:
+            from app.routers.update import parse_grns
             db_grns = await db.execute(select(GRNMaster))
             for g_master in db_grns.scalars().all():
                 ir = str(g_master.import_reference).strip().upper()
                 if ir and g_master.grn_number:
-                    for g in str(g_master.grn_number).split(','):
+                    for g in parse_grns(str(g_master.grn_number)):
                         if g.strip():
                             grn_to_ir[g.strip().upper()] = ir
         except Exception as e:
@@ -313,6 +314,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
     # C. Desde po_lookup.json
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
+            from app.routers.update import parse_grns
             with open(PO_LOOKUP_JSON_PATH, 'rb') as f:
                 po_cache = orjson.loads(f.read())
                 for wb, data in po_cache.get("wb_to_data", {}).items():
@@ -320,7 +322,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                     for item in data.get("items", []):
                         grn_val = str(item.get("grn", "")).strip().upper()
                         if grn_val and ir:
-                            for g in grn_val.split(','):
+                            for g in parse_grns(grn_val):
                                 if g.strip():
                                     grn_to_ir[g.strip().upper()] = ir
         except Exception as e:

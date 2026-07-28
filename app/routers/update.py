@@ -32,6 +32,33 @@ def np_encoder(obj):
         return obj.item()
     return str(obj)
 
+import re
+
+def parse_grns(grn_str: str) -> list[str]:
+    """Parsea y expande GRNs separadas por comas, barras o guiones (incluyendo rangos numéricos como 284687-284688)."""
+    if not grn_str:
+        return []
+    res = []
+    parts = re.split(r'[,/]', str(grn_str))
+    for part in parts:
+        part_clean = part.strip()
+        if not part_clean:
+            continue
+        if '-' in part_clean:
+            subparts = [s.strip() for s in part_clean.split('-')]
+            if len(subparts) == 2 and subparts[0].isdigit() and subparts[1].isdigit():
+                start, end = int(subparts[0]), int(subparts[1])
+                if start <= end and (end - start) <= 1000:
+                    for num in range(start, end + 1):
+                        res.append(str(num))
+                    continue
+            for sub in subparts:
+                if sub:
+                    res.append(sub.upper())
+        else:
+            res.append(part_clean.upper())
+    return res
+
 router = APIRouter(
     prefix="",
     tags=["update"]
@@ -98,10 +125,12 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
+                parsed_grns = parse_grns(row["GRN Number"])
+                grn_normalized = ", ".join(parsed_grns) if parsed_grns else row["GRN Number"]
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"],
+                    "grn": grn_normalized,
                     "customer_ref": row[opt_col]
                 })
             
@@ -116,10 +145,12 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
+                parsed_grns = parse_grns(row["GRN Number"])
+                grn_normalized = ", ".join(parsed_grns) if parsed_grns else row["GRN Number"]
                 items_list.append({
                     "item_code": row["Item Code"],
                     "qty": row["Despatched Qty"],
-                    "grn": row["GRN Number"],
+                    "grn": grn_normalized,
                     "customer_ref": row[opt_col]
                 })
                 
@@ -133,8 +164,7 @@ async def process_po_extractor_logic(file_path: str):
                             "grns": set()
                         }
                     if row["GRN Number"]:
-                        grns_in_row = set(g.strip().upper() for g in row["GRN Number"].split(',') if g.strip())
-                        customer_ref_to_grn[cust_ref]["grns"].update(grns_in_row)
+                        customer_ref_to_grn[cust_ref]["grns"].update(parsed_grns)
             
             ir_lookup[ir_str] = {
                 "waybill": first_row["Waybill"],

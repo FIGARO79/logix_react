@@ -229,13 +229,14 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
         try:
             grns = set()
             if os.path.exists(PO_LOOKUP_JSON_PATH):
+                from app.routers.update import parse_grns
                 with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     cache = orjson.loads(f.read())
                 ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
                 for it in ir_data.get("items", []):
                     grn_val = it.get("grn", "")
                     if grn_val:
-                        for g in str(grn_val).split(","):
+                        for g in parse_grns(str(grn_val)):
                             g_clean = g.strip().upper()
                             if g_clean:
                                 grns.add(g_clean)
@@ -449,7 +450,7 @@ async def get_expected_quantity_from_grn_for_import_ref(
                         except: pass
                         grn_val = it.get("grn", "")
                         if grn_val:
-                            for g in str(grn_val).split(","):
+                            for g in parse_grns(str(grn_val)):
                                 if g.strip(): grns.add(g.strip().upper())
 
             # 2. Búsqueda por Waybill directa
@@ -461,7 +462,7 @@ async def get_expected_quantity_from_grn_for_import_ref(
                         except: pass
                         grn_val = it.get("grn", "")
                         if grn_val:
-                            for g in str(grn_val).split(","):
+                            for g in parse_grns(str(grn_val)):
                                 if g.strip(): grns.add(g.strip().upper())
 
             # 3. Búsqueda por customer_ref / PO Number (ej: N230731) si aún no encontramos GRNs o match
@@ -476,7 +477,7 @@ async def get_expected_quantity_from_grn_for_import_ref(
                                 except: pass
                                 grn_val = it.get("grn", "")
                                 if grn_val:
-                                    for g in str(grn_val).split(","):
+                                    for g in parse_grns(str(grn_val)):
                                         if g.strip(): grns.add(g.strip().upper())
         except Exception as e:
             print(f"Error leyendo po_lookup para buscar GRNs: {e}")
@@ -489,9 +490,10 @@ async def get_expected_quantity_from_grn_for_import_ref(
             if isinstance(grn_data, list):
                 for row in grn_data:
                     ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                    grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
-                    if ir == ref_clean and grn:
-                        grns.add(grn)
+                    grn_val = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                    if ir == ref_clean and grn_val:
+                        for g in parse_grns(grn_val):
+                            grns.add(g)
         except Exception as e:
             print(f"Error leyendo grn_master_data para buscar GRNs: {e}")
 
@@ -505,7 +507,7 @@ async def get_expected_quantity_from_grn_for_import_ref(
             )
             for grn_num_raw in db_grns.scalars().all():
                 if grn_num_raw:
-                    for g in str(grn_num_raw).split(","):
+                    for g in parse_grns(str(grn_num_raw)):
                         g_clean = g.strip().upper()
                         if g_clean:
                             grns.add(g_clean)

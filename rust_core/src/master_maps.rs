@@ -1,6 +1,39 @@
 use pyo3::prelude::*;
 use serde_json::Value;
 
+/// Parsea y expande cadenas de GRN separadas por comas, barras o guiones (incluyendo rangos numéricos como 284687-284688).
+fn split_grn_string(val: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    for part in val.split(&[',', '/'][..]) {
+        let part_clean = part.trim();
+        if part_clean.is_empty() {
+            continue;
+        }
+        if part_clean.contains('-') {
+            let range_parts: Vec<&str> = part_clean.split('-').map(|s| s.trim()).collect();
+            if range_parts.len() == 2 {
+                if let (Ok(start), Ok(end)) = (range_parts[0].parse::<u64>(), range_parts[1].parse::<u64>()) {
+                    if start <= end && (end - start) <= 1000 {
+                        for num in start..=end {
+                            result.push(num.to_string());
+                        }
+                        continue;
+                    }
+                }
+            }
+            for sub in part_clean.split('-') {
+                let sub_clean = sub.trim().to_uppercase();
+                if !sub_clean.is_empty() {
+                    result.push(sub_clean);
+                }
+            }
+        } else {
+            result.push(part_clean.to_uppercase());
+        }
+    }
+    result
+}
+
 /// Lee múltiples JSONs y la base de datos para armar el mapa maestro de GRN -> IR/Waybill a máxima velocidad.
 #[pyfunction]
 pub fn build_master_maps_rust(
@@ -20,7 +53,7 @@ pub fn build_master_maps_rust(
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .trim().to_uppercase();
-                    let grn = row.get("GRN_Number")
+                    let grn_val = row.get("GRN_Number")
                         .or_else(|| row.get("grn_number"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
@@ -29,8 +62,10 @@ pub fn build_master_maps_rust(
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string();
-                    if !ir.is_empty() && !grn.is_empty() {
-                        master_maps.push((grn, ir, wb));
+                    if !ir.is_empty() && !grn_val.is_empty() {
+                        for g in split_grn_string(&grn_val) {
+                            master_maps.push((g, ir.clone(), wb.clone()));
+                        }
                     }
                 }
             }
@@ -43,11 +78,8 @@ pub fn build_master_maps_rust(
         let grns = grn_raw.unwrap_or_default();
         let wb = wb_raw.unwrap_or_default();
         if !ir.is_empty() && !grns.is_empty() {
-            for g in grns.split(',') {
-                let g_clean = g.trim().to_uppercase();
-                if !g_clean.is_empty() {
-                    master_maps.push((g_clean, ir.clone(), wb.clone()));
-                }
+            for g in split_grn_string(&grns) {
+                master_maps.push((g, ir.clone(), wb.clone()));
             }
         }
     }
@@ -66,11 +98,8 @@ pub fn build_master_maps_rust(
                         if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                             for item in items {
                                 if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
-                                    for g in grn_val.split(',') {
-                                        let g_clean = g.trim().to_uppercase();
-                                        if !g_clean.is_empty() {
-                                            master_maps.push((g_clean, ir.clone(), wb.clone()));
-                                        }
+                                    for g in split_grn_string(grn_val) {
+                                        master_maps.push((g, ir.clone(), wb.clone()));
                                     }
                                 }
                             }
@@ -83,3 +112,4 @@ pub fn build_master_maps_rust(
 
     Ok(master_maps)
 }
+
