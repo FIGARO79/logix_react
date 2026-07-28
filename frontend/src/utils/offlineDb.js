@@ -141,7 +141,7 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
         const allGrns = await db.getAll('grn_pending') || [];
         const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
 
-        // 3. Si tenemos GRNs asociadas, buscar en el objeto grns
+        // 3. Si tenemos GRNs asociadas a la IR, buscar la cantidad en esas GRNs
         if (associatedGrns.size > 0) {
             let sum = 0;
             itemGrns.forEach(g => {
@@ -158,11 +158,22 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
                     }
                 }
             });
-            if (sum > 0) return sum;
+            return sum;
         }
 
-        // 4. Fallback: buscar la suma total del item si no hay GRNs asociadas
-        return itemGrns.reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+        // 4. Si la IR no tiene GRNs asociadas pero existe en po_lookup, verificar si el ítem está en la PO
+        if (poInfo && poInfo.items) {
+            let poQty = 0;
+            poInfo.items.forEach(it => {
+                if (String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode) {
+                    poQty += parseInt(it.qty || it.Quantity || 0);
+                }
+            });
+            return poQty;
+        }
+
+        // Si no está relacionado con la IR o sus GRNs, el esperado es 0
+        return 0;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -249,8 +260,8 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
 
             const itemGrns = grnsByItem.get(normalizedCode) || [];
 
-            let sum = 0;
             if (associatedGrns.size > 0) {
+                let sum = 0;
                 itemGrns.forEach(g => {
                     if (g.grns) {
                         Object.entries(g.grns).forEach(([grnNum, qty]) => {
@@ -265,13 +276,17 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
                         }
                     }
                 });
-            }
-
-            if (sum > 0) {
                 resultMap[key] = sum;
+            } else if (poInfo && poInfo.items) {
+                let poQty = 0;
+                poInfo.items.forEach(it => {
+                    if (String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode) {
+                        poQty += parseInt(it.qty || it.Quantity || 0);
+                    }
+                });
+                resultMap[key] = poQty;
             } else {
-                // Fallback: buscar la suma total del item
-                resultMap[key] = itemGrns.reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+                resultMap[key] = 0;
             }
         });
     } catch (err) {
