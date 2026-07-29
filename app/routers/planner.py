@@ -141,7 +141,12 @@ def get_working_days(start_date: datetime.date, end_date: datetime.date):
     return working_days
 
 
-async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSession):
+async def calculate_count_plan_data(
+    start_date: str,
+    end_date: str,
+    db: AsyncSession,
+    extra_already_planned: dict[str, int] | None = None,
+):
     """Lógica central para calcular el plan de conteos distribuidos en días hábiles."""
     try:
         s_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -202,6 +207,8 @@ async def calculate_count_plan_data(start_date: str, end_date: str, db: AsyncSes
         )
         required = FREQUENCY_MAP.get(abc_code, 0)
         done = previous_counts_map.get(item_code, 0)
+        if extra_already_planned:
+            done += extra_already_planned.get(item_code, 0)
         pending = max(0, required - done)
         for _ in range(pending):
             tasks_to_schedule.append(
@@ -330,21 +337,41 @@ async def update_count_plan(
 ):
     """
     Actualiza la planificación de forma incremental:
-    Conserva los ítems ya programados en el pasado y regenera solo el futuro respetando feriados.
+    Conserva solo los ítems con existencia física activa que ya estaban programados en el pasado
+    y regenera el futuro descontando los conteos ya planificados o ejecutados.
     """
     today = datetime.date.today()
 
-    # 1. Cargar plan actual para extraer el pasado
+    # 0. Obtener maestro activo actual (physical_qty > 0)
+    stmt_master = select(MasterItem).where(MasterItem.physical_qty > 0)
+    res_master = await db.execute(stmt_master)
+    active_items = res_master.scalars().all()
+    if not active_items:
+        from app.services.csv_to_db import sync_master_csv_to_db
+
+        await sync_master_csv_to_db(db)
+        res_master = await db.execute(stmt_master)
+        active_items = res_master.scalars().all()
+
+    master_map = {m.item_code: m for m in active_items}
+    active_item_codes = set(master_map.keys())
+
+    # 1. Cargar plan actual para extraer el pasado solo de los ítems con stock activo
     current_plan = load_plan_data()
     past_details = []
+    past_planned_map = defaultdict(int)
     if current_plan and "details" in current_plan:
         for it in current_plan["details"]:
             try:
                 p_date = datetime.datetime.strptime(
                     it.get("Planned Date"), "%Y-%m-%d"
                 ).date()
-                if p_date < today:
+                code = it.get("Item Code")
+                if p_date < today and code in active_item_codes:
+                    it["ABC Code"] = master_map[code].abc_code
+                    it["Description"] = master_map[code].description
                     past_details.append(it)
+                    past_planned_map[code] += 1
             except (ValueError, TypeError):
                 continue
 
@@ -369,8 +396,10 @@ async def update_count_plan(
     except Exception:
         pass
 
-    # Calcular lo nuevo desde mañana
-    df_future = await calculate_count_plan_data(tomorrow_str, end_date, db)
+    # Calcular lo nuevo desde mañana descontando los conteos ya previstos en el pasado
+    df_future = await calculate_count_plan_data(
+        tomorrow_str, end_date, db, extra_already_planned=past_planned_map
+    )
     future_details = df_future.with_columns(
         pl.col("Planned Date").cast(pl.Utf8)
     ).to_dicts()
