@@ -10,6 +10,8 @@ import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
@@ -94,6 +96,17 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
+    const [diffAlert, setDiffAlert] = useState(null);
+
+    // Auto-ocultar notificación flotante de diferencia tras 10 segundos
+    useEffect(() => {
+        if (diffAlert) {
+            const timer = setTimeout(() => {
+                setDiffAlert(null);
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [diffAlert]);
 
     // --- Estado para el Tablero de Control de la IR ---
     const [irStats, setIrStats] = useState({
@@ -913,6 +926,42 @@ const Inbound = () => {
 
         const shouldPrint = !editId && parseInt(labelCount) > 0 && parseInt(labelUnits) > 0;
 
+        const triggerDiffCheck = () => {
+            if (!itemData) return;
+            const expectedQty = parseInt(itemData.defaultQtyGrn) || 0;
+            const inputQty = parseInt(quantity) || 0;
+            const currentIr = importRef.trim().toUpperCase();
+            const currentSku = String(itemData.itemCode).trim().toUpperCase();
+
+            const matchingLogs = logs.filter(l => 
+                String(l.itemCode).toUpperCase() === currentSku && 
+                (String(l.importReference || l.importRef || '').toUpperCase() === currentIr)
+            );
+
+            const previousQty = editId ? (matchingLogs.find(l => l.id === editId)?.qtyReceived || 0) : 0;
+            const currentSum = matchingLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || parseInt(curr.quantity) || 0), 0);
+            const newTotalReceived = currentSum - previousQty + inputQty;
+            const diff = newTotalReceived - expectedQty;
+
+            if (diff !== 0) {
+                setDiffAlert({
+                    itemCode: itemData.itemCode,
+                    description: itemData.description || 'Sin descripción',
+                    importRef: currentIr,
+                    expectedQty: expectedQty,
+                    totalReceived: newTotalReceived,
+                    difference: diff,
+                    type: diff > 0 ? 'excess' : 'shortage'
+                });
+
+                if (diff > 0) {
+                    toast.warning(`⚠️ Diferencia (+${diff}): Sobrante en SKU ${itemData.itemCode}`);
+                } else {
+                    toast.error(`🚨 Diferencia (${diff}): Faltante en SKU ${itemData.itemCode}`);
+                }
+            }
+        };
+
         try {
             if (navigator.onLine) {
                 try {
@@ -920,6 +969,7 @@ const Inbound = () => {
                     if (editId) {
                         if (typeof editId === 'string' && editId.includes('-')) {
                             await savePendingSync('inbound', payload, editId);
+                            triggerDiffCheck();
                             loadLogs(); resetForm(); return;
                         }
                         res = await fetch(`/api/update_log/${editId}`, {
@@ -943,6 +993,7 @@ const Inbound = () => {
                     }
                     if (res.ok) {
                         if (shouldPrint) handlePrint();
+                        triggerDiffCheck();
                         loadLogs();
                         setTimeout(() => resetForm(), 500);
                         return;
@@ -964,6 +1015,7 @@ const Inbound = () => {
                 setHasWarnedOffline(true);
             }
             if (shouldPrint) handlePrint();
+            triggerDiffCheck();
             loadLogs();
             setTimeout(() => resetForm(), 500);
         } catch (e) {
@@ -1467,6 +1519,79 @@ const Inbound = () => {
                 </div>
             </div>
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
+
+            {/* Notificación Flotante de Diferencias (Centrada en pantalla) */}
+            {diffAlert && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                    <div className="max-w-lg w-full shadow-2xl rounded-2xl border border-white/20 overflow-hidden text-white transition-all transform scale-100">
+                        <div className={`p-5 ${diffAlert.type === 'excess' ? 'bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900' : 'bg-gradient-to-br from-red-600 via-rose-700 to-red-900'}`}>
+                            <div className="flex items-start justify-between gap-3 border-b border-white/20 pb-3 mb-3.5">
+                                <div className="flex items-center gap-3">
+                                    <span className="p-2.5 bg-white/20 rounded-xl text-3xl flex items-center justify-center backdrop-blur-md shadow-inner">
+                                        {diffAlert.type === 'excess' ? '⚠️' : '🚨'}
+                                    </span>
+                                    <div>
+                                        <h4 className="font-black text-base uppercase tracking-wider leading-tight text-white flex items-center gap-2">
+                                            DIFERENCIA DETECTADA EN RECEPCIÓN
+                                        </h4>
+                                        <p className="text-xs text-white/90 font-medium mt-0.5">
+                                            {diffAlert.type === 'excess' ? 'La cantidad acumulada supera lo esperado en GRN' : 'La cantidad acumulada es menor a lo esperado en GRN'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setDiffAlert(null)}
+                                    className="p-1.5 rounded-lg bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors"
+                                    title="Cerrar notificación"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 text-xs bg-black/35 p-3.5 rounded-xl border border-white/10 backdrop-blur-md shadow-inner">
+                                <div className="flex justify-between items-center text-white/90">
+                                    <span className="font-semibold text-white/70">Código / SKU:</span>
+                                    <span className="font-black text-white tracking-wide text-base">{diffAlert.itemCode}</span>
+                                </div>
+                                <div className="text-xs text-white/85 truncate font-medium border-b border-white/10 pb-2 mb-2">
+                                    {diffAlert.description}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5 text-center pt-1">
+                                    <div className="bg-white/10 p-2.5 rounded-lg">
+                                        <div className="text-[10px] uppercase text-white/70 font-semibold">Esperado</div>
+                                        <div className="text-base font-extrabold text-white">{diffAlert.expectedQty}</div>
+                                    </div>
+                                    <div className="bg-white/10 p-2.5 rounded-lg">
+                                        <div className="text-[10px] uppercase text-white/70 font-semibold">Recibido</div>
+                                        <div className="text-base font-extrabold text-white">{diffAlert.totalReceived}</div>
+                                    </div>
+                                    <div className={`p-2.5 rounded-lg ${diffAlert.type === 'excess' ? 'bg-amber-500/40 border border-amber-300/50' : 'bg-red-500/40 border border-red-300/50'}`}>
+                                        <div className="text-[10px] uppercase text-white/90 font-bold">Diferencia</div>
+                                        <div className="text-base font-black text-white">
+                                            {diffAlert.difference > 0 ? `+${diffAlert.difference}` : diffAlert.difference}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex justify-between items-center">
+                                <span className="text-[11px] text-white/70 italic font-medium">Auto-cierre en 10s</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setDiffAlert(null)}
+                                    className="px-5 py-2 bg-white/25 hover:bg-white/35 text-white font-black text-xs rounded-lg backdrop-blur-md transition-all active:scale-95 border border-white/40 shadow-md uppercase tracking-wider"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <ToastContainer position="top-right" autoClose={3000} />
         </>
     );
 };
