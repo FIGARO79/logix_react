@@ -78,8 +78,8 @@ const ManageCycleCountDifferences = () => {
         setTitle("Gestión de Diferencias");
     }, [setTitle]);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const params = {
                 year: year,
@@ -95,33 +95,25 @@ const ManageCycleCountDifferences = () => {
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     }, [year, month, onlyDifferences]);
 
     useEffect(() => {
-        fetchData();
+        fetchData(true);
 
-        // Polling de fondo cada 8 segundos
-        const timer = setInterval(() => {
-            if (navigator.onLine && !document.hidden) {
-                fetchData();
-            }
-        }, 8000);
-
-        // Listener en tiempo real entre pestañas/pantallas
+        // Listener en tiempo real entre pestañas/pantallas sin hacer polling periódico por timer
         let bc;
         if (typeof BroadcastChannel !== 'undefined') {
             bc = new BroadcastChannel('logix_events');
             bc.onmessage = (event) => {
                 if (event.data?.type === 'CYCLE_COUNT_MUTATED' || event.data?.type === 'INBOUND_MUTATED') {
-                    fetchData();
+                    fetchData(false);
                 }
             };
         }
 
         return () => {
-            clearInterval(timer);
             if (bc) bc.close();
         };
     }, [fetchData, refreshTrigger]);
@@ -144,7 +136,7 @@ const ManageCycleCountDifferences = () => {
 
             if (res.ok) {
                 setEditingItem(null);
-                setRefreshTrigger(prev => prev + 1); // Recargar datos
+                fetchData(false);
                 if (typeof BroadcastChannel !== 'undefined') {
                     const bc = new BroadcastChannel('logix_events');
                     bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
@@ -253,7 +245,7 @@ const ManageCycleCountDifferences = () => {
                         Exportar a Excel
                     </button>
                     <button
-                        onClick={fetchData}
+                        onClick={() => fetchData(true)}
                         className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
                     >
                         Actualizar Vista
