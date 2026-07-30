@@ -216,6 +216,7 @@ async def _enrich_logs_with_grn_qty(logs: List[Dict[str, Any]]) -> List[Dict[str
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 po_cache = orjson.loads(f.read())
         except: pass
+    po_line_item_to_ir = po_cache.get("po_line_item_to_ir", {})
     po_item_to_ir = po_cache.get("po_item_to_ir", {})
     po_order_to_ir = po_cache.get("po_order_to_ir", {})
     customer_ref_data = po_cache.get("customer_ref_to_data", {})
@@ -228,11 +229,16 @@ async def _enrich_logs_with_grn_qty(logs: List[Dict[str, Any]]) -> List[Dict[str
 
         g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
         g_order = str(row.get("Order_Number", "")).strip().upper()
+        g_line = str(row.get("Order_Line", "")).strip()
         qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
         resolved_ir = None
+        po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
         po_key = f"{g_order}_{item_code}"
-        if po_key in po_item_to_ir:
+
+        if po_line_key and po_line_key in po_line_item_to_ir:
+            resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+        elif po_key in po_item_to_ir:
             resolved_ir = po_item_to_ir[po_key].get("import_ref")
         elif g_order in po_order_to_ir:
             resolved_ir = po_order_to_ir[g_order].get("import_ref")
@@ -399,6 +405,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                 with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     po_cache = orjson.loads(f.read())
             except: pass
+        po_line_item_to_ir = po_cache.get("po_line_item_to_ir", {})
         po_item_to_ir = po_cache.get("po_item_to_ir", {})
         po_order_to_ir = po_cache.get("po_order_to_ir", {})
         customer_ref_data = po_cache.get("customer_ref_to_data", {})
@@ -410,12 +417,17 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
             
             g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
             g_order = str(row.get("Order_Number", "")).strip().upper()
+            g_line = str(row.get("Order_Line", "")).strip()
             g_grn = str(row.get("GRN_Number", "")).strip().upper()
             qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
             resolved_ir = None
+            po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
             po_key = f"{g_order}_{item_code}"
-            if po_key in po_item_to_ir:
+
+            if po_line_key and po_line_key in po_line_item_to_ir:
+                resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+            elif po_key in po_item_to_ir:
                 resolved_ir = po_item_to_ir[po_key].get("import_ref")
             elif g_order in po_order_to_ir:
                 resolved_ir = po_order_to_ir[g_order].get("import_ref")

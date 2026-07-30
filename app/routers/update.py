@@ -76,6 +76,8 @@ async def process_po_extractor_logic(file_path: str):
     def np_encoder(obj):
         if isinstance(obj, np.generic):
             return obj.item()
+        if isinstance(obj, set):
+            return list(obj)
         return str(obj)
 
     try:
@@ -165,17 +167,30 @@ async def process_po_extractor_logic(file_path: str):
                         }
                     if row["GRN Number"]:
                         customer_ref_to_grn[cust_ref]["grns"].update(parsed_grns)
+
+            ir_lookup[ir_str] = {
+                "waybill": first_row["Waybill"],
+                "items": items_list
+            }
             
+        po_line_item_to_ir = {}
         po_item_to_ir = {}
         po_order_to_ir = {}
 
         for row in df_po.iter_rows(named=True):
             cust_ref = str(row[opt_col]).strip().upper()
             item_code = str(row["Item Code"]).strip().upper()
+            order_line = str(row.get("Order Line") or row.get("Order_Line") or row.get("Order Line Number") or "").strip()
             ir_str = str(row["Import Ref Code"]).strip().upper()
             waybill_str = str(row["Waybill"]).strip().upper()
 
             if cust_ref:
+                if order_line and item_code:
+                    line_key = f"{cust_ref}_{order_line}_{item_code}"
+                    po_line_item_to_ir[line_key] = {
+                        "import_ref": ir_str,
+                        "waybill": waybill_str
+                    }
                 if item_code:
                     key = f"{cust_ref}_{item_code}"
                     po_item_to_ir[key] = {
@@ -188,17 +203,23 @@ async def process_po_extractor_logic(file_path: str):
                         "waybill": waybill_str
                     }
 
+        # Convertir sets de grns a listas ordenadas para serialización JSON
+        for cust_ref, c_data in customer_ref_to_grn.items():
+            if isinstance(c_data.get("grns"), set):
+                c_data["grns"] = sorted(list(c_data["grns"]))
+
         lookup_data = {
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
+            "po_line_item_to_ir": po_line_item_to_ir,
             "po_item_to_ir": po_item_to_ir,
             "po_order_to_ir": po_order_to_ir,
             "updated_at": datetime.datetime.now().isoformat()
         }
         
         with open(PO_LOOKUP_JSON_PATH, "wb") as f:
-            f.write(orjson.dumps(lookup_data, option=orjson.OPT_INDENT_2))
+            f.write(orjson.dumps(lookup_data, option=orjson.OPT_INDENT_2, default=np_encoder))
         
         return True, "Caché de búsqueda generado correctamente."
     except Exception as e:

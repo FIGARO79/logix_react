@@ -104,7 +104,8 @@ async def get_reconciliation_calculations(
                 schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8}
             )
 
-        # 3.b Cargar mapa desde po_lookup.json por (Order_Number + Item_Code) y Order_Number
+        # 3.b Cargar mapa desde po_lookup.json por (Order_Number + Order_Line + Item_Code), (Order_Number + Item_Code) y Order_Number
+        po_line_item_records = []
         po_item_records = []
         po_order_records = []
         if os.path.exists(PO_LOOKUP_JSON_PATH):
@@ -113,6 +114,20 @@ async def get_reconciliation_calculations(
 
                 with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     po_lookup_data = orjson.loads(f.read())
+
+                if "po_line_item_to_ir" in po_lookup_data:
+                    for key, val in po_lookup_data["po_line_item_to_ir"].items():
+                        parts = key.split("_", 2)
+                        if len(parts) == 3:
+                            po_line_item_records.append(
+                                {
+                                    "order_ref": parts[0].strip().upper(),
+                                    "line_ref": parts[1].strip(),
+                                    "item_ref": parts[2].strip().upper(),
+                                    "ir_po_line": val.get("import_ref", "").strip().upper(),
+                                    "wb_po_line": val.get("waybill", "").strip().upper(),
+                                }
+                            )
 
                 if "po_item_to_ir" in po_lookup_data:
                     for key, val in po_lookup_data["po_item_to_ir"].items():
@@ -163,6 +178,20 @@ async def get_reconciliation_calculations(
                                 )
             except Exception as e:
                 print(f"[RECONCILIATION] Error leyendo PO lookup json: {e}")
+
+        df_po_line_item_map = (
+            pl.DataFrame(po_line_item_records)
+            if po_line_item_records
+            else pl.DataFrame(
+                schema={
+                    "order_ref": pl.Utf8,
+                    "line_ref": pl.Utf8,
+                    "item_ref": pl.Utf8,
+                    "ir_po_line": pl.Utf8,
+                    "wb_po_line": pl.Utf8,
+                }
+            )
+        ).unique(subset=["order_ref", "line_ref", "item_ref"])
 
         df_po_item_map = (
             pl.DataFrame(po_item_records)
@@ -218,11 +247,18 @@ async def get_reconciliation_calculations(
         )
 
         # 5. ASOCIACIÓN JERÁRQUICA DE I.R. Y WAYBILL AL REPORTE 280
-        # Prioridad 1: Match por Order_Number + Item_Code contra PO Extractor
-        # Prioridad 2: Match por Order_Number solo contra PO Extractor
-        # Prioridad 3: Match por GRN_Number contra Master Maps (DB / JSON Maestro)
+        # Prioridad 1: Match por Order_Number + Order_Line + Item_Code contra PO Extractor
+        # Prioridad 2: Match por Order_Number + Item_Code contra PO Extractor
+        # Prioridad 3: Match por Order_Number solo contra PO Extractor
+        # Prioridad 4: Match por GRN_Number contra Master Maps (DB / JSON Maestro)
         df_expected_with_ir = (
             df_280.join(
+                df_po_line_item_map,
+                left_on=["Order_Number", "Order_Line", "Item_Code"],
+                right_on=["order_ref", "line_ref", "item_ref"],
+                how="left",
+            )
+            .join(
                 df_po_item_map,
                 left_on=["Order_Number", "Item_Code"],
                 right_on=["order_ref", "item_ref"],
@@ -242,10 +278,10 @@ async def get_reconciliation_calculations(
             )
             .with_columns(
                 [
-                    pl.coalesce(["ir_po", "ir_po_order", "ir_map"])
+                    pl.coalesce(["ir_po_line", "ir_po", "ir_po_order", "ir_map"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_po", "wb_po_order", "wb_map"])
+                    pl.coalesce(["wb_po_line", "wb_po", "wb_po_order", "wb_map"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
                 ]
