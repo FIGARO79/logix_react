@@ -39,7 +39,7 @@ fn split_grn_string(val: &str) -> Vec<String> {
 pub fn build_master_maps_rust(
     db_grns: Vec<(Option<String>, Option<String>, Option<String>)>,
     grn_json_path: &str,
-    po_lookup_path: &str,
+    _po_lookup_path: &str,
 ) -> PyResult<Vec<(String, String, String)>> {
     let mut master_maps: Vec<(String, String, String)> = Vec::new();
 
@@ -80,32 +80,6 @@ pub fn build_master_maps_rust(
         if !ir.is_empty() && !grns.is_empty() {
             for g in split_grn_string(&grns) {
                 master_maps.push((g, ir.clone(), wb.clone()));
-            }
-        }
-    }
-
-    // 3. C. Desde po_lookup.json
-    if let Ok(data) = std::fs::read_to_string(po_lookup_path) {
-        if let Ok(json) = serde_json::from_str::<Value>(&data) {
-            if let Some(wb_to_data) = json.get("wb_to_data").and_then(|v| v.as_object()) {
-                for (wb_raw, data_obj) in wb_to_data {
-                    let ir = data_obj.get("import_ref")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .trim().to_uppercase();
-                    let wb = wb_raw.trim().to_uppercase();
-                    if !ir.is_empty() {
-                        if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                            for item in items {
-                                if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
-                                    for g in split_grn_string(grn_val) {
-                                        master_maps.push((g, ir.clone(), wb.clone()));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
