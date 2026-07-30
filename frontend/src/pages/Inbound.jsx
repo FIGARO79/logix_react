@@ -365,15 +365,22 @@ const Inbound = () => {
             // Crear mapa de cantidades esperadas por SKU y por GRN individual a partir de allGrns (280)
             const grnDetailExpectedMap = {};
             allGrns.forEach(g => {
-                const code = String(g.Item_Code).toUpperCase().trim();
-                if (code) {
-                    if (!grnDetailExpectedMap[code]) {
-                        grnDetailExpectedMap[code] = {};
-                    }
-                    if (g.grns) {
-                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                            grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
-                        });
+                const code = String(g.Item_Code || '').toUpperCase().trim();
+                if (!code) return;
+
+                if (!grnDetailExpectedMap[code]) {
+                    grnDetailExpectedMap[code] = {};
+                }
+                if (g.grns && typeof g.grns === 'object') {
+                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                        const gKeyUpper = grnNum.toUpperCase().trim();
+                        grnDetailExpectedMap[code][gKeyUpper] = (grnDetailExpectedMap[code][gKeyUpper] || 0) + (parseInt(qty) || 0);
+                    });
+                } else {
+                    const grnNum = String(g.GRN_Number || g.grn_number || g.grn || '').toUpperCase().trim();
+                    const qty = parseInt(g.Quantity || g.quantity || g.qty || 0) || 0;
+                    if (grnNum && qty > 0) {
+                        grnDetailExpectedMap[code][grnNum] = (grnDetailExpectedMap[code][grnNum] || 0) + qty;
                     }
                 }
             });
@@ -384,37 +391,31 @@ const Inbound = () => {
             let grnTotalProgress = 0;
             
             try {
-                if (poInfo && poInfo.items) {
-                    const grnToItems = {}; // grn -> [ {itemCode, expected} ]
+                if (poInfo && poInfo.items && poInfo.items.length > 0) {
+                    const grnToItems = {}; // grn -> { itemCode: expectedQty }
                     
                     poInfo.items.forEach(it => {
-                        const itemCode = String(it.item_code).toUpperCase().trim();
-                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                        const qty = parseInt(it.qty) || 0;
+                        const itemCode = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                        const grnVal = String(it.grn || it.GRN || it.GRN_Number || '').toUpperCase().trim();
+                        const qty = parseInt(it.qty || it.Quantity || 0) || 0;
                         
-                        if (grnVal) {
+                        if (grnVal && itemCode) {
                             grnVal.split(',').forEach(g => {
-                                const gKey = g.trim();
-                                if (gKey) {
-                                    const gKeyUpper = gKey.toUpperCase().trim();
-                                    
-                                    // Determinar la cantidad esperada de forma inteligente
+                                const gKeyUpper = g.trim().toUpperCase();
+                                if (gKeyUpper) {
                                     let expectedQty = 0;
-                                    const has280Data = uniqueIrLines.length > 0;
-                                    
-                                    if (grnDetailExpectedMap[itemCode] !== undefined && 
+                                    if (grnDetailExpectedMap[itemCode] && 
                                         grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
                                         expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
-                                    } else if (!has280Data) {
+                                    } else {
                                         expectedQty = qty;
                                     }
                                     
-                                    // Solo incluir en el avance si realmente se espera recibir unidades en esa GRN
                                     if (expectedQty > 0) {
                                         if (!grnToItems[gKeyUpper]) {
-                                            grnToItems[gKeyUpper] = [];
+                                            grnToItems[gKeyUpper] = {};
                                         }
-                                        grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
+                                        grnToItems[gKeyUpper][itemCode] = (grnToItems[gKeyUpper][itemCode] || 0) + expectedQty;
                                     }
                                 }
                             });
@@ -425,20 +426,67 @@ const Inbound = () => {
                     totalGrns = grnList.length;
                     
                     grnList.forEach(grn => {
-                        const itemsInGrn = grnToItems[grn];
+                        const itemsMap = grnToItems[grn];
+                        const itemCodes = Object.keys(itemsMap);
                         let itemsCompleted = 0;
                         
-                        itemsInGrn.forEach(it => {
-                            const recQty = receivedMap[it.itemCode] || 0;
-                            if (recQty >= it.expected) {
+                        itemCodes.forEach(code => {
+                            const recQty = receivedMap[code] || 0;
+                            const expQty = itemsMap[code];
+                            if (recQty >= expQty) {
                                 itemsCompleted += 1;
                             }
                         });
                         
-                        const grnProgress = itemsInGrn.length > 0 ? itemsCompleted / itemsInGrn.length : 0;
+                        const grnProgress = itemCodes.length > 0 ? itemsCompleted / itemCodes.length : 0;
                         grnTotalProgress += grnProgress;
                         
-                        if (grnProgress === 1 && itemsInGrn.length > 0) {
+                        if (grnProgress === 1 && itemCodes.length > 0) {
+                            completedGrns += 1;
+                        }
+                    });
+                } else if (allGrns.length > 0) {
+                    // Fallback: Si poInfo no tiene items o no existe, calcular GRNs directamente desde Reporte 280 (allGrns)
+                    const grnToItems = {};
+                    allGrns.forEach(g => {
+                        const code = String(g.Item_Code || '').toUpperCase().trim();
+                        const gIr = String(g.Import_Reference || g.ir_map || '').toUpperCase().trim();
+                        const gOrder = String(g.Order_Number || '').toUpperCase().trim();
+                        const grnNum = String(g.GRN_Number || g.grn_number || g.grn || '').toUpperCase().trim();
+                        const qty = parseInt(g.Quantity || g.quantity || g.qty || 0) || 0;
+
+                        const isMatch = (gIr === targetIr) ||
+                                        (gOrder && customerRefs.has(gOrder)) ||
+                                        (gOrder && itemPoKeys.has(`${gOrder}_${code}`));
+
+                        if (isMatch && grnNum && code && qty > 0) {
+                            if (!grnToItems[grnNum]) {
+                                grnToItems[grnNum] = {};
+                            }
+                            grnToItems[grnNum][code] = (grnToItems[grnNum][code] || 0) + qty;
+                        }
+                    });
+
+                    const grnList = Object.keys(grnToItems);
+                    totalGrns = grnList.length;
+
+                    grnList.forEach(grn => {
+                        const itemsMap = grnToItems[grn];
+                        const itemCodes = Object.keys(itemsMap);
+                        let itemsCompleted = 0;
+
+                        itemCodes.forEach(code => {
+                            const recQty = receivedMap[code] || 0;
+                            const expQty = itemsMap[code];
+                            if (recQty >= expQty) {
+                                itemsCompleted += 1;
+                            }
+                        });
+
+                        const grnProgress = itemCodes.length > 0 ? itemsCompleted / itemCodes.length : 0;
+                        grnTotalProgress += grnProgress;
+
+                        if (grnProgress === 1 && itemCodes.length > 0) {
                             completedGrns += 1;
                         }
                     });

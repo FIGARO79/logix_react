@@ -293,22 +293,22 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                     item_code = str(it.get("item_code", "")).upper().strip()
                     grn_val = str(it.get("grn", "")).upper().strip()
                     qty = int(it.get("qty") or 0)
-                    if grn_val:
+                    if grn_val and item_code:
                         for g in grn_val.split(','):
-                            g_key = g.strip()
+                            g_key = g.strip().upper()
                             if g_key:
                                 if g_key not in grn_to_items:
-                                    grn_to_items[g_key] = []
-                                grn_to_items[g_key].append({"itemCode": item_code, "expected": qty})
+                                    grn_to_items[g_key] = {}
+                                grn_to_items[g_key][item_code] = grn_to_items[g_key].get(item_code, 0) + qty
                                 
                 grn_list = list(grn_to_items.keys())
                 total_grns = len(grn_list)
                 for grn in grn_list:
                     items_in_grn = grn_to_items[grn]
                     items_completed = 0
-                    for it in items_in_grn:
-                        rec_qty = received_map.get(it["itemCode"], 0)
-                        if rec_qty >= it["expected"]:
+                    for item_code, exp_qty in items_in_grn.items():
+                        rec_qty = received_map.get(item_code, 0)
+                        if rec_qty >= exp_qty:
                             items_completed += 1
                     
                     grn_progress = items_completed / len(items_in_grn) if items_in_grn else 0
@@ -316,6 +316,47 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                         completed_grns += 1
         except Exception as e:
             print(f"Error calculating GRN stats on backend: {e}")
+
+    # Fallback to Report 280 (df_grn_cache) if po_lookup didn't yield GRNs
+    if not total_grns and df is not None:
+        try:
+            grn_to_items = {}
+            for row in df.to_dicts():
+                item_code = str(row.get("Item_Code", "")).strip().upper()
+                if not item_code:
+                    continue
+
+                g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
+                g_order = str(row.get("Order_Number", "")).strip().upper()
+                g_grn = str(row.get("GRN_Number", "")).strip().upper()
+                qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
+
+                po_key = f"{g_order}_{item_code}"
+                is_match = (g_ir == target_ir) or \
+                           (po_key in target_item_po_keys) or \
+                           (g_order and g_order in target_customer_refs) or \
+                           (g_grn and grn_to_ir.get(g_grn) == target_ir)
+
+                if is_match and g_grn and qty > 0:
+                    if g_grn not in grn_to_items:
+                        grn_to_items[g_grn] = {}
+                    grn_to_items[g_grn][item_code] = grn_to_items[g_grn].get(item_code, 0) + qty
+
+            grn_list = list(grn_to_items.keys())
+            total_grns = len(grn_list)
+            for grn in grn_list:
+                items_in_grn = grn_to_items[grn]
+                items_completed = 0
+                for item_code, exp_qty in items_in_grn.items():
+                    rec_qty = received_map.get(item_code, 0)
+                    if rec_qty >= exp_qty:
+                        items_completed += 1
+                
+                grn_progress = items_completed / len(items_in_grn) if items_in_grn else 0
+                if grn_progress == 1 and items_in_grn:
+                    completed_grns += 1
+        except Exception as e:
+            print(f"Error calculating fallback GRN stats on backend: {e}")
 
     return {
         "total_lines": total_lines,
