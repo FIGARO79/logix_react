@@ -267,82 +267,41 @@ const Inbound = () => {
                 }
             }
 
-            const associatedGrns = new Set();
+            const customerRefs = new Set();
+            const itemPoKeys = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
-                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                    if (grnVal) {
-                        grnVal.split(',').forEach(g => {
-                            const gKey = g.trim();
-                            if (gKey) {
-                                associatedGrns.add(gKey);
-                            }
-                        });
-                    }
+                    const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
+                    const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
+                    if (cRef) customerRefs.add(cRef);
+                    if (cRef && code) itemPoKeys.add(`${cRef}_${code}`);
                 });
             }
 
-            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
-            let irLines = [];
-            allGrns.forEach(g => {
-                if (g.grns) {
-                    // Si el nuevo formato estructurado de grns está presente:
-                    let itemExpectedForIr = 0;
-                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                            itemExpectedForIr += parseInt(qty) || 0;
-                        }
-                    });
-                    if (itemExpectedForIr > 0) {
-                        irLines.push({
-                            Item_Code: g.Item_Code,
-                            total_expected: itemExpectedForIr
-                        });
-                    }
-                } else {
-                    // Fallback para formato antiguo / registros planos
-                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
-                    if (associatedGrns.size > 0) {
-                        if (grnNum && associatedGrns.has(grnNum)) {
-                            irLines.push(g);
-                        } else if (!grnNum && String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
-                            irLines.push(g);
-                        }
-                    } else if (String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
-                        irLines.push(g);
-                    }
-                }
-            });
-            
-            // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
+            // 2. Filtrar y agrupar EXCLUSIVAMENTE las líneas del Reporte 280 (grn_pending) para esta IR
             const groupedIrLines = {};
-            irLines.forEach(line => {
-                const code = String(line.Item_Code).toUpperCase().trim();
-                if (!groupedIrLines[code]) {
-                    groupedIrLines[code] = {
-                        Item_Code: code,
-                        total_expected: 0
-                    };
-                }
-                groupedIrLines[code].total_expected += parseInt(line.total_expected) || 0;
-            });
+            allGrns.forEach(g => {
+                const code = String(g.Item_Code || '').toUpperCase().trim();
+                if (!code) return;
 
-            // Si grn_pending está vacío en IndexedDB, extraer las líneas esperadas directamente de poInfo.items
-            if (Object.keys(groupedIrLines).length === 0 && poInfo && poInfo.items) {
-                poInfo.items.forEach(it => {
-                    const code = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
-                    const qty = parseInt(it.qty || it.Quantity || 0);
-                    if (code && qty > 0) {
-                        if (!groupedIrLines[code]) {
-                            groupedIrLines[code] = {
-                                Item_Code: code,
-                                total_expected: 0
-                            };
-                        }
-                        groupedIrLines[code].total_expected += qty;
+                const gIr = String(g.Import_Reference || g.ir_map || '').toUpperCase().trim();
+                const gOrder = String(g.Order_Number || '').toUpperCase().trim();
+                const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
+
+                const isMatch = (gIr === targetIr) ||
+                                (gOrder && customerRefs.has(gOrder)) ||
+                                (gOrder && itemPoKeys.has(`${gOrder}_${code}`));
+
+                if (isMatch && qty > 0) {
+                    if (!groupedIrLines[code]) {
+                        groupedIrLines[code] = {
+                            Item_Code: code,
+                            total_expected: 0
+                        };
                     }
-                });
-            }
+                    groupedIrLines[code].total_expected += qty;
+                }
+            });
 
             const uniqueIrLines = Object.values(groupedIrLines);
             let totalLines = uniqueIrLines.length;

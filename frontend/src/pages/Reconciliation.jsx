@@ -158,7 +158,30 @@ const Reconciliation = () => {
         });
     }, [sortedData, deferredFilterText]);
 
-    const displayedData = useMemo(() => filteredData.slice(0, 200), [filteredData]);
+    const INITIAL_LIMIT = 100;
+    const STEP_LIMIT = 100;
+    const [displayLimit, setDisplayLimit] = useState(INITIAL_LIMIT);
+
+    // Resetear el límite desplegado cuando cambian filtros, ordenamiento o versión de datos
+    useEffect(() => {
+        setDisplayLimit(INITIAL_LIMIT);
+    }, [deferredFilterText, sortConfig, currentVersion, currentSnapshot, data]);
+
+    const displayedData = useMemo(() => {
+        return filteredData.slice(0, displayLimit);
+    }, [filteredData, displayLimit]);
+
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop - clientHeight < 250) {
+            setDisplayLimit((prev) => {
+                if (prev < filteredData.length) {
+                    return Math.min(prev + STEP_LIMIT, filteredData.length);
+                }
+                return prev;
+            });
+        }
+    };
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -314,7 +337,7 @@ const Reconciliation = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-auto max-h-[70vh]">
+                            <div className="overflow-auto max-h-[70vh]" onScroll={handleScroll}>
                                 <table className="w-full text-left border-separate border-spacing-0">
                                     <thead className="sticky top-0 z-20">
                                         <tr style={{ background: '#354a5f' }}>
@@ -384,20 +407,29 @@ const Reconciliation = () => {
                             </div>
 
                             {/* Footer */}
-                            <div className="flex items-center gap-3 px-4 py-2 border-t border-zinc-100 bg-white text-[10px] text-zinc-500">
-                                <span>Mostrando <span className="font-semibold text-zinc-700">{displayedData.length}</span> de <span className="font-semibold text-zinc-700">{filteredData.length}</span> registros</span>
-                                {!isOfflineData && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                        Datos en tiempo real
-                                    </span>
-                                )}
-                                {isOfflineData && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
-                                        Datos sin conexión
-                                    </span>
-                                )}
+                            <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-100 bg-white text-[10px] text-zinc-500">
+                                <div className="flex items-center gap-3">
+                                    <span>Mostrando <span className="font-semibold text-zinc-700">{displayedData.length}</span> de <span className="font-semibold text-zinc-700">{filteredData.length}</span> registros</span>
+                                    {displayedData.length < filteredData.length && (
+                                        <span className="text-[9px] text-zinc-400 font-medium animate-pulse">
+                                            (Desplaza hacia abajo para cargar más...)
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {!isOfflineData && (
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                            Datos en tiempo real
+                                        </span>
+                                    )}
+                                    {isOfflineData && (
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                                            Datos sin conexión
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}

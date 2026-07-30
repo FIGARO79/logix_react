@@ -166,19 +166,34 @@ async def process_po_extractor_logic(file_path: str):
                     if row["GRN Number"]:
                         customer_ref_to_grn[cust_ref]["grns"].update(parsed_grns)
             
-            ir_lookup[ir_str] = {
-                "waybill": first_row["Waybill"],
-                "items": items_list
-            }
-        
-        # Convertir sets a listas para JSON
-        for ref in customer_ref_to_grn:
-            customer_ref_to_grn[ref]["grns"] = list(customer_ref_to_grn[ref]["grns"])
+        po_item_to_ir = {}
+        po_order_to_ir = {}
+
+        for row in df_po.iter_rows(named=True):
+            cust_ref = str(row[opt_col]).strip().upper()
+            item_code = str(row["Item Code"]).strip().upper()
+            ir_str = str(row["Import Ref Code"]).strip().upper()
+            waybill_str = str(row["Waybill"]).strip().upper()
+
+            if cust_ref:
+                if item_code:
+                    key = f"{cust_ref}_{item_code}"
+                    po_item_to_ir[key] = {
+                        "import_ref": ir_str,
+                        "waybill": waybill_str
+                    }
+                if cust_ref not in po_order_to_ir:
+                    po_order_to_ir[cust_ref] = {
+                        "import_ref": ir_str,
+                        "waybill": waybill_str
+                    }
 
         lookup_data = {
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
+            "po_item_to_ir": po_item_to_ir,
+            "po_order_to_ir": po_order_to_ir,
             "updated_at": datetime.datetime.now().isoformat()
         }
         

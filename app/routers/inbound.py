@@ -177,10 +177,7 @@ async def get_grn_to_ir_cached(db: AsyncSession) -> dict:
 async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
     target_ir = import_reference.strip().upper()
     
-    # 1. Build/Get grn_to_ir mapping from cache
-    grn_to_ir = await get_grn_to_ir_cached(db)
-
-    # 2. Load expected lines from GRN CSV
+    # 1. Cargar Reporte 280
     from app.services import csv_handler
     import polars as pl
     await csv_handler.reload_cache_if_needed()
@@ -189,24 +186,50 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
     if df is None:
         return {}
         
-    df.columns = [c.strip() for c in df.columns]
-    
-    def _resolve_ir(grn_num):
-        if not grn_num: return "SIN I.R."
-        return grn_to_ir.get(str(grn_num).strip().upper(), "SIN I.R.")
-        
-    df_grn = df.filter(pl.col("Item_Code").is_not_null())
-    df_grn = df_grn.with_columns(
-        pl.col("GRN_Number").map_elements(_resolve_ir, return_dtype=pl.Utf8).alias("Import_Reference")
-    )
-    
-    target_df = df_grn.filter(pl.col("Import_Reference") == target_ir)
-    
+    # 2. Obtener asociaciones de po_lookup.json para target_ir
+    po_cache = get_po_lookup_cached() or {}
+    po_item_to_ir = po_cache.get("po_item_to_ir", {})
+    po_order_to_ir = po_cache.get("po_order_to_ir", {})
+    customer_ref_data = po_cache.get("customer_ref_to_data", {})
+    grn_to_ir = await get_grn_to_ir_cached(db)
+
+    target_customer_refs = set()
+    target_item_po_keys = set()
+
+    for key, val in po_item_to_ir.items():
+        if str(val.get("import_ref", "")).strip().upper() == target_ir:
+            target_item_po_keys.add(key.strip().upper())
+            parts = key.split("_", 1)
+            if parts[0]:
+                target_customer_refs.add(parts[0].strip().upper())
+
+    for o_ref, val in po_order_to_ir.items():
+        if str(val.get("import_ref", "")).strip().upper() == target_ir:
+            target_customer_refs.add(o_ref.strip().upper())
+
+    for c_ref, c_val in customer_ref_data.items():
+        if str(c_val.get("import_ref", "")).strip().upper() == target_ir:
+            target_customer_refs.add(c_ref.strip().upper())
+
     grouped_expected = {}
-    for row in target_df.to_dicts():
-        item = str(row["Item_Code"]).strip().upper()
-        qty = int(row["Quantity"]) if row["Quantity"] is not None else 0
-        grouped_expected[item] = grouped_expected.get(item, 0) + qty
+    for row in df.to_dicts():
+        item_code = str(row.get("Item_Code", "")).strip().upper()
+        if not item_code:
+            continue
+
+        g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
+        g_order = str(row.get("Order_Number", "")).strip().upper()
+        g_grn = str(row.get("GRN_Number", "")).strip().upper()
+        qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
+
+        po_key = f"{g_order}_{item_code}"
+        is_match = (g_ir == target_ir) or \
+                   (po_key in target_item_po_keys) or \
+                   (g_order and g_order in target_customer_refs) or \
+                   (g_grn and grn_to_ir.get(g_grn) == target_ir)
+
+        if is_match and qty > 0:
+            grouped_expected[item_code] = grouped_expected.get(item_code, 0) + qty
         
     # 3. Load active logs for target_ir
     stmt = select(Log).where(

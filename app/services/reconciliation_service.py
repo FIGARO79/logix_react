@@ -3,6 +3,7 @@ Servicio para la lógica de conciliación de Inbound y snapshots optimizado con 
 Unifica la lógica de la vista web y la exportación de Excel, respetando las líneas individuales del Reporte 280.
 """
 
+import os
 import datetime
 import polars as pl
 from typing import List, Optional, Dict, Any
@@ -103,6 +104,91 @@ async def get_reconciliation_calculations(
                 schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8}
             )
 
+        # 3.b Cargar mapa desde po_lookup.json por (Order_Number + Item_Code) y Order_Number
+        po_item_records = []
+        po_order_records = []
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                import orjson
+
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                    po_lookup_data = orjson.loads(f.read())
+
+                if "po_item_to_ir" in po_lookup_data:
+                    for key, val in po_lookup_data["po_item_to_ir"].items():
+                        parts = key.split("_", 1)
+                        if len(parts) == 2:
+                            po_item_records.append(
+                                {
+                                    "order_ref": parts[0].strip().upper(),
+                                    "item_ref": parts[1].strip().upper(),
+                                    "ir_po": val.get("import_ref", "").strip().upper(),
+                                    "wb_po": val.get("waybill", "").strip().upper(),
+                                }
+                            )
+
+                if "po_order_to_ir" in po_lookup_data:
+                    for order_ref, val in po_lookup_data["po_order_to_ir"].items():
+                        po_order_records.append(
+                            {
+                                "order_ref": order_ref.strip().upper(),
+                                "ir_po_order": val.get("import_ref", "").strip().upper(),
+                                "wb_po_order": val.get("waybill", "").strip().upper(),
+                            }
+                        )
+
+                # Fallback: construir dinámicamente si po_item_to_ir no estaba en el JSON antiguo
+                if not po_item_records and "wb_to_data" in po_lookup_data:
+                    for wb_code, wb_info in po_lookup_data["wb_to_data"].items():
+                        ir_code = str(wb_info.get("import_ref", "")).strip().upper()
+                        wb_clean = str(wb_code).strip().upper()
+                        for item in wb_info.get("items", []):
+                            cust_ref = str(item.get("customer_ref", "")).strip().upper()
+                            item_code = str(item.get("item_code", "")).strip().upper()
+                            if cust_ref and item_code:
+                                po_item_records.append(
+                                    {
+                                        "order_ref": cust_ref,
+                                        "item_ref": item_code,
+                                        "ir_po": ir_code,
+                                        "wb_po": wb_clean,
+                                    }
+                                )
+                                po_order_records.append(
+                                    {
+                                        "order_ref": cust_ref,
+                                        "ir_po_order": ir_code,
+                                        "wb_po_order": wb_clean,
+                                    }
+                                )
+            except Exception as e:
+                print(f"[RECONCILIATION] Error leyendo PO lookup json: {e}")
+
+        df_po_item_map = (
+            pl.DataFrame(po_item_records)
+            if po_item_records
+            else pl.DataFrame(
+                schema={
+                    "order_ref": pl.Utf8,
+                    "item_ref": pl.Utf8,
+                    "ir_po": pl.Utf8,
+                    "wb_po": pl.Utf8,
+                }
+            )
+        ).unique(subset=["order_ref", "item_ref"])
+
+        df_po_order_map = (
+            pl.DataFrame(po_order_records)
+            if po_order_records
+            else pl.DataFrame(
+                schema={
+                    "order_ref": pl.Utf8,
+                    "ir_po_order": pl.Utf8,
+                    "wb_po_order": pl.Utf8,
+                }
+            )
+        ).unique(subset=["order_ref"])
+
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
         if grn_pl is None:
@@ -131,15 +217,51 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
-        # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
-        df_expected_with_ir = df_280.join(
-            df_grn_master, left_on="GRN_Number", right_on="grn_map", how="left"
-        ).with_columns(
-            [
-                pl.col("ir_map").fill_null("SIN I.R. MAESTRA"),
-                pl.col("wb_map").fill_null("SIN WAYBILL"),
-            ]
+        # 5. ASOCIACIÓN JERÁRQUICA DE I.R. Y WAYBILL AL REPORTE 280
+        # Prioridad 1: Match por Order_Number + Item_Code contra PO Extractor
+        # Prioridad 2: Match por Order_Number solo contra PO Extractor
+        # Prioridad 3: Match por GRN_Number contra Master Maps (DB / JSON Maestro)
+        df_expected_with_ir = (
+            df_280.join(
+                df_po_item_map,
+                left_on=["Order_Number", "Item_Code"],
+                right_on=["order_ref", "item_ref"],
+                how="left",
+            )
+            .join(
+                df_po_order_map,
+                left_on="Order_Number",
+                right_on="order_ref",
+                how="left",
+            )
+            .join(
+                df_grn_master,
+                left_on="GRN_Number",
+                right_on="grn_map",
+                how="left",
+            )
+            .with_columns(
+                [
+                    pl.coalesce(["ir_po", "ir_po_order", "ir_map"])
+                    .fill_null("SIN I.R. MAESTRA")
+                    .alias("ir_map"),
+                    pl.coalesce(["wb_po", "wb_po_order", "wb_map"])
+                    .fill_null("SIN WAYBILL")
+                    .alias("wb_map"),
+                ]
+            )
+            .select(
+                [
+                    "GRN_Number",
+                    "Item_Code",
+                    "Item_Description",
+                    "Quantity",
+                    "Order_Number",
+                    "Order_Line",
+                    "ir_map",
+                    "wb_map",
+                ]
+            )
         )
 
         # 6. Cálculo de Totales Esperados por IR + Item

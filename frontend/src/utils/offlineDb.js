@@ -120,60 +120,41 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
     const normalizedCode = itemCode.trim().toUpperCase();
 
     try {
-        // 1. Obtener GRNs asociadas a la IR desde po_lookup
+        // 1. Obtener órdenes y claves asociadas a la IR desde po_lookup
         const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
-        const associatedGrns = new Set();
+        const customerRefs = new Set();
+        const itemPoKeys = new Set();
         if (poInfo && poInfo.items) {
             poInfo.items.forEach(it => {
-                const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                if (grnVal) {
-                    grnVal.split(',').forEach(g => {
-                        const gKey = g.trim();
-                        if (gKey) {
-                            associatedGrns.add(gKey);
-                        }
-                    });
-                }
+                const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
+                const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
+                if (cRef) customerRefs.add(cRef);
+                if (cRef && code) itemPoKeys.add(`${cRef}_${code}`);
             });
         }
 
-        // 2. Obtener todos los registros de grn_pending
+        // 2. Consultar EXCLUSIVAMENTE en grn_pending (Reporte 280)
         const allGrns = await db.getAll('grn_pending') || [];
-        const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
+        
+        let expectedSum = 0;
+        allGrns.forEach(g => {
+            const code = (g.Item_Code || '').toString().trim().toUpperCase();
+            if (code !== normalizedCode) return;
 
-        // 3. Si tenemos GRNs asociadas a la IR, buscar la cantidad en esas GRNs
-        if (associatedGrns.size > 0) {
-            let sum = 0;
-            itemGrns.forEach(g => {
-                if (g.grns) {
-                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                            sum += parseInt(qty) || 0;
-                        }
-                    });
-                } else {
-                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
-                    if (grnNum && associatedGrns.has(grnNum)) {
-                        sum += parseInt(g.total_expected) || 0;
-                    }
-                }
-            });
-            return sum;
-        }
+            const gIr = (g.Import_Reference || g.ir_map || '').toString().trim().toUpperCase();
+            const gOrder = (g.Order_Number || '').toString().trim().toUpperCase();
+            const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
 
-        // 4. Si la IR no tiene GRNs asociadas pero existe en po_lookup, verificar si el ítem está en la PO
-        if (poInfo && poInfo.items) {
-            let poQty = 0;
-            poInfo.items.forEach(it => {
-                if (String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode) {
-                    poQty += parseInt(it.qty || it.Quantity || 0);
-                }
-            });
-            return poQty;
-        }
+            const isMatch = (gIr === normalizedIr) || 
+                            (gOrder && customerRefs.has(gOrder)) ||
+                            (gOrder && itemPoKeys.has(`${gOrder}_${code}`));
 
-        // Si no está relacionado con la IR o sus GRNs, el esperado es 0
-        return 0;
+            if (isMatch) {
+                expectedSum += qty;
+            }
+        });
+
+        return expectedSum;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -181,11 +162,10 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
 };
 
 /**
- * Obtiene de forma masiva las cantidades esperadas de GRN para una lista de SKUs e IRs,
- * cargando toda la tabla grn_pending una sola vez en memoria y resolviendo po_lookup en paralelo.
+ * Obtiene de forma masiva las cantidades esperadas del Reporte 280 para una lista de SKUs e IRs.
  * @param {object} db Instancia de IndexedDB
  * @param {Array<{itemCode: string, importRef: string}>} items Lista de ítems a consultar
- * @returns {Promise<Object>} Un mapa con claves "itemCode|importRef" y sus respectivas cantidades esperadas.
+ * @returns {Promise<Object>} Un mapa con claves "itemCode|importRef" y sus cantidades esperadas del 280.
  */
 export const getGRNExpectedQtyBulk = async (db, items) => {
     if (!items || items.length === 0) return {};
@@ -200,99 +180,69 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
             }
         });
 
-        // 1. Obtener po_lookup para las IR únicas en paralelo
-        const poInfoMap = new Map();
+        // 1. Obtener po_lookup para las IR únicas
+        const irPoMap = new Map();
         await Promise.all(Array.from(uniqueIrs).map(async ir => {
             try {
                 const poInfo = await db.get('po_lookup', `ir_${ir}`);
-                if (poInfo) {
-                    poInfoMap.set(ir, poInfo);
+                if (poInfo && poInfo.items) {
+                    const cRefs = new Set();
+                    const itemPoKeys = new Set();
+                    poInfo.items.forEach(it => {
+                        const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
+                        const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
+                        if (cRef) cRefs.add(cRef);
+                        if (cRef && code) itemPoKeys.add(`${cRef}_${code}`);
+                    });
+                    irPoMap.set(ir, { cRefs, itemPoKeys });
                 }
             } catch (e) {
                 console.error(`Error al consultar po_lookup para IR ${ir}:`, e);
             }
         }));
 
-        // 2. Obtener todos los registros de grn_pending de una sola vez
+        // 2. Obtener todos los registros del Reporte 280 (grn_pending)
         const allGrns = await db.getAll('grn_pending') || [];
 
-        // 3. Indexar grn_pending por SKU para búsqueda rápida
-        const grnsByItem = new Map();
-        allGrns.forEach(g => {
-            if (g.Item_Code) {
-                const code = String(g.Item_Code).toUpperCase().trim();
-                if (!grnsByItem.has(code)) {
-                    grnsByItem.set(code, []);
-                }
-                grnsByItem.get(code).push(g);
-            }
-        });
-
-        // 4. Calcular el total esperado para cada ítem solicitado
+        // 3. Calcular la cantidad esperada exclusivamente desde grn_pending para cada ítem
         items.forEach(item => {
-            const importRef = item.importRef || '';
-            const itemCode = item.itemCode || '';
-            const key = `${itemCode}|${importRef}`;
+            const importRef = (item.importRef || '').trim().toUpperCase();
+            const itemCode = (item.itemCode || '').trim().toUpperCase();
+            const key = `${item.itemCode}|${item.importRef}`;
 
             if (!importRef || !itemCode) {
                 resultMap[key] = 0;
                 return;
             }
 
-            const normalizedIr = importRef.trim().toUpperCase();
-            const normalizedCode = itemCode.trim().toUpperCase();
+            const poData = irPoMap.get(importRef);
+            const cRefs = poData ? poData.cRefs : null;
+            const itemPoKeys = poData ? poData.itemPoKeys : null;
 
-            const poInfo = poInfoMap.get(normalizedIr);
-            const associatedGrns = new Set();
-            if (poInfo && poInfo.items) {
-                poInfo.items.forEach(it => {
-                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                    if (grnVal) {
-                        grnVal.split(',').forEach(g => {
-                            const gKey = g.trim();
-                            if (gKey) {
-                                associatedGrns.add(gKey);
-                            }
-                        });
-                    }
-                });
-            }
+            let sum = 0;
+            allGrns.forEach(g => {
+                const gCode = (g.Item_Code || '').toString().trim().toUpperCase();
+                if (gCode !== itemCode) return;
 
-            const itemGrns = grnsByItem.get(normalizedCode) || [];
+                const gIr = (g.Import_Reference || g.ir_map || '').toString().trim().toUpperCase();
+                const gOrder = (g.Order_Number || '').toString().trim().toUpperCase();
+                const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
 
-            if (associatedGrns.size > 0) {
-                let sum = 0;
-                itemGrns.forEach(g => {
-                    if (g.grns) {
-                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                                sum += parseInt(qty) || 0;
-                            }
-                        });
-                    } else {
-                        const grnNum = (g.GRN_Number || '').trim().toUpperCase();
-                        if (grnNum && associatedGrns.has(grnNum)) {
-                            sum += parseInt(g.total_expected) || 0;
-                        }
-                    }
-                });
-                resultMap[key] = sum;
-            } else if (poInfo && poInfo.items) {
-                let poQty = 0;
-                poInfo.items.forEach(it => {
-                    if (String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode) {
-                        poQty += parseInt(it.qty || it.Quantity || 0);
-                    }
-                });
-                resultMap[key] = poQty;
-            } else {
-                resultMap[key] = 0;
-            }
+                const isMatch = (gIr === importRef) ||
+                                (cRefs && gOrder && cRefs.has(gOrder)) ||
+                                (itemPoKeys && gOrder && itemPoKeys.has(`${gOrder}_${gCode}`));
+
+                if (isMatch) {
+                    sum += qty;
+                }
+            });
+
+            resultMap[key] = sum;
         });
+
+        return resultMap;
     } catch (err) {
-        console.error("Error en getGRNExpectedQtyBulk:", err);
+        console.error("Error in getGRNExpectedQtyBulk:", err);
+        return {};
     }
-
-    return resultMap;
 };
-
