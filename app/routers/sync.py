@@ -50,8 +50,8 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
     # Los items se cachean progresivamente en la IndexedDB del cliente a medida que se buscan online
     master_items = []
 
-    # 2. GRN Pending Quantities (Agrupado por Item_Code + Import_Reference)
-    grn_data = {}
+    # 2. GRN Pending Quantities (de Reporte 280 con Order_Number)
+    grn_data = []
     if csv_handler.df_grn_cache is not None:
         import polars as pl
         
@@ -59,22 +59,25 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
             csv_handler.df_grn_cache
             .filter(pl.col("Item_Code").is_not_null())
             .with_columns([
-                pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase()
+                pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase()
             ])
-            .group_by(["Item_Code", "GRN_Number"])
+            .group_by(["Item_Code", "GRN_Number", "Order_Number"])
             .agg(pl.col("Quantity").sum().alias("qty"))
         )
         for row in summary.to_dicts():
             item = row["Item_Code"]
             grn = row["GRN_Number"]
-            qty = int(row["qty"] or 0)
-            if not item:
-                continue
-            if item not in grn_data:
-                grn_data[item] = {"grns": {}, "total_expected": 0}
-            grn_data[item]["grns"][grn] = qty
-            grn_data[item]["total_expected"] += qty
+            order_num = row["Order_Number"]
+            qty = float(row["qty"] or 0)
+            if item:
+                grn_data.append({
+                    "Item_Code": item,
+                    "GRN_Number": grn,
+                    "Order_Number": order_num,
+                    "Quantity": qty
+                })
 
     # 3. Xdock (Reservations) - Ya está en memoria en csv_handler.reservation_qty_map
     xdock_data = csv_handler.reservation_qty_map

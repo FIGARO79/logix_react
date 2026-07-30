@@ -634,7 +634,8 @@ const Inbound = () => {
             const code = log.itemCode;
             const ir = log.importReference || log.importRef || '';
             const key = `${code}|${ir}`;
-            const expected = (grnMap[key] !== undefined) ? grnMap[key] : (log.qtyGrn !== undefined && log.qtyGrn !== null ? parseInt(log.qtyGrn) : 0);
+            const serverQty = parseInt(log.qtyGrn || log.expected_qty || 0);
+            const expected = (grnMap[key] !== undefined && grnMap[key] > 0) ? grnMap[key] : serverQty;
             const totalReceived = totalsMap[key] || 0;
             const isLatest = latestEntryMap[key] === log.id;
 

@@ -22,22 +22,30 @@ export const downloadMasterData = async () => {
             }
         }
         
-        // Cargar GRN Pending
+        // Cargar GRN Pending (Reporte 280)
         const grnStore = tx.objectStore('grn_pending');
         await grnStore.clear();
-        for (const [code, info] of Object.entries(data.grn_pending)) {
-            if (code && code !== 'null' && code !== 'undefined') {
-                if (info && typeof info === 'object') {
-                    grnStore.put({ 
-                        Item_Code: code, 
-                        grns: info.grns, 
-                        total_expected: info.total_expected 
-                    });
-                } else {
-                    grnStore.put({ 
-                        Item_Code: code, 
-                        total_expected: info 
-                    });
+        if (Array.isArray(data.grn_pending)) {
+            for (const row of data.grn_pending) {
+                if (row && row.Item_Code) {
+                    grnStore.put(row);
+                }
+            }
+        } else if (data.grn_pending && typeof data.grn_pending === 'object') {
+            for (const [code, info] of Object.entries(data.grn_pending)) {
+                if (code && code !== 'null' && code !== 'undefined') {
+                    if (info && typeof info === 'object') {
+                        grnStore.put({ 
+                            Item_Code: code, 
+                            grns: info.grns, 
+                            total_expected: info.total_expected 
+                        });
+                    } else {
+                        grnStore.put({ 
+                            Item_Code: code, 
+                            total_expected: info 
+                        });
+                    }
                 }
             }
         }

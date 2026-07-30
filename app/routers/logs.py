@@ -8,7 +8,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse, Response
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import LogEntry
@@ -198,6 +198,63 @@ async def add_log(data: LogEntry, username: str = Depends(permission_required("i
     else:
         raise HTTPException(status_code=500, detail="Error al guardar el registro en la base de datos.")
 
+async def _enrich_logs_with_grn_qty(logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not logs:
+        return logs
+
+    from app.services import csv_handler
+    await csv_handler.reload_cache_if_needed()
+    df_grn = csv_handler.df_grn_cache
+    if df_grn is None:
+        return logs
+
+    import os, orjson
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    po_cache = {}
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                po_cache = orjson.loads(f.read())
+        except: pass
+    po_item_to_ir = po_cache.get("po_item_to_ir", {})
+    po_order_to_ir = po_cache.get("po_order_to_ir", {})
+    customer_ref_data = po_cache.get("customer_ref_to_data", {})
+
+    expected_map = {}
+    for row in df_grn.to_dicts():
+        item_code = str(row.get("Item_Code", "")).strip().upper()
+        if not item_code:
+            continue
+
+        g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
+        g_order = str(row.get("Order_Number", "")).strip().upper()
+        qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
+
+        resolved_ir = None
+        po_key = f"{g_order}_{item_code}"
+        if po_key in po_item_to_ir:
+            resolved_ir = po_item_to_ir[po_key].get("import_ref")
+        elif g_order in po_order_to_ir:
+            resolved_ir = po_order_to_ir[g_order].get("import_ref")
+        elif g_order in customer_ref_data:
+            resolved_ir = customer_ref_data[g_order].get("import_ref")
+        elif g_ir:
+            resolved_ir = g_ir
+
+        if resolved_ir and qty > 0:
+            norm_key = f"{item_code}|{resolved_ir.strip().upper()}"
+            expected_map[norm_key] = expected_map.get(norm_key, 0) + qty
+
+    for log in logs:
+        code = str(log.get("itemCode", "")).strip().upper()
+        ir = str(log.get("importReference", "") or log.get("importRef", "")).strip().upper()
+        key = f"{code}|{ir}"
+        if key in expected_map:
+            log["qtyGrn"] = expected_map[key]
+            log["expected_qty"] = expected_map[key]
+
+    return logs
+
 @router.get('/get_logs')
 async def get_logs(version_date: Optional[str] = None, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):
     """Obtiene los registros de log (activos por defecto o de una versión archivada)."""
@@ -206,6 +263,8 @@ async def get_logs(version_date: Optional[str] = None, username: str = Depends(l
             logs = await db_logs.load_archived_log_data_db_async(db, version_date)
         else:
             logs = await db_logs.load_log_data_db_async(db)
+        
+        logs = await _enrich_logs_with_grn_qty(logs)
         return JSONResponse(content=logs)
     except Exception as e:
         print(f"Error cargando logs: {e}")
@@ -328,23 +387,47 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
         except Exception as e:
             print(f"⚠️ Error cargando PO Lookup: {e}")
 
-    # 2. Cargar df_grn_cache y construir mapa de sumas esperado
+    # 2. Cargar df_grn_cache y construir mapa de sumas esperado asociando por PO Extractor
     await csv_handler.reload_cache_if_needed()
     df_grn = csv_handler.df_grn_cache
 
     precalculated_expected = {}
     if df_grn is not None:
-        for row in df_grn.select(["Item_Code", "GRN_Number", "Quantity"]).iter_rows():
-            item_code_raw, grn_num_raw, qty_raw = row
-            if not item_code_raw:
+        po_cache = {}
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                    po_cache = orjson.loads(f.read())
+            except: pass
+        po_item_to_ir = po_cache.get("po_item_to_ir", {})
+        po_order_to_ir = po_cache.get("po_order_to_ir", {})
+        customer_ref_data = po_cache.get("customer_ref_to_data", {})
+
+        for row in df_grn.to_dicts():
+            item_code = str(row.get("Item_Code", "")).strip().upper()
+            if not item_code:
                 continue
-            item_code = str(item_code_raw).strip().upper()
-            grn_num = str(grn_num_raw).strip().upper()
-            qty = int(qty_raw or 0)
             
-            ir = grn_to_ir.get(grn_num)
-            if ir:
-                norm_key = f"{item_code}|{ir}"
+            g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
+            g_order = str(row.get("Order_Number", "")).strip().upper()
+            g_grn = str(row.get("GRN_Number", "")).strip().upper()
+            qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
+
+            resolved_ir = None
+            po_key = f"{g_order}_{item_code}"
+            if po_key in po_item_to_ir:
+                resolved_ir = po_item_to_ir[po_key].get("import_ref")
+            elif g_order in po_order_to_ir:
+                resolved_ir = po_order_to_ir[g_order].get("import_ref")
+            elif g_order in customer_ref_data:
+                resolved_ir = customer_ref_data[g_order].get("import_ref")
+            elif g_ir:
+                resolved_ir = g_ir
+            elif g_grn and g_grn in grn_to_ir:
+                resolved_ir = grn_to_ir[g_grn]
+
+            if resolved_ir and qty > 0:
+                norm_key = f"{item_code}|{resolved_ir.strip().upper()}"
                 precalculated_expected[norm_key] = precalculated_expected.get(norm_key, 0) + qty
 
     # 3. Obtener cantidad esperada por itemCode e importReference de logs
