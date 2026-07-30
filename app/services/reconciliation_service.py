@@ -106,6 +106,7 @@ async def get_reconciliation_calculations(
 
         # 3.b Cargar mapa desde po_lookup.json por (Order_Number + Order_Line + Item_Code), (Order_Number + Item_Code) y Order_Number
         po_line_item_records = []
+        po_grn_item_records = []
         po_item_records = []
         po_order_records = []
         if os.path.exists(PO_LOOKUP_JSON_PATH):
@@ -114,6 +115,29 @@ async def get_reconciliation_calculations(
 
                 with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     po_lookup_data = orjson.loads(f.read())
+
+                if "grn_to_ir" in po_lookup_data:
+                    extra_grns = [
+                        {"grn_map": str(g).strip().upper(), "ir_map": val.get("import_ref", "").strip().upper(), "wb_map": val.get("waybill", "").strip().upper()}
+                        for g, val in po_lookup_data["grn_to_ir"].items()
+                        if g and val.get("import_ref")
+                    ]
+                    if extra_grns:
+                        df_extra_grn = pl.DataFrame(extra_grns)
+                        df_grn_master = pl.concat([df_grn_master, df_extra_grn], how="diagonal").unique(subset=["grn_map"])
+
+                if "po_grn_item_to_ir" in po_lookup_data:
+                    for key, val in po_lookup_data["po_grn_item_to_ir"].items():
+                        parts = key.split("_", 1)
+                        if len(parts) == 2:
+                            po_grn_item_records.append(
+                                {
+                                    "grn_ref": parts[0].strip().upper(),
+                                    "item_ref": parts[1].strip().upper(),
+                                    "ir_po_grn": val.get("import_ref", "").strip().upper(),
+                                    "wb_po_grn": val.get("waybill", "").strip().upper(),
+                                }
+                            )
 
                 if "po_line_item_to_ir" in po_lookup_data:
                     for key, val in po_lookup_data["po_line_item_to_ir"].items():
@@ -193,6 +217,19 @@ async def get_reconciliation_calculations(
             )
         ).unique(subset=["order_ref", "line_ref", "item_ref"])
 
+        df_po_grn_item_map = (
+            pl.DataFrame(po_grn_item_records)
+            if po_grn_item_records
+            else pl.DataFrame(
+                schema={
+                    "grn_ref": pl.Utf8,
+                    "item_ref": pl.Utf8,
+                    "ir_po_grn": pl.Utf8,
+                    "wb_po_grn": pl.Utf8,
+                }
+            )
+        ).unique(subset=["grn_ref", "item_ref"])
+
         df_po_item_map = (
             pl.DataFrame(po_item_records)
             if po_item_records
@@ -246,11 +283,10 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 5. ASOCIACIÓN JERÁRQUICA DE I.R. Y WAYBILL AL REPORTE 280
-        # Prioridad 1: Match por Order_Number + Order_Line + Item_Code contra PO Extractor
-        # Prioridad 2: Match por Order_Number + Item_Code contra PO Extractor
-        # Prioridad 3: Match por Order_Number solo contra PO Extractor
-        # Prioridad 4: Match por GRN_Number contra Master Maps (DB / JSON Maestro)
+        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (SIN BÚSQUEDAS A CIEGAS)
+        # Prioridad 1: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor)
+        # Prioridad 2: Match exacto por GRN_Number + Item_Code (PO Extractor)
+        # Prioridad 3: Match exacto por Order_Number + Item_Code (PO Extractor)
         df_expected_with_ir = (
             df_280.join(
                 df_po_line_item_map,
@@ -259,29 +295,23 @@ async def get_reconciliation_calculations(
                 how="left",
             )
             .join(
+                df_po_grn_item_map,
+                left_on=["GRN_Number", "Item_Code"],
+                right_on=["grn_ref", "item_ref"],
+                how="left",
+            )
+            .join(
                 df_po_item_map,
                 left_on=["Order_Number", "Item_Code"],
                 right_on=["order_ref", "item_ref"],
                 how="left",
             )
-            .join(
-                df_po_order_map,
-                left_on="Order_Number",
-                right_on="order_ref",
-                how="left",
-            )
-            .join(
-                df_grn_master,
-                left_on="GRN_Number",
-                right_on="grn_map",
-                how="left",
-            )
             .with_columns(
                 [
-                    pl.coalesce(["ir_po_line", "ir_po", "ir_po_order", "ir_map"])
+                    pl.coalesce(["ir_po_line", "ir_po_grn", "ir_po"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_po_line", "wb_po", "wb_po_order", "wb_map"])
+                    pl.coalesce(["wb_po_line", "wb_po_grn", "wb_po"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
                 ]

@@ -105,6 +105,17 @@ async def process_po_extractor_logic(file_path: str):
             print(f"⚠️ Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía.")
             df_po = df_po.with_columns(pl.lit("").alias(opt_col))
         
+        # Manejar columna opcional "Order Line"
+        line_col_found = None
+        for col_cand in ["Order Line", "Order_Line", "Order Line Number"]:
+            if col_cand in df_full.columns:
+                line_col_found = col_cand
+                break
+        if line_col_found:
+            df_po = df_po.with_columns(df_full.get_column(line_col_found).cast(pl.Utf8).fill_null("").alias("Order Line"))
+        else:
+            df_po = df_po.with_columns(pl.lit("").alias("Order Line"))
+        
         # LIMPIEZA CRÍTICA
         df_po = df_po.filter((pl.col("Waybill") != "") & (pl.col("Import Ref Code") != ""))
         
@@ -114,7 +125,8 @@ async def process_po_extractor_logic(file_path: str):
             pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
             pl.col("Item Code").str.strip_chars().str.to_uppercase(),
             pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
-            pl.col(opt_col).str.strip_chars().str.to_uppercase()
+            pl.col(opt_col).str.strip_chars().str.to_uppercase(),
+            pl.col("Order Line").str.strip_chars()
         ])
 
         wb_lookup = {}
@@ -174,8 +186,10 @@ async def process_po_extractor_logic(file_path: str):
             }
             
         po_line_item_to_ir = {}
+        po_grn_item_to_ir = {}
         po_item_to_ir = {}
         po_order_to_ir = {}
+        grn_to_ir = {}
 
         for row in df_po.iter_rows(named=True):
             cust_ref = str(row[opt_col]).strip().upper()
@@ -183,6 +197,20 @@ async def process_po_extractor_logic(file_path: str):
             order_line = str(row.get("Order Line") or row.get("Order_Line") or row.get("Order Line Number") or "").strip()
             ir_str = str(row["Import Ref Code"]).strip().upper()
             waybill_str = str(row["Waybill"]).strip().upper()
+            grn_num = str(row.get("GRN Number") or "").strip()
+
+            if grn_num and ir_str:
+                for g in parse_grns(grn_num):
+                    g_clean = g.upper()
+                    grn_to_ir[g_clean] = {
+                        "import_ref": ir_str,
+                        "waybill": waybill_str
+                    }
+                    if item_code:
+                        po_grn_item_to_ir[f"{g_clean}_{item_code}"] = {
+                            "import_ref": ir_str,
+                            "waybill": waybill_str
+                        }
 
             if cust_ref:
                 if order_line and item_code:
@@ -213,8 +241,10 @@ async def process_po_extractor_logic(file_path: str):
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
             "po_line_item_to_ir": po_line_item_to_ir,
+            "po_grn_item_to_ir": po_grn_item_to_ir,
             "po_item_to_ir": po_item_to_ir,
             "po_order_to_ir": po_order_to_ir,
+            "grn_to_ir": grn_to_ir,
             "updated_at": datetime.datetime.now().isoformat()
         }
         

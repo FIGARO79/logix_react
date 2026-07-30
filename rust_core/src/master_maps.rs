@@ -39,7 +39,7 @@ fn split_grn_string(val: &str) -> Vec<String> {
 pub fn build_master_maps_rust(
     db_grns: Vec<(Option<String>, Option<String>, Option<String>)>,
     grn_json_path: &str,
-    _po_lookup_path: &str,
+    po_lookup_path: &str,
 ) -> PyResult<Vec<(String, String, String)>> {
     let mut master_maps: Vec<(String, String, String)> = Vec::new();
 
@@ -80,6 +80,29 @@ pub fn build_master_maps_rust(
         if !ir.is_empty() && !grns.is_empty() {
             for g in split_grn_string(&grns) {
                 master_maps.push((g, ir.clone(), wb.clone()));
+            }
+        }
+    }
+
+    // 3. C. Desde po_lookup.json (GRN Number de PO Extractor)
+    if let Ok(data) = std::fs::read_to_string(po_lookup_path) {
+        if let Ok(json) = serde_json::from_str::<Value>(&data) {
+            if let Some(grn_obj) = json.get("grn_to_ir").and_then(|v| v.as_object()) {
+                for (grn_key, val) in grn_obj {
+                    let ir = val.get("import_ref")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim().to_uppercase();
+                    let wb = val.get("waybill")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !ir.is_empty() && !grn_key.is_empty() {
+                        for g in split_grn_string(grn_key) {
+                            master_maps.push((g, ir.clone(), wb.clone()));
+                        }
+                    }
+                }
             }
         }
     }
