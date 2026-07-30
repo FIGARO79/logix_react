@@ -6,4 +6,4 @@ After=mariadb.service
 Type=oneshot
 User=debian
 Group=debian
-ExecStart=/bin/bash /home/debian/logix_cl/instance/backup_db.sh
+ExecStart=/bin/bash /home/debian/logix_cl/backups/backup_db.sh
