@@ -284,11 +284,18 @@ async def get_reconciliation_calculations(
         )
 
         # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (SIN BÚSQUEDAS A CIEGAS)
+        # Prioridad 0: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
         # Prioridad 1: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor)
         # Prioridad 2: Match exacto por GRN_Number + Item_Code (PO Extractor)
         # Prioridad 3: Match exacto por Order_Number + Item_Code (PO Extractor)
         df_expected_with_ir = (
             df_280.join(
+                df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
+                left_on="GRN_Number",
+                right_on="grn_map",
+                how="left",
+            )
+            .join(
                 df_po_line_item_map,
                 left_on=["Order_Number", "Order_Line", "Item_Code"],
                 right_on=["order_ref", "line_ref", "item_ref"],
@@ -308,10 +315,10 @@ async def get_reconciliation_calculations(
             )
             .with_columns(
                 [
-                    pl.coalesce(["ir_po_line", "ir_po_grn", "ir_po"])
+                    pl.coalesce(["ir_grn_master", "ir_po_line", "ir_po_grn", "ir_po"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_po_line", "wb_po_grn", "wb_po"])
+                    pl.coalesce(["wb_grn_master", "wb_po_line", "wb_po_grn", "wb_po"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
                 ]

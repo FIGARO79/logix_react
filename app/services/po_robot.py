@@ -85,21 +85,25 @@ async def run_po_robot(start_date: str, end_date: str):
             for idx, (sub_start, sub_end) in enumerate(ranges):
                 print(f"📝 [ROBOT] Procesando bloque {idx+1}/{len(ranges)}: {sub_start} a {sub_end}...", flush=True)
                 
-                # Rellenar Fecha Inicio (Teclado físico simulado rápido)
+                # Rellenar Fecha Inicio sin presionar Enter para evitar submit prematuro
                 print(f"   ➤ [ROBOT] Fecha Inicio: {sub_start}", flush=True)
                 start_input = page.locator("#Form_StartDate")
-                await start_input.click()
-                await start_input.clear()
-                await page.keyboard.type(sub_start, delay=15)
-                await page.keyboard.press("Enter")
+                await start_input.fill(sub_start)
+                await page.keyboard.press("Tab")
                 
-                # Rellenar Fecha Fin (Teclado físico simulado rápido)
+                # Rellenar Fecha Fin sin presionar Enter para evitar submit prematuro
                 print(f"   ➤ [ROBOT] Fecha Fin: {sub_end}", flush=True)
                 end_input = page.locator("#Form_EndDate")
-                await end_input.click()
-                await end_input.clear()
-                await page.keyboard.type(sub_end, delay=15)
-                await page.keyboard.press("Enter")
+                await end_input.fill(sub_end)
+                await page.keyboard.press("Tab")
+                
+                # Limpiar filtro de Orden de Compra individual si existiera
+                try:
+                    po_search = page.locator("#Form_PurchaseOrderSearch")
+                    if await po_search.count() > 0:
+                        await po_search.fill("")
+                except Exception:
+                    pass
                 
                 # Esperar 0.5 segundos para estabilidad del DatePicker de Sandvik
                 await asyncio.sleep(0.5)
