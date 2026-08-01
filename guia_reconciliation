@@ -1,0 +1,49 @@
+  ### 1. ¿Qué se toma de cada origen?
+
+  #### Desde el Extractor (Purchase Order Extractor.xlsx) → El Puente de Dirección
+
+  • Import Ref Code (La I.R. física asignada a la importación).
+  • Waybill (El número de Guía de Despacho).
+  • Customer Reference (El número de Orden de Compra de SAP).
+  • Item Code (El código de producto).
+
+  │ Función del Extractor: Crear un mapa único de consulta:
+  │ (Customer Reference + Item Code) longrightarrow (I.R. + Waybill)
+  ──────
+  #### Desde el Reporte 280 (AURRSGLBD0280.csv) → La Expectativa Comercial
+
+  • Order_Number (Coincide con Customer Reference).
+  • Item_Code (Coincide con Item Code).
+  • Item_Description (Descripción del artículo).
+  • Quantity (Cantidad esperada en SAP).
+
+  │ Función del Reporte 280: Entregar la cantidad de unidades que SAP espera recibir para cada combinación de Order_Number +
+  │ Item_Code.
+  ──────
+  #### Desde los Logs Físicos (Bodega) → La Realidad en Terreno
+  • importReference (La I.R. que el operario escaneó en bodega).
+  • itemCode (El código que el operario escaneó).
+  • qtyReceived (La cantidad física contada).
+  ──────
+  ### 2. El Nuevo Flujo de Cruce (Sin usar GRN)
+
+    [Reporte 280]                        [PO Extractor]
+    Order_Number  ----+             +--- Customer Reference
+    Item_Code     -----+---> MATCH <----+ Item Code
+    Quantity           |      |
+    Description        |      v
+                       |  Obtiene:
+                       |  - I.R.
+                       |  - Waybill
+                       v
+            [Línea Enriquecida]
+            I.R. + Item_Code + Cantidad Esperada
+                       |
+                       v  Cruce por (I.R. + Item_Code)
+            [Logs Físicos de Bodega]
+            I.R. + Item_Code + Cantidad Recibida
+                       |
+                       v
+            [RESULTADO CONCILIACIÓN]
+            Cant_Esperada vs Cant_Recibida = Diferencia
+    ──────

@@ -32,6 +32,44 @@ class StatusUpdate(BaseModel):
     status: str
 
 
+@router.get("/get_item_for_counting/{item_code}")
+async def get_item_for_counting(
+    item_code: str,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """
+    Obtiene la información de un ítem para la toma de inventario W2W.
+    Si el ítem NO existe en el maestro, retorna una respuesta marcada con 'in_master: False'
+    permitiendo inventariar ítems no catalogados hallados físicamente en bodega.
+    """
+    clean_code = item_code.upper().strip()
+    details = await csv_handler.get_item_details_from_master_csv(clean_code, db=db)
+
+    if details:
+        return ORJSONResponse(
+            {
+                "item_code": clean_code,
+                "description": details.get("Item_Description", "N/A"),
+                "bin_location": details.get("Bin_1", "N/A"),
+                "system_qty": float(details.get("Physical_Qty", 0.0)),
+                "cost_per_unit": float(details.get("Cost_per_Unit", 0.0)),
+                "in_master": True,
+            }
+        )
+    else:
+        return ORJSONResponse(
+            {
+                "item_code": clean_code,
+                "description": "ITEM NO REGISTRADO EN MAESTRO",
+                "bin_location": "N/A",
+                "system_qty": 0.0,
+                "cost_per_unit": 0.0,
+                "in_master": False,
+            }
+        )
+
+
 @router.get("/counts/dashboard_stats")
 async def get_dashboard_stats(
     username: str = Depends(permission_required("inventory")),

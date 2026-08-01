@@ -28,11 +28,39 @@ const CycleCounts = () => {
     const [locationCounts, setLocationCounts] = useState([]);
     const [sessionLocations, setSessionLocations] = useState([]);
 
+    // Recount State for Mobile
+    const [recountData, setRecountData] = useState(null);
+    const [showRecountModal, setShowRecountModal] = useState(false);
+    const [recountFilter, setRecountFilter] = useState('pending'); // 'pending' | 'all'
+
     // Scanner
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scanTarget, setScanTarget] = useState(null); // 'location' or 'item'
 
+    const fetchRecountList = useCallback(async () => {
+        if (!isOnline) return;
+        try {
+            const res = await fetch('/api/recount_list/active');
+            if (res.ok) {
+                const data = await res.json();
+                setRecountData(data);
+            }
+        } catch (e) {
+            console.error("Error al cargar lista de reconteo:", e);
+        }
+    }, [isOnline]);
 
+    const selectItemForRecount = (item) => {
+        setItemCode(item.item_code);
+        setDescription(item.description);
+        setBinSys(item.bin_location || 'N/A');
+        setCountedQty('');
+        setShowRecountModal(false);
+        toast.info(`Seleccionado ítem ${item.item_code} para reconteo`);
+        setTimeout(() => {
+            document.getElementById('counted_qty')?.focus();
+        }, 100);
+    };
 
     const checkActiveSession = useCallback(async () => {
         setCheckingSession(true);
@@ -116,15 +144,12 @@ const CycleCounts = () => {
     const updateSidebarData = useCallback(async () => {
         if (!activeSession) return;
 
-        // Offline compatibility: solo fetch si estamos online
         if (isOnline) {
-            // Fetch Session Locations
             try {
                 const res = await fetch(`/api/sessions/${activeSession.id}/locations`);
                 if (res.ok) setSessionLocations(await res.json());
             } catch (e) { console.error(e); }
 
-            // Fetch Counts for Current Location
             if (countedLocation) {
                 try {
                     const res = await fetch(`/api/sessions/${activeSession.id}/counts/${encodeURIComponent(countedLocation)}`);
@@ -133,9 +158,8 @@ const CycleCounts = () => {
             } else {
                 setLocationCounts([]);
             }
+            fetchRecountList();
         } else {
-            // En modo offline no mostramos historial actualizado de otras terminales, 
-            // pero podríamos mostrar los pendientes locales que coincidan
             const db = await getDB();
             const allPending = await db.getAll('pending_sync');
             const localMatches = allPending
@@ -148,19 +172,18 @@ const CycleCounts = () => {
                 }));
             setLocationCounts(localMatches);
         }
-    }, [activeSession, isOnline, countedLocation]);
+    }, [activeSession, isOnline, countedLocation, fetchRecountList]);
 
-    // Check Active Session on Mount
     useEffect(() => {
         checkActiveSession();
     }, [checkActiveSession]);
 
-    // Update Sidebar when Location or Session changes
     useEffect(() => {
         if (activeSession) {
             updateSidebarData();
+            fetchRecountList();
         }
-    }, [activeSession, countedLocation, updateSidebarData]);
+    }, [activeSession, countedLocation, updateSidebarData, fetchRecountList]);
 
     const fetchItemData = async (code) => {
         if (!code) return;
@@ -176,9 +199,12 @@ const CycleCounts = () => {
                     setItemCode(data.item_code);
                     setDescription(data.description);
                     setBinSys(data.bin_location || 'N/A');
+                    if (!data.in_master) {
+                        toast.info("Ítem no registrado en maestro (admitido para conteo W2W)");
+                    }
                     document.getElementById('counted_qty')?.focus();
                 } else {
-                    toast.error("Item no encontrado");
+                    toast.error("Error consultando ítem");
                 }
             } else {
                 // Offline: buscar en maestro local
@@ -188,10 +214,13 @@ const CycleCounts = () => {
                     setItemCode(localItem.Item_Code);
                     setDescription(localItem.Item_Description);
                     setBinSys(localItem.Bin_1 || 'N/A');
-                    document.getElementById('counted_qty')?.focus();
                 } else {
-                    toast.error("Item no encontrado en maestro local");
+                    setItemCode(code.trim().toUpperCase());
+                    setDescription('ITEM NO REGISTRADO EN MAESTRO');
+                    setBinSys('N/A');
+                    toast.info("Ítem no encontrado en maestro local (admitido para conteo W2W)");
                 }
+                document.getElementById('counted_qty')?.focus();
             }
         } catch (e) {
             toast.error("Error buscando item");
@@ -219,7 +248,7 @@ const CycleCounts = () => {
 
         try {
             if (isOnline) {
-                const res = await fetch('/api/save_count', {
+                const res = await fetch('/api/w2w/save_count', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -383,6 +412,27 @@ const CycleCounts = () => {
                     </div>
 
                     <form onSubmit={handleSaveCount} className="space-y-4">
+                        {/* Banner de Reconteo Activo (Etapas >= 2) */}
+                        {recountData && recountData.stage >= 2 && recountData.total > 0 && (
+                            <div className="mb-4 bg-amber-50 border border-amber-300 rounded-lg p-3 flex flex-wrap justify-between items-center gap-2 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-amber-600 text-white text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                                        RECONTEO ETAPA {recountData.stage} (R{recountData.stage - 1})
+                                    </span>
+                                    <span className="text-xs font-semibold text-amber-900">
+                                        {recountData.recounted_count} / {recountData.total} Recontados ({recountData.pending_count} pendientes)
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRecountModal(true)}
+                                    className="bg-amber-700 hover:bg-amber-800 text-white text-[11px] font-bold px-3 py-1.5 rounded uppercase tracking-wider transition-colors shadow-sm"
+                                >
+                                    📋 Ver Lista ({recountData.pending_count})
+                                </button>
+                            </div>
+                        )}
+
                         {/* Location */}
                         <div className="flex items-end gap-2">
                             <div className="flex-grow">
@@ -506,6 +556,104 @@ const CycleCounts = () => {
                     onScan={handleScan}
                     onClose={() => setScannerOpen(false)}
                 />
+            )}
+
+            {/* Recount List Modal for Mobile */}
+            {showRecountModal && recountData && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        {/* Modal Header */}
+                        <div className="bg-slate-900 text-white px-5 py-4 flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-sm uppercase tracking-wider">
+                                    Ítems a Recontar - Etapa {recountData.stage} (R{recountData.stage - 1})
+                                </h3>
+                                <p className="text-[11px] text-slate-300">
+                                    {recountData.recounted_count} de {recountData.total} recontados ({recountData.pending_count} pendientes)
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowRecountModal(false)}
+                                className="text-slate-400 hover:text-white text-xl font-bold px-2 py-1"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Modal Filter Tabs */}
+                        <div className="flex border-b bg-slate-50 px-5 pt-2 gap-2 text-xs">
+                            <button
+                                onClick={() => setRecountFilter('pending')}
+                                className={`px-3 py-2 border-b-2 font-medium uppercase tracking-wider transition-colors ${
+                                    recountFilter === 'pending'
+                                        ? 'border-amber-600 text-amber-700 bg-white rounded-t'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Pendientes ({recountData.pending_count})
+                            </button>
+                            <button
+                                onClick={() => setRecountFilter('all')}
+                                className={`px-3 py-2 border-b-2 font-medium uppercase tracking-wider transition-colors ${
+                                    recountFilter === 'all'
+                                        ? 'border-amber-600 text-amber-700 bg-white rounded-t'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Todos ({recountData.total})
+                            </button>
+                        </div>
+
+                        {/* Items List */}
+                        <div className="p-4 overflow-y-auto space-y-2 flex-grow">
+                            {recountData.items
+                                .filter(item => recountFilter === 'all' || !item.is_recounted)
+                                .map(item => (
+                                    <div
+                                        key={item.item_code}
+                                        className={`p-3 border rounded-lg flex justify-between items-center transition-all ${
+                                            item.is_recounted
+                                                ? 'bg-green-50/50 border-green-200 opacity-75'
+                                                : 'bg-white border-amber-200 hover:border-amber-400 shadow-sm'
+                                        }`}
+                                    >
+                                        <div className="flex-1 pr-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono font-bold text-sm text-slate-900">
+                                                    {item.item_code}
+                                                </span>
+                                                {item.is_recounted ? (
+                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-300">
+                                                        ✓ RECONTADO ({item.counted_qty_in_stage})
+                                                    </span>
+                                                ) : (
+                                                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300">
+                                                        PENDIENTE
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-600 font-medium line-clamp-1 mt-0.5">
+                                                {item.description}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 uppercase font-mono mt-0.5">
+                                                Ubic. Sistema: <span className="font-semibold text-slate-700">{item.bin_location}</span>
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => selectItemForRecount(item)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-sm ${
+                                                item.is_recounted
+                                                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    : 'bg-amber-600 hover:bg-amber-700 text-white'
+                                            }`}
+                                        >
+                                            {item.is_recounted ? 'Editar' : 'Recontar ➔'}
+                                        </button>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -179,10 +179,11 @@ const AdminInventory = () => {
                                         >
                                             {item.label}
                                         </button>
-                                        {stage >= item.s && (
+                                        {stage >= item.s && item.s > 1 && (
                                             <button
-                                                onClick={() => window.location.href = `/api/export_recount_list/${item.s}`}
-                                                className="px-3 border border-zinc-200 rounded hover:bg-zinc-50 text-black hover:text-black transition-colors"
+                                                onClick={() => window.location.href = item.s === 4 ? '/admin/inventory/report' : `/api/export_recount_list/${item.s}`}
+                                                title={item.s === 4 ? "Descargar Informe Final Consolidado W2W" : `Descargar Lista de Reconteo Etapa ${item.s}`}
+                                                className="px-3 border border-zinc-200 rounded hover:bg-zinc-50 text-black hover:text-black transition-colors font-bold text-[12px]"
                                             >
                                                 ↓
                                             </button>

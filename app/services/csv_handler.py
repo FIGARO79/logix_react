@@ -17,6 +17,7 @@ from app.core.config import (
 df_master_cache: Optional[pl.DataFrame] = None
 df_grn_cache: Optional[pl.DataFrame] = None
 master_qty_map: Dict[str, int] = {}
+master_cost_map: Dict[str, float] = {}
 reservation_qty_map: Dict[str, Dict[str, Any]] = {}
 
 _last_check = 0.0
@@ -77,7 +78,7 @@ async def generate_reservation_cache():
 
 
 async def load_csv_data():
-    global df_master_cache, df_grn_cache, master_qty_map, _mtime_master, _mtime_grn
+    global df_master_cache, df_grn_cache, master_qty_map, master_cost_map, _mtime_master, _mtime_grn
     t0 = time.time()
 
     # 1. Cargar Master Item (AURRSGLBD0250)
@@ -102,12 +103,22 @@ async def load_csv_data():
                     pl.col("Frozen_Qty")
                     .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
                     .fill_null(0.0),
+                    pl.col("Cost_per_Unit")
+                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
+                    .fill_null(0.0),
                 ]
             )
             master_qty_map = {
                 str(r["Item_Code"]): int(r["Physical_Qty"])
                 for r in df_master_cache.select(
                     ["Item_Code", "Physical_Qty"]
+                ).to_dicts()
+                if r["Item_Code"]
+            }
+            master_cost_map = {
+                str(r["Item_Code"]): float(r["Cost_per_Unit"])
+                for r in df_master_cache.select(
+                    ["Item_Code", "Cost_per_Unit"]
                 ).to_dicts()
                 if r["Item_Code"]
             }

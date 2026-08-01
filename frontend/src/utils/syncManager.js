@@ -134,7 +134,7 @@ export const syncPendingData = async () => {
                 url = '/api/save_picking_audit';
                 method = 'POST';
             } else if (record.collection === 'counts') {
-                url = '/api/save_count';
+                url = '/api/w2w/save_count';
                 method = 'POST';
             } else if (record.collection === 'spot_check') {
                 url = '/api/spot_check/save';
