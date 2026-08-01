@@ -191,10 +191,18 @@ const Layout = () => {
     }, [activeTabId]);
 
     const updateTabLabel = useCallback((tabId, newLabel) => {
-        setTabs(prev => prev.map(tab =>
-            tab.id === tabId ? { ...tab, label: newLabel } : tab
-        ));
-        if (tabId === activeTabId) setTitle(newLabel);
+        setTabs(prev => {
+            const existingTab = prev.find(tab => tab.id === tabId);
+            if (existingTab && existingTab.label === newLabel) {
+                return prev;
+            }
+            return prev.map(tab =>
+                tab.id === tabId ? { ...tab, label: newLabel } : tab
+            );
+        });
+        if (tabId === activeTabId) {
+            setTitle(prevTitle => prevTitle !== newLabel ? newLabel : prevTitle);
+        }
     }, [activeTabId]);
 
     const lastActiveTabId = useRef(activeTabId);

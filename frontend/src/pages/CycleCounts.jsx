@@ -126,7 +126,8 @@ const CycleCounts = () => {
         }
 
         try {
-            const res = await fetch(`/api/sessions/${activeSession.id}/close`, { method: 'POST' });
+            const sessionId = activeSession.id || activeSession.session_id;
+            const res = await fetch(`/api/sessions/${sessionId}/close`, { method: 'POST' });
             if (res.ok) {
                 setActiveSession(null);
                 const db = await getDB();
@@ -145,14 +146,15 @@ const CycleCounts = () => {
         if (!activeSession) return;
 
         if (isOnline) {
+            const sessionId = activeSession.id || activeSession.session_id;
             try {
-                const res = await fetch(`/api/sessions/${activeSession.id}/locations`);
+                const res = await fetch(`/api/sessions/${sessionId}/locations`);
                 if (res.ok) setSessionLocations(await res.json());
             } catch (e) { console.error(e); }
 
             if (countedLocation) {
                 try {
-                    const res = await fetch(`/api/sessions/${activeSession.id}/counts/${encodeURIComponent(countedLocation)}`);
+                    const res = await fetch(`/api/sessions/${sessionId}/counts/${encodeURIComponent(countedLocation)}`);
                     if (res.ok) setLocationCounts(await res.json());
                 } catch (e) { console.error(e); }
             } else {
@@ -237,7 +239,7 @@ const CycleCounts = () => {
         }
 
         const payload = {
-            session_id: activeSession.id,
+            session_id: activeSession.id || activeSession.session_id,
             item_code: itemCode,
             counted_qty: parseInt(countedQty),
             counted_location: countedLocation,
@@ -311,7 +313,7 @@ const CycleCounts = () => {
             const res = await fetch('/api/locations/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: activeSession.id, location_code: countedLocation })
+                body: JSON.stringify({ session_id: activeSession.id || activeSession.session_id, location_code: countedLocation })
             });
             if (res.ok) {
                 toast.success(`Ubicación ${countedLocation} cerrada`);
@@ -403,7 +405,7 @@ const CycleCounts = () => {
                     <div className="flex justify-between items-center mb-6 border-b pb-2">
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-medium text-gray-900 text-gray-800 uppercase tracking-tight">Inventario W2W #S{activeSession.id}</h1>
+                                <h1 className="text-xl font-medium text-gray-900 text-gray-800 uppercase tracking-tight">Inventario W2W #S{activeSession.id || activeSession.session_id}</h1>
                                 {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium text-gray-900">OFFLINE</span>}
                             </div>
                             <p className="text-[10px] text-gray-500 uppercase font-medium text-gray-900">Responsable: {activeSession.user_username || activeSession.username}</p>

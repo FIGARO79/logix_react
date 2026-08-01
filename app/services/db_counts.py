@@ -84,7 +84,11 @@ async def create_count_session(db: AsyncSession, username: str) -> Dict[str, Any
         await db.refresh(new_session)
 
         return {
+            "id": new_session.id,
             "session_id": new_session.id,
+            "user_username": username,
+            "start_time": new_session.start_time,
+            "status": new_session.status,
             "inventory_stage": current_stage,
             "message": f"Sesión {new_session.id} (Etapa {current_stage}) iniciada.",
         }

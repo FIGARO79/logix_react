@@ -26,6 +26,70 @@ const AdminInventory = () => {
     const [reopenLocationCode, setReopenLocationCode] = useState('');
     const [adminMsg, setAdminMsg] = useState('');
 
+    // --- Reconciliation State ---
+    const [reconItems, setReconItems] = useState([]);
+    const [reconLoading, setReconLoading] = useState(false);
+    const [reconFilter, setReconFilter] = useState('pending'); // 'pending' | 'all'
+    const [searchQuery, setSearchQuery] = useState('');
+    const [settings, setSettings] = useState({ w2w_qty_tolerance: 0.02, w2w_val_tolerance: 10.00 });
+    const [settingsLoading, setSettingsLoading] = useState(false);
+
+    const fetchReconciliation = useCallback(async () => {
+        setReconLoading(true);
+        try {
+            const res = await fetch('/api/admin/inventory/reconciliation');
+            if (!res.ok) throw new Error("Error cargando conciliación");
+            const data = await res.json();
+            setReconItems(data.items);
+            if (data.settings) {
+                setSettings(data.settings);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setReconLoading(false);
+        }
+    }, []);
+
+    const handleSaveSettings = async (e) => {
+        e.preventDefault();
+        setSettingsLoading(true);
+        try {
+            const res = await fetch('/api/admin/inventory/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    w2w_qty_tolerance: settings.w2w_qty_tolerance.toString(),
+                    w2w_val_tolerance: settings.w2w_val_tolerance.toString()
+                })
+            });
+            if (!res.ok) throw new Error("Error actualizando configuraciones");
+            alert("Tolerancias guardadas correctamente.");
+            fetchReconciliation();
+            fetchStats();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setSettingsLoading(false);
+        }
+    };
+
+    const handleApproveItem = async (itemCode) => {
+        if (!window.confirm(`¿Aprobar manualmente la diferencia de ${itemCode}?`)) return;
+        try {
+            const res = await fetch('/api/admin/inventory/approve_item', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_code: itemCode })
+            });
+            if (!res.ok) throw new Error("Error aprobando item");
+            fetchReconciliation();
+            fetchStats();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
     const fetchStats = useCallback(async () => {
         try {
             const res = await fetch('/api/admin/inventory/summary');
@@ -33,6 +97,9 @@ const AdminInventory = () => {
             const data = await res.json();
             setStats(data.stats);
             setStage(data.stage);
+            if (data.settings) {
+                setSettings(data.settings);
+            }
         } catch (err) {
             setError(err.message);
         }
@@ -83,12 +150,14 @@ const AdminInventory = () => {
     useEffect(() => {
         fetchStats();
         if (activeTab === 'counts') fetchCounts();
+        if (activeTab === 'reconciliation') fetchReconciliation();
         if (setTitle) setTitle("Adm. Inventario");
 
         const interval = setInterval(() => {
             if (navigator.onLine && !document.hidden) {
                 fetchStats();
                 if (activeTab === 'counts') fetchCounts();
+                if (activeTab === 'reconciliation') fetchReconciliation();
             }
         }, 5000);
 
@@ -99,6 +168,7 @@ const AdminInventory = () => {
                 if (event.data?.type === 'CYCLE_COUNT_MUTATED') {
                     fetchStats();
                     fetchCounts();
+                    fetchReconciliation();
                 }
             };
         }
@@ -107,7 +177,7 @@ const AdminInventory = () => {
             clearInterval(interval);
             if (bc) bc.close();
         };
-    }, [setTitle, activeTab, fetchStats, fetchCounts]);
+    }, [setTitle, activeTab, fetchStats, fetchCounts, fetchReconciliation]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("¿Eliminar este registro?")) return;
@@ -149,6 +219,12 @@ const AdminInventory = () => {
                     className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'counts' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
                 >
                     Auditoría de Registros
+                </button>
+                <button
+                    onClick={() => setActiveTab('reconciliation')}
+                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'reconciliation' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                >
+                    Conciliación de Diferencias
                 </button>
             </div>
 
@@ -327,6 +403,274 @@ const AdminInventory = () => {
                                                     </td>
                                                 </tr>
                                             ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'reconciliation' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        {/* Panel de Ajustes de Tolerancia */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-white border border-zinc-200 p-6 rounded shadow-sm">
+                                <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-6 border-b border-zinc-50 pb-2">
+                                    Ajustes de Tolerancia (WMS)
+                                </h3>
+                                <form onSubmit={handleSaveSettings} className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-normal text-zinc-500 uppercase block mb-1">
+                                            Tolerancia de Cantidad (%)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="1"
+                                            value={settings.w2w_qty_tolerance}
+                                            onChange={(e) =>
+                                                setSettings({
+                                                    ...settings,
+                                                    w2w_qty_tolerance: parseFloat(e.target.value) || 0,
+                                                })
+                                            }
+                                            className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all"
+                                            required
+                                        />
+                                        <span className="text-[10px] text-zinc-400 block mt-1">
+                                            Ej: 0.02 = 2% de variación permitida
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-normal text-zinc-500 uppercase block mb-1">
+                                            Tolerancia de Costo ($ USD)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={settings.w2w_val_tolerance}
+                                            onChange={(e) =>
+                                                setSettings({
+                                                    ...settings,
+                                                    w2w_val_tolerance: parseFloat(e.target.value) || 0,
+                                                })
+                                            }
+                                            className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all"
+                                            required
+                                        />
+                                        <span className="text-[10px] text-zinc-400 block mt-1">
+                                            Ej: 10.00 = Desviación máxima de $10 USD
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={settingsLoading}
+                                        className="w-full h-9 bg-black text-white text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 disabled:opacity-50 transition-colors shadow-sm"
+                                    >
+                                        {settingsLoading ? 'GUARDANDO...' : 'GUARDAR AJUSTES'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Panel de Conciliación Principal */}
+                        <div className="lg:col-span-3">
+                            <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
+                                <div className="bg-[#f2f2f2] px-4 py-3 border-b border-zinc-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                                    <div className="flex gap-4 flex-1 items-center">
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar SKU, descripción o ubicación..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="h-8 flex-1 max-w-[400px] border border-zinc-300 rounded px-3 text-[12px] bg-white outline-none focus:ring-1 focus:ring-black placeholder-zinc-400 font-sans"
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setReconFilter('pending')}
+                                                className={`px-3 py-1 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                                    reconFilter === 'pending'
+                                                        ? 'bg-zinc-800 border-zinc-800 text-white'
+                                                        : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                                                }`}
+                                            >
+                                                Pendientes (Fuera Tol.)
+                                            </button>
+                                            <button
+                                                onClick={() => setReconFilter('all')}
+                                                className={`px-3 py-1 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                                    reconFilter === 'all'
+                                                        ? 'bg-zinc-800 border-zinc-800 text-white'
+                                                        : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                                                }`}
+                                            >
+                                                Todos
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={fetchReconciliation}
+                                        disabled={reconLoading}
+                                        className="h-8 px-4 border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 text-[10px] uppercase font-normal tracking-wider rounded transition-colors disabled:opacity-50"
+                                    >
+                                        {reconLoading ? 'ACTUALIZANDO...' : 'REFRESCAR'}
+                                    </button>
+                                </div>
+
+                                <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
+                                            <tr>
+                                                {[
+                                                    'Ítem / Ubicación',
+                                                    'Costo',
+                                                    'Sist',
+                                                    'Etapa 1',
+                                                    'Etapa 2',
+                                                    'Etapa 3',
+                                                    'Etapa 4',
+                                                    'Contado',
+                                                    'Diff',
+                                                    'Valor Diff',
+                                                    'Estado',
+                                                    'Acción',
+                                                ].map((h, i) => (
+                                                    <th
+                                                        key={i}
+                                                        className="px-3 py-2.5 text-[10px] font-normal uppercase tracking-wider text-center first:text-left"
+                                                    >
+                                                        {h}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-100">
+                                            {reconItems
+                                                .filter((item) => {
+                                                    const matchQuery =
+                                                        item.item_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                        item.bin_location.toLowerCase().includes(searchQuery.toLowerCase());
+
+                                                    if (reconFilter === 'pending') {
+                                                        return (
+                                                            matchQuery &&
+                                                            (item.status === 'PENDING' || item.status === 'PENDING_RECOUNT')
+                                                        );
+                                                    }
+                                                    return matchQuery;
+                                                })
+                                                .map((item) => (
+                                                    <tr
+                                                        key={item.item_code}
+                                                        className="hover:bg-[#f8f8f8] transition-colors leading-normal"
+                                                    >
+                                                        <td className="px-3 py-2 text-left">
+                                                            <div className="font-mono text-zinc-900 font-bold uppercase tracking-tight">
+                                                                {item.item_code}
+                                                            </div>
+                                                            <div className="text-[10px] text-zinc-500 font-light truncate max-w-[200px]">
+                                                                {item.description}
+                                                            </div>
+                                                            <div className="text-[10px] text-zinc-400 font-mono">
+                                                                Loc: {item.bin_location}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono">
+                                                            ${item.cost.toFixed(2)}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono text-zinc-600 bg-zinc-50/50">
+                                                            {item.system_qty}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                            {item.c1 !== null ? item.c1 : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                            {item.c2 !== null ? item.c2 : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                            {item.c3 !== null ? item.c3 : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                            {item.c4 !== null ? item.c4 : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center font-mono font-bold bg-zinc-50/50">
+                                                            {item.final_counted}
+                                                        </td>
+                                                        <td
+                                                            className={`px-3 py-2 text-center font-mono font-bold ${
+                                                                item.diff_qty > 0
+                                                                    ? 'text-green-600'
+                                                                    : item.diff_qty < 0
+                                                                    ? 'text-red-600'
+                                                                    : 'text-zinc-400'
+                                                            }`}
+                                                        >
+                                                            {item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
+                                                        </td>
+                                                        <td
+                                                            className={`px-3 py-2 text-center font-mono font-bold ${
+                                                                item.diff_val > 0
+                                                                    ? 'text-green-600'
+                                                                    : item.diff_val < 0
+                                                                    ? 'text-red-600'
+                                                                    : 'text-zinc-400'
+                                                            }`}
+                                                        >
+                                                            {item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            {item.status === 'OK' && (
+                                                                <span className="px-2 py-0.5 text-[9px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                                                                    SIN DIF
+                                                                </span>
+                                                            )}
+                                                            {item.status === 'APPROVED_AUTO' && (
+                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                    AUTO OK
+                                                                </span>
+                                                            )}
+                                                            {item.status === 'APPROVED_MANUAL' && (
+                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                                                    APROB SUPERV
+                                                                </span>
+                                                            )}
+                                                            {item.status === 'PENDING_RECOUNT' && (
+                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                                                    RECONTEO REQ
+                                                                </span>
+                                                            )}
+                                                            {item.status === 'PENDING' && (
+                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
+                                                                    EXCEDE TOLER
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            {(item.status === 'PENDING' ||
+                                                                item.status === 'PENDING_RECOUNT') && (
+                                                                <button
+                                                                    onClick={() => handleApproveItem(item.item_code)}
+                                                                    className="h-6 px-2 bg-zinc-800 text-white text-[10px] font-normal uppercase tracking-wider rounded hover:bg-zinc-900 transition-colors shadow-sm"
+                                                                >
+                                                                    Aprobar
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            {reconItems.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={12} className="text-center py-8 text-zinc-400 italic">
+                                                        No hay datos para mostrar en la etapa actual.
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>

@@ -3,11 +3,13 @@ Router para endpoints de gestión de inventario y conteos administrativos.
 """
 
 import datetime
+from collections import defaultdict
 
 from io import BytesIO
 from urllib.parse import urlencode
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from openpyxl.utils import get_column_letter
+from pydantic import BaseModel
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse, Response
@@ -211,9 +213,22 @@ async def start_inventory_stage_1(
         )
 
 
+async def get_app_setting(db: AsyncSession, key: str, default_value: str) -> str:
+    """Obtiene una configuración de AppState o crea el valor por defecto si no existe."""
+    stmt = select(AppState).where(AppState.key == key)
+    res = await db.execute(stmt)
+    setting = res.scalar_one_or_none()
+    if not setting:
+        setting = AppState(key=key, value=default_value)
+        db.add(setting)
+        await db.commit()
+        return default_value
+    return setting.value
+
+
 async def process_stage_advance_logic(db: AsyncSession, next_stage: int) -> int:
-    """Procesa el avance de etapa calculando diferencias con la toma más reciente por ítem (Rust).
-    Devuelve el total de ítems insertados en RecountList para next_stage."""
+    """Procesa el avance de etapa calculando diferencias con la toma más reciente por ítem (Rust)
+    e introduciendo tolerancias de cantidad y valor monetario."""
     await csv_handler.reload_cache_if_needed()
 
     # 1. Obtenemos conteos físicos de etapas anteriores a next_stage
@@ -289,22 +304,54 @@ async def process_stage_advance_logic(db: AsyncSession, next_stage: int) -> int:
                 "status": "OK" if diff_q == 0 else ("SOBRANTE" if diff_q > 0 else "FALTANTE")
             })
 
-    # 4. Agrupar por item_code para determinar cuáles tienen discrepancias globales
-    item_diffs: Dict[str, float] = {}
+    # 4. Agrupar por item_code para determinar cuáles tienen discrepancias globales y exceden las tolerancias
+    qty_tol_str = await get_app_setting(db, "w2w_qty_tolerance", "0.02")
+    val_tol_str = await get_app_setting(db, "w2w_val_tolerance", "10.00")
+    qty_tolerance = float(qty_tol_str)
+    val_tolerance = float(val_tol_str)
+
+    item_aggregates = {}
     for rec in diff_records:
         item = rec["item_code"]
-        item_diffs[item] = item_diffs.get(item, 0.0) + float(rec["diff_qty"])
+        sys_q = float(rec["system_qty"])
+        cnt_q = float(rec["counted_qty"])
+        diff_q = float(rec["diff_qty"])
+        cost = float(rec["unit_cost"])
+        
+        if item not in item_aggregates:
+            item_aggregates[item] = {
+                "system_qty": 0.0,
+                "counted_qty": 0.0,
+                "diff_qty": 0.0,
+                "unit_cost": cost
+            }
+        item_aggregates[item]["system_qty"] += sys_q
+        item_aggregates[item]["counted_qty"] += cnt_q
+        item_aggregates[item]["diff_qty"] += diff_q
 
     # 5. Limpiar y recrear lista de reconteo para next_stage
     await db.execute(
         delete(RecountList).where(RecountList.stage_to_count == next_stage)
     )
 
-    items_for_recount = [
-        {"item_code": code, "stage_to_count": next_stage}
-        for code, diff in item_diffs.items()
-        if abs(diff) > 0.0001
-    ]
+    items_for_recount = []
+    for code, agg in item_aggregates.items():
+        diff_q = agg["diff_qty"]
+        abs_diff_q = abs(diff_q)
+        if abs_diff_q <= 0.0001:
+            continue
+            
+        sys_q = agg["system_qty"]
+        cost = agg["unit_cost"]
+        diff_val = abs_diff_q * cost
+        
+        exceeds_qty = (abs_diff_q / sys_q) > qty_tolerance if sys_q > 0 else False
+        exceeds_val = diff_val > val_tolerance
+        
+        if exceeds_qty or exceeds_val:
+            items_for_recount.append(
+                {"item_code": code, "stage_to_count": next_stage, "status": "pending"}
+            )
 
     if items_for_recount:
         await db.execute(insert(RecountList), items_for_recount)
@@ -688,7 +735,20 @@ async def get_inventory_summary_api(
     stage_state = result.scalar_one_or_none()
     current_stage = int(stage_state.value) if stage_state else 0
 
-    return ORJSONResponse(content={"stage": current_stage, "stats": stats})
+    # Obtener configuraciones de tolerancia
+    qty_tolerance = await get_app_setting(db, "w2w_qty_tolerance", "0.02")
+    val_tolerance = await get_app_setting(db, "w2w_val_tolerance", "10.00")
+
+    return ORJSONResponse(
+        content={
+            "stage": current_stage,
+            "stats": stats,
+            "settings": {
+                "w2w_qty_tolerance": float(qty_tolerance),
+                "w2w_val_tolerance": float(val_tolerance),
+            },
+        }
+    )
 
 
 @router.post("/api/admin/inventory/start_stage_1")
@@ -796,9 +856,10 @@ async def get_active_recount_list(
             }
         )
 
-    # 2. Ítems asignados para reconteo en esta etapa
+    # 2. Ítems asignados para reconteo en esta etapa (únicamente los pendientes)
     stmt_recount = select(RecountList.item_code).where(
-        RecountList.stage_to_count == current_stage
+        RecountList.stage_to_count == current_stage,
+        RecountList.status == "pending"
     )
     recount_rows = (await db.execute(stmt_recount)).scalars().all()
 
@@ -925,5 +986,230 @@ async def save_w2w_count_api(
             "session_id": payload.session_id,
             "item_code": clean_code,
             "inventory_stage": session_row.inventory_stage,
+        }
+    )
+
+
+# ===== [NUEVO] ENDPOINTS DE WMS PROFESIONAL (TOLERANCIAS Y CONCILIACIÓN) =====
+
+
+@router.post("/api/admin/inventory/settings")
+async def update_inventory_settings_api(
+    payload: Dict[str, str],
+    user: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """API: Actualiza las configuraciones de tolerancia de inventario general en AppState."""
+    for key, value in payload.items():
+        if key in ["w2w_qty_tolerance", "w2w_val_tolerance"]:
+            # Validar formato float
+            try:
+                float(value)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Valor inválido para {key}")
+
+            stmt = select(AppState).where(AppState.key == key)
+            res = await db.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if not setting:
+                setting = AppState(key=key, value=value)
+                db.add(setting)
+            else:
+                setting.value = value
+    await db.commit()
+    return ORJSONResponse(content={"message": "Configuraciones actualizadas correctamente"})
+
+
+class ApprovePayload(BaseModel):
+    item_code: str
+
+
+@router.post("/api/admin/inventory/approve_item")
+async def approve_inventory_item_api(
+    payload: ApprovePayload,
+    user: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """API: Aprueba manualmente una discrepancia de inventario para que no requiera reconteo en la etapa actual."""
+    # 1. Obtener la etapa activa
+    result = await db.execute(
+        select(AppState).where(AppState.key == "current_inventory_stage")
+    )
+    stage_state = result.scalar_one_or_none()
+    current_stage = int(stage_state.value) if stage_state else 0
+
+    clean_code = payload.item_code.upper().strip()
+
+    # 2. Buscar si está en la lista de reconteo de la etapa actual
+    stmt = select(RecountList).where(
+        RecountList.item_code == clean_code,
+        RecountList.stage_to_count == current_stage
+    )
+    res = await db.execute(stmt)
+    recount_item = res.scalar_one_or_none()
+
+    if not recount_item:
+        # Si no existe en la etapa actual, lo creamos directamente marcado como aprobado
+        recount_item = RecountList(
+            item_code=clean_code,
+            stage_to_count=current_stage,
+            status="manually_approved"
+        )
+        db.add(recount_item)
+    else:
+        recount_item.status = "manually_approved"
+
+    await db.commit()
+    return ORJSONResponse(
+        content={
+            "message": f"Código {clean_code} aprobado manualmente para la etapa {current_stage}."
+        }
+    )
+
+
+@router.get("/api/admin/inventory/reconciliation")
+async def get_inventory_reconciliation_api(
+    user: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    API: Retorna la lista consolidada de discrepancias de inventario general
+    con el historial de conteo por etapa, diferencias, costos y estado de aprobación.
+    """
+    await csv_handler.reload_cache_if_needed()
+
+    # 1. Obtener etapa actual
+    result = await db.execute(
+        select(AppState).where(AppState.key == "current_inventory_stage")
+    )
+    stage_state = result.scalar_one_or_none()
+    current_stage = int(stage_state.value) if stage_state else 0
+
+    # 2. Cargar todas las tomas físicas de StockCount
+    stmt_counts = (
+        select(
+            StockCount.item_code,
+            StockCount.counted_qty,
+            CountSession.inventory_stage
+        )
+        .join(CountSession, StockCount.session_id == CountSession.id)
+    )
+    res_counts = await db.execute(stmt_counts)
+    counts_rows = res_counts.fetchall()
+
+    # Agrupar conteos físicos por item_code y stage
+    counts_by_item = defaultdict(lambda: defaultdict(float))
+    for r in counts_rows:
+        code = str(r.item_code).upper().strip()
+        counts_by_item[code][int(r.inventory_stage)] += float(r.counted_qty or 0.0)
+
+    # 3. Cargar RecountList para ver el estado de aprobaciones manuales/pendientes
+    stmt_recount = select(RecountList).where(RecountList.stage_to_count == current_stage)
+    res_recount = await db.execute(stmt_recount)
+    recount_rows = res_recount.scalars().all()
+    recount_map = {r.item_code.upper().strip(): r for r in recount_rows}
+
+    # 4. Obtener tolerancias de AppState
+    qty_tol_str = await get_app_setting(db, "w2w_qty_tolerance", "0.02")
+    val_tol_str = await get_app_setting(db, "w2w_val_tolerance", "10.00")
+    qty_tolerance = float(qty_tol_str)
+    val_tolerance = float(val_tol_str)
+
+    # 5. Iterar sobre todos los ítems del maestro y del conteo físico
+    master_keys = set(csv_handler.master_qty_map.keys())
+    counted_keys = set(counts_by_item.keys())
+    all_keys = master_keys | counted_keys
+
+    reconciliation_list = []
+    for code_raw in all_keys:
+        code = str(code_raw).upper().strip()
+        if not code:
+            continue
+
+        # Stock en sistema y costo
+        sys_qty = float(csv_handler.master_qty_map.get(code, 0.0))
+        cost = float(csv_handler.master_cost_map.get(code, 0.0))
+
+        # Conteos por etapa
+        stage_counts = counts_by_item.get(code, {})
+        c1 = stage_counts.get(1, None)
+        c2 = stage_counts.get(2, None)
+        c3 = stage_counts.get(3, None)
+        c4 = stage_counts.get(4, None)
+
+        # Determinar cantidad final contada basándose en la regla de sobrescritura de etapas
+        final_counted = None
+        for stg in [4, 3, 2, 1]:
+            if stg in stage_counts:
+                final_counted = stage_counts[stg]
+                break
+        
+        is_counted = final_counted is not None
+        final_counted_val = final_counted if is_counted else 0.0
+
+        diff_qty = final_counted_val - sys_qty
+        abs_diff_qty = abs(diff_qty)
+        diff_val = diff_qty * cost
+        abs_diff_val = abs(diff_val)
+
+        # Determinar Estado
+        status = "OK"
+        if abs_diff_qty > 0.0001:
+            recount_item = recount_map.get(code)
+            if recount_item:
+                if recount_item.status == "manually_approved":
+                    status = "APPROVED_MANUAL"
+                else:
+                    status = "PENDING_RECOUNT"
+            else:
+                exceeds_qty = (abs_diff_qty / sys_qty) > qty_tolerance if sys_qty > 0 else False
+                exceeds_val = abs_diff_val > val_tolerance
+                if exceeds_qty or exceeds_val:
+                    status = "PENDING"
+                else:
+                    status = "APPROVED_AUTO"
+
+        # Detalles del item
+        details = await csv_handler.get_item_details_from_master_csv(code, db) or {}
+        description = details.get("Item_Description", "ITEM NO CATALOGADO")
+        bin_location = details.get("Bin_1", "N/A")
+
+        reconciliation_list.append({
+            "item_code": code,
+            "description": description,
+            "bin_location": bin_location,
+            "system_qty": sys_qty,
+            "cost": cost,
+            "c1": c1,
+            "c2": c2,
+            "c3": c3,
+            "c4": c4,
+            "final_counted": final_counted_val,
+            "diff_qty": diff_qty,
+            "diff_val": diff_val,
+            "status": status,
+            "is_counted": is_counted
+        })
+
+    # Ordenar por estado (Pendientes primero, luego diferencias grandes)
+    status_order = {
+        "PENDING_RECOUNT": 0,
+        "PENDING": 1,
+        "APPROVED_MANUAL": 2,
+        "APPROVED_AUTO": 3,
+        "OK": 4
+    }
+    reconciliation_list.sort(
+        key=lambda x: (status_order.get(x["status"], 5), -abs(x["diff_val"]))
+    )
+
+    return ORJSONResponse(
+        content={
+            "stage": current_stage,
+            "items": reconciliation_list,
+            "settings": {
+                "w2w_qty_tolerance": qty_tolerance,
+                "w2w_val_tolerance": val_tolerance,
+            },
         }
     )
