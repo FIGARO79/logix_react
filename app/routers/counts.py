@@ -778,6 +778,134 @@ async def export_all_counts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/counts/differences")
+async def get_count_differences(
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """
+    API: Retorna el listado de tomas de inventario físico con la diferencia
+    calculada contra la cantidad del sistema y el % de variación.
+    """
+    await csv_handler.reload_cache_if_needed()
+
+    stmt = (
+        select(
+            StockCount.id,
+            StockCount.item_code,
+            StockCount.counted_location,
+            StockCount.counted_qty,
+            StockCount.timestamp,
+            CountSession.user_username,
+        )
+        .join(CountSession, StockCount.session_id == CountSession.id)
+        .order_by(StockCount.id.desc())
+    )
+    res = await db.execute(stmt)
+    rows = res.fetchall()
+
+    items = []
+    for r in rows:
+        item_code = str(r.item_code).upper().strip()
+        cnt_qty = float(r.counted_qty or 0.0)
+        sys_qty = float(csv_handler.master_qty_map.get(item_code, 0.0))
+        diff_qty = cnt_qty - sys_qty
+
+        if sys_qty > 0:
+            pct_var = round((diff_qty / sys_qty) * 100.0, 2)
+        else:
+            pct_var = 100.0 if diff_qty != 0 else 0.0
+
+        desc = csv_handler.master_desc_map.get(item_code, "N/A")
+
+        items.append(
+            {
+                "count_id": r.id,
+                "item_code": item_code,
+                "description": desc,
+                "location": r.counted_location or "N/A",
+                "system_qty": sys_qty,
+                "counted_qty": cnt_qty,
+                "difference": diff_qty,
+                "percentage_variance": pct_var,
+                "date": r.timestamp or "",
+                "username": r.user_username or "N/A",
+            }
+        )
+
+    return ORJSONResponse({"items": items, "count": len(items)})
+
+
+@router.get("/counts/{count_id}")
+async def get_count_by_id(
+    count_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Obtiene un registro de StockCount por su ID."""
+    await csv_handler.reload_cache_if_needed()
+
+    stmt = select(StockCount).where(StockCount.id == count_id)
+    res = await db.execute(stmt)
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    item_code = str(stock_count.item_code).upper().strip()
+    desc = csv_handler.master_desc_map.get(item_code, "N/A")
+
+    return ORJSONResponse(
+        {
+            "id": stock_count.id,
+            "session_id": stock_count.session_id,
+            "item_code": item_code,
+            "item_description": desc,
+            "counted_location": stock_count.counted_location or "N/A",
+            "counted_qty": stock_count.counted_qty,
+            "timestamp": stock_count.timestamp or "",
+        }
+    )
+
+
+class CountQtyUpdate(BaseModel):
+    counted_qty: float
+
+
+@router.put("/counts/{count_id}")
+async def update_count_qty(
+    count_id: int,
+    payload: CountQtyUpdate,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Actualiza la cantidad contada de un registro de StockCount."""
+    res = await db.execute(select(StockCount).where(StockCount.id == count_id))
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    stock_count.counted_qty = payload.counted_qty
+    await db.commit()
+    return ORJSONResponse({"message": "Cantidad actualizada correctamente"})
+
+
+@router.delete("/counts/{count_id}")
+async def delete_count(
+    count_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Elimina un registro de StockCount."""
+    res = await db.execute(select(StockCount).where(StockCount.id == count_id))
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    await db.delete(stock_count)
+    await db.commit()
+    return ORJSONResponse({"message": "Registro eliminado correctamente"})
+
+
 @router.get("/counts/export_recordings")
 async def export_recordings(
     username: str = Depends(permission_required("inventory")),

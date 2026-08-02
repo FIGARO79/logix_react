@@ -190,6 +190,11 @@ const Layout = () => {
         }
     }, [activeTabId]);
 
+    const activeTabIdRef = useRef(activeTabId);
+    useEffect(() => {
+        activeTabIdRef.current = activeTabId;
+    }, [activeTabId]);
+
     const updateTabLabel = useCallback((tabId, newLabel) => {
         setTabs(prev => {
             const existingTab = prev.find(tab => tab.id === tabId);
@@ -200,10 +205,10 @@ const Layout = () => {
                 tab.id === tabId ? { ...tab, label: newLabel } : tab
             );
         });
-        if (tabId === activeTabId) {
+        if (tabId === activeTabIdRef.current) {
             setTitle(prevTitle => prevTitle !== newLabel ? newLabel : prevTitle);
         }
-    }, [activeTabId]);
+    }, []);
 
     const lastActiveTabId = useRef(activeTabId);
     const targetTabIdRef = useRef(null);
@@ -288,6 +293,18 @@ const Layout = () => {
         checkAndSyncIfNeeded();
     }, [title]);
 
+    const userJson = localStorage.getItem('user');
+    let hasAdminPerm = false;
+    if (userJson) {
+        try {
+            const u = JSON.parse(userJson);
+            const perms = u.permissions ? u.permissions.split(',').map(p => p.trim()) : [];
+            if (u.username === 'admin' || perms.includes('admin')) {
+                hasAdminPerm = true;
+            }
+        } catch (e) {}
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
             {/* Header / Shell Bar */}
@@ -342,7 +359,7 @@ const Layout = () => {
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 border-red-500/30' : 'bg-emerald-500/20 border-emerald-500/30'}`}>
                         {!isOnline ? 'OFFLINE' : 'ONLINE'}
                     </div>
-                    <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all">Admin</Link>
+                    <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
                 </div>
             </header>
 
@@ -379,18 +396,19 @@ const Layout = () => {
                         <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
                         <MenuItem to="/planner/manage_differences" label="Diferencias" onClick={toggleMenu} />
                         <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
-                        <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />
-                        <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />
+                        {hasAdminPerm && <MenuItem to="/counts/manage" label="Edición Conteos" onClick={toggleMenu} />}
+                        {hasAdminPerm && <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />}
+                        <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />  
                         <MenuItem to="/spot-check" label="Spot Check" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
-                        <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
+                        {hasAdminPerm && <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />}
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
                         <button
-                            className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left"
+                            className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left cursor-pointer"
                             style={{ justifyContent: 'flex-start' }}
                             onClick={async () => {
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }

@@ -148,10 +148,13 @@ const AdminInventory = () => {
     }, [selectedUser]);
 
     useEffect(() => {
+        if (setTitle) setTitle("Adm. Inventario");
+    }, [setTitle]);
+
+    useEffect(() => {
         fetchStats();
         if (activeTab === 'counts') fetchCounts();
         if (activeTab === 'reconciliation') fetchReconciliation();
-        if (setTitle) setTitle("Adm. Inventario");
 
         const interval = setInterval(() => {
             if (navigator.onLine && !document.hidden) {
@@ -177,7 +180,7 @@ const AdminInventory = () => {
             clearInterval(interval);
             if (bc) bc.close();
         };
-    }, [setTitle, activeTab, fetchStats, fetchCounts, fetchReconciliation]);
+    }, [activeTab, fetchStats, fetchCounts, fetchReconciliation]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("¿Eliminar este registro?")) return;
@@ -340,32 +343,8 @@ const AdminInventory = () => {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-1">
-                            <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-                                <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-6 border-b border-zinc-50 pb-2">Reabrir Ubicación</h3>
-                                <form onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    try {
-                                        const res = await fetch('/api/locations/reopen', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ session_id: parseInt(reopenSessionId), location_code: reopenLocationCode })
-                                        });
-                                        if (!res.ok) throw new Error("Error");
-                                        setAdminMsg("OPERACIÓN EXITOSA"); setReopenSessionId(''); setReopenLocationCode('');
-                                        setTimeout(() => setAdminMsg(''), 3000);
-                                    } catch (e) { alert("Error en reapertura técnica"); }
-                                }} className="space-y-4">
-                                    <div><label className="text-[12px] font-normal text-black uppercase">ID Sesión</label><input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all" required /></div>
-                                    <div><label className="text-[12px] font-normal text-black uppercase">Código Loc</label><input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white font-mono outline-none transition-all" required /></div>
-                                    <button type="submit" className="w-full h-9 bg-zinc-800 text-white text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 transition-colors shadow-sm">EJECUTAR</button>
-                                    {adminMsg && <div className="text-center text-[12px] font-normal text-emerald-600 animate-pulse uppercase tracking-tight">REAPERTURA OK</div>}
-                                </form>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-3">
+                    <div>
+                        <div className="w-full">
                             <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
                                 <div className="bg-[#f2f2f2] px-4 py-1.5 border-b border-zinc-200 flex flex-row justify-between items-center gap-4">
                                     <div className="flex gap-4 items-center flex-1 max-w-[300px]">
@@ -385,21 +364,21 @@ const AdminInventory = () => {
                                         <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {['Auditor', 'Timestamp', 'Ítem', 'Ubicación', 'Cantidad', ''].map((h, i) => (
-                                                    <th key={i} className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider">{h}</th>
+                                                    <th key={i} className="px-3 py-1 text-[11px] font-normal uppercase tracking-tight">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
                                             {filteredCounts.map((c) => (
-                                                <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-none">
-                                                    <td className="px-4 py-2 text-[12px] font-normal text-black">{c.username}</td>
-                                                    <td className="px-4 py-2 text-[12px] text-black font-mono uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="px-4 py-2 text-[12px] font-normal text-black font-mono tracking-tight uppercase">{c.item_code}</td>
-                                                    <td className="px-4 py-2 text-[12px] text-black font-mono uppercase">{c.counted_location}</td>
-                                                    <td className="px-4 py-2 text-[12px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
-                                                    <td className="px-4 py-2 text-right space-x-4">
-                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-black text-[12px] font-normal uppercase transition-colors">Editar</button>
-                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[12px] font-normal uppercase transition-colors">Borrar</button>
+                                                <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-tight">
+                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black">{c.username}</td>
+                                                    <td className="px-3 py-0.5 text-[11px] text-black font-normal uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black font-normal tracking-tight uppercase">{c.item_code}</td>
+                                                    <td className="px-3 py-0.5 text-[11px] text-black font-normal uppercase">{c.counted_location}</td>
+                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
+                                                    <td className="px-3 py-0.5 text-right space-x-3">
+                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-black text-[11px] font-normal uppercase transition-colors">Editar</button>
+                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[11px] font-normal uppercase transition-colors">Borrar</button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -409,77 +388,14 @@ const AdminInventory = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>  
             )}
 
             {activeTab === 'reconciliation' && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        {/* Panel de Ajustes de Tolerancia */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-white border border-zinc-200 p-6 rounded shadow-sm">
-                                <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-6 border-b border-zinc-50 pb-2">
-                                    Ajustes de Tolerancia (WMS)
-                                </h3>
-                                <form onSubmit={handleSaveSettings} className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-normal text-zinc-500 uppercase block mb-1">
-                                            Tolerancia de Cantidad (%)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            max="1"
-                                            value={settings.w2w_qty_tolerance}
-                                            onChange={(e) =>
-                                                setSettings({
-                                                    ...settings,
-                                                    w2w_qty_tolerance: parseFloat(e.target.value) || 0,
-                                                })
-                                            }
-                                            className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all"
-                                            required
-                                        />
-                                        <span className="text-[10px] text-zinc-400 block mt-1">
-                                            Ej: 0.02 = 2% de variación permitida
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-normal text-zinc-500 uppercase block mb-1">
-                                            Tolerancia de Costo ($ USD)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={settings.w2w_val_tolerance}
-                                            onChange={(e) =>
-                                                setSettings({
-                                                    ...settings,
-                                                    w2w_val_tolerance: parseFloat(e.target.value) || 0,
-                                                })
-                                            }
-                                            className="w-full h-9 border border-zinc-200 rounded px-2 text-xs bg-zinc-50 focus:bg-white outline-none transition-all"
-                                            required
-                                        />
-                                        <span className="text-[10px] text-zinc-400 block mt-1">
-                                            Ej: 10.00 = Desviación máxima de $10 USD
-                                        </span>
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={settingsLoading}
-                                        className="w-full h-9 bg-black text-white text-[12px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 disabled:opacity-50 transition-colors shadow-sm"
-                                    >
-                                        {settingsLoading ? 'GUARDANDO...' : 'GUARDAR AJUSTES'}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
+                    <div>
                         {/* Panel de Conciliación Principal */}
-                        <div className="lg:col-span-3">
+                        <div className="w-full">
                             <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
                                 <div className="bg-[#f2f2f2] px-4 py-3 border-b border-zinc-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                                     <div className="flex gap-4 flex-1 items-center">
@@ -542,7 +458,7 @@ const AdminInventory = () => {
                                                 ].map((h, i) => (
                                                     <th
                                                         key={i}
-                                                        className="px-3 py-2.5 text-[10px] font-normal uppercase tracking-wider text-center first:text-left"
+                                                        className="px-2 py-1 text-[10px] font-normal uppercase tracking-wider text-center first:text-left"
                                                     >
                                                         {h}
                                                     </th>
@@ -568,42 +484,42 @@ const AdminInventory = () => {
                                                 .map((item) => (
                                                     <tr
                                                         key={item.item_code}
-                                                        className="hover:bg-[#f8f8f8] transition-colors leading-normal"
+                                                        className="hover:bg-[#f8f8f8] transition-colors leading-tight"
                                                     >
-                                                        <td className="px-3 py-2 text-left">
-                                                            <div className="font-mono text-zinc-900 font-bold uppercase tracking-tight">
+                                                        <td className="px-2 py-1 text-left">
+                                                            <div className="font-mono text-zinc-900 font-bold uppercase tracking-tight text-[11px] leading-tight">
                                                                 {item.item_code}
                                                             </div>
-                                                            <div className="text-[10px] text-zinc-500 font-light truncate max-w-[200px]">
+                                                            <div className="text-[9px] text-zinc-500 font-light truncate max-w-[180px] leading-none">
                                                                 {item.description}
                                                             </div>
-                                                            <div className="text-[10px] text-zinc-400 font-mono">
+                                                            <div className="text-[9px] text-zinc-400 font-mono leading-none">
                                                                 Loc: {item.bin_location}
                                                             </div>
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px]">
                                                             ${item.cost.toFixed(2)}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono text-zinc-600 bg-zinc-50/50">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-600 bg-zinc-50/50">
                                                             {item.system_qty}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
                                                             {item.c1 !== null ? item.c1 : '-'}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
                                                             {item.c2 !== null ? item.c2 : '-'}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
                                                             {item.c3 !== null ? item.c3 : '-'}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono text-zinc-500">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
                                                             {item.c4 !== null ? item.c4 : '-'}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center font-mono font-bold bg-zinc-50/50">
+                                                        <td className="px-2 py-1 text-center font-mono text-[10px] font-bold bg-zinc-50/50">
                                                             {item.final_counted}
                                                         </td>
                                                         <td
-                                                            className={`px-3 py-2 text-center font-mono font-bold ${
+                                                            className={`px-2 py-1 text-center font-mono text-[10px] font-bold ${
                                                                 item.diff_qty > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_qty < 0
@@ -614,7 +530,7 @@ const AdminInventory = () => {
                                                             {item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
                                                         </td>
                                                         <td
-                                                            className={`px-3 py-2 text-center font-mono font-bold ${
+                                                            className={`px-2 py-1 text-center font-mono text-[10px] font-bold ${
                                                                 item.diff_val > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_val < 0
@@ -624,39 +540,39 @@ const AdminInventory = () => {
                                                         >
                                                             {item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center">
+                                                        <td className="px-2 py-1 text-center">
                                                             {item.status === 'OK' && (
-                                                                <span className="px-2 py-0.5 text-[9px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
                                                                     SIN DIF
                                                                 </span>
                                                             )}
                                                             {item.status === 'APPROVED_AUTO' && (
-                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                                     AUTO OK
                                                                 </span>
                                                             )}
                                                             {item.status === 'APPROVED_MANUAL' && (
-                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
                                                                     APROB SUPERV
                                                                 </span>
                                                             )}
                                                             {item.status === 'PENDING_RECOUNT' && (
-                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
                                                                     RECONTEO REQ
                                                                 </span>
                                                             )}
                                                             {item.status === 'PENDING' && (
-                                                                <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
                                                                     EXCEDE TOLER
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="px-3 py-2 text-center">
+                                                        <td className="px-2 py-1 text-center">
                                                             {(item.status === 'PENDING' ||
                                                                 item.status === 'PENDING_RECOUNT') && (
                                                                 <button
                                                                     onClick={() => handleApproveItem(item.item_code)}
-                                                                    className="h-6 px-2 bg-zinc-800 text-white text-[10px] font-normal uppercase tracking-wider rounded hover:bg-zinc-900 transition-colors shadow-sm"
+                                                                    className="h-5 px-2 bg-zinc-800 text-white text-[9px] font-normal uppercase tracking-wider rounded hover:bg-zinc-900 transition-colors shadow-sm"
                                                                 >
                                                                     Aprobar
                                                                 </button>

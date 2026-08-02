@@ -106,6 +106,9 @@ async def get_active_session_for_user(
     db: AsyncSession, username: str
 ) -> Optional[Dict[str, Any]]:
     """Obtiene la sesión activa de un usuario."""
+    if not isinstance(username, str):
+        return None
+
     result = await db.execute(
         select(CountSession)
         .where(

@@ -23,6 +23,7 @@ const CycleCounts = () => {
     const [binSys, setBinSys] = useState('');
     const [countedQty, setCountedQty] = useState('');
     const [loadingItem, setLoadingItem] = useState(false);
+    const [validBins, setValidBins] = useState(new Set());
 
     // Sidebar Data
     const [locationCounts, setLocationCounts] = useState([]);
@@ -187,6 +188,44 @@ const CycleCounts = () => {
         }
     }, [activeSession, countedLocation, updateSidebarData, fetchRecountList]);
 
+    const loadSlottingBins = async () => {
+        let binsLoaded = false;
+        if (isOnline) {
+            try {
+                const res = await fetch('/api/views/valid_bins', { credentials: 'include' });
+                if (res.ok) {
+                    const binsList = await res.json();
+                    if (Array.isArray(binsList) && binsList.length > 0) {
+                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                        setValidBins(binsSet);
+                        const db = await getDB();
+                        await db.put('data_cache', { key: 'slotting_valid_bins', data: binsList, timestamp: new Date().toISOString() });
+                        binsLoaded = true;
+                    }
+                }
+            } catch (e) {
+                console.warn("Error loading valid bins online:", e);
+            }
+        }
+
+        if (!binsLoaded) {
+            try {
+                const db = await getDB();
+                const cached = await db.get('data_cache', 'slotting_valid_bins');
+                if (cached && Array.isArray(cached.data)) {
+                    const binsSet = new Set(cached.data.map(b => b.toUpperCase()));
+                    setValidBins(binsSet);
+                }
+            } catch (e) {
+                console.error("Error loading cached bins:", e);
+            }
+        }
+    };
+
+    useEffect(() => {
+        loadSlottingBins();
+    }, [isOnline]);
+
     const fetchItemData = async (code) => {
         if (!code) return;
         setLoadingItem(true);
@@ -238,11 +277,17 @@ const CycleCounts = () => {
             return;
         }
 
+        const normalizedLocation = countedLocation.trim().toUpperCase();
+        if (validBins.size > 0 && !validBins.has(normalizedLocation)) {
+            toast.error(`La ubicación "${normalizedLocation}" no existe en el maestro de slotting.`);
+            return;
+        }
+
         const payload = {
             session_id: activeSession.id || activeSession.session_id,
             item_code: itemCode,
             counted_qty: parseInt(countedQty),
-            counted_location: countedLocation,
+            counted_location: normalizedLocation,
             description: description,
             bin_location_system: binSys,
             timestamp: new Date().toISOString()

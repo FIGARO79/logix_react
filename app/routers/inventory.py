@@ -26,6 +26,7 @@ from app.models.sql_models import (
     CountSession,
     RecountList,
     SessionLocation,
+    BinLocation,
 )
 from app.services.csv_to_db import sync_master_csv_to_db
 
@@ -304,54 +305,71 @@ async def process_stage_advance_logic(db: AsyncSession, next_stage: int) -> int:
                 "status": "OK" if diff_q == 0 else ("SOBRANTE" if diff_q > 0 else "FALTANTE")
             })
 
-    # 4. Agrupar por item_code para determinar cuáles tienen discrepancias globales y exceden las tolerancias
+    # 4. Agrupar por item_code y evaluar tolerancias en Rust para máxima velocidad
     qty_tol_str = await get_app_setting(db, "w2w_qty_tolerance", "0.02")
     val_tol_str = await get_app_setting(db, "w2w_val_tolerance", "10.00")
     qty_tolerance = float(qty_tol_str)
     val_tolerance = float(val_tol_str)
 
-    item_aggregates = {}
-    for rec in diff_records:
-        item = rec["item_code"]
-        sys_q = float(rec["system_qty"])
-        cnt_q = float(rec["counted_qty"])
-        diff_q = float(rec["diff_qty"])
-        cost = float(rec["unit_cost"])
-        
-        if item not in item_aggregates:
-            item_aggregates[item] = {
-                "system_qty": 0.0,
-                "counted_qty": 0.0,
-                "diff_qty": 0.0,
-                "unit_cost": cost
-            }
-        item_aggregates[item]["system_qty"] += sys_q
-        item_aggregates[item]["counted_qty"] += cnt_q
-        item_aggregates[item]["diff_qty"] += diff_q
+    items_for_recount = []
+    try:
+        import logix_rust_core
+        raw_tuples = [
+            (
+                str(r["item_code"]),
+                float(r["system_qty"]),
+                float(r["counted_qty"]),
+                float(r["diff_qty"]),
+                float(r["unit_cost"]),
+            )
+            for r in diff_records
+        ]
+        items_for_recount = logix_rust_core.filter_recount_items_with_tolerances_rust(
+            raw_tuples, qty_tolerance, val_tolerance, next_stage
+        )
+    except Exception as e:
+        print(f"Error procesando tolerancias en Rust: {e}. Usando fallback Python.")
+        item_aggregates = {}
+        for rec in diff_records:
+            item = rec["item_code"]
+            sys_q = float(rec["system_qty"])
+            cnt_q = float(rec["counted_qty"])
+            diff_q = float(rec["diff_qty"])
+            cost = float(rec["unit_cost"])
+            
+            if item not in item_aggregates:
+                item_aggregates[item] = {
+                    "system_qty": 0.0,
+                    "counted_qty": 0.0,
+                    "diff_qty": 0.0,
+                    "unit_cost": cost
+                }
+            item_aggregates[item]["system_qty"] += sys_q
+            item_aggregates[item]["counted_qty"] += cnt_q
+            item_aggregates[item]["diff_qty"] += diff_q
+
+        for code, agg in item_aggregates.items():
+            diff_q = agg["diff_qty"]
+            abs_diff_q = abs(diff_q)
+            if abs_diff_q <= 0.0001:
+                continue
+                
+            sys_q = agg["system_qty"]
+            cost = agg["unit_cost"]
+            diff_val = abs_diff_q * cost
+            
+            exceeds_qty = (abs_diff_q / sys_q) > qty_tolerance if sys_q > 0 else False
+            exceeds_val = diff_val > val_tolerance
+            
+            if exceeds_qty or exceeds_val:
+                items_for_recount.append(
+                    {"item_code": code, "stage_to_count": next_stage, "status": "pending"}
+                )
 
     # 5. Limpiar y recrear lista de reconteo para next_stage
     await db.execute(
         delete(RecountList).where(RecountList.stage_to_count == next_stage)
     )
-
-    items_for_recount = []
-    for code, agg in item_aggregates.items():
-        diff_q = agg["diff_qty"]
-        abs_diff_q = abs(diff_q)
-        if abs_diff_q <= 0.0001:
-            continue
-            
-        sys_q = agg["system_qty"]
-        cost = agg["unit_cost"]
-        diff_val = abs_diff_q * cost
-        
-        exceeds_qty = (abs_diff_q / sys_q) > qty_tolerance if sys_q > 0 else False
-        exceeds_val = diff_val > val_tolerance
-        
-        if exceeds_qty or exceeds_val:
-            items_for_recount.append(
-                {"item_code": code, "stage_to_count": next_stage, "status": "pending"}
-            )
 
     if items_for_recount:
         await db.execute(insert(RecountList), items_for_recount)
@@ -953,6 +971,17 @@ async def save_w2w_count_api(
             detail="La sesión de inventario W2W especificada no existe o ya está cerrada.",
         )
 
+    # 1.5 Verificar que la ubicación exista en el maestro de slotting
+    clean_location = payload.counted_location.upper().strip()
+    stmt_bin = select(BinLocation).where(BinLocation.bin_code == clean_location)
+    bin_row = (await db.execute(stmt_bin)).scalar_one_or_none()
+
+    if not bin_row:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La ubicación '{clean_location}' no es una ubicación válida en el maestro de slotting.",
+        )
+
     # 2. Normalizar código y obtener descripción si no se proveyó
     clean_code = payload.item_code.upper().strip()
     clean_desc = payload.description or "N/A"
@@ -1115,93 +1144,116 @@ async def get_inventory_reconciliation_api(
     qty_tolerance = float(qty_tol_str)
     val_tolerance = float(val_tol_str)
 
-    # 5. Iterar sobre todos los ítems del maestro y del conteo físico
-    master_keys = set(csv_handler.master_qty_map.keys())
-    counted_keys = set(counts_by_item.keys())
-    all_keys = master_keys | counted_keys
+    # 5. Ejecutar consolidación y tolerancia acelerada en Rust
+    try:
+        import logix_rust_core
+        master_items_tuples = [
+            (
+                code,
+                csv_handler.master_desc_map.get(code, "ITEM NO CATALOGADO"),
+                csv_handler.master_bin_map.get(code, "N/A"),
+                float(csv_handler.master_qty_map.get(code, 0.0)),
+                float(csv_handler.master_cost_map.get(code, 0.0)),
+            )
+            for code in csv_handler.master_qty_map.keys()
+        ]
+        count_records_tuples = [
+            (str(r.item_code).upper().strip(), float(r.counted_qty or 0.0), int(r.inventory_stage))
+            for r in counts_rows
+        ]
+        recount_statuses_map = {
+            code: r.status for code, r in recount_map.items()
+        }
 
-    reconciliation_list = []
-    for code_raw in all_keys:
-        code = str(code_raw).upper().strip()
-        if not code:
-            continue
+        reconciliation_list = logix_rust_core.calculate_reconciliation_rust(
+            master_items=master_items_tuples,
+            count_records=count_records_tuples,
+            recount_statuses=recount_statuses_map,
+            _current_stage=current_stage,
+            qty_tolerance=qty_tolerance,
+            val_tolerance=val_tolerance,
+        )
+    except Exception as e:
+        print(f"[RUST RECONCILIATION FALLBACK] Error executing Rust reconciliation: {e}")
+        master_keys = set(csv_handler.master_qty_map.keys())
+        counted_keys = set(counts_by_item.keys())
+        all_keys = master_keys | counted_keys
 
-        # Stock en sistema y costo
-        sys_qty = float(csv_handler.master_qty_map.get(code, 0.0))
-        cost = float(csv_handler.master_cost_map.get(code, 0.0))
+        reconciliation_list = []
+        for code_raw in all_keys:
+            code = str(code_raw).upper().strip()
+            if not code:
+                continue
 
-        # Conteos por etapa
-        stage_counts = counts_by_item.get(code, {})
-        c1 = stage_counts.get(1, None)
-        c2 = stage_counts.get(2, None)
-        c3 = stage_counts.get(3, None)
-        c4 = stage_counts.get(4, None)
+            sys_qty = float(csv_handler.master_qty_map.get(code, 0.0))
+            cost = float(csv_handler.master_cost_map.get(code, 0.0))
 
-        # Determinar cantidad final contada basándose en la regla de sobrescritura de etapas
-        final_counted = None
-        for stg in [4, 3, 2, 1]:
-            if stg in stage_counts:
-                final_counted = stage_counts[stg]
-                break
-        
-        is_counted = final_counted is not None
-        final_counted_val = final_counted if is_counted else 0.0
+            stage_counts = counts_by_item.get(code, {})
+            c1 = stage_counts.get(1, None)
+            c2 = stage_counts.get(2, None)
+            c3 = stage_counts.get(3, None)
+            c4 = stage_counts.get(4, None)
 
-        diff_qty = final_counted_val - sys_qty
-        abs_diff_qty = abs(diff_qty)
-        diff_val = diff_qty * cost
-        abs_diff_val = abs(diff_val)
+            final_counted = None
+            for stg in [4, 3, 2, 1]:
+                if stg in stage_counts:
+                    final_counted = stage_counts[stg]
+                    break
+            
+            is_counted = final_counted is not None
+            final_counted_val = final_counted if is_counted else 0.0
 
-        # Determinar Estado
-        status = "OK"
-        if abs_diff_qty > 0.0001:
-            recount_item = recount_map.get(code)
-            if recount_item:
-                if recount_item.status == "manually_approved":
-                    status = "APPROVED_MANUAL"
+            diff_qty = final_counted_val - sys_qty
+            abs_diff_qty = abs(diff_qty)
+            diff_val = diff_qty * cost
+            abs_diff_val = abs(diff_val)
+
+            status = "OK"
+            if abs_diff_qty > 0.0001:
+                recount_item = recount_map.get(code)
+                if recount_item:
+                    if recount_item.status == "manually_approved":
+                        status = "APPROVED_MANUAL"
+                    else:
+                        status = "PENDING_RECOUNT"
                 else:
-                    status = "PENDING_RECOUNT"
-            else:
-                exceeds_qty = (abs_diff_qty / sys_qty) > qty_tolerance if sys_qty > 0 else False
-                exceeds_val = abs_diff_val > val_tolerance
-                if exceeds_qty or exceeds_val:
-                    status = "PENDING"
-                else:
-                    status = "APPROVED_AUTO"
+                    exceeds_qty = (abs_diff_qty / sys_qty) > qty_tolerance if sys_qty > 0 else False
+                    exceeds_val = abs_diff_val > val_tolerance
+                    if exceeds_qty or exceeds_val:
+                        status = "PENDING"
+                    else:
+                        status = "APPROVED_AUTO"
 
-        # Detalles del item
-        details = await csv_handler.get_item_details_from_master_csv(code, db) or {}
-        description = details.get("Item_Description", "ITEM NO CATALOGADO")
-        bin_location = details.get("Bin_1", "N/A")
+            description = csv_handler.master_desc_map.get(code, "ITEM NO CATALOGADO")
+            bin_location = csv_handler.master_bin_map.get(code, "N/A")
 
-        reconciliation_list.append({
-            "item_code": code,
-            "description": description,
-            "bin_location": bin_location,
-            "system_qty": sys_qty,
-            "cost": cost,
-            "c1": c1,
-            "c2": c2,
-            "c3": c3,
-            "c4": c4,
-            "final_counted": final_counted_val,
-            "diff_qty": diff_qty,
-            "diff_val": diff_val,
-            "status": status,
-            "is_counted": is_counted
-        })
+            reconciliation_list.append({
+                "item_code": code,
+                "description": description,
+                "bin_location": bin_location,
+                "system_qty": sys_qty,
+                "cost": cost,
+                "c1": c1,
+                "c2": c2,
+                "c3": c3,
+                "c4": c4,
+                "final_counted": final_counted_val,
+                "diff_qty": diff_qty,
+                "diff_val": diff_val,
+                "status": status,
+                "is_counted": is_counted
+            })
 
-    # Ordenar por estado (Pendientes primero, luego diferencias grandes)
-    status_order = {
-        "PENDING_RECOUNT": 0,
-        "PENDING": 1,
-        "APPROVED_MANUAL": 2,
-        "APPROVED_AUTO": 3,
-        "OK": 4
-    }
-    reconciliation_list.sort(
-        key=lambda x: (status_order.get(x["status"], 5), -abs(x["diff_val"]))
-    )
+        status_order = {
+            "PENDING_RECOUNT": 0,
+            "PENDING": 1,
+            "APPROVED_MANUAL": 2,
+            "APPROVED_AUTO": 3,
+            "OK": 4
+        }
+        reconciliation_list.sort(
+            key=lambda x: (status_order.get(x["status"], 5), -abs(x["diff_val"]))
+        )
 
     return ORJSONResponse(
         content={
