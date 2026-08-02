@@ -1022,6 +1022,50 @@ async def save_w2w_count_api(
 # ===== [NUEVO] ENDPOINTS DE WMS PROFESIONAL (TOLERANCIAS Y CONCILIACIÓN) =====
 
 
+class W2WSettingsPayload(BaseModel):
+    w2w_qty_tolerance: float
+    w2w_val_tolerance: float
+
+
+@router.get("/api/w2w/settings")
+async def get_w2w_settings_api(
+    user: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """API: Obtener configuraciones de tolerancia W2W."""
+    qty_tolerance = await get_app_setting(db, "w2w_qty_tolerance", "0.02")
+    val_tolerance = await get_app_setting(db, "w2w_val_tolerance", "10.00")
+    return ORJSONResponse(
+        content={
+            "w2w_qty_tolerance": float(qty_tolerance),
+            "w2w_val_tolerance": float(val_tolerance),
+        }
+    )
+
+
+@router.post("/api/w2w/settings")
+async def save_w2w_settings_api(
+    payload: W2WSettingsPayload,
+    user: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """API: Guardar configuraciones de tolerancia W2W."""
+    qty_str = str(payload.w2w_qty_tolerance)
+    val_str = str(payload.w2w_val_tolerance)
+
+    for key, val in [("w2w_qty_tolerance", qty_str), ("w2w_val_tolerance", val_str)]:
+        stmt = select(AppState).where(AppState.key == key)
+        res = await db.execute(stmt)
+        setting = res.scalar_one_or_none()
+        if not setting:
+            db.add(AppState(key=key, value=val))
+        else:
+            setting.value = val
+
+    await db.commit()
+    return ORJSONResponse(content={"message": "Configuraciones W2W actualizadas correctamente"})
+
+
 @router.post("/api/admin/inventory/settings")
 async def update_inventory_settings_api(
     payload: Dict[str, str],

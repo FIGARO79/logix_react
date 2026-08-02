@@ -561,8 +561,8 @@ const CycleCounts = () => {
                         <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 mb-3 border-b-2 pb-1 uppercase tracking-wider">Items en {countedLocation || '...'}</h3>
                         <div className="max-h-60 overflow-y-auto space-y-1">
                             {locationCounts.length === 0 ? <p className="text-[10px] text-gray-400 text-center py-4 uppercase font-medium text-gray-900 tracking-tighter">Sin registros en esta ubicación</p> :
-                                locationCounts.map(c => (
-                                    <div key={c.id} className={`flex justify-between items-center text-[11px] p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${c.is_pending ? 'border-l-4 border-amber-400' : ''}`}>
+                                locationCounts.map((c, idx) => (
+                                    <div key={c.id || `loc-count-${c.item_code}-${idx}`} className={`flex justify-between items-center text-[11px] p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${c.is_pending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <span className="font-mono font-medium text-gray-900 text-[#1e4a74]">{c.item_code}</span>
                                         <div className="flex items-center gap-3">
                                             <span className="font-medium text-gray-900 text-gray-900">{c.counted_qty}</span>
@@ -578,8 +578,8 @@ const CycleCounts = () => {
                     <div className="bg-white p-4 rounded shadow border border-gray-200">
                         <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 mb-3 border-b-2 pb-1 uppercase tracking-wider">Historial de Ubicaciones</h3>
                         <div className="max-h-60 overflow-y-auto space-y-1 mb-3">
-                            {sessionLocations.map(l => (
-                                <div key={l.id} className="flex justify-between text-[10px] p-2 border-b border-gray-50 last:border-0">
+                            {sessionLocations.map((l, idx) => (
+                                <div key={l.id || l.location_code || `sess-loc-${idx}`} className="flex justify-between text-[10px] p-2 border-b border-gray-50 last:border-0">
                                     <span className="font-medium text-gray-900 uppercase">{l.location_code}</span>
                                     <span className={`font-medium text-gray-900 uppercase ${l.status === 'open' ? 'text-green-600' : 'text-red-600'}`}>
                                         {l.status === 'open' ? 'En proceso' : 'Cerrada'}
@@ -655,9 +655,9 @@ const CycleCounts = () => {
                         <div className="p-4 overflow-y-auto space-y-2 flex-grow">
                             {recountData.items
                                 .filter(item => recountFilter === 'all' || !item.is_recounted)
-                                .map(item => (
+                                .map((item, idx) => (
                                     <div
-                                        key={item.item_code}
+                                        key={item.item_code || `recount-item-${idx}`}
                                         className={`p-3 border rounded-lg flex justify-between items-center transition-all ${
                                             item.is_recounted
                                                 ? 'bg-green-50/50 border-green-200 opacity-75'

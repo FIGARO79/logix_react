@@ -361,23 +361,23 @@ const AdminInventory = () => {
 
                                 <div className="overflow-x-auto max-h-[calc(100vh-350px)]">
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
+                                        <thead className="bg-[#1e4a74] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {['Auditor', 'Timestamp', 'Ítem', 'Ubicación', 'Cantidad', ''].map((h, i) => (
-                                                    <th key={i} className="px-3 py-1 text-[11px] font-normal uppercase tracking-tight">{h}</th>
+                                                    <th key={i} className="px-2 py-1 text-[10px] font-normal uppercase tracking-tight">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
                                             {filteredCounts.map((c) => (
-                                                <tr key={c.id} className="hover:bg-[#f5f5f5] transition-colors leading-tight">
-                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black">{c.username}</td>
-                                                    <td className="px-3 py-0.5 text-[11px] text-black font-normal uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black font-normal tracking-tight uppercase">{c.item_code}</td>
-                                                    <td className="px-3 py-0.5 text-[11px] text-black font-normal uppercase">{c.counted_location}</td>
-                                                    <td className="px-3 py-0.5 text-[11px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
-                                                    <td className="px-3 py-0.5 text-right space-x-3">
-                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-black text-[11px] font-normal uppercase transition-colors">Editar</button>
+                                                <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none h-6">
+                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black">{c.username}</td>
+                                                    <td className="px-2 py-0.5 text-[10px] text-black font-normal uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black tracking-tight uppercase">{c.item_code}</td>
+                                                    <td className="px-2 py-0.5 text-[11px] text-black font-normal uppercase">{c.counted_location}</td>
+                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
+                                                    <td className="px-2 py-0.5 text-right space-x-3">
+                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-blue-600 text-[11px] font-normal uppercase transition-colors">Editar</button>
                                                         <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[11px] font-normal uppercase transition-colors">Borrar</button>
                                                     </td>
                                                 </tr>
@@ -440,7 +440,7 @@ const AdminInventory = () => {
 
                                 <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="bg-[#354a5f] sticky top-0 z-10 shadow-sm text-white">
+                                        <thead className="bg-[#1e4a74] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {[
                                                     'Ítem / Ubicación',
@@ -484,42 +484,42 @@ const AdminInventory = () => {
                                                 .map((item) => (
                                                     <tr
                                                         key={item.item_code}
-                                                        className="hover:bg-[#f8f8f8] transition-colors leading-tight"
+                                                        className="hover:bg-[#f5f8fc] transition-colors leading-none h-6"
                                                     >
-                                                        <td className="px-2 py-1 text-left">
-                                                            <div className="font-mono text-zinc-900 font-bold uppercase tracking-tight text-[11px] leading-tight">
+                                                        <td className="px-2 py-0.5 text-left">
+                                                            <div className="text-zinc-900 font-normal uppercase tracking-tight text-[11px]">
                                                                 {item.item_code}
                                                             </div>
-                                                            <div className="text-[9px] text-zinc-500 font-light truncate max-w-[180px] leading-none">
+                                                            <div className="text-[9px] text-zinc-500 font-normal truncate max-w-[180px]">
                                                                 {item.description}
                                                             </div>
-                                                            <div className="text-[9px] text-zinc-400 font-mono leading-none">
+                                                            <div className="text-[9px] text-zinc-400 font-normal">
                                                                 Loc: {item.bin_location}
                                                             </div>
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px]">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px]">
                                                             ${item.cost.toFixed(2)}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-600 bg-zinc-50/50">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-600 bg-zinc-50/50">
                                                             {item.system_qty}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
                                                             {item.c1 !== null ? item.c1 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
                                                             {item.c2 !== null ? item.c2 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
                                                             {item.c3 !== null ? item.c3 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
                                                             {item.c4 !== null ? item.c4 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center font-mono text-[10px] font-bold bg-zinc-50/50">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] bg-zinc-50/50">
                                                             {item.final_counted}
                                                         </td>
                                                         <td
-                                                            className={`px-2 py-1 text-center font-mono text-[10px] font-bold ${
+                                                            className={`px-2 py-0.5 text-center font-normal text-[10px] ${
                                                                 item.diff_qty > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_qty < 0
@@ -530,7 +530,7 @@ const AdminInventory = () => {
                                                             {item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
                                                         </td>
                                                         <td
-                                                            className={`px-2 py-1 text-center font-mono text-[10px] font-bold ${
+                                                            className={`px-2 py-0.5 text-center font-normal text-[10px] ${
                                                                 item.diff_val > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_val < 0
@@ -540,14 +540,14 @@ const AdminInventory = () => {
                                                         >
                                                             {item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
                                                         </td>
-                                                        <td className="px-2 py-1 text-center">
+                                                        <td className="px-2 py-0.5 text-center">
                                                             {item.status === 'OK' && (
                                                                 <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
                                                                     SIN DIF
                                                                 </span>
                                                             )}
                                                             {item.status === 'APPROVED_AUTO' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                                     AUTO OK
                                                                 </span>
                                                             )}
