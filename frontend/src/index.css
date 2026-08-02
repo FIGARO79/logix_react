@@ -1,38 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --sap-font-family: 'Inter', 'Roboto', sans-serif;
-    --sap-font-heading: 'Inter', sans-serif;
+    --sap-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    --sap-font-heading: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
-    --sap-text: #000000; /* Contrast maximum */
-    --sap-text-header: #000000; /* Max contrast for headers */
+    --sap-text: #000000;
+    --sap-text-header: #000000;
+}
+
+body, button, input, select, textarea, table, h1, h2, h3, h4, h5, h6, div, p, span, a, label {
+    font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
 }
 
 body {
-    font-family: var(--sap-font-family);
     color: var(--sap-text);
     line-height: 1.6;
-    font-size: 16px; /* Mejorar legibilidad base */
+    font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-family: var(--sap-font-heading);
-    color: var(--sap-text-header);
-    font-weight: 500; /* Evitar bold, usar medium */
-    letter-spacing: -0.01em; 
 }
 
 .header-title {
@@ -63,10 +52,8 @@ h6 {
 .animate-spin {
     animation: spin 1s linear infinite;
 }
-/* 
-  Reset de impresión global para evitar hojas en blanco en React/Vite/PWA.
-  Fuerza a que el contenedor raíz sea visible y tenga altura automática.
-*/
+
+/* Reset de impresión global */
 @media print {
     html, body, #root {
         height: auto !important;
@@ -90,8 +77,8 @@ h6 {
     display: none;
 }
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Force white text on table headers with dark backgrounds */
@@ -124,7 +111,7 @@ thead.text-white th {
     color: rgba(255, 255, 255, 0.8) !important;
 }
 
-/* Ensure all elements in the sidebar menu use normal or semibold/medium weight instead of bold */
+/* Ensure all elements in the sidebar menu use normal weight */
 .fixed.left-0.w-64,
 .fixed.left-0.w-64 * {
     font-weight: 400 !important;

@@ -11,6 +11,21 @@ import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 
 
+const EMPTY_ARRAY = [];
+const DEFAULT_IR_STATS = {
+    totalLines: 0,
+    completedLines: 0,
+    startedLines: 0,
+    expectedUnits: 0,
+    receivedUnits: 0,
+    positiveDiffLines: 0,
+    negativeDiffLines: 0,
+    okLines: 0,
+    totalGrns: 0,
+    completedGrns: 0,
+    grnProgressPercent: 0
+};
+
 const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
@@ -86,21 +101,9 @@ const Inbound = () => {
     const [editId, setEditId] = useState(null);
 
     // --- Estado para el Tablero de Control de la IR ---
-    const [irStats, setIrStats] = useState({
-        totalLines: 0,
-        completedLines: 0,
-        startedLines: 0,
-        expectedUnits: 0,
-        receivedUnits: 0,
-        positiveDiffLines: 0,
-        negativeDiffLines: 0,
-        okLines: 0,
-        totalGrns: 0,
-        completedGrns: 0,
-        grnProgressPercent: 0
-    });
+    const [irStats, setIrStats] = useState(DEFAULT_IR_STATS);
 
-    const { data: logs = [], refetch: loadLogs } = useQuery({
+    const { data: logs = EMPTY_ARRAY, refetch: loadLogs } = useQuery({
         queryKey: ['inbound_logs', currentVersion],
         queryFn: async () => {
             let apiLogs = [];
@@ -346,18 +349,23 @@ const Inbound = () => {
 
     const calculateIRStats = async () => {
         if (!importRef || importRef.trim() === '') {
-            setIrStats({
-                totalLines: 0,
-                completedLines: 0,
-                startedLines: 0,
-                expectedUnits: 0,
-                receivedUnits: 0,
-                positiveDiffLines: 0,
-                negativeDiffLines: 0,
-                okLines: 0,
-                totalGrns: 0,
-                completedGrns: 0,
-                grnProgressPercent: 0
+            setIrStats(prev => {
+                if (
+                    prev.totalLines === 0 &&
+                    prev.completedLines === 0 &&
+                    prev.startedLines === 0 &&
+                    prev.expectedUnits === 0 &&
+                    prev.receivedUnits === 0 &&
+                    prev.positiveDiffLines === 0 &&
+                    prev.negativeDiffLines === 0 &&
+                    prev.okLines === 0 &&
+                    prev.totalGrns === 0 &&
+                    prev.completedGrns === 0 &&
+                    prev.grnProgressPercent === 0
+                ) {
+                    return prev;
+                }
+                return DEFAULT_IR_STATS;
             });
             return;
         }
@@ -591,18 +599,35 @@ const Inbound = () => {
 
             const grnProgressPercent = totalGrns > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrns) * 100)) : 0;
 
-            setIrStats({
-                totalLines,
-                completedLines,
-                startedLines,
-                expectedUnits,
-                receivedUnits,
-                positiveDiffLines,
-                negativeDiffLines,
-                okLines,
-                totalGrns,
-                completedGrns,
-                grnProgressPercent
+            setIrStats(prev => {
+                if (
+                    prev.totalLines === totalLines &&
+                    prev.completedLines === completedLines &&
+                    prev.startedLines === startedLines &&
+                    prev.expectedUnits === expectedUnits &&
+                    prev.receivedUnits === receivedUnits &&
+                    prev.positiveDiffLines === positiveDiffLines &&
+                    prev.negativeDiffLines === negativeDiffLines &&
+                    prev.okLines === okLines &&
+                    prev.totalGrns === totalGrns &&
+                    prev.completedGrns === completedGrns &&
+                    prev.grnProgressPercent === grnProgressPercent
+                ) {
+                    return prev;
+                }
+                return {
+                    totalLines,
+                    completedLines,
+                    startedLines,
+                    expectedUnits,
+                    receivedUnits,
+                    positiveDiffLines,
+                    negativeDiffLines,
+                    okLines,
+                    totalGrns,
+                    completedGrns,
+                    grnProgressPercent
+                };
             });
         } catch (err) {
             console.error("Error calculating IR stats:", err);

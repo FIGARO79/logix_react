@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy import update
+from sqlalchemy import update, text
 from app.models.sql_models import MasterItem
 from app.core.config import ITEM_MASTER_CSV_PATH
 import os
@@ -166,9 +166,11 @@ async def sync_master_csv_to_db(db: AsyncSession):
         print(f"Procesando {total_items} items con Polars...")
 
         # 2. Sincronización por lotes (Chunks) con Upsert nativo
-        chunk_size = 5000
-        total_processed = 0
         is_sqlite = db.bind.dialect.name == "sqlite"
+        if is_sqlite:
+            await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_master_items_item_code_unique ON master_items (item_code);"))
+        chunk_size = 50 if is_sqlite else 2000
+        total_processed = 0
 
         for i in range(0, total_items, chunk_size):
             chunk_df = df.slice(i, chunk_size)

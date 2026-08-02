@@ -2,9 +2,11 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::HashMap;
 
-/// Calcula las diferencias de conteo W2W y conteos cíclicos con alta velocidad.
+/// Módulo para Conteos Cíclicos de Campo / Auditorías por Ubicación
+
+/// Calcula las diferencias de conteos cíclicos por ubicación a alta velocidad.
 #[pyfunction]
-pub fn calculate_w2w_differences_rust<'py>(
+pub fn calculate_cycle_count_differences_rust<'py>(
     py: Python<'py>,
     system_stock: Vec<(String, String, f64, f64)>, // item_code, location, system_qty, unit_cost
     physical_counts: Vec<(String, String, f64, i32)>, // item_code, location, counted_qty, stage
@@ -80,31 +82,12 @@ pub fn calculate_w2w_differences_rust<'py>(
     Ok(result_list)
 }
 
-/// Calcula rápidamente la lista de reconteo (RecountList) para la siguiente etapa de inventario.
+/// Alias para mantener compatibilidad previa
 #[pyfunction]
-pub fn calculate_recount_items_rust<'py>(
+pub fn calculate_w2w_differences_rust<'py>(
     py: Python<'py>,
-    counted_items: Vec<(String, f64)>, // item_code, total_counted
-    system_map: HashMap<String, f64>,  // item_code -> system_qty
-    next_stage: i32,
+    system_stock: Vec<(String, String, f64, f64)>,
+    physical_counts: Vec<(String, String, f64, i32)>,
 ) -> PyResult<Bound<'py, PyList>> {
-    let result_list = PyList::empty_bound(py);
-
-    for (item_code_raw, total_counted) in counted_items {
-        let item_code = item_code_raw.trim().to_uppercase();
-        if item_code.is_empty() {
-            continue;
-        }
-
-        let system_qty = system_map.get(&item_code).copied().unwrap_or(0.0);
-
-        if (total_counted - system_qty).abs() > 0.0001 {
-            let dict = PyDict::new_bound(py);
-            dict.set_item("item_code", item_code)?;
-            dict.set_item("stage_to_count", next_stage)?;
-            result_list.append(dict)?;
-        }
-    }
-
-    Ok(result_list)
+    calculate_cycle_count_differences_rust(py, system_stock, physical_counts)
 }

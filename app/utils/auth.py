@@ -169,41 +169,55 @@ async def mark_token_as_used(db: AsyncSession, token: str):
 def get_current_user(request: Request) -> str | None:
     """
     Obtiene el nombre de usuario de la sesión segura.
-    Devuelve el nombre de usuario o None si no está logueado.
+    Devuelve el nombre de usuario (str) o None si no está logueado o es inválido.
     """
-    return request.session.get("user")
+    user = request.session.get("user")
+    if isinstance(user, str) and user.strip():
+        return user
+    return None
 
 
-def login_required(request: Request) -> str | RedirectResponse:
+def login_required(request: Request) -> str:
     """
     Dependencia de FastAPI que verifica si un usuario está logueado.
-    Si el usuario no está en la sesión, redirige a la página de login.
+    Si la petición es a una API (/api/), lanza HTTP 401.
+    Si es una ruta web, redirige a /login mediante HTTPException 302.
     Si está logueado, devuelve el nombre de usuario.
     """
     username = get_current_user(request)
     if not username:
+        if request.url.path.startswith("/api/"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="No autenticado"
+            )
         try:
             login_url = request.app.url_path_for("login")
-            return RedirectResponse(url=login_url, status_code=status.HTTP_302_FOUND)
         except Exception:
-            return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+            login_url = "/login"
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": login_url},
+        )
     return username
 
 
-def admin_login_required(request: Request) -> bool | RedirectResponse:
+def admin_login_required(request: Request) -> bool:
     """
     Dependencia que verifica si el flag de administrador está en la sesión segura.
     """
     if not request.session.get("admin_logged_in"):
+        if request.url.path.startswith("/api/"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="No autorizado como admin"
+            )
         try:
             admin_login_url = request.app.url_path_for("admin_login_get")
-            return RedirectResponse(
-                url=admin_login_url, status_code=status.HTTP_302_FOUND
-            )
         except Exception:
-            return RedirectResponse(
-                url="/admin/login", status_code=status.HTTP_302_FOUND
-            )
+            admin_login_url = "/admin/login"
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": admin_login_url},
+        )
     return True
 
 

@@ -134,8 +134,29 @@ export const syncPendingData = async () => {
                 url = '/api/save_picking_audit';
                 method = 'POST';
             } else if (record.collection === 'counts') {
-                url = '/api/save_count';
+                url = '/api/w2w/save_count';
                 method = 'POST';
+                if (!record.payload.session_id) {
+                    try {
+                        let activeSess = await db.get('active_sessions', 'cycle_count');
+                        if (!activeSess && navigator.onLine) {
+                            const sessRes = await fetch('/api/sessions/active');
+                            if (sessRes.ok) {
+                                activeSess = await sessRes.json();
+                                await db.put('active_sessions', { type: 'cycle_count', ...activeSess });
+                            }
+                        }
+                        const sId = activeSess ? (activeSess.id || activeSess.session_id) : null;
+                        if (sId) {
+                            record.payload.session_id = sId;
+                            console.log(`Logix Sync: Recuperado session_id (${sId}) para registro de conteo.`);
+                        } else {
+                            console.warn(`Logix Sync: No se pudo recuperar session_id para registro ${record.id}`);
+                        }
+                    } catch (err) {
+                        console.error("Error al intentar recuperar session_id en sync:", err);
+                    }
+                }
             } else if (record.collection === 'spot_check') {
                 url = '/api/spot_check/save';
                 method = 'POST';

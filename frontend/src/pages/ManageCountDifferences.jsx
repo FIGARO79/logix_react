@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Layout from '../components/Layout';
+import { useTabContext } from '../hooks/useTabContext';
 
 const ManageCountDifferences = () => {
+    const { setTitle } = useTabContext();
     const [data, setData] = useState([]);
     const [filteredData, setFilteredData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -17,8 +18,9 @@ const ManageCountDifferences = () => {
     const [deleteModal, setDeleteModal] = useState({ open: false, id: null, itemCode: '' });
 
     useEffect(() => {
+        if (setTitle) setTitle("Gestión de Diferencias");
         loadData();
-    }, []);
+    }, [setTitle]);
 
     useEffect(() => {
         filterTable();
@@ -41,10 +43,15 @@ const ManageCountDifferences = () => {
 
     const filterTable = useCallback(() => {
         let res = [...data];
-        const code = filterItemCode.toUpperCase();
+        const search = filterItemCode.trim().toUpperCase();
 
-        if (code) {
-            res = res.filter(item => item.item_code.includes(code));
+        if (search) {
+            res = res.filter(item =>
+                (item.item_code && item.item_code.toUpperCase().includes(search)) ||
+                (item.description && item.description.toUpperCase().includes(search)) ||
+                (item.location && item.location.toUpperCase().includes(search)) ||
+                (item.username && item.username.toUpperCase().includes(search))
+            );
         }
 
         if (filterType === 'negative') res = res.filter(item => item.difference < 0);
@@ -119,8 +126,7 @@ const ManageCountDifferences = () => {
     };
 
     return (
-        <Layout title="Gestión de Diferencias de Conteo">
-            <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
 
                 {/* Header Page */}
                 <div className="flex justify-between items-center mb-6">
@@ -175,6 +181,28 @@ const ManageCountDifferences = () => {
 
                 {/* Tabla */}
                 <div className="bg-white rounded shadow overflow-hidden border border-gray-200">
+                    <div className="bg-[#f2f2f2] px-4 py-2 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-1 max-w-md bg-white border border-gray-300 rounded px-3 py-1 focus-within:ring-1 focus-within:ring-[#285f94]">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                            <input
+                                type="text"
+                                className="w-full text-xs font-sans outline-none bg-transparent placeholder-gray-400 uppercase"
+                                placeholder="Buscar por SKU, Descripción, Ubicación o Usuario..."
+                                value={filterItemCode}
+                                onChange={(e) => setFilterItemCode(e.target.value)}
+                            />
+                            {filterItemCode && (
+                                <button onClick={() => setFilterItemCode('')} className="text-gray-400 hover:text-gray-600 text-xs font-bold">
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                        <div className="text-xs text-gray-600 font-medium">
+                            {filteredData.length} registros
+                        </div>
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="uppercase font-medium  border-b">
@@ -231,7 +259,6 @@ const ManageCountDifferences = () => {
                         </table>
                     </div>
                 </div>
-            </div>
 
             {/* Modal Editar */}
             {editModal.open && (
@@ -280,7 +307,7 @@ const ManageCountDifferences = () => {
                 </div>
             )}
 
-        </Layout>
+        </div>
     );
 };
 

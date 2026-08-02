@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from app.core.db import get_db
 from app.models.sql_models import (
+    AppState,
     CountSession,
     CycleCountRecording,
     MasterItem,
@@ -30,6 +31,44 @@ class RootCauseUpdate(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str
+
+
+@router.get("/get_item_for_counting/{item_code}")
+async def get_item_for_counting(
+    item_code: str,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """
+    Obtiene la información de un ítem para la toma de inventario W2W.
+    Si el ítem NO existe en el maestro, retorna una respuesta marcada con 'in_master: False'
+    permitiendo inventariar ítems no catalogados hallados físicamente en bodega.
+    """
+    clean_code = item_code.upper().strip()
+    details = await csv_handler.get_item_details_from_master_csv(clean_code, db=db)
+
+    if details:
+        return ORJSONResponse(
+            {
+                "item_code": clean_code,
+                "description": details.get("Item_Description", "N/A"),
+                "bin_location": details.get("Bin_1", "N/A"),
+                "system_qty": float(details.get("Physical_Qty", 0.0)),
+                "cost_per_unit": float(details.get("Cost_per_Unit", 0.0)),
+                "in_master": True,
+            }
+        )
+    else:
+        return ORJSONResponse(
+            {
+                "item_code": clean_code,
+                "description": "ITEM NO REGISTRADO EN MAESTRO",
+                "bin_location": "N/A",
+                "system_qty": 0.0,
+                "cost_per_unit": 0.0,
+                "in_master": False,
+            }
+        )
 
 
 @router.get("/counts/dashboard_stats")
@@ -600,17 +639,24 @@ async def get_all_counts(
 
         for c in counts:
             c["inventory_stage"] = session_map.get(c["session_id"], 1)
+            item_code = c.get("item_code")
 
-            master_item = master_map.get(c["item_code"])
+            master_item = master_map.get(item_code)
             if master_item:
-                # Usar datos actuales de la DB para la comparación
-                c["system_qty"] = master_item.physical_qty
-                c["difference"] = c["counted_qty"] - (master_item.physical_qty or 0)
-                # Opcional: actualizar descripción si ha cambiado en el maestro
-                # c['item_description'] = master_item.description
+                sys_qty = int(master_item.physical_qty) if master_item.physical_qty is not None else 0
             else:
-                c["system_qty"] = 0
-                c["difference"] = c["counted_qty"]
+                # Fallback al maestro en CSV si el ítem no está en la tabla SQL master_items
+                details = await csv_handler.get_item_details_from_master_csv(item_code, db) if item_code else None
+                if details and details.get("Physical_Qty") is not None:
+                    try:
+                        sys_qty = int(float(details["Physical_Qty"]))
+                    except (ValueError, TypeError):
+                        sys_qty = 0
+                else:
+                    sys_qty = 0
+
+            c["system_qty"] = sys_qty
+            c["difference"] = (c.get("counted_qty") or 0) - sys_qty
 
         return counts
     except Exception as e:
@@ -678,57 +724,123 @@ async def delete_count(
 
 @router.get("/export_counts")
 async def export_all_counts(
+    stage: Optional[int] = None,
     tz: Optional[str] = "UTC",
     username: str = Depends(permission_required("inventory")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Exporta todos los registros de conteo físico (StockCount) a Excel."""
+    """Exporta los registros de conteo físico (StockCount) a Excel, opcionalmente filtrados por etapa."""
     try:
         # 1. Obtener datos enriquecidos (reutilizamos la lógica de get_all_counts)
         counts = await get_all_counts(username, db)
+        if stage is not None:
+            counts = [c for c in counts if int(c.get("inventory_stage") or 1) == int(stage)]
+
         if not counts:
             return ORJSONResponse(
-                content={"error": "No hay datos para exportar"}, status_code=400
+                content={"error": f"No hay datos para exportar en la Etapa {stage}" if stage else "No hay datos para exportar"}, status_code=400
             )
 
-        # 2. Convertir a Polars para formateo rápido
-        df = pl.from_dicts(counts)
+        # 2. Cargar tolerancias desde AppState
+        res_qty_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_qty_tolerance"))
+        qty_tol_val = res_qty_tol.scalar_one_or_none()
+        qty_tolerance = float(qty_tol_val) if qty_tol_val else 0.02
 
-        # Renombrar columnas para el Excel profesional
-        col_rename = {
-            "inventory_stage": "ETAPA",
-            "session_id": "ID_SESION",
-            "username": "AUDITOR",
-            "timestamp": "FECHA_HORA",
-            "item_code": "CODIGO_ITEM",
-            "item_description": "DESCRIPCION",
-            "counted_location": "UBICACION_FISICA",
-            "counted_qty": "CANT_CONTADA",
-            "system_qty": "CANT_SISTEMA",
-            "difference": "DIFERENCIA",
-        }
+        res_val_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_val_tolerance"))
+        val_tol_val = res_val_tol.scalar_one_or_none()
+        val_tolerance = float(val_tol_val) if val_tol_val else 10.00
 
-        # Seleccionar y renombrar solo las columnas deseadas
-        available_cols = [c for c in col_rename.keys() if c in df.columns]
-        df_export = df.select(available_cols).rename(
-            {c: col_rename[c] for c in available_cols}
-        )
+        # 3. Formatear las filas para que coincidan con la estructura exacta de la tabla
+        formatted_rows = []
+        for c in counts:
+            sys_qty = int(c.get("system_qty") or 0)
+            cnt_qty = int(c.get("counted_qty") or 0)
+            diff = c.get("difference") if c.get("difference") is not None else (cnt_qty - sys_qty)
+            abs_diff = abs(diff)
 
-        # 3. Generar Excel en memoria con openpyxl directo (sin pandas)
+            status = "SIN DIF"
+            if abs_diff > 0.0001:
+                if c.get("manually_approved") or c.get("status") == "APPROVED_MANUAL":
+                    status = "APROB SUPERV"
+                else:
+                    exceeds_qty = (abs_diff / sys_qty) > qty_tolerance if sys_qty > 0 else abs_diff > 0
+                    exceeds_val = (abs_diff * float(c.get("cost_per_unit") or 0)) > val_tolerance
+                    status = "EXCEDE TOLER" if (exceeds_qty or exceeds_val) else "AUTO OK"
+
+            ts_raw = c.get("timestamp")
+            if ts_raw:
+                try:
+                    ts_str = str(ts_raw).replace("T", " ")[:16]
+                except Exception:
+                    ts_str = str(ts_raw)
+            else:
+                ts_str = "-"
+
+            stage_str = f"E{c.get('inventory_stage') or 1}"
+            session_str = f"#{c.get('session_id')}" if c.get("session_id") else "-"
+
+            formatted_rows.append({
+                "ID": c.get("id"),
+                "Sesión": session_str,
+                "Etapa": stage_str,
+                "Auditor": c.get("username") or "N/A",
+                "Fecha / Hora": ts_str,
+                "Item Code": c.get("item_code") or "",
+                "Descripción": c.get("item_description") or "",
+                "Ubicación": c.get("counted_location") or "",
+                "Cant. Física": cnt_qty,
+                "Cant. Sistema": sys_qty,
+                "Diferencia": diff,
+                "Estado": status,
+            })
+
+        df_export = pl.from_dicts(formatted_rows)
+
+        # 4. Generar Excel estilizado con openpyxl (mismos colores y alineaciones de la app)
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Auditoria_W2W"
-        ws.append(df_export.columns)
-        for row in df_export.iter_rows():
-            ws.append(list(row))
+        ws.title = "Reporte_Conteos"
+
+        header_fill = openpyxl.styles.PatternFill(start_color="1E4A74", end_color="1E4A74", fill_type="solid")
+        header_font = openpyxl.styles.Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+        cell_font = openpyxl.styles.Font(name="Segoe UI", size=9)
+        center_align = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+        right_align = openpyxl.styles.Alignment(horizontal="right", vertical="center")
+        left_align = openpyxl.styles.Alignment(horizontal="left", vertical="center")
+
+        ws.append(list(df_export.columns))
+        for col_num in range(1, len(df_export.columns) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+
+        for row_data in df_export.iter_rows():
+            ws.append(list(row_data))
+
+        numeric_cols = {"Cant. Física", "Cant. Sistema", "Diferencia"}
+        centered_cols = {"ID", "Sesión", "Etapa", "Fecha / Hora", "Estado"}
+
+        for row in ws.iter_rows(min_row=2):
+            for col_idx, cell in enumerate(row, start=1):
+                col_name = df_export.columns[col_idx - 1]
+                cell.font = cell_font
+                if col_name in numeric_cols:
+                    cell.alignment = right_align
+                elif col_name in centered_cols:
+                    cell.alignment = center_align
+                else:
+                    cell.alignment = left_align
+
         for i, col_name in enumerate(df_export.columns, start=1):
             col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
-            ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 3
+            ws.column_dimensions[get_column_letter(i)].width = float(max(max_len, 10))
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
-        filename = f"auditoria_inventario_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        filename = f"reporte_conteos_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
 
         return Response(
             content=output.getvalue(),
@@ -738,6 +850,134 @@ async def export_all_counts(
     except Exception as e:
         print(f"Error exportando conteos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/counts/differences")
+async def get_count_differences(
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """
+    API: Retorna el listado de tomas de inventario físico con la diferencia
+    calculada contra la cantidad del sistema y el % de variación.
+    """
+    await csv_handler.reload_cache_if_needed()
+
+    stmt = (
+        select(
+            StockCount.id,
+            StockCount.item_code,
+            StockCount.counted_location,
+            StockCount.counted_qty,
+            StockCount.timestamp,
+            CountSession.user_username,
+        )
+        .join(CountSession, StockCount.session_id == CountSession.id)
+        .order_by(StockCount.id.desc())
+    )
+    res = await db.execute(stmt)
+    rows = res.fetchall()
+
+    items = []
+    for r in rows:
+        item_code = str(r.item_code).upper().strip()
+        cnt_qty = float(r.counted_qty or 0.0)
+        sys_qty = float(csv_handler.master_qty_map.get(item_code, 0.0))
+        diff_qty = cnt_qty - sys_qty
+
+        if sys_qty > 0:
+            pct_var = round((diff_qty / sys_qty) * 100.0, 2)
+        else:
+            pct_var = 100.0 if diff_qty != 0 else 0.0
+
+        desc = csv_handler.master_desc_map.get(item_code, "N/A")
+
+        items.append(
+            {
+                "count_id": r.id,
+                "item_code": item_code,
+                "description": desc,
+                "location": r.counted_location or "N/A",
+                "system_qty": sys_qty,
+                "counted_qty": cnt_qty,
+                "difference": diff_qty,
+                "percentage_variance": pct_var,
+                "date": r.timestamp or "",
+                "username": r.user_username or "N/A",
+            }
+        )
+
+    return ORJSONResponse({"items": items, "count": len(items)})
+
+
+@router.get("/counts/{count_id}")
+async def get_count_by_id(
+    count_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Obtiene un registro de StockCount por su ID."""
+    await csv_handler.reload_cache_if_needed()
+
+    stmt = select(StockCount).where(StockCount.id == count_id)
+    res = await db.execute(stmt)
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    item_code = str(stock_count.item_code).upper().strip()
+    desc = csv_handler.master_desc_map.get(item_code, "N/A")
+
+    return ORJSONResponse(
+        {
+            "id": stock_count.id,
+            "session_id": stock_count.session_id,
+            "item_code": item_code,
+            "item_description": desc,
+            "counted_location": stock_count.counted_location or "N/A",
+            "counted_qty": stock_count.counted_qty,
+            "timestamp": stock_count.timestamp or "",
+        }
+    )
+
+
+class CountQtyUpdate(BaseModel):
+    counted_qty: float
+
+
+@router.put("/counts/{count_id}")
+async def update_count_qty(
+    count_id: int,
+    payload: CountQtyUpdate,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Actualiza la cantidad contada de un registro de StockCount."""
+    res = await db.execute(select(StockCount).where(StockCount.id == count_id))
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    stock_count.counted_qty = payload.counted_qty
+    await db.commit()
+    return ORJSONResponse({"message": "Cantidad actualizada correctamente"})
+
+
+@router.delete("/counts/{count_id}")
+async def delete_count(
+    count_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(permission_required("inventory")),
+):
+    """API: Elimina un registro de StockCount."""
+    res = await db.execute(select(StockCount).where(StockCount.id == count_id))
+    stock_count = res.scalar_one_or_none()
+    if not stock_count:
+        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
+
+    await db.delete(stock_count)
+    await db.commit()
+    return ORJSONResponse({"message": "Registro eliminado correctamente"})
 
 
 @router.get("/counts/export_recordings")

@@ -10,28 +10,29 @@ from app.core.config import PROJECT_ROOT
 
 
 async def ensure_cycle_count_columns():
-    """Garantiza la existencia de las nuevas columnas en cycle_count_recordings si no existían."""
+    """Garantiza la existencia de las nuevas columnas en cycle_count_recordings y users si no existían."""
     from app.core.db import engine
     from sqlalchemy import text
     columns_to_add = [
-        ("root_cause", "VARCHAR(100)"),
-        ("status", "VARCHAR(50) DEFAULT 'closed'"),
-        ("count_attempt", "INTEGER DEFAULT 1"),
-        ("created_at", "VARCHAR(50)"),
-        ("closed_at", "VARCHAR(50)"),
-        ("person_hours", "DECIMAL(10,2) DEFAULT 0.5"),
-        ("stockroom", "VARCHAR(50)"),
-        ("criticality", "VARCHAR(50) DEFAULT 'Standard'"),
+        ("cycle_count_recordings", "root_cause", "VARCHAR(100)"),
+        ("cycle_count_recordings", "status", "VARCHAR(50) DEFAULT 'closed'"),
+        ("cycle_count_recordings", "count_attempt", "INTEGER DEFAULT 1"),
+        ("cycle_count_recordings", "created_at", "VARCHAR(50)"),
+        ("cycle_count_recordings", "closed_at", "VARCHAR(50)"),
+        ("cycle_count_recordings", "person_hours", "DECIMAL(10,2) DEFAULT 0.5"),
+        ("cycle_count_recordings", "stockroom", "VARCHAR(50)"),
+        ("cycle_count_recordings", "criticality", "VARCHAR(50) DEFAULT 'Standard'"),
+        ("users", "assigned_zones", "VARCHAR(500) DEFAULT ''"),
     ]
     try:
         async with engine.begin() as conn:
-            for col_name, col_type in columns_to_add:
+            for table_name, col_name, col_type in columns_to_add:
                 try:
-                    await conn.execute(text(f"ALTER TABLE cycle_count_recordings ADD COLUMN {col_name} {col_type}"))
+                    await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"))
                 except Exception:
                     pass  # La columna ya existe
     except Exception as e:
-        print(f"Aviso actualizando esquema cycle_count_recordings: {e}")
+        print(f"Aviso actualizando esquema de BD: {e}")
 
 
 async def run_migrations():

@@ -7,8 +7,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"72"', '"72full"', 'Inter', 'Roboto', 'sans-serif'],
-                inter: ['Inter', 'sans-serif'],
+                sans: ['"Segoe UI"', '-apple-system', 'BlinkMacSystemFont', 'Roboto', 'sans-serif'],
+                inter: ['"Segoe UI"', 'sans-serif'],
                 print: ['Arial', 'Helvetica', 'sans-serif'],
             },
         },

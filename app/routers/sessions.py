@@ -4,14 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.schemas import CloseLocationRequest
 from app.services import db_counts
-from app.utils.auth import login_required
+from app.utils.auth import api_login_required
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
 
 @router.post("/sessions/start", status_code=status.HTTP_201_CREATED)
 async def start_new_session(
-    username: str = Depends(login_required), db: AsyncSession = Depends(get_db)
+    username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)
 ):
     """Inicia una nueva sesión de conteo para el usuario actual."""
     # print(f"Attempting to start a new session for user: {username}")
@@ -21,7 +21,7 @@ async def start_new_session(
 
 @router.get("/sessions/active")
 async def get_active_session(
-    username: str = Depends(login_required), db: AsyncSession = Depends(get_db)
+    username: str = Depends(api_login_required), db: AsyncSession = Depends(get_db)
 ):
     """Obtiene la sesión de conteo activa para el usuario."""
     session = await db_counts.get_active_session_for_user(db, username)
@@ -35,7 +35,7 @@ async def get_active_session(
 @router.post("/sessions/{session_id}/close")
 async def close_session(
     session_id: int,
-    username: str = Depends(login_required),
+    username: str = Depends(api_login_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Cierra una sesión de conteo."""
@@ -45,7 +45,7 @@ async def close_session(
 @router.post("/locations/close")
 async def close_location(
     data: CloseLocationRequest,
-    username: str = Depends(login_required),
+    username: str = Depends(api_login_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Marca una ubicación como 'cerrada' para una sesión de conteo."""
@@ -57,7 +57,7 @@ async def close_location(
 @router.post("/locations/reopen", name="reopen_location")
 async def reopen_location(
     data: CloseLocationRequest,
-    username: str = Depends(login_required),
+    username: str = Depends(api_login_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Reabre una ubicación para permitir más conteos."""
@@ -69,7 +69,7 @@ async def reopen_location(
 @router.get("/sessions/{session_id}/locations")
 async def get_session_locations(
     session_id: int,
-    username: str = Depends(login_required),
+    username: str = Depends(api_login_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Obtiene el estado de todas las ubicaciones para una sesión."""
@@ -80,7 +80,7 @@ async def get_session_locations(
 async def get_counts_for_location(
     session_id: int,
     location_code: str,
-    username: str = Depends(login_required),
+    username: str = Depends(api_login_required),
     db: AsyncSession = Depends(get_db),
 ):
     """Obtiene todos los conteos para una ubicación específica en una sesión."""

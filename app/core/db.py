@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy import event
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import ASYNC_DB_URL
 
@@ -23,6 +24,15 @@ if not ASYNC_DB_URL.startswith("sqlite"):
 
 # Crear el motor asíncrono
 engine = create_async_engine(ASYNC_DB_URL, **engine_kwargs)
+
+if ASYNC_DB_URL.startswith("sqlite"):
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA synchronous=NORMAL;")
+        cursor.execute("PRAGMA busy_timeout=60000;")
+        cursor.close()
 
 # Fábrica de sesiones
 AsyncSessionLocal = async_sessionmaker(
