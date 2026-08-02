@@ -98,7 +98,9 @@ pub fn calculate_reconciliation_rust<'py>(
         let abs_diff_val = diff_val.abs();
 
         let mut status = "OK".to_string();
-        if abs_diff_qty > 0.0001 {
+        if !is_counted {
+            status = "NOT_COUNTED".to_string();
+        } else if abs_diff_qty > 0.0001 {
             if let Some(st) = recount_statuses.get(&code) {
                 if st == "manually_approved" {
                     status = "APPROVED_MANUAL".to_string();

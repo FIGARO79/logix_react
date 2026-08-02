@@ -17,6 +17,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_approved: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     permissions: Mapped[Optional[str]] = mapped_column(String(500), default="")
+    assigned_zones: Mapped[Optional[str]] = mapped_column(String(500), default="")
 
     reset_tokens = relationship(
         "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
@@ -28,6 +29,7 @@ class User(Base):
             "username": self.username,
             "is_approved": self.is_approved,
             "permissions": self.permissions,
+            "assigned_zones": self.assigned_zones or "",
         }
 
 

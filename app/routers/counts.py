@@ -724,17 +724,21 @@ async def delete_count(
 
 @router.get("/export_counts")
 async def export_all_counts(
+    stage: Optional[int] = None,
     tz: Optional[str] = "UTC",
     username: str = Depends(permission_required("inventory")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Exporta todos los registros de conteo físico (StockCount) a Excel en el mismo formato que la tabla."""
+    """Exporta los registros de conteo físico (StockCount) a Excel, opcionalmente filtrados por etapa."""
     try:
         # 1. Obtener datos enriquecidos (reutilizamos la lógica de get_all_counts)
         counts = await get_all_counts(username, db)
+        if stage is not None:
+            counts = [c for c in counts if int(c.get("inventory_stage") or 1) == int(stage)]
+
         if not counts:
             return ORJSONResponse(
-                content={"error": "No hay datos para exportar"}, status_code=400
+                content={"error": f"No hay datos para exportar en la Etapa {stage}" if stage else "No hay datos para exportar"}, status_code=400
             )
 
         # 2. Cargar tolerancias desde AppState

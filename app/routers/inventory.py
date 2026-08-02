@@ -21,6 +21,7 @@ from app.core.db import get_db
 from app.services import csv_handler
 from app.utils.auth import permission_required
 from app.models.sql_models import (
+    User,
     AppState,
     StockCount,
     CountSession,
@@ -30,8 +31,76 @@ from app.models.sql_models import (
 )
 from app.services.csv_to_db import sync_master_csv_to_db
 
+import json
+import os
+from app.core.config import PROJECT_ROOT
+
 # --- Inicialización ---
 router = APIRouter(tags=["inventory"])
+
+
+def get_slotting_aisles_data():
+    """Carga los pasillos oficiales (aisles) y mapa de ubicación -> pasillo desde slotting_parameters.json."""
+    json_path = os.path.join(PROJECT_ROOT, "static", "json", "slotting_parameters.json")
+    if not os.path.exists(json_path):
+        return [], {}
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            storage = data.get("storage", {})
+            bin_to_aisle = {}
+            aisles_set = set()
+            for bin_code, info in storage.items():
+                aisle = info.get("aisle")
+                if aisle:
+                    clean_bin = str(bin_code).strip().upper()
+                    clean_aisle = str(aisle).strip().upper()
+                    bin_to_aisle[clean_bin] = clean_aisle
+                    aisles_set.add(clean_aisle)
+            return sorted(list(aisles_set)), bin_to_aisle
+    except Exception as e:
+        print(f"Error cargando slotting_parameters.json: {e}")
+        return [], {}
+
+
+class ZoneAssignmentPayload(BaseModel):
+    user_id: int
+    assigned_zones: str
+
+
+@router.get("/api/admin/inventory/available_aisles")
+async def get_available_aisles():
+    """Retorna la lista oficial de pasillos (aisles) configurados en el mapa de slotting."""
+    aisles, _ = get_slotting_aisles_data()
+    return ORJSONResponse({"aisles": aisles})
+
+
+@router.get("/api/admin/inventory/auditor_zones")
+async def get_auditor_zones(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).order_by(User.username))
+    users = result.scalars().all()
+    aisles, _ = get_slotting_aisles_data()
+    return ORJSONResponse([
+        {
+            "id": u.id,
+            "username": u.username,
+            "assigned_zones": u.assigned_zones or "",
+            "is_approved": u.is_approved
+        }
+        for u in users
+    ])
+
+
+@router.post("/api/admin/inventory/assign_zones")
+async def save_auditor_zones(payload: ZoneAssignmentPayload, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == payload.user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user.assigned_zones = payload.assigned_zones.strip().upper()
+    await db.commit()
+    return ORJSONResponse({"message": f"Pasillos actualizados para {user.username}: {user.assigned_zones}"})
 
 
 async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, Any]]:
@@ -883,7 +952,24 @@ async def get_active_recount_list(
         for r in recounted_res.fetchall()
     }
 
-    # 4. Enriquecer lista con datos del maestro
+    # 3.5 Consultar ubicaciones físicas registradas en Fase 1
+    stmt_p1_locs = (
+        select(
+            StockCount.item_code,
+            StockCount.counted_location,
+        )
+        .join(CountSession, StockCount.session_id == CountSession.id)
+        .where(CountSession.inventory_stage == 1)
+        .order_by(StockCount.id.desc())
+    )
+    p1_res = await db.execute(stmt_p1_locs)
+    phase1_loc_map = {}
+    for r in p1_res.fetchall():
+        code_k = str(r.item_code).upper().strip()
+        if code_k not in phase1_loc_map and r.counted_location:
+            phase1_loc_map[code_k] = str(r.counted_location).upper().strip()
+
+    # 4. Enriquecer lista con datos del maestro y ubicación de Fase 1
     items_list = []
     recounted_count = 0
 
@@ -894,15 +980,38 @@ async def get_active_recount_list(
         if is_recounted:
             recounted_count += 1
 
+        sys_loc = details.get("Bin_1", "N/A")
+        p1_loc = phase1_loc_map.get(code)
+        effective_loc = p1_loc if p1_loc else sys_loc
+
         items_list.append(
             {
                 "item_code": code,
                 "description": details.get("Item_Description", "N/A"),
-                "bin_location": details.get("Bin_1", "N/A"),
+                "bin_location": effective_loc,
+                "system_location": sys_loc,
+                "phase1_location": p1_loc or "N/A",
                 "is_recounted": is_recounted,
                 "counted_qty_in_stage": recounted_map.get(code, 0.0),
             }
         )
+
+    # 3.5 Filtrar por pasillos (aisles) asignados al auditor si existen
+    stmt_user = select(User).where(User.username == user)
+    user_row = (await db.execute(stmt_user)).scalar_one_or_none()
+    if user_row and user_row.assigned_zones:
+        user_aisles = [z.strip().upper() for z in user_row.assigned_zones.split(",") if z.strip()]
+        if user_aisles:
+            _, bin_to_aisle = get_slotting_aisles_data()
+            filtered_items = []
+            for item in items_list:
+                loc = str(item.get("bin_location", "")).upper().strip()
+                item_aisle = bin_to_aisle.get(loc)
+                match = (item_aisle in user_aisles) or any(loc.startswith(a) for a in user_aisles)
+                if match:
+                    filtered_items.append(item)
+            items_list = filtered_items
+            recounted_count = sum(1 for item in items_list if item["is_recounted"])
 
     items_list.sort(key=lambda x: (x["is_recounted"], x["item_code"]))
 
@@ -956,6 +1065,21 @@ async def save_w2w_count_api(
             status_code=400,
             detail=f"La ubicación '{clean_location}' no es una ubicación válida en el maestro de slotting.",
         )
+
+    # 1.6 Verificar si la ubicación pertenece a los pasillos asignados al auditor
+    stmt_user = select(User).where(User.username == user)
+    user_row = (await db.execute(stmt_user)).scalar_one_or_none()
+    if user_row and user_row.assigned_zones:
+        allowed_aisles = [z.strip().upper() for z in user_row.assigned_zones.split(",") if z.strip()]
+        if allowed_aisles:
+            _, bin_to_aisle = get_slotting_aisles_data()
+            loc_aisle = bin_to_aisle.get(clean_location)
+            match = (loc_aisle in allowed_aisles) or any(clean_location.startswith(a) for a in allowed_aisles)
+            if not match:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La ubicación '{clean_location}' (Pasillo {loc_aisle or 'N/A'}) no pertenece a sus pasillos autorizados ({', '.join(allowed_aisles)}).",
+                )
 
     # 2. Normalizar código y obtener descripción si no se proveyó
     clean_code = payload.item_code.upper().strip()
@@ -1228,7 +1352,9 @@ async def get_inventory_reconciliation_api(
             abs_diff_val = abs(diff_val)
 
             status = "OK"
-            if abs_diff_qty > 0.0001:
+            if not is_counted:
+                status = "NOT_COUNTED"
+            elif abs_diff_qty > 0.0001:
                 recount_item = recount_map.get(code)
                 if recount_item:
                     if recount_item.status == "manually_approved":
