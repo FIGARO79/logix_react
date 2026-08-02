@@ -100,6 +100,21 @@ const ManageCounts = () => {
         } catch (e) { alert(e.message); }
     };
 
+    const handleApproveItem = async (itemCode) => {
+        if (!window.confirm(`¿Aprobar manualmente la diferencia de ${itemCode}?`)) return;
+        try {
+            const res = await fetch('/api/admin/inventory/approve_item', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_code: itemCode })
+            });
+            if (!res.ok) throw new Error("Error aprobando item");
+            fetchCounts();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
     const handleReopenLocation = async (e) => {
         e.preventDefault();
         try {
@@ -230,8 +245,8 @@ const ManageCounts = () => {
                     <table className="min-w-full text-left border-collapse">
                         <thead className="bg-[#1e4a74] text-white sticky top-0 z-10">
                             <tr>
-                                {['ID', 'Sesión', 'Etapa', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Acciones'].map((h, i) => (
-                                    <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${h === 'Cant. Física' ? 'text-right' : h === 'Acciones' ? 'text-center' : 'text-left'}`}>
+                                {['ID', 'Sesión', 'Etapa', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia', 'Estado', 'Acciones'].map((h, i) => (
+                                    <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : h === 'Acciones' || h === 'Estado' ? 'text-center' : 'text-left'}`}>
                                         {h}
                                     </th>
                                 ))}
@@ -239,37 +254,93 @@ const ManageCounts = () => {
                         </thead>
                         <tbody className="divide-y divide-[#e5e5e5]">
                             {loading ? (
-                                <tr><td colSpan="10" className="p-4 text-center text-gray-400 font-normal text-xs">Consultando base de datos...</td></tr>
+                                <tr><td colSpan="13" className="p-4 text-center text-gray-400 font-normal text-xs">Consultando base de datos...</td></tr>
                             ) : filteredCounts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="p-8 text-center text-gray-400 uppercase text-xs tracking-widest font-normal">
+                                    <td colSpan="13" className="p-8 text-center text-gray-400 uppercase text-xs tracking-widest font-normal">
                                         No existen registros que coincidan con la búsqueda
                                     </td>
                                 </tr>
                             ) : (
-                                filteredCounts.map((c) => (
-                                    <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none border-b border-gray-100 h-6">
-                                        <td className="px-2 py-0.5 text-[10px] font-normal text-gray-400">{c.id}</td>
-                                        <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500">#{c.session_id}</td>
-                                        <td className="px-2 py-0.5 text-[10px] font-normal text-blue-600">E{c.inventory_stage || '1'}</td>
-                                        <td className="px-2 py-0.5 text-[11px] font-normal text-slate-800">{c.username || 'N/A'}</td>
-                                        <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500 whitespace-nowrap">{c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                                        <td className="px-2 py-0.5 text-[11px] font-normal text-slate-900 tracking-tight uppercase">{c.item_code}</td>
-                                        <td className="px-2 py-0.5 text-[11px] text-gray-600 font-normal truncate max-w-[240px]" title={c.item_description}>{c.item_description}</td>
-                                        <td className="px-2 py-0.5 text-[11px] font-normal text-slate-700 uppercase">{c.counted_location}</td>
-                                        <td className="px-2 py-0.5 text-[11px] font-normal text-[#1e4a74] text-right">{c.counted_qty}</td>
-                                        <td className="px-2 py-0.5 text-center">
-                                            <div className="flex gap-1.5 justify-center items-center">
-                                                <button onClick={() => navigate(`/counts/edit/${c.id}`)} title="Editar Captura" className="p-0.5 text-gray-500 hover:text-blue-600 transition-colors">
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                </button>
-                                                <button onClick={() => handleDelete(c.id)} title="Eliminar Registro" className="p-0.5 text-gray-500 hover:text-red-600 transition-colors">
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredCounts.map((c) => {
+                                    const sysQty = c.system_qty ?? 0;
+                                    const diff = c.difference ?? ((c.counted_qty ?? 0) - sysQty);
+                                    const absDiff = Math.abs(diff);
+
+                                    let status = 'OK';
+                                    if (absDiff > 0.0001) {
+                                        if (c.manually_approved || c.status === 'APPROVED_MANUAL') {
+                                            status = 'APPROVED_MANUAL';
+                                        } else {
+                                            const exceedsQty = sysQty > 0 ? (absDiff / sysQty) > (settings.w2w_qty_tolerance || 0.02) : absDiff > 0;
+                                            const exceedsVal = (absDiff * (c.cost_per_unit || 0)) > (settings.w2w_val_tolerance || 10.0);
+                                            status = (exceedsQty || exceedsVal) ? 'PENDING' : 'APPROVED_AUTO';
+                                        }
+                                    }
+
+                                    return (
+                                        <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none border-b border-gray-100 h-6">
+                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-400">{c.id}</td>
+                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500">#{c.session_id}</td>
+                                            <td className="px-2 py-0.5 text-[10px] font-normal text-blue-600">E{c.inventory_stage || '1'}</td>
+                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-800">{c.username || 'N/A'}</td>
+                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500 whitespace-nowrap">{c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-900 tracking-tight uppercase">{c.item_code}</td>
+                                            <td className="px-2 py-0.5 text-[11px] text-gray-600 font-normal truncate max-w-[240px]" title={c.item_description}>{c.item_description}</td>
+                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-700 uppercase">{c.counted_location}</td>
+                                            <td className="px-2 py-0.5 text-[11px] font-normal text-[#1e4a74] text-right">{c.counted_qty}</td>
+                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-700 text-right">{sysQty}</td>
+                                            <td className={`px-2 py-0.5 text-[11px] font-medium text-right ${
+                                                diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-700' : 'text-gray-400'
+                                            }`}>
+                                                {diff > 0 ? `+${diff}` : diff}
+                                            </td>
+                                            <td className="px-2 py-0.5 text-center">
+                                                {status === 'OK' && (
+                                                    <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                                                        SIN DIF
+                                                    </span>
+                                                )}
+                                                {status === 'APPROVED_AUTO' && (
+                                                    <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        AUTO OK
+                                                    </span>
+                                                )}
+                                                {status === 'APPROVED_MANUAL' && (
+                                                    <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                                        APROB SUPERV
+                                                    </span>
+                                                )}
+                                                {status === 'PENDING' && (
+                                                    <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
+                                                        EXCEDE TOLER
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-2 py-0.5 text-center">
+                                                <div className="flex gap-1.5 justify-center items-center">
+                                                     {status === 'PENDING' && (
+                                                         <button
+                                                             onClick={() => handleApproveItem(c.item_code)}
+                                                             title="Aprobar Diferencia Manualmente"
+                                                             className="p-0.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                                         >
+                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                             </svg>
+                                                         </button>
+                                                     )}
+                                                    <button onClick={() => navigate(`/counts/edit/${c.id}`)} title="Editar Captura" className="p-0.5 text-gray-500 hover:text-blue-600 transition-colors">
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(c.id)} title="Eliminar Registro" className="p-0.5 text-gray-500 hover:text-red-600 transition-colors">
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

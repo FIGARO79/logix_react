@@ -198,10 +198,10 @@ const AdminInventory = () => {
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
                 <div className="flex gap-3">
                     <button
-                        onClick={() => window.location.href = `/api/export_counts`}
-                        className="bg-white border border-black text-black text-[12px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors font-normal shadow-sm"
+                        onClick={() => window.location.href = `/admin/inventory/report`}
+                        className="bg-white border border-black text-black text-[12px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors font-normal shadow-sm cursor-pointer"
                     >
-                        Exportar Master
+                        Exportar Conciliación
                     </button>
                 </div>
             </div>
@@ -216,12 +216,6 @@ const AdminInventory = () => {
                     className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'cycle' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
                 >
                     Fases del Inventario
-                </button>
-                <button
-                    onClick={() => setActiveTab('counts')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'counts' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
-                >
-                    Auditoría de Registros
                 </button>
                 <button
                     onClick={() => setActiveTab('reconciliation')}
@@ -323,73 +317,7 @@ const AdminInventory = () => {
                 </div>
             )}
 
-            {activeTab === 'counts' && (
-                <div className="space-y-8">
-                    {/* Indicadores */}
-                    {countStats && (
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            {[
-                                { l: 'Meta Loc.', v: countStats.total_locations_to_count },
-                                { l: 'Capturas', v: countStats.counted_locations },
-                                { l: 'Progreso', v: `${countStats.progress_percentage}%` },
-                                { l: 'SKUs', v: countStats.total_items_counted },
-                                { l: 'Unidades', v: countStats.total_units_counted }
-                            ].map((s, i) => (
-                                <div key={i} className="bg-white border border-zinc-200 p-4 shadow-sm text-center">
-                                    <label className="text-[12px] uppercase font-normal text-black block mb-1 tracking-tighter">{s.l}</label>
-                                    <div className="text-[12px] font-light text-black">{s.v}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
-                    <div>
-                        <div className="w-full">
-                            <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
-                                <div className="bg-[#f2f2f2] px-4 py-1.5 border-b border-zinc-200 flex flex-row justify-between items-center gap-4">
-                                    <div className="flex gap-4 items-center flex-1 max-w-[300px]">
-                                        <label className="text-[12px] font-normal text-black uppercase tracking-widest">Filtro Auditor:</label>
-                                        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className="h-6 flex-1 bg-white border border-zinc-300 text-[12px] font-normal uppercase outline-none focus:ring-1 focus:ring-black px-2 cursor-pointer transition-all">
-                                            <option value="">Todos los auditores</option>
-                                            {usernames.map(u => <option key={u} value={u}>{u}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="whitespace-nowrap shrink-0">
-                                        <span className="text-[12px] text-black font-normal uppercase tracking-tight">{filteredCounts.length} registros capturados</span>
-                                    </div>
-                                </div>
-
-                                <div className="overflow-x-auto max-h-[calc(100vh-350px)]">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-[#1e4a74] sticky top-0 z-10 shadow-sm text-white">
-                                            <tr>
-                                                {['Auditor', 'Timestamp', 'Ítem', 'Ubicación', 'Cantidad', ''].map((h, i) => (
-                                                    <th key={i} className="px-2 py-1 text-[10px] font-normal uppercase tracking-tight">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-zinc-100">
-                                            {filteredCounts.map((c) => (
-                                                <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none h-6">
-                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black">{c.username}</td>
-                                                    <td className="px-2 py-0.5 text-[10px] text-black font-normal uppercase">{new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black tracking-tight uppercase">{c.item_code}</td>
-                                                    <td className="px-2 py-0.5 text-[11px] text-black font-normal uppercase">{c.counted_location}</td>
-                                                    <td className="px-2 py-0.5 text-[11px] font-normal text-black border-l border-zinc-50">{c.counted_qty}</td>
-                                                    <td className="px-2 py-0.5 text-right space-x-3">
-                                                        <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-black hover:text-blue-600 text-[11px] font-normal uppercase transition-colors">Editar</button>
-                                                        <button onClick={() => handleDelete(c.id)} className="text-black hover:text-red-600 text-[11px] font-normal uppercase transition-colors">Borrar</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>  
-            )}
 
             {activeTab === 'reconciliation' && (
                 <div className="space-y-6">
@@ -443,7 +371,9 @@ const AdminInventory = () => {
                                         <thead className="bg-[#1e4a74] sticky top-0 z-10 shadow-sm text-white">
                                             <tr>
                                                 {[
-                                                    'Ítem / Ubicación',
+                                                    'Ítem',
+                                                    'Descripción',
+                                                    'Ubicación',
                                                     'Costo',
                                                     'Sist',
                                                     'Etapa 1',
@@ -453,12 +383,10 @@ const AdminInventory = () => {
                                                     'Contado',
                                                     'Diff',
                                                     'Valor Diff',
-                                                    'Estado',
-                                                    'Acción',
                                                 ].map((h, i) => (
                                                     <th
                                                         key={i}
-                                                        className="px-2 py-1 text-[10px] font-normal uppercase tracking-wider text-center first:text-left"
+                                                        className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider ${['Ítem', 'Descripción', 'Ubicación'].includes(h) ? 'text-left' : 'text-center'}`}
                                                     >
                                                         {h}
                                                     </th>
@@ -486,16 +414,14 @@ const AdminInventory = () => {
                                                         key={item.item_code}
                                                         className="hover:bg-[#f5f8fc] transition-colors leading-none h-6"
                                                     >
-                                                        <td className="px-2 py-0.5 text-left">
-                                                            <div className="text-zinc-900 font-normal uppercase tracking-tight text-[11px]">
-                                                                {item.item_code}
-                                                            </div>
-                                                            <div className="text-[9px] text-zinc-500 font-normal truncate max-w-[180px]">
-                                                                {item.description}
-                                                            </div>
-                                                            <div className="text-[9px] text-zinc-400 font-normal">
-                                                                Loc: {item.bin_location}
-                                                            </div>
+                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-900 tracking-tight uppercase whitespace-nowrap">
+                                                            {item.item_code}
+                                                        </td>
+                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-600 truncate max-w-[200px]" title={item.description}>
+                                                            {item.description}
+                                                        </td>
+                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-700 uppercase whitespace-nowrap">
+                                                            {item.bin_location}
                                                         </td>
                                                         <td className="px-2 py-0.5 text-center font-normal text-[10px]">
                                                             ${item.cost.toFixed(2)}
@@ -539,44 +465,6 @@ const AdminInventory = () => {
                                                             }`}
                                                         >
                                                             {item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center">
-                                                            {item.status === 'OK' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
-                                                                    SIN DIF
-                                                                </span>
-                                                            )}
-                                                            {item.status === 'APPROVED_AUTO' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                                    AUTO OK
-                                                                </span>
-                                                            )}
-                                                            {item.status === 'APPROVED_MANUAL' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
-                                                                    APROB SUPERV
-                                                                </span>
-                                                            )}
-                                                            {item.status === 'PENDING_RECOUNT' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                                                                    RECONTEO REQ
-                                                                </span>
-                                                            )}
-                                                            {item.status === 'PENDING' && (
-                                                                <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
-                                                                    EXCEDE TOLER
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-2 py-1 text-center">
-                                                            {(item.status === 'PENDING' ||
-                                                                item.status === 'PENDING_RECOUNT') && (
-                                                                <button
-                                                                    onClick={() => handleApproveItem(item.item_code)}
-                                                                    className="h-5 px-2 bg-zinc-800 text-white text-[9px] font-normal uppercase tracking-wider rounded hover:bg-zinc-900 transition-colors shadow-sm"
-                                                                >
-                                                                    Aprobar
-                                                                </button>
-                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}

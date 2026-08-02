@@ -424,172 +424,331 @@ const CycleCounts = () => {
     };
 
 
-    if (checkingSession) return <div className="p-8 text-center text-slate-500 uppercase tracking-widest text-xs">Cargando sesión...</div>;
+    if (checkingSession) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-black">
+                <svg className="w-8 h-8 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-xs font-normal uppercase tracking-widest text-black">Consultando sesión de inventario...</span>
+            </div>
+        );
+    }
 
     if (!activeSession) {
         return (
-            <div className="container-wrapper max-w-lg mx-auto px-4 py-8 text-center bg-white rounded-xl shadow-lg border border-slate-100 mt-8">
-                <h2 className="text-xl font-medium text-gray-900 text-gray-800 mb-2 uppercase tracking-tight">Inventario General (W2W)</h2>
-                <p className="mb-6 text-slate-500 text-sm">Inicie una sesión para comenzar el conteo masivo wall-to-wall.</p>
-                <button onClick={startSession} className="btn-sap btn-primary w-full py-4 font-medium text-gray-900 uppercase tracking-[0.2em] shadow-md active:scale-95 transition-all">
+            <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-xl shadow-md border border-slate-200 text-center text-black">
+                <div className="w-14 h-14 bg-slate-100 text-black rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200 shadow-inner">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+                <h2 className="text-base font-normal text-black uppercase tracking-tight mb-1">Inventario General (W2W)</h2>
+                <p className="text-xs text-black mb-6 leading-relaxed">No hay ninguna sesión activa. Inicie una nueva sesión para comenzar la captura física wall-to-wall.</p>
+                <button
+                    onClick={startSession}
+                    disabled={!isOnline}
+                    className="w-full py-2.5 px-4 bg-black hover:bg-zinc-800 text-white text-xs font-normal uppercase tracking-wider rounded-lg shadow transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                >
                     Iniciar Sesión de Inventario
                 </button>
-                {!isOnline && <p className="mt-4 text-red-500 text-[10px] font-medium text-gray-900 uppercase animate-pulse">Se requiere conexión para iniciar sesión</p>}
+                {!isOnline && (
+                    <p className="mt-3 text-red-600 text-[10px] uppercase font-normal tracking-wide animate-pulse">
+                        ⚠️ Se requiere conexión a la red para iniciar sesión
+                    </p>
+                )}
             </div>
         );
     }
 
     return (
-        <div className="container-wrapper px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-2 py-1.5 font-sans text-[11px] text-black leading-tight">
             <ToastContainer position="top-right" autoClose={2000} />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
 
-                {/* Main Form */}
-                <div className="md:col-span-2 bg-white p-6 rounded-lg shadow border border-gray-200">
-                    <div className="flex justify-between items-center mb-6 border-b pb-2">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-medium text-gray-900 text-gray-800 uppercase tracking-tight">Inventario W2W #S{activeSession.id || activeSession.session_id}</h1>
-                                {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium text-gray-900">OFFLINE</span>}
+                {/* Main Form Panel */}
+                <div className="lg:col-span-2 bg-white rounded shadow-sm border border-slate-200 p-2">
+                    {/* Header */}
+                    <div className="flex justify-between items-center pb-1.5 mb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-black text-white flex items-center justify-center font-normal text-[10px]">
+                                W2W
                             </div>
-                            <p className="text-[10px] text-gray-500 uppercase font-medium text-gray-900">Responsable: {activeSession.user_username || activeSession.username}</p>
+                            <div>
+                                <div className="flex items-center gap-1.5">
+                                    <h1 className="text-xs font-normal text-black uppercase tracking-tight">
+                                        Sesión #{activeSession.id || activeSession.session_id}
+                                    </h1>
+                                    {!isOnline && (
+                                        <span className="text-[8px] bg-red-50 text-red-600 px-1 py-0 rounded border border-red-200 font-normal uppercase">
+                                            OFFLINE
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[9px] text-black uppercase font-normal">
+                                    Auditor: <span className="text-black font-normal">{activeSession.user_username || activeSession.username}</span>
+                                </p>
+                            </div>
                         </div>
-                        <button onClick={endSession} className="btn-sap btn-secondary text-xs font-medium text-gray-900 uppercase">Finalizar Sesión</button>
+                        <button
+                            onClick={endSession}
+                            className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-black border border-slate-300 rounded text-[10px] font-normal uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                            Finalizar Sesión
+                        </button>
                     </div>
 
-                    <form onSubmit={handleSaveCount} className="space-y-4">
+                    <form onSubmit={handleSaveCount} className="space-y-1.5">
                         {/* Banner de Reconteo Activo (Etapas >= 2) */}
                         {recountData && recountData.stage >= 2 && recountData.total > 0 && (
-                            <div className="mb-4 bg-amber-50 border border-amber-300 rounded-lg p-3 flex flex-wrap justify-between items-center gap-2 shadow-sm">
+                            <div className="bg-amber-50 border border-amber-300 rounded p-1.5 flex flex-wrap justify-between items-center gap-1.5 shadow-xs text-black">
                                 <div className="flex items-center gap-2">
-                                    <span className="bg-amber-600 text-white text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                                    <span className="bg-black text-white text-[9px] font-normal px-1.5 py-0.5 rounded uppercase tracking-wider">
                                         RECONTEO ETAPA {recountData.stage} (R{recountData.stage - 1})
                                     </span>
-                                    <span className="text-xs font-semibold text-amber-900">
+                                    <span className="text-[11px] font-normal text-black">
                                         {recountData.recounted_count} / {recountData.total} Recontados ({recountData.pending_count} pendientes)
                                     </span>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setShowRecountModal(true)}
-                                    className="bg-amber-700 hover:bg-amber-800 text-white text-[11px] font-bold px-3 py-1.5 rounded uppercase tracking-wider transition-colors shadow-sm"
+                                    className="bg-black hover:bg-zinc-800 text-white text-[9px] font-normal px-2 py-0.5 rounded uppercase tracking-wider transition-colors shadow-xs cursor-pointer"
                                 >
-                                    📋 Ver Lista ({recountData.pending_count})
+                                    📋 Lista de Reconteo ({recountData.pending_count})
                                 </button>
                             </div>
                         )}
 
-                        {/* Location */}
-                        <div className="flex items-end gap-2">
-                            <div className="flex-grow">
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">Ubicación Física*</label>
-                                <input
-                                    type="text"
-                                    value={countedLocation}
-                                    onChange={e => setCountedLocation(e.target.value.toUpperCase())}
-                                    className="uppercase font-medium text-gray-900 text-[#1e4a74] h-[40px]"
-                                    placeholder="SCAN UBICACIÓN"
-                                    required
-                                />
+                        {/* Location Input Group */}
+                        <div>
+                            <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                Ubicación Física <span className="text-red-600">*</span>
+                            </label>
+                            <div className="flex items-center gap-1">
+                                <div className="relative flex-grow">
+                                    <input
+                                        type="text"
+                                        value={countedLocation}
+                                        onChange={e => setCountedLocation(e.target.value.toUpperCase())}
+                                        className="w-full h-7 border border-slate-300 rounded px-2 text-xs font-normal text-black uppercase bg-white focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                                        placeholder="SCAN O DIGITE UBICACIÓN"
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => startScanner('location')}
+                                    title="Escanear QR / Barcode Ubicación"
+                                    className="h-7 w-7 p-0.5 border border-black bg-white hover:bg-slate-100 text-black rounded flex items-center justify-center cursor-pointer shrink-0"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                                    </svg>
+                                </button>
                             </div>
-                            <button type="button" onClick={() => startScanner('location')} className="btn-sap btn-secondary h-[40px] w-[40px] !p-0 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
-                            </button>
                         </div>
 
-                        {/* Item Logic */}
-                        <div className="flex items-end gap-2">
-                            <div className="flex-grow">
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">Código de Artículo*</label>
+                        {/* Item Code Input Group */}
+                        <div>
+                            <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                Código de Artículo / SKU <span className="text-red-600">*</span>
+                            </label>
+                            <div className="flex items-center gap-1">
                                 <input
                                     id="itemCode"
                                     type="text"
                                     value={itemCode}
                                     onChange={e => setItemCode(e.target.value.toUpperCase())}
                                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), fetchItemData(itemCode))}
-                                    className="uppercase h-[40px]"
-                                    placeholder="SCAN SKU"
+                                    className="flex-grow h-7 border border-slate-300 rounded px-2 text-xs font-normal text-black uppercase bg-white focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                                    placeholder="SCAN O DIGITE SKU"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => startScanner('item')}
+                                    title="Escanear QR / Barcode SKU"
+                                    className="h-7 w-7 p-0.5 border border-black bg-white hover:bg-slate-100 text-black rounded flex items-center justify-center cursor-pointer shrink-0"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                                    </svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => fetchItemData(itemCode)}
+                                    disabled={loadingItem}
+                                    className="h-7 px-2.5 bg-black hover:bg-zinc-800 border border-black text-white text-[9px] font-normal uppercase tracking-wider rounded transition-colors shrink-0 cursor-pointer"
+                                >
+                                    {loadingItem ? '...' : 'Buscar'}
+                                </button>
                             </div>
-                            <button type="button" onClick={() => startScanner('item')} className="btn-sap btn-secondary h-[40px] w-[40px] !p-0 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
-                            </button>
-                            <button type="button" onClick={() => fetchItemData(itemCode)} className="btn-sap btn-secondary h-[40px] px-4 font-medium text-gray-900 text-[10px] uppercase">{loadingItem ? '...' : 'Buscar'}</button>
                         </div>
 
+                        {/* Description Display Card */}
                         <div>
-                            <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">Descripción Técnica</label>
-                            <div className="data-field bg-gray-50 h-[40px] flex items-center px-3 border rounded text-xs font-medium text-gray-900 text-gray-700 uppercase">{description || '—'}</div>
+                            <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                Descripción del Artículo
+                            </label>
+                            <div className="h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-normal text-black flex items-center uppercase truncate">
+                                {description || <span className="text-zinc-500 italic">No consultado</span>}
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Master Bin & Counted Qty */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">Ubic. Maestro</label>
-                                <div className="data-field bg-gray-50 h-[40px] flex items-center px-3 border rounded text-xs font-medium text-gray-900 text-gray-700 uppercase">{binSys || '—'}</div>
+                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                    Ubicación Maestro
+                                </label>
+                                <div className="h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-normal text-black flex items-center uppercase">
+                                    {binSys || '—'}
+                                </div>
                             </div>
                             <div>
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">Cantidad Observada*</label>
+                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                    Cantidad Observada <span className="text-red-600">*</span>
+                                </label>
                                 <div className="flex items-center">
-                                    <button type="button" onClick={() => setCountedQty(prev => Math.max(0, (parseInt(prev) || 0) - 1))} className="w-[40px] h-[40px] border bg-gray-100 font-medium text-gray-900">-</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCountedQty(prev => Math.max(0, (parseInt(prev) || 0) - 1))}
+                                        className="h-7 w-7 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-sm rounded-l flex items-center justify-center cursor-pointer select-none p-0"
+                                    >
+                                        -
+                                    </button>
                                     <input
                                         id="counted_qty"
                                         type="number"
                                         value={countedQty}
                                         onChange={e => setCountedQty(e.target.value)}
-                                        className="text-center font-medium text-gray-900 text-lg h-[40px] flex-grow"
+                                        className="h-7 flex-grow border-y border-slate-300 text-center font-mono text-xs font-normal text-black bg-white focus:outline-none focus:ring-1 focus:ring-black px-1"
                                         min="0"
                                         required
                                     />
-                                    <button type="button" onClick={() => setCountedQty(prev => (parseInt(prev) || 0) + 1)} className="w-[40px] h-[40px] border bg-gray-100 font-medium text-gray-900">+</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCountedQty(prev => (parseInt(prev) || 0) + 1)}
+                                        className="h-7 w-7 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-sm rounded-r flex items-center justify-center cursor-pointer select-none p-0"
+                                    >
+                                        +
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-4 border-t">
-                            <button type="button" onClick={clearForm} className="btn-sap btn-secondary h-[40px] px-6 text-[10px] font-medium text-gray-900 uppercase">Limpiar</button>
-                            <button type="submit" className="btn-sap btn-primary h-[40px] px-8 text-[10px] font-medium text-gray-900 uppercase tracking-widest">Guardar Conteo</button>
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-1.5 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={clearForm}
+                                className="h-7 px-3 border border-black bg-white hover:bg-slate-50 text-black text-[9px] font-normal uppercase tracking-wider rounded transition-colors cursor-pointer"
+                            >
+                                Limpiar
+                            </button>
+                            <button
+                                type="submit"
+                                className="h-7 px-5 bg-black hover:bg-zinc-800 text-white text-[9px] font-normal uppercase tracking-wider rounded shadow-xs transition-all cursor-pointer"
+                            >
+                                Guardar Conteo
+                            </button>
                         </div>
                     </form>
                 </div>
 
                 {/* Sidebar Info */}
-                <div className="md:col-span-1 space-y-4">
-                    {/* Counts in Location */}
-                    <div className="bg-white p-4 rounded shadow border border-gray-200">
-                        <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 mb-3 border-b-2 pb-1 uppercase tracking-wider">Items en {countedLocation || '...'}</h3>
-                        <div className="max-h-60 overflow-y-auto space-y-1">
-                            {locationCounts.length === 0 ? <p className="text-[10px] text-gray-400 text-center py-4 uppercase font-medium text-gray-900 tracking-tighter">Sin registros en esta ubicación</p> :
+                <div className="space-y-4">
+                    {/* Counts in Current Location */}
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 text-black">
+                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-100">
+                            <h3 className="text-[10px] font-normal uppercase tracking-wider text-black">
+                                Ítems en <span className="font-normal text-black">{countedLocation || '...'}</span>
+                            </h3>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-black font-normal border border-slate-200">
+                                {locationCounts.length}
+                            </span>
+                        </div>
+                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                            {locationCounts.length === 0 ? (
+                                <p className="text-[10px] text-zinc-500 text-center py-6 italic font-normal">
+                                    Sin registros en esta ubicación
+                                </p>
+                            ) : (
                                 locationCounts.map((c, idx) => (
-                                    <div key={c.id || `loc-count-${c.item_code}-${idx}`} className={`flex justify-between items-center text-[11px] p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0 ${c.is_pending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <span className="font-mono font-medium text-gray-900 text-[#1e4a74]">{c.item_code}</span>
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-medium text-gray-900 text-gray-900">{c.counted_qty}</span>
-                                            <button onClick={() => deleteCount(c.id)} className="text-red-500 font-medium text-gray-900 hover:bg-red-50 px-2 rounded">×</button>
+                                    <div
+                                        key={c.id || `loc-count-${c.item_code}-${idx}`}
+                                        className={`flex justify-between items-center text-[11px] py-1.5 px-1 hover:bg-slate-50 rounded transition-colors ${
+                                            c.is_pending ? 'border-l-2 border-amber-400 pl-1.5' : ''
+                                        }`}
+                                    >
+                                        <span className="font-mono font-normal text-black tracking-tight">{c.item_code}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono font-normal text-black">{c.counted_qty}</span>
+                                            <button
+                                                onClick={() => deleteCount(c.id)}
+                                                title="Eliminar registro"
+                                                className="text-black hover:text-red-600 font-normal px-1 text-xs transition-colors cursor-pointer"
+                                            >
+                                                ✕
+                                            </button>
                                         </div>
                                     </div>
                                 ))
-                            }
+                            )}
                         </div>
                     </div>
 
-                    {/* Session Locations */}
-                    <div className="bg-white p-4 rounded shadow border border-gray-200">
-                        <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 mb-3 border-b-2 pb-1 uppercase tracking-wider">Historial de Ubicaciones</h3>
-                        <div className="max-h-60 overflow-y-auto space-y-1 mb-3">
-                            {sessionLocations.map((l, idx) => (
-                                <div key={l.id || l.location_code || `sess-loc-${idx}`} className="flex justify-between text-[10px] p-2 border-b border-gray-50 last:border-0">
-                                    <span className="font-medium text-gray-900 uppercase">{l.location_code}</span>
-                                    <span className={`font-medium text-gray-900 uppercase ${l.status === 'open' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {l.status === 'open' ? 'En proceso' : 'Cerrada'}
-                                    </span>
-                                </div>
-                            ))}
+                    {/* Session Locations History */}
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 text-black">
+                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-100">
+                            <h3 className="text-[10px] font-normal uppercase tracking-wider text-black">
+                                Historial de Ubicaciones
+                            </h3>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-black font-normal border border-slate-200">
+                                {sessionLocations.length}
+                            </span>
+                        </div>
+                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 mb-3">
+                            {sessionLocations.length === 0 ? (
+                                <p className="text-[10px] text-zinc-500 text-center py-6 italic font-normal">
+                                    No hay ubicaciones registradas
+                                </p>
+                            ) : (
+                                sessionLocations.map((l, idx) => (
+                                    <div
+                                        key={l.id || l.location_code || `sess-loc-${idx}`}
+                                        className="flex justify-between items-center text-[10px] py-1.5 px-1 hover:bg-slate-50 rounded"
+                                    >
+                                        <span className="font-normal uppercase text-black">{l.location_code}</span>
+                                        <span
+                                            className={`text-[9px] font-normal uppercase px-1.5 py-0.5 rounded border ${
+                                                l.status === 'open'
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                    : 'bg-slate-100 text-black border-slate-200'
+                                            }`}
+                                        >
+                                            {l.status === 'open' ? 'En proceso' : 'Cerrada'}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                         {countedLocation && (
-                            <button onClick={closeLocation} disabled={!isOnline} className={`w-full text-[10px] font-medium text-gray-900 uppercase tracking-widest py-3 rounded ${isOnline ? 'btn-sap btn-primary' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                                {isOnline ? `Cerrar ${countedLocation}` : '(Cerrar requiere red)'}
+                            <button
+                                onClick={closeLocation}
+                                disabled={!isOnline}
+                                className={`w-full py-1.5 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors shadow-xs cursor-pointer ${
+                                    isOnline
+                                        ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                                        : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                }`}
+                            >
+                                {isOnline ? `Cerrar Ubicación ${countedLocation}` : '(Cerrar requiere red)'}
                             </button>
                         )}
                     </div>
@@ -599,52 +758,52 @@ const CycleCounts = () => {
             {/* Scanner Modal */}
             {scannerOpen && (
                 <ScannerModal
-                    title={`Escanear ${scanTarget === 'location' ? 'Ubicación' : 'Item'}`}
+                    title={`Escanear ${scanTarget === 'location' ? 'Ubicación' : 'Código de Ítem'}`}
                     onScan={handleScan}
                     onClose={() => setScannerOpen(false)}
                 />
             )}
 
-            {/* Recount List Modal for Mobile */}
+            {/* Recount List Modal */}
             {showRecountModal && recountData && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-xl rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 text-black">
                         {/* Modal Header */}
-                        <div className="bg-slate-900 text-white px-5 py-4 flex justify-between items-center">
+                        <div className="bg-black text-white px-4 py-3 flex justify-between items-center">
                             <div>
-                                <h3 className="font-bold text-sm uppercase tracking-wider">
-                                    Ítems a Recontar - Etapa {recountData.stage} (R{recountData.stage - 1})
+                                <h3 className="font-normal text-xs uppercase tracking-wider">
+                                    Ítems a Recontar — Etapa {recountData.stage} (R{recountData.stage - 1})
                                 </h3>
-                                <p className="text-[11px] text-slate-300">
+                                <p className="text-[10px] text-slate-200 font-normal">
                                     {recountData.recounted_count} de {recountData.total} recontados ({recountData.pending_count} pendientes)
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowRecountModal(false)}
-                                className="text-slate-400 hover:text-white text-xl font-bold px-2 py-1"
+                                className="text-white/80 hover:text-white text-lg font-normal px-2 cursor-pointer"
                             >
-                                ×
+                                ✕
                             </button>
                         </div>
 
                         {/* Modal Filter Tabs */}
-                        <div className="flex border-b bg-slate-50 px-5 pt-2 gap-2 text-xs">
+                        <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs">
                             <button
                                 onClick={() => setRecountFilter('pending')}
-                                className={`px-3 py-2 border-b-2 font-medium uppercase tracking-wider transition-colors ${
+                                className={`px-3 py-1.5 border-b-2 font-normal uppercase tracking-wider text-[10px] transition-colors cursor-pointer ${
                                     recountFilter === 'pending'
-                                        ? 'border-amber-600 text-amber-700 bg-white rounded-t'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                                        ? 'border-black text-black bg-white rounded-t'
+                                        : 'border-transparent text-slate-600 hover:text-black'
                                 }`}
                             >
                                 Pendientes ({recountData.pending_count})
                             </button>
                             <button
                                 onClick={() => setRecountFilter('all')}
-                                className={`px-3 py-2 border-b-2 font-medium uppercase tracking-wider transition-colors ${
+                                className={`px-3 py-1.5 border-b-2 font-normal uppercase tracking-wider text-[10px] transition-colors cursor-pointer ${
                                     recountFilter === 'all'
-                                        ? 'border-amber-600 text-amber-700 bg-white rounded-t'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                                        ? 'border-black text-black bg-white rounded-t'
+                                        : 'border-transparent text-slate-600 hover:text-black'
                                 }`}
                             >
                                 Todos ({recountData.total})
@@ -652,46 +811,46 @@ const CycleCounts = () => {
                         </div>
 
                         {/* Items List */}
-                        <div className="p-4 overflow-y-auto space-y-2 flex-grow">
+                        <div className="p-3 overflow-y-auto space-y-2 flex-grow">
                             {recountData.items
                                 .filter(item => recountFilter === 'all' || !item.is_recounted)
                                 .map((item, idx) => (
                                     <div
                                         key={item.item_code || `recount-item-${idx}`}
-                                        className={`p-3 border rounded-lg flex justify-between items-center transition-all ${
+                                        className={`p-2.5 border rounded flex justify-between items-center transition-all ${
                                             item.is_recounted
-                                                ? 'bg-green-50/50 border-green-200 opacity-75'
-                                                : 'bg-white border-amber-200 hover:border-amber-400 shadow-sm'
+                                                ? 'bg-slate-50 border-slate-200 opacity-80'
+                                                : 'bg-white border-slate-300 hover:border-black shadow-2xs'
                                         }`}
                                     >
                                         <div className="flex-1 pr-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-mono font-bold text-sm text-slate-900">
+                                                <span className="font-mono font-normal text-xs text-black">
                                                     {item.item_code}
                                                 </span>
                                                 {item.is_recounted ? (
-                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-300">
+                                                    <span className="bg-emerald-50 text-emerald-800 text-[9px] font-normal px-2 py-0.5 rounded border border-emerald-300">
                                                         ✓ RECONTADO ({item.counted_qty_in_stage})
                                                     </span>
                                                 ) : (
-                                                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300">
+                                                    <span className="bg-amber-50 text-amber-800 text-[9px] font-normal px-2 py-0.5 rounded border border-amber-300">
                                                         PENDIENTE
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-slate-600 font-medium line-clamp-1 mt-0.5">
+                                            <p className="text-[11px] text-black font-normal line-clamp-1 mt-0.5">
                                                 {item.description}
                                             </p>
-                                            <p className="text-[10px] text-slate-400 uppercase font-mono mt-0.5">
-                                                Ubic. Sistema: <span className="font-semibold text-slate-700">{item.bin_location}</span>
+                                            <p className="text-[10px] text-slate-600 uppercase font-mono mt-0.5">
+                                                Ubic. Sistema: <span className="font-normal text-black">{item.bin_location}</span>
                                             </p>
                                         </div>
                                         <button
                                             onClick={() => selectItemForRecount(item)}
-                                            className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-sm ${
+                                            className={`px-3 py-1 rounded text-[10px] font-normal uppercase tracking-wider transition-colors shadow-2xs cursor-pointer ${
                                                 item.is_recounted
-                                                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                    : 'bg-amber-600 hover:bg-amber-700 text-white'
+                                                    ? 'bg-slate-100 text-black hover:bg-slate-200'
+                                                    : 'bg-black hover:bg-zinc-800 text-white'
                                             }`}
                                         >
                                             {item.is_recounted ? 'Editar' : 'Recontar ➔'}

@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from app.core.db import get_db
 from app.models.sql_models import (
+    AppState,
     CountSession,
     CycleCountRecording,
     MasterItem,
@@ -638,17 +639,24 @@ async def get_all_counts(
 
         for c in counts:
             c["inventory_stage"] = session_map.get(c["session_id"], 1)
+            item_code = c.get("item_code")
 
-            master_item = master_map.get(c["item_code"])
+            master_item = master_map.get(item_code)
             if master_item:
-                # Usar datos actuales de la DB para la comparación
-                c["system_qty"] = master_item.physical_qty
-                c["difference"] = c["counted_qty"] - (master_item.physical_qty or 0)
-                # Opcional: actualizar descripción si ha cambiado en el maestro
-                # c['item_description'] = master_item.description
+                sys_qty = int(master_item.physical_qty) if master_item.physical_qty is not None else 0
             else:
-                c["system_qty"] = 0
-                c["difference"] = c["counted_qty"]
+                # Fallback al maestro en CSV si el ítem no está en la tabla SQL master_items
+                details = await csv_handler.get_item_details_from_master_csv(item_code, db) if item_code else None
+                if details and details.get("Physical_Qty") is not None:
+                    try:
+                        sys_qty = int(float(details["Physical_Qty"]))
+                    except (ValueError, TypeError):
+                        sys_qty = 0
+                else:
+                    sys_qty = 0
+
+            c["system_qty"] = sys_qty
+            c["difference"] = (c.get("counted_qty") or 0) - sys_qty
 
         return counts
     except Exception as e:
@@ -720,7 +728,7 @@ async def export_all_counts(
     username: str = Depends(permission_required("inventory")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Exporta todos los registros de conteo físico (StockCount) a Excel."""
+    """Exporta todos los registros de conteo físico (StockCount) a Excel en el mismo formato que la tabla."""
     try:
         # 1. Obtener datos enriquecidos (reutilizamos la lógica de get_all_counts)
         counts = await get_all_counts(username, db)
@@ -729,44 +737,106 @@ async def export_all_counts(
                 content={"error": "No hay datos para exportar"}, status_code=400
             )
 
-        # 2. Convertir a Polars para formateo rápido
-        df = pl.from_dicts(counts)
+        # 2. Cargar tolerancias desde AppState
+        res_qty_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_qty_tolerance"))
+        qty_tol_val = res_qty_tol.scalar_one_or_none()
+        qty_tolerance = float(qty_tol_val) if qty_tol_val else 0.02
 
-        # Renombrar columnas para el Excel profesional
-        col_rename = {
-            "inventory_stage": "ETAPA",
-            "session_id": "ID_SESION",
-            "username": "AUDITOR",
-            "timestamp": "FECHA_HORA",
-            "item_code": "CODIGO_ITEM",
-            "item_description": "DESCRIPCION",
-            "counted_location": "UBICACION_FISICA",
-            "counted_qty": "CANT_CONTADA",
-            "system_qty": "CANT_SISTEMA",
-            "difference": "DIFERENCIA",
-        }
+        res_val_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_val_tolerance"))
+        val_tol_val = res_val_tol.scalar_one_or_none()
+        val_tolerance = float(val_tol_val) if val_tol_val else 10.00
 
-        # Seleccionar y renombrar solo las columnas deseadas
-        available_cols = [c for c in col_rename.keys() if c in df.columns]
-        df_export = df.select(available_cols).rename(
-            {c: col_rename[c] for c in available_cols}
-        )
+        # 3. Formatear las filas para que coincidan con la estructura exacta de la tabla
+        formatted_rows = []
+        for c in counts:
+            sys_qty = int(c.get("system_qty") or 0)
+            cnt_qty = int(c.get("counted_qty") or 0)
+            diff = c.get("difference") if c.get("difference") is not None else (cnt_qty - sys_qty)
+            abs_diff = abs(diff)
 
-        # 3. Generar Excel en memoria con openpyxl directo (sin pandas)
+            status = "SIN DIF"
+            if abs_diff > 0.0001:
+                if c.get("manually_approved") or c.get("status") == "APPROVED_MANUAL":
+                    status = "APROB SUPERV"
+                else:
+                    exceeds_qty = (abs_diff / sys_qty) > qty_tolerance if sys_qty > 0 else abs_diff > 0
+                    exceeds_val = (abs_diff * float(c.get("cost_per_unit") or 0)) > val_tolerance
+                    status = "EXCEDE TOLER" if (exceeds_qty or exceeds_val) else "AUTO OK"
+
+            ts_raw = c.get("timestamp")
+            if ts_raw:
+                try:
+                    ts_str = str(ts_raw).replace("T", " ")[:16]
+                except Exception:
+                    ts_str = str(ts_raw)
+            else:
+                ts_str = "-"
+
+            stage_str = f"E{c.get('inventory_stage') or 1}"
+            session_str = f"#{c.get('session_id')}" if c.get("session_id") else "-"
+
+            formatted_rows.append({
+                "ID": c.get("id"),
+                "Sesión": session_str,
+                "Etapa": stage_str,
+                "Auditor": c.get("username") or "N/A",
+                "Fecha / Hora": ts_str,
+                "Item Code": c.get("item_code") or "",
+                "Descripción": c.get("item_description") or "",
+                "Ubicación": c.get("counted_location") or "",
+                "Cant. Física": cnt_qty,
+                "Cant. Sistema": sys_qty,
+                "Diferencia": diff,
+                "Estado": status,
+            })
+
+        df_export = pl.from_dicts(formatted_rows)
+
+        # 4. Generar Excel estilizado con openpyxl (mismos colores y alineaciones de la app)
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Auditoria_W2W"
-        ws.append(df_export.columns)
-        for row in df_export.iter_rows():
-            ws.append(list(row))
+        ws.title = "Reporte_Conteos"
+
+        header_fill = openpyxl.styles.PatternFill(start_color="1E4A74", end_color="1E4A74", fill_type="solid")
+        header_font = openpyxl.styles.Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+        cell_font = openpyxl.styles.Font(name="Segoe UI", size=9)
+        center_align = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+        right_align = openpyxl.styles.Alignment(horizontal="right", vertical="center")
+        left_align = openpyxl.styles.Alignment(horizontal="left", vertical="center")
+
+        ws.append(list(df_export.columns))
+        for col_num in range(1, len(df_export.columns) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+
+        for row_data in df_export.iter_rows():
+            ws.append(list(row_data))
+
+        numeric_cols = {"Cant. Física", "Cant. Sistema", "Diferencia"}
+        centered_cols = {"ID", "Sesión", "Etapa", "Fecha / Hora", "Estado"}
+
+        for row in ws.iter_rows(min_row=2):
+            for col_idx, cell in enumerate(row, start=1):
+                col_name = df_export.columns[col_idx - 1]
+                cell.font = cell_font
+                if col_name in numeric_cols:
+                    cell.alignment = right_align
+                elif col_name in centered_cols:
+                    cell.alignment = center_align
+                else:
+                    cell.alignment = left_align
+
         for i, col_name in enumerate(df_export.columns, start=1):
             col_data = df_export[col_name].cast(pl.Utf8, strict=False)
-            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
-            ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+            max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 3
+            ws.column_dimensions[get_column_letter(i)].width = float(max(max_len, 10))
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
-        filename = f"auditoria_inventario_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        filename = f"reporte_conteos_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
 
         return Response(
             content=output.getvalue(),

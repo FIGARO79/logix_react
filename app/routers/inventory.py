@@ -498,143 +498,118 @@ async def generate_inventory_report(
         ws.views.sheetView[0].showGridLines = True
 
         headers = [
-            "Código Ítem",
+            "Ítem",
             "Descripción",
-            "Ubicación Sistema",
-            "Cant. Sistema",
-            "Costo Unit. ($)",
-            "Valor Sistema ($)",
-            "Conteo Etapa 1",
-            "Conteo Etapa 2",
-            "Conteo Etapa 3",
-            "Conteo Etapa 4",
-            "Cant. Final Contada",
-            "Valor Físico ($)",
-            "Diferencia Unid.",
-            "Diferencia Valorizada ($)",
-            "Estado",
-            "Ubicaciones Físicas Contadas",
+            "Ubicación",
+            "Costo",
+            "Sist",
+            "Etapa 1",
+            "Etapa 2",
+            "Etapa 3",
+            "Etapa 4",
+            "Contado",
+            "Diff",
+            "Valor Diff",
         ]
 
-        # Estilos Excel
-        header_fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        subtotal_font = Font(name="Calibri", size=11, bold=True)
+        # Estilos Excel (Header Azul #1E4A74, Segoe UI)
+        header_fill = PatternFill(start_color="1E4A74", end_color="1E4A74", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+        cell_font = Font(name="Segoe UI", size=9)
         thin_border = Border(
-            left=Side(style="thin", color="D1D5DB"),
-            right=Side(style="thin", color="D1D5DB"),
-            top=Side(style="thin", color="D1D5DB"),
-            bottom=Side(style="thin", color="D1D5DB"),
+            left=Side(style="thin", color="E5E7EB"),
+            right=Side(style="thin", color="E5E7EB"),
+            top=Side(style="thin", color="E5E7EB"),
+            bottom=Side(style="thin", color="E5E7EB"),
         )
-        total_fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
 
         ws.append(headers)
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=1, column=col_idx)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
 
         row_idx = 2
-        total_sys_val = 0.0
-        total_cnt_val = 0.0
         total_diff_val = 0.0
-
         for code in all_item_codes:
-            details = await csv_handler.get_item_details_from_master_csv(code, db) or {}
-            desc = item_descriptions.get(code) or details.get("Item_Description", "N/A")
-            bin_sys = details.get("Bin_1", "N/A")
-            sys_qty = float(csv_handler.master_qty_map.get(code, 0.0))
-            cost = float(csv_handler.master_cost_map.get(code, details.get("Cost_per_Unit", 0.0)))
-            sys_val = sys_qty * cost
+            desc = item_descriptions.get(code) or csv_handler.master_desc_map.get(code, "N/A")
+            bin_sys = csv_handler.master_bin_map.get(code, "N/A")
+            sys_qty = int(float(csv_handler.master_qty_map.get(code, 0.0)))
+            cost = float(csv_handler.master_cost_map.get(code, 0.0))
 
             stg_map = item_stage_counts.get(code, {})
-            stg1 = stg_map.get(1, 0.0)
-            stg2 = stg_map.get(2, 0.0)
-            stg3 = stg_map.get(3, 0.0)
-            stg4 = stg_map.get(4, 0.0)
+            c1 = int(stg_map.get(1)) if 1 in stg_map else None
+            c2 = int(stg_map.get(2)) if 2 in stg_map else None
+            c3 = int(stg_map.get(3)) if 3 in stg_map else None
+            c4 = int(stg_map.get(4)) if 4 in stg_map else None
 
             # Determinación de Cantidad Final Contada (toma de etapa más alta existente)
             final_counted = sys_qty
-            if stg4 > 0 or 4 in stg_map:
-                final_counted = stg4
-            elif stg3 > 0 or 3 in stg_map:
-                final_counted = stg3
-            elif stg2 > 0 or 2 in stg_map:
-                final_counted = stg2
-            elif stg1 > 0 or 1 in stg_map:
-                final_counted = stg1
+            for stg in [4, 3, 2, 1]:
+                if stg in stg_map:
+                    final_counted = int(stg_map[stg])
+                    break
 
-            cnt_val = final_counted * cost
             diff_qty = final_counted - sys_qty
             diff_val = diff_qty * cost
-
-            status_str = "OK"
-            if diff_qty > 0.0001:
-                status_str = "SOBRANTE"
-            elif diff_qty < -0.0001:
-                status_str = "FALTANTE"
-
-            locs_str = ", ".join(sorted(list(item_locations.get(code, set())))) or "N/A"
 
             row_data = [
                 code,
                 desc,
                 bin_sys,
-                sys_qty,
                 cost,
-                sys_val,
-                stg1 if 1 in stg_map else "",
-                stg2 if 2 in stg_map else "",
-                stg3 if 3 in stg_map else "",
-                stg4 if 4 in stg_map else "",
+                sys_qty,
+                c1 if c1 is not None else "-",
+                c2 if c2 is not None else "-",
+                c3 if c3 is not None else "-",
+                c4 if c4 is not None else "-",
                 final_counted,
-                cnt_val,
                 diff_qty,
                 diff_val,
-                status_str,
-                locs_str,
             ]
             ws.append(row_data)
 
-            # Formateo numérico
-            ws.cell(row=row_idx, column=4).number_format = "#,##0"
-            ws.cell(row=row_idx, column=5).number_format = "$#,##0.00"
-            ws.cell(row=row_idx, column=6).number_format = "$#,##0.00"
-            if 1 in stg_map: ws.cell(row=row_idx, column=7).number_format = "#,##0"
-            if 2 in stg_map: ws.cell(row=row_idx, column=8).number_format = "#,##0"
-            if 3 in stg_map: ws.cell(row=row_idx, column=9).number_format = "#,##0"
-            if 4 in stg_map: ws.cell(row=row_idx, column=10).number_format = "#,##0"
-            ws.cell(row=row_idx, column=11).number_format = "#,##0"
+            # Alineaciones y formatos
+            for c_idx in range(1, 13):
+                cell = ws.cell(row=row_idx, column=c_idx)
+                cell.font = cell_font
+                cell.border = thin_border
+
+            ws.cell(row=row_idx, column=1).alignment = Alignment(horizontal="left")
+            ws.cell(row=row_idx, column=2).alignment = Alignment(horizontal="left")
+            ws.cell(row=row_idx, column=3).alignment = Alignment(horizontal="left")
+            ws.cell(row=row_idx, column=4).alignment = Alignment(horizontal="right")
+            ws.cell(row=row_idx, column=4).number_format = "$#,##0.00"
+            ws.cell(row=row_idx, column=5).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=6).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=7).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=8).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=9).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=10).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=11).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=12).alignment = Alignment(horizontal="right")
             ws.cell(row=row_idx, column=12).number_format = "$#,##0.00"
-            ws.cell(row=row_idx, column=13).number_format = "#,##0"
-            ws.cell(row=row_idx, column=14).number_format = "$#,##0.00"
 
-            for c in range(1, len(headers) + 1):
-                ws.cell(row=row_idx, column=c).border = thin_border
-
-            total_sys_val += sys_val
-            total_cnt_val += cnt_val
+            row_idx += 1
             total_diff_val += diff_val
             row_idx += 1
 
         # Fila de Totales
         totals_row = [
             "TOTALES CONSOLIDADOS", "", "", "", "",
-            total_sys_val, "", "", "", "", "",
-            total_cnt_val, "", total_diff_val, "", ""
+            "", "", "", "", "",
+            "", total_diff_val
         ]
         ws.append(totals_row)
         tot_row_idx = row_idx
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=tot_row_idx, column=col_idx)
-            cell.font = subtotal_font
-            cell.fill = total_fill
+            cell.font = Font(name="Segoe UI", size=10, bold=True)
+            cell.fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
             cell.border = thin_border
 
-        ws.cell(row=tot_row_idx, column=6).number_format = "$#,##0.00"
         ws.cell(row=tot_row_idx, column=12).number_format = "$#,##0.00"
-        ws.cell(row=tot_row_idx, column=14).number_format = "$#,##0.00"
 
         # Ajuste dinámico de columnas
         for i, col_name in enumerate(headers, start=1):

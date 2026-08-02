@@ -403,7 +403,7 @@ const Layout = () => {
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
-                        {hasAdminPerm && <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />}
+                        <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
