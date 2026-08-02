@@ -192,7 +192,7 @@ const Inbound = () => {
                 const code = log.itemCode;
                 const ir = log.importReference || log.importRef || '';
                 const key = `${code}|${ir}`;
-                const expected = log.qtyGrn || grnMap[key] || log.quantity || 0;
+                const expected = log.qtyGrn || grnMap[key] || 0;
                 const totalReceived = totalsMap[key] || 0;
                 const isLatest = latestEntryMap[key] === log.id;
 
