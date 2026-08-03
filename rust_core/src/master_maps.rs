@@ -1,34 +1,13 @@
 use pyo3::prelude::*;
 use serde_json::Value;
 
-/// Parsea y expande cadenas de GRN separadas por comas, barras o guiones (incluyendo rangos numéricos como 284687-284688).
+/// Parsea cadenas de GRN separadas por comas, barras, guiones, punto y coma o saltos de línea sin expansión de rangos.
 fn split_grn_string(val: &str) -> Vec<String> {
     let mut result = Vec::new();
-    for part in val.split(&[',', '/'][..]) {
-        let part_clean = part.trim();
-        if part_clean.is_empty() {
-            continue;
-        }
-        if part_clean.contains('-') {
-            let range_parts: Vec<&str> = part_clean.split('-').map(|s| s.trim()).collect();
-            if range_parts.len() == 2 {
-                if let (Ok(start), Ok(end)) = (range_parts[0].parse::<u64>(), range_parts[1].parse::<u64>()) {
-                    if start <= end && (end - start) <= 1000 {
-                        for num in start..=end {
-                            result.push(num.to_string());
-                        }
-                        continue;
-                    }
-                }
-            }
-            for sub in part_clean.split('-') {
-                let sub_clean = sub.trim().to_uppercase();
-                if !sub_clean.is_empty() {
-                    result.push(sub_clean);
-                }
-            }
-        } else {
-            result.push(part_clean.to_uppercase());
+    for part in val.split(&[',', '/', '-', ';', '\n'][..]) {
+        let part_clean = part.trim().to_uppercase();
+        if !part_clean.is_empty() {
+            result.push(part_clean);
         }
     }
     result

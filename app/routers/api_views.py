@@ -25,7 +25,10 @@ class UserSession(BaseModel):
     is_admin: bool = False
 
 class ReconciliationRow(BaseModel):
+    Import_Reference: Optional[str] = ""
+    Waybill: Optional[str] = ""
     GRN: Any
+    Order_Line: Optional[str] = ""
     Codigo_Item: str 
     Descripcion: str
     Ubicacion: str
@@ -105,10 +108,11 @@ async def get_reconciliation_data(
                 "Import_Reference": r.import_reference,
                 "Waybill": r.waybill,
                 "GRN": r.grn,
+                "Order_Line": getattr(r, 'order_line', '') or '',
                 "Codigo_Item": r.item_code,
                 "Descripcion": r.description,
-                "Ubicacion": "",
-                "Reubicado": "",
+                "Ubicacion": getattr(r, 'bin_location', '') or '',
+                "Reubicado": getattr(r, 'relocated_bin', '') or '',
                 "Cant_Esperada": r.qty_expected,
                 "Cant_Recibida": r.qty_received,
                 "Diferencia": r.difference

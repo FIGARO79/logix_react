@@ -130,26 +130,34 @@ async def get_reconciliation_calculations(
                     for key, val in po_lookup_data["po_grn_item_to_ir"].items():
                         parts = key.split("_", 1)
                         if len(parts) == 2:
+                            line_val = str(val.get("order_line", "")).strip()
+                            if line_val.endswith(".0"):
+                                line_val = line_val[:-2]
                             po_grn_item_records.append(
                                 {
                                     "grn_ref": parts[0].strip().upper(),
                                     "item_ref": parts[1].strip().upper(),
                                     "ir_po_grn": val.get("import_ref", "").strip().upper(),
                                     "wb_po_grn": val.get("waybill", "").strip().upper(),
+                                    "line_po_grn": line_val,
                                 }
                             )
 
                 if "po_line_item_to_ir" in po_lookup_data:
                     for key, val in po_lookup_data["po_line_item_to_ir"].items():
-                        parts = key.split("_", 2)
+                        parts = key.rsplit("_", 2)
                         if len(parts) == 3:
+                            line_val = parts[1].strip()
+                            if line_val.endswith(".0"):
+                                line_val = line_val[:-2]
                             po_line_item_records.append(
                                 {
                                     "order_ref": parts[0].strip().upper(),
-                                    "line_ref": parts[1].strip(),
+                                    "line_ref": line_val,
                                     "item_ref": parts[2].strip().upper(),
                                     "ir_po_line": val.get("import_ref", "").strip().upper(),
                                     "wb_po_line": val.get("waybill", "").strip().upper(),
+                                    "line_po_line": line_val,
                                 }
                             )
 
@@ -157,12 +165,16 @@ async def get_reconciliation_calculations(
                     for key, val in po_lookup_data["po_item_to_ir"].items():
                         parts = key.split("_", 1)
                         if len(parts) == 2:
+                            line_val = str(val.get("order_line", "")).strip()
+                            if line_val.endswith(".0"):
+                                line_val = line_val[:-2]
                             po_item_records.append(
                                 {
                                     "order_ref": parts[0].strip().upper(),
                                     "item_ref": parts[1].strip().upper(),
                                     "ir_po": val.get("import_ref", "").strip().upper(),
                                     "wb_po": val.get("waybill", "").strip().upper(),
+                                    "line_po": line_val,
                                 }
                             )
 
@@ -213,6 +225,7 @@ async def get_reconciliation_calculations(
                     "item_ref": pl.Utf8,
                     "ir_po_line": pl.Utf8,
                     "wb_po_line": pl.Utf8,
+                    "line_po_line": pl.Utf8,
                 }
             )
         ).unique(subset=["order_ref", "line_ref", "item_ref"])
@@ -226,6 +239,7 @@ async def get_reconciliation_calculations(
                     "item_ref": pl.Utf8,
                     "ir_po_grn": pl.Utf8,
                     "wb_po_grn": pl.Utf8,
+                    "line_po_grn": pl.Utf8,
                 }
             )
         ).unique(subset=["grn_ref", "item_ref"])
@@ -239,6 +253,7 @@ async def get_reconciliation_calculations(
                     "item_ref": pl.Utf8,
                     "ir_po": pl.Utf8,
                     "wb_po": pl.Utf8,
+                    "line_po": pl.Utf8,
                 }
             )
         ).unique(subset=["order_ref", "item_ref"])
@@ -279,23 +294,18 @@ async def get_reconciliation_calculations(
                 .str.strip_chars()
                 .str.to_uppercase()
                 .fill_null(""),
-                pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
+                pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().str.replace(r"\.0$", "").fill_null(""),
             ]
         )
 
-        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (SIN BÚSQUEDAS A CIEGAS)
-        # Prioridad 0: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
-        # Prioridad 1: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor)
+        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (PRIORIZANDO LLAVE COMPUESTA DE LÍNEA)
+        # Prioridad 1: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor) - Nivel de línea (Composite Key)
         # Prioridad 2: Match exacto por GRN_Number + Item_Code (PO Extractor)
-        # Prioridad 3: Match exacto por Order_Number + Item_Code (PO Extractor)
+        # Prioridad 3: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
+        # Prioridad 4: Match exacto por Order_Number + Item_Code (PO Extractor)
+        # Prioridad 5: Match por Order_Number (PO Extractor)
         df_expected_with_ir = (
             df_280.join(
-                df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
-                left_on="GRN_Number",
-                right_on="grn_map",
-                how="left",
-            )
-            .join(
                 df_po_line_item_map,
                 left_on=["Order_Number", "Order_Line", "Item_Code"],
                 right_on=["order_ref", "line_ref", "item_ref"],
@@ -308,19 +318,38 @@ async def get_reconciliation_calculations(
                 how="left",
             )
             .join(
+                df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
+                left_on="GRN_Number",
+                right_on="grn_map",
+                how="left",
+            )
+            .join(
                 df_po_item_map,
                 left_on=["Order_Number", "Item_Code"],
                 right_on=["order_ref", "item_ref"],
                 how="left",
             )
+            .join(
+                df_po_order_map,
+                left_on="Order_Number",
+                right_on="order_ref",
+                how="left",
+            )
             .with_columns(
                 [
-                    pl.coalesce(["ir_grn_master", "ir_po_line", "ir_po_grn", "ir_po"])
+                    pl.coalesce(["ir_po_line", "ir_po_grn", "ir_grn_master", "ir_po", "ir_po_order"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_grn_master", "wb_po_line", "wb_po_grn", "wb_po"])
+                    pl.coalesce(["wb_po_line", "wb_po_grn", "wb_grn_master", "wb_po", "wb_po_order"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
+                    pl.when(pl.col("Order_Line") != "")
+                    .then(pl.col("Order_Line"))
+                    .otherwise(
+                        pl.coalesce(["line_po_line", "line_po_grn", "line_po"])
+                    )
+                    .fill_null("")
+                    .alias("Order_Line"),
                 ]
             )
             .select(
@@ -505,6 +534,7 @@ async def create_snapshot(
             import_reference=row.get("Import_Reference", ""),
             waybill=row.get("Waybill", ""),
             grn=row.get("GRN", ""),
+            order_line=str(row.get("Order_Line") or ""),
             item_code=row.get("Codigo_Item", ""),
             description=row.get("Descripcion", ""),
             bin_location=row.get("Ubicacion", "") or "",
@@ -522,7 +552,7 @@ async def create_snapshot(
     await db.commit()
 
     # Depuración automática preventiva: conservar únicamente el registro más reciente
-    # para cada combinación de archive_date, import_reference, item_code y grn en el histórico.
+    # para cada combinación de archive_date, import_reference, item_code, grn y order_line en el histórico.
     try:
         cleanup_query = text("""
             DELETE FROM reconciliation_history
@@ -530,7 +560,7 @@ async def create_snapshot(
                 SELECT max_id FROM (
                     SELECT MAX(id) as max_id
                     FROM reconciliation_history
-                    GROUP BY archive_date, import_reference, item_code, grn
+                    GROUP BY archive_date, import_reference, item_code, grn, order_line
                 ) as temp
             )
         """)

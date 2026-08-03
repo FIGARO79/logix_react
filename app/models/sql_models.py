@@ -272,6 +272,7 @@ class ReconciliationHistory(Base) :
     import_reference: Mapped[str] = mapped_column(String(100), index=True)
     waybill: Mapped[str] = mapped_column(String(100))
     grn: Mapped[str] = mapped_column(String(100))
+    order_line: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     item_code: Mapped[str] = mapped_column(String(100), index=True)
     description: Mapped[str] = mapped_column(Text)
     bin_location: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

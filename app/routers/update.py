@@ -35,28 +35,15 @@ def np_encoder(obj):
 import re
 
 def parse_grns(grn_str: str) -> list[str]:
-    """Parsea y expande GRNs separadas por comas, barras o guiones (incluyendo rangos numéricos como 284687-284688)."""
+    """Parsea GRNs separadas por comas, barras, guiones, punto y coma o saltos de línea sin expansión de rangos."""
     if not grn_str:
         return []
     res = []
-    parts = re.split(r'[,/]', str(grn_str))
+    parts = re.split(r'[,/;\-\n]', str(grn_str))
     for part in parts:
-        part_clean = part.strip()
-        if not part_clean:
-            continue
-        if '-' in part_clean:
-            subparts = [s.strip() for s in part_clean.split('-')]
-            if len(subparts) == 2 and subparts[0].isdigit() and subparts[1].isdigit():
-                start, end = int(subparts[0]), int(subparts[1])
-                if start <= end and (end - start) <= 1000:
-                    for num in range(start, end + 1):
-                        res.append(str(num))
-                    continue
-            for sub in subparts:
-                if sub:
-                    res.append(sub.upper())
-        else:
-            res.append(part_clean.upper())
+        part_clean = part.strip().upper()
+        if part_clean:
+            res.append(part_clean)
     return res
 
 router = APIRouter(
@@ -209,7 +196,8 @@ async def process_po_extractor_logic(file_path: str):
                     if item_code:
                         po_grn_item_to_ir[f"{g_clean}_{item_code}"] = {
                             "import_ref": ir_str,
-                            "waybill": waybill_str
+                            "waybill": waybill_str,
+                            "order_line": order_line
                         }
 
             if cust_ref:
@@ -217,13 +205,15 @@ async def process_po_extractor_logic(file_path: str):
                     line_key = f"{cust_ref}_{order_line}_{item_code}"
                     po_line_item_to_ir[line_key] = {
                         "import_ref": ir_str,
-                        "waybill": waybill_str
+                        "waybill": waybill_str,
+                        "order_line": order_line
                     }
                 if item_code:
                     key = f"{cust_ref}_{item_code}"
                     po_item_to_ir[key] = {
                         "import_ref": ir_str,
-                        "waybill": waybill_str
+                        "waybill": waybill_str,
+                        "order_line": order_line
                     }
                 if cust_ref not in po_order_to_ir:
                     po_order_to_ir[cust_ref] = {
