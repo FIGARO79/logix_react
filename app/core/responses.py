@@ -1,6 +1,13 @@
+import decimal
 from typing import Any
 from fastapi.responses import JSONResponse
 import orjson
+
+
+def default(obj: Any) -> Any:
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError(f"Type is not JSON serializable: {type(obj).__name__}")
 
 
 class ORJSONResponse(JSONResponse):
@@ -13,5 +20,8 @@ class ORJSONResponse(JSONResponse):
 
     def render(self, content: Any) -> bytes:
         return orjson.dumps(
-            content, option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
+            content,
+            option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY,
+            default=default,
         )
+

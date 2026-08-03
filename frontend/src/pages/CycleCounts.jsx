@@ -104,10 +104,16 @@ const CycleCounts = () => {
                 const res = await fetch('/api/sessions/active');
                 if (res.ok) {
                     const session = await res.json();
-                    setActiveSession(session);
-                    // Guardar en caché
-                    const db = await getDB();
-                    await db.put('active_sessions', { type: 'cycle_count', ...session });
+                    if (session && (session.id || session.session_id)) {
+                        setActiveSession(session);
+                        // Guardar en caché
+                        const db = await getDB();
+                        await db.put('active_sessions', { type: 'cycle_count', ...session });
+                    } else {
+                        setActiveSession(null);
+                        const db = await getDB();
+                        await db.delete('active_sessions', 'cycle_count');
+                    }
                 } else {
                     setActiveSession(null);
                 }

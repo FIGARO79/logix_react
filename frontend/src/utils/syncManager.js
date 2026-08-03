@@ -142,8 +142,11 @@ export const syncPendingData = async () => {
                         if (!activeSess && navigator.onLine) {
                             const sessRes = await fetch('/api/sessions/active');
                             if (sessRes.ok) {
-                                activeSess = await sessRes.json();
-                                await db.put('active_sessions', { type: 'cycle_count', ...activeSess });
+                                const fetchedSess = await sessRes.json();
+                                if (fetchedSess && (fetchedSess.id || fetchedSess.session_id)) {
+                                    activeSess = fetchedSess;
+                                    await db.put('active_sessions', { type: 'cycle_count', ...activeSess });
+                                }
                             }
                         }
                         const sId = activeSess ? (activeSess.id || activeSess.session_id) : null;

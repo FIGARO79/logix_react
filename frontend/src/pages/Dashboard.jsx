@@ -32,7 +32,7 @@ const menuCategories = [
         items: [
             { href: '/planner', text: 'PLANIFICACIÓN', desc: 'Programación de conteos cíclicos' },
             { href: '/inventory-dashboard', text: 'MÉTRICAS ERI', desc: 'Indicadores de exactitud' },
-            { href: '/planner/manage_differences', text: 'DIFERENCIAS', desc: 'Gestión de ajustes y discrepancias' },
+            { href: '/planner/manage_differences', text: 'DIFERENCIAS CICLICOS', desc: 'Gestión de ajustes y discrepancias' },
             { href: '/counts', text: 'INVENTARIO W2W', desc: 'Conteo masivo wall-to-wall' },
             { href: '/express-audit', text: 'CICLO MANUAL', desc: 'Conteo ciego y auditoría rápida' }
         ]

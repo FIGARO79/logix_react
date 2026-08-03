@@ -25,11 +25,8 @@ async def get_active_session(
 ):
     """Obtiene la sesión de conteo activa para el usuario."""
     session = await db_counts.get_active_session_for_user(db, username)
-    if session:
-        return session
-    return ORJSONResponse(
-        content={"message": "No hay sesión de conteo activa."}, status_code=404
-    )
+    return session
+
 
 
 @router.post("/sessions/{session_id}/close")
