@@ -66,7 +66,7 @@ const Dashboard = () => {
                         <div key={category.id} className="flex flex-col">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className={`h-4 w-1 ${category.accent} rounded-full`}></div>
-                                <h2 className="text-sm font-normal text-black uppercase tracking-tight">{category.title}</h2>
+                                <h2 className="text-sm font-normal text-black uppercase tracking-normal">{category.title}</h2>
                             </div>
 
                             <div className="space-y-3">
@@ -76,10 +76,10 @@ const Dashboard = () => {
                                         to={item.href}
                                         className="group block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200"
                                     >
-                                        <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-tight">
+                                        <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
                                             {item.text}
                                         </div>
-                                        <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-tight">
+                                        <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
                                             {item.desc}
                                         </div>
                                     </Link>
