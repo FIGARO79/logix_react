@@ -410,6 +410,7 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                     po_cache = orjson.loads(f.read())
             except: pass
         po_line_item_to_ir = po_cache.get("po_line_item_to_ir", {})
+        po_grn_item_to_ir = po_cache.get("po_grn_item_to_ir", {})
         po_item_to_ir = po_cache.get("po_item_to_ir", {})
         po_order_to_ir = po_cache.get("po_order_to_ir", {})
         customer_ref_data = po_cache.get("customer_ref_to_data", {})
