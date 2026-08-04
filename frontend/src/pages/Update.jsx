@@ -61,23 +61,23 @@ const Update = () => {
         if (!timestamp || timestamp === 0) return 'SIN DATOS';
         try {
             const date = new Date(timestamp * 1000);
-            return date.toLocaleString('es-CO', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                hour: '2-digit', 
+            return date.toLocaleString('es-CO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
                 minute: '2-digit',
                 hour12: false
             });
-        } catch (e) { 
-            return 'SIN DATOS'; 
+        } catch (e) {
+            return 'SIN DATOS';
         }
     };
 
     useEffect(() => {
         setTitle("Datos Maestros");
         fetchSyncStatus();
-        
+
         // Verificar si el robot ya está ejecutándose al cargar la vista
         const checkInitialRobotStatus = async () => {
             try {
@@ -167,9 +167,9 @@ const Update = () => {
         try {
             const res = await fetch('/api/update', { method: 'POST', body: formData });
             const data = await res.json();
-            if (res.ok) { 
-                setMessages({ success: data.message, error: '' }); 
-                setFiles([]); 
+            if (res.ok) {
+                setMessages({ success: data.message, error: '' });
+                setFiles([]);
                 fetchSyncStatus();
             }
             else setMessages({ success: '', error: data.error || "ERROR EN CARGA" });
@@ -265,13 +265,13 @@ const Update = () => {
             {messages.success && <div className="mb-6 bg-emerald-50 text-black px-4 py-3 border border-emerald-100 text-[12px] font-normal uppercase tracking-widest">{messages.success}</div>}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                
+
                 {/* Robot Section */}
                 <div className="lg:col-span-2 lg:row-start-1 lg:col-start-1 bg-white border border-zinc-200 shadow-sm p-6">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">Robot de Sincronización</h3>
-                            <p className="text-[12px] text-black uppercase font-normal tracking-tight mt-1">Descarga automática de PO / Waybill desde Portal</p>
+                            <h3 className="text-[12px] font-normal text-black uppercase tracking-normal">Robot de Sincronización</h3>
+                            <p className="text-[12px] text-black uppercase font-normal tracking-normal mt-1">Descarga automática de PO / Waybill desde Portal</p>
                         </div>
                         <span className={`text-[12px] font-normal text-black px-2 py-0.5 rounded border ${isRobotRunning ? 'bg-blue-50 border-blue-200 text-blue-700 font-semibold' : 'bg-zinc-100 border-zinc-200'}`}>
                             {isRobotRunning ? 'ACTIVE' : 'IDLE'}
@@ -287,21 +287,20 @@ const Update = () => {
                                 <input type="date" value={robotEndDate} onChange={e => setRobotEndDate(e.target.value)} className="flex-1 h-9 border border-zinc-200 rounded px-3 text-[12px] outline-none focus:ring-1 focus:ring-black text-black" />
                             </div>
                         </div>
-                        <button 
-                            onClick={handleRunRobot} 
+                        <button
+                            onClick={handleRunRobot}
                             disabled={isRobotRunning || isLoading}
-                            className="h-9 px-6 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-all shadow-sm"
+                            className="h-9 px-6 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-normal rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-all shadow-sm"
                         >
                             {isRobotRunning ? 'EJECUTANDO...' : 'SINCRO PORTAL'}
                         </button>
                     </div>
 
                     {robotMessage.text && (
-                        <div className={`mt-4 px-4 py-3 border text-[12px] font-normal uppercase tracking-widest flex items-center justify-between ${
-                            robotMessage.type === 'error' ? 'bg-red-50 text-black border-red-100' :
-                            robotMessage.type === 'success' ? 'bg-emerald-50 text-black border-emerald-100' :
-                            'bg-blue-50 text-black border-blue-100 animate-pulse'
-                        }`}>
+                        <div className={`mt-4 px-4 py-3 border text-[12px] font-normal uppercase tracking-widest flex items-center justify-between ${robotMessage.type === 'error' ? 'bg-red-50 text-black border-red-100' :
+                                robotMessage.type === 'success' ? 'bg-emerald-50 text-black border-emerald-100' :
+                                    'bg-blue-50 text-black border-blue-100 animate-pulse'
+                            }`}>
                             <span>{robotMessage.text}</span>
                             {robotMessage.type !== 'info' && (
                                 <button onClick={() => setRobotMessage({ type: '', text: '' })} className="ml-4 text-black hover:underline text-[10px]">CERRAR</button>
@@ -312,10 +311,10 @@ const Update = () => {
 
                 {/* File Upload Section */}
                 <div className="lg:col-span-2 lg:row-start-2 lg:col-start-1 bg-white border border-zinc-200 shadow-sm p-6">
-                    <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-6">Carga Manual de Ficheros</h3>
-                    
+                    <h3 className="text-[12px] font-normal text-black uppercase tracking-normal mb-6">Carga Manual de Ficheros</h3>
+
                     <form onSubmit={handleFileUpdate}>
-                        <div 
+                        <div
                             className={`border-2 border-dashed rounded-lg p-10 text-center transition-all cursor-pointer mb-6 ${dragActive ? 'border-black bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400 bg-zinc-50/50'}`}
                             onDragEnter={() => setDragActive(true)}
                             onDragLeave={() => setDragActive(false)}
@@ -325,7 +324,7 @@ const Update = () => {
                         >
                             <input id="file-upload" type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
                             <div className="text-black">
-                                <p className="text-[12px] font-normal text-black uppercase tracking-tight mb-1">Click para seleccionar o arrastre archivos</p>
+                                <p className="text-[12px] font-normal text-black uppercase tracking-normal mb-1">Click para seleccionar o arrastre archivos</p>
                                 <p className="text-[12px] uppercase font-normal text-black">Soporta: CSV (250, 280, 240) y Excel (.xlsx)</p>
                             </div>
                         </div>
@@ -334,7 +333,7 @@ const Update = () => {
                             <div className="mb-6 space-y-2">
                                 {files.map((file, idx) => (
                                     <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-100 rounded">
-                                        <span className="text-[12px] font-normal text-black uppercase tracking-tight">{file.name}</span>
+                                        <span className="text-[12px] font-normal text-black uppercase tracking-normal">{file.name}</span>
                                         <button type="button" onClick={() => removeFile(idx)} className="text-black hover:text-zinc-600 text-[12px] font-normal uppercase hover:underline">Remover</button>
                                     </div>
                                 ))}
@@ -345,19 +344,19 @@ const Update = () => {
                             <div className="mb-6 bg-zinc-50 border border-zinc-200 p-4 rounded shadow-sm">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-zinc-100">
                                     <div className="flex items-center gap-4">
-                                        <h4 className="text-[12px] font-normal text-black uppercase tracking-tight">Filtro de GRN (Archivo 280)</h4>
+                                        <h4 className="text-[12px] font-normal text-black uppercase tracking-normal">Filtro de GRN (Archivo 280)</h4>
                                         <div className="flex gap-3 border-l border-zinc-200 pl-4">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setSelectedGrns([...availableGrns])} 
-                                                className={`text-[12px] font-normal uppercase tracking-tight transition-colors ${selectedGrns.length === availableGrns.length ? 'text-black underline' : 'text-black opacity-60 hover:opacity-100'}`}
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedGrns([...availableGrns])}
+                                                className={`text-[12px] font-normal uppercase tracking-normal transition-colors ${selectedGrns.length === availableGrns.length ? 'text-black underline' : 'text-black opacity-60 hover:opacity-100'}`}
                                             >
                                                 Marcar Todas
                                             </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setSelectedGrns([])} 
-                                                className={`text-[12px] font-normal uppercase tracking-tight transition-colors ${selectedGrns.length === 0 ? 'text-black underline' : 'text-black opacity-60 hover:opacity-100'}`}
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedGrns([])}
+                                                className={`text-[12px] font-normal uppercase tracking-normal transition-colors ${selectedGrns.length === 0 ? 'text-black underline' : 'text-black opacity-60 hover:opacity-100'}`}
                                             >
                                                 Desmarcar Todas
                                             </button>
@@ -380,14 +379,14 @@ const Update = () => {
                                     {availableGrns.map(grn => (
                                         <div key={grn} className="flex items-center gap-2">
                                             <input type="checkbox" checked={selectedGrns.includes(grn)} onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))} className="accent-black" />
-                                            <span className="text-[12px] font-mono text-black">{grn}</span>
+                                            <span className="text-[12px] font-normal text-black">{grn}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        <button disabled={isLoading || files.length === 0} type="submit" className="w-full h-11 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-all shadow-md">
+                        <button disabled={isLoading || files.length === 0} type="submit" className="w-full h-11 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-normal rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-all shadow-md">
                             {isLoading ? 'PROCESANDO DATOS...' : 'PUBLICAR ACTUALIZACIÓN'}
                         </button>
                     </form>
@@ -396,8 +395,8 @@ const Update = () => {
                 {/* Database Maintenance */}
                 <div className="lg:col-span-1 lg:row-span-2 lg:col-start-3 lg:row-start-1 lg:h-full bg-white border border-zinc-200 shadow-sm p-6 flex flex-col justify-between">
                     <div>
-                        <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-6 border-b border-zinc-100 pb-2">Mantenimiento de Datos</h3>
-                        
+                        <h3 className="text-[12px] font-normal text-black uppercase tracking-normal mb-6 border-b border-zinc-100 pb-2">Mantenimiento de Datos</h3>
+
                         <div className="space-y-8">
                             {/* Backup */}
                             <form onSubmit={async (e) => {
@@ -408,27 +407,27 @@ const Update = () => {
                                     if (res.ok) {
                                         const blob = await res.blob();
                                         const url = window.URL.createObjectURL(blob);
-                                        const a = document.createElement('a'); a.href = url; a.download = `LOGIX_BACKUP_${new Date().toISOString().slice(0,10)}.xlsx`;
+                                        const a = document.createElement('a'); a.href = url; a.download = `LOGIX_BACKUP_${new Date().toISOString().slice(0, 10)}.xlsx`;
                                         a.click(); setMessages({ success: "BACKUP GENERADO", error: '', info: '' });
                                     } else {
                                         const data = await res.json().catch(() => ({}));
                                         setMessages({ success: '', error: data.error || `ERROR AL GENERAR RESPALDO (CÓDIGO ${res.status})`, info: '' });
                                     }
-                                } catch (err) { 
-                                    setMessages({ success: '', error: "ERROR DE CONEXIÓN AL GENERAR RESPALDO", info: '' }); 
+                                } catch (err) {
+                                    setMessages({ success: '', error: "ERROR DE CONEXIÓN AL GENERAR RESPALDO", info: '' });
                                 }
                                 finally { setIsLoading(false); setBackupPassword(''); }
                             }} className="space-y-3">
                                 <label className="text-[12px] font-normal text-black uppercase">Exportación de Históricos</label>
                                 <div className="relative w-full">
-                                    <input 
-                                        type={showBackupPassword ? "text" : "password"} 
-                                        name="password" 
-                                        placeholder="Contraseña Admin" 
-                                        value={backupPassword} 
-                                        onChange={e => setBackupPassword(e.target.value)} 
-                                        className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" 
-                                        required 
+                                    <input
+                                        type={showBackupPassword ? "text" : "password"}
+                                        name="password"
+                                        placeholder="Contraseña Admin"
+                                        value={backupPassword}
+                                        onChange={e => setBackupPassword(e.target.value)}
+                                        className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black"
+                                        required
                                     />
                                     <button
                                         type="button"
@@ -448,16 +447,16 @@ const Update = () => {
                                         )}
                                     </button>
                                 </div>
-                                <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">Generar Respaldo</button>
+                                <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-normal rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors">Generar Respaldo</button>
                             </form>
 
                             {/* Delete GRN from Master */}
                             <div className="space-y-3 pt-6 border-t border-zinc-100">
                                 <div className="flex justify-between items-center">
                                     <label className="text-[12px] font-normal text-black uppercase">Limpieza de Maestro (GRN)</label>
-                                    <button 
-                                        type="button" 
-                                        onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({...prev, info: ''})) } : fetchMaestroGrns} 
+                                    <button
+                                        type="button"
+                                        onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({ ...prev, info: '' })) } : fetchMaestroGrns}
                                         disabled={isFetchingMaestro}
                                         className="text-[12px] font-normal text-black uppercase hover:underline"
                                     >
@@ -477,26 +476,26 @@ const Update = () => {
                                         <div className="max-h-32 overflow-y-auto bg-zinc-50 p-2 border border-zinc-100 rounded shadow-inner space-y-1">
                                             {maestroGrns.map(grn => (
                                                 <div key={grn} className="flex items-center gap-2">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedMaestroGrns.includes(grn)} 
-                                                        onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grn]) : setSelectedMaestroGrns(p => p.filter(g => g !== grn))} 
-                                                        className="accent-black" 
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedMaestroGrns.includes(grn)}
+                                                        onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grn]) : setSelectedMaestroGrns(p => p.filter(g => g !== grn))}
+                                                        className="accent-black"
                                                     />
-                                                    <span className="text-[12px] font-mono text-black">{grn}</span>
+                                                    <span className="text-[12px] font-normal text-black">{grn}</span>
                                                 </div>
                                             ))}
                                         </div>
-                                        
+
                                         <form onSubmit={handleDeleteMaestroGrns} className="space-y-2">
                                             <div className="relative w-full">
-                                                <input 
-                                                    type={showDeleteMaestroPassword ? "text" : "password"} 
-                                                    placeholder="Contraseña Admin" 
-                                                    value={deleteMaestroPassword} 
-                                                    onChange={e => setDeleteMaestroPassword(e.target.value)} 
-                                                    className="w-full h-8 border border-zinc-200 rounded pl-3 pr-10 text-[12px] outline-none bg-zinc-50 focus:bg-white text-black placeholder:text-zinc-400" 
-                                                    required 
+                                                <input
+                                                    type={showDeleteMaestroPassword ? "text" : "password"}
+                                                    placeholder="Contraseña Admin"
+                                                    value={deleteMaestroPassword}
+                                                    onChange={e => setDeleteMaestroPassword(e.target.value)}
+                                                    className="w-full h-8 border border-zinc-200 rounded pl-3 pr-10 text-[12px] outline-none bg-zinc-50 focus:bg-white text-black placeholder:text-zinc-400"
+                                                    required
                                                 />
                                                 <button
                                                     type="button"
@@ -516,10 +515,10 @@ const Update = () => {
                                                     )}
                                                 </button>
                                             </div>
-                                            <button 
-                                                type="submit" 
+                                            <button
+                                                type="submit"
                                                 disabled={isLoading || selectedMaestroGrns.length === 0}
-                                                className="w-full h-8 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-colors"
+                                                className="w-full h-8 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-normal rounded hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 transition-colors"
                                             >
                                                 ELIMINAR SELECCIONADOS ({selectedMaestroGrns.length})
                                             </button>
@@ -546,14 +545,14 @@ const Update = () => {
                     }} className="space-y-3 pt-6 border-t border-zinc-100 mt-8">
                         <label className="text-[12px] font-normal text-black uppercase">Zona de Riesgo: Reset Total</label>
                         <div className="relative w-full">
-                            <input 
-                                type={showClearPassword ? "text" : "password"} 
-                                name="password" 
-                                placeholder="Contraseña Admin" 
-                                value={clearPassword} 
-                                onChange={e => setClearPassword(e.target.value)} 
-                                className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black" 
-                                required 
+                            <input
+                                type={showClearPassword ? "text" : "password"}
+                                name="password"
+                                placeholder="Contraseña Admin"
+                                value={clearPassword}
+                                onChange={e => setClearPassword(e.target.value)}
+                                className="w-full h-9 border border-zinc-200 rounded pl-3 pr-10 text-[12px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-black"
+                                required
                             />
                             <button
                                 type="button"
@@ -573,13 +572,13 @@ const Update = () => {
                                 )}
                             </button>
                         </div>
-                        <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-tight hover:bg-blue-500 hover:text-white hover:border-blue-500 shadow-sm transition-colors">Limpiar Base de Datos</button>
+                        <button type="submit" className="w-full h-9 border border-black bg-white text-black text-[12px] font-normal uppercase tracking-normal hover:bg-blue-500 hover:text-white hover:border-blue-500 shadow-sm transition-colors">Limpiar Base de Datos</button>
                     </form>
                 </div>
 
                 {/* Fechas de Actualización */}
                 <div className="lg:col-span-1 lg:col-start-3 lg:row-start-3 bg-white border border-zinc-200 shadow-sm p-6 text-black">
-                    <h3 className="text-[12px] font-normal text-black uppercase tracking-tight mb-4 pb-2 border-b border-zinc-100 flex items-center gap-1.5">
+                    <h3 className="text-[12px] font-normal text-black uppercase tracking-normal mb-4 pb-2 border-b border-zinc-100 flex items-center gap-1.5">
                         <svg className="w-3.5 h-3.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -595,12 +594,12 @@ const Update = () => {
                         ].map((item) => (
                             <div key={item.key} className="flex flex-col gap-1 pb-3 border-b border-zinc-100 last:border-0 last:pb-0">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[12px] font-normal text-black uppercase tracking-tight">{item.label}</span>
-                                    <span className="text-[12px] font-mono bg-zinc-50 text-black px-1.5 py-0.5 rounded border border-zinc-200">{item.filename}</span>
+                                    <span className="text-[12px] font-normal text-black uppercase tracking-normal">{item.label}</span>
+                                    <span className="text-[12px] font-normal bg-zinc-50 text-black px-1.5 py-0.5 rounded border border-zinc-200">{item.filename}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12px]">
-                                    <span className="text-black uppercase font-normal text-[12px] tracking-tight">Última Modificación</span>
-                                    <span className="font-mono font-normal text-black">
+                                    <span className="text-black uppercase font-normal text-[12px] tracking-normal">Última Modificación</span>
+                                    <span className="font-normal text-black">
                                         {formatTimestamp(syncStatus[item.key])}
                                     </span>
                                 </div>
