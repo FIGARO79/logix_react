@@ -215,7 +215,7 @@ class SlottingService:
 
         medium_rotation_levels = [
             int(lvl.strip())
-            for lvl in str(zone_rules.get("medium_rotation_levels", "1, 2")).split(",")
+            for lvl in str(zone_rules.get("medium_rotation_levels", "1", "2")).split(",")
             if lvl.strip().isdigit()
         ]
         medium_rotation_min_score = int(zone_rules.get("medium_rotation_min_score", 4))
@@ -228,7 +228,7 @@ class SlottingService:
         ]
         exile_levels = [
             int(lvl.strip())
-            for lvl in str(zone_rules.get("exile_rack_levels", "2, 3")).split(",")
+            for lvl in str(zone_rules.get("exile_rack_levels", "2")).split(",")
             if lvl.strip().isdigit()
         ]
         exile_sics = [
@@ -252,17 +252,6 @@ class SlottingService:
             target_zone = "Cantilever"
         elif 0 < weight <= minuteria_weight_max:
             target_zone = minuteria_zone
-        elif sic_code in exile_sics:
-            target_zone = "Rack"
-            if weight > heavy_weight_min:
-                # Si pesa más que heavy_weight_min, se restringen los niveles para colocar a partir del 3er nivel inclusive (nivel >= 3)
-                target_levels = [lvl for lvl in exile_levels if lvl >= 3]
-                if not target_levels:
-                    target_levels = [
-                        3
-                    ]  # Fallback seguro de exilio para peso pesado (del 3 en adelante)
-            else:
-                target_levels = exile_levels
         elif weight > heavy_weight_min:
             target_zone = "Rack"
             target_levels = heavy_levels
@@ -271,13 +260,8 @@ class SlottingService:
             target_levels = high_rotation_levels
             target_score_min = high_rotation_min_score
             target_score_max = high_rotation_max_score
-        elif sic_code in ["Y", "K"]:
-            target_zone = "Rack"
-            target_levels = medium_rotation_levels
-            target_score_min = medium_rotation_min_score
-            target_score_max = medium_rotation_max_score
         else:
-            # Todo lo demás
+            # Resto de ítems (Y, K, L, Z, 0): Peso medio/bajo (<= 10 kg) centralizados en Nivel 2
             target_zone = "Rack"
             target_levels = default_levels
 

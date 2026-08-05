@@ -29,7 +29,7 @@ const SlottingConfig = () => {
         default_levels: '2',
         exile_sic_codes: '0, Z, L',
         exile_max_score: 3,
-        exile_rack_levels: '2, 3',
+        exile_rack_levels: '2',
         ai_min_learn_score: 6
     });
     const [summary, setSummary] = useState(null);

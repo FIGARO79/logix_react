@@ -246,6 +246,7 @@ const Inbound = () => {
     const quantityRef = useRef(null);
     const itemCodeRef = useRef(null);
     const labelComponentRef = useRef(null);
+    const relocatedBinRef = useRef(null);
 
     // --- Helpers de Sincronización ---
     const runAutoSync = async () => {
@@ -865,7 +866,7 @@ const Inbound = () => {
 
                     const expectedQty = await getGRNExpectedQty(db, normalizedCode, importRef);
 
-                    setItemData({
+                    const itemDataObj = {
                         itemCode: localItem.Item_Code,
                         description: localItem.Item_Description,
                         binLocation: localItem.Bin_1,
@@ -879,7 +880,8 @@ const Inbound = () => {
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin,
                         expectedBreakdown: offlineBreakdown
-                    });
+                    };
+                    setItemData(itemDataObj);
                     if (!editId) {
                         setQuantity('');
                         // En offline mantenemos el comportamiento anterior
@@ -903,10 +905,26 @@ const Inbound = () => {
         if (!itemData) return alert("Busque un item primero");
 
         // Validación de Ubicación (Slotting)
+        const currentBin = (itemData.binLocation || '').trim().toUpperCase();
+        const hasValidMasterBin = currentBin && currentBin !== 'N/A' && currentBin !== 'SIN UBICACION' && currentBin !== 'NONE' && (validBins.size === 0 || validBins.has(currentBin));
+        const hasRelocatedBin = relocatedBin.trim().length > 0;
+
+        if (!hasValidMasterBin && !hasRelocatedBin) {
+            if (itemData.suggestedBin) {
+                setRelocatedBin(itemData.suggestedBin);
+                alert(`El ítem ingresado no tiene una ubicación registrada en el maestro de ubicaciones. Se ha sugerido la ubicación: ${itemData.suggestedBin}. Por favor confirme o asigne la ubicación.`);
+            } else {
+                alert("El ítem ingresado no tiene una ubicación registrada en el maestro de ubicaciones. Se debe asignar una ubicación.");
+            }
+            setTimeout(() => relocatedBinRef.current?.focus(), 100);
+            return;
+        }
+
         if (relocatedBin.trim()) {
             const normalizedBin = relocatedBin.trim().toUpperCase();
             if (validBins.size > 0 && normalizedBin !== 'XDOCK' && !validBins.has(normalizedBin)) {
                 alert(`La ubicación "${normalizedBin}" no existe.`);
+                setTimeout(() => relocatedBinRef.current?.focus(), 100);
                 return;
             }
         }
@@ -1126,7 +1144,7 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                 <div><label className="form-label font-normal text-black">Qty Received</label><input type="number" ref={quantityRef} value={quantity} onChange={e => setQuantity(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" required min="1" /></div>
                                 <div><label className="form-label font-normal text-black">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label font-normal text-black">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-normal text-black">Relocate (New)</label><input type="text" ref={relocatedBinRef} value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
 
                                 {(effectiveXdockPending > 0 || itemData?.suggestedBin) && (
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
