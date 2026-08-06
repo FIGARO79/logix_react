@@ -271,7 +271,11 @@ async def get_reconciliation_calculations(
                     pl.col("timestamp_log").alias("Timestamp"),
                 ]
             )
-            .sort(["Import_Reference", "GRN"])
+            .with_columns(
+                pl.col("Order_Line").cast(pl.Int64, strict=False).fill_null(0).alias("_order_line_num")
+            )
+            .sort(["Import_Reference", "GRN", "_order_line_num", "Codigo_Item"])
+            .drop(["_order_line_num"])
             .to_dicts()
         )
 

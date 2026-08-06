@@ -236,16 +236,35 @@ const Reconciliation = () => {
         let sortableItems = [...data];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
+                let res = 0;
                 let aKey = a[sortConfig.key];
                 let bKey = b[sortConfig.key];
-                if (typeof aKey === 'number' && typeof bKey === 'number') {
-                    return sortConfig.direction === 'ascending' ? aKey - bKey : bKey - aKey;
+
+                if (sortConfig.key === 'Order_Line') {
+                    const aNum = parseInt(aKey, 10) || 0;
+                    const bNum = parseInt(bKey, 10) || 0;
+                    res = aNum - bNum;
+                } else if (typeof aKey === 'number' && typeof bKey === 'number') {
+                    res = aKey - bKey;
+                } else {
+                    aKey = aKey ? aKey.toString().toLowerCase() : '';
+                    bKey = bKey ? bKey.toString().toLowerCase() : '';
+                    if (aKey < bKey) res = -1;
+                    else if (aKey > bKey) res = 1;
                 }
-                aKey = aKey ? aKey.toString().toLowerCase() : '';
-                bKey = bKey ? bKey.toString().toLowerCase() : '';
-                if (aKey < bKey) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if (aKey > bKey) return sortConfig.direction === 'ascending' ? 1 : -1;
-                return 0;
+
+                if (sortConfig.direction === 'descending') {
+                    res = -res;
+                }
+
+                if (res === 0) {
+                    const aLine = parseInt(a.Order_Line, 10) || 0;
+                    const bLine = parseInt(b.Order_Line, 10) || 0;
+                    if (aLine !== bLine) return aLine - bLine;
+                    return (a.Codigo_Item || '').localeCompare(b.Codigo_Item || '');
+                }
+
+                return res;
             });
         }
         return sortableItems;
@@ -254,9 +273,15 @@ const Reconciliation = () => {
     const filteredData = useMemo(() => {
         return sortedData.filter(item => {
             if (!filterText) return true;
-            return Object.values(item).some(val =>
-                String(val).toLowerCase().includes(filterText.toLowerCase())
-            );
+            const searchStr = filterText.toLowerCase();
+            return Object.entries(item).some(([key, val]) => {
+                if (val === null || val === undefined) return false;
+                if (key === 'id') return false;
+                if (key === 'Timestamp' || key === 'Snapshot_Date') {
+                    return formatDateShort(val).toLowerCase().includes(searchStr);
+                }
+                return String(val).toLowerCase().includes(searchStr);
+            });
         });
     }, [sortedData, filterText]);
 
