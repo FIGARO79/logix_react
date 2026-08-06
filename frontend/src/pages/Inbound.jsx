@@ -163,6 +163,7 @@ const Inbound = () => {
     const quantityRef = useRef(null);
     const itemCodeRef = useRef(null);
     const labelComponentRef = useRef(null);
+    const relocatedBinRef = useRef(null);
 
     // --- Helpers de Sincronización ---
     const runAutoSync = async () => {
@@ -215,16 +216,61 @@ const Inbound = () => {
     }, [currentVersion]);
 
     const loadSlottingBins = async () => {
-        try {
-            const res = await fetch('/static/json/slotting_parameters.json');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.storage) {
-                    setValidBins(new Set(Object.keys(data.storage).map(b => b.toUpperCase())));
+        let binsLoaded = false;
+
+        // 1. Intentar cargar en tiempo real desde la API del backend
+        if (navigator.onLine) {
+            try {
+                const res = await fetch('/api/views/valid_bins', { credentials: 'include' });
+                if (res.ok) {
+                    const binsList = await res.json();
+                    if (Array.isArray(binsList) && binsList.length > 0) {
+                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                        setValidBins(binsSet);
+                        await cacheData('slotting_valid_bins', binsList);
+                        binsLoaded = true;
+                        console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde API.`);
+                    }
                 }
+            } catch (e) {
+                console.warn("No se pudo cargar bins desde la API, intentando fallback estático...", e);
             }
-        } catch (e) {
-            console.error("Error loading slotting bins", e);
+        }
+
+        // 2. Fallback 1: Cargar desde el archivo estático JSON (con prevención de caché)
+        if (!binsLoaded && navigator.onLine) {
+            try {
+                const res = await fetch(`/static/json/slotting_parameters.json?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.storage) {
+                        const binsList = Object.keys(data.storage);
+                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                        setValidBins(binsSet);
+                        await cacheData('slotting_valid_bins', binsList);
+                        binsLoaded = true;
+                        console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde JSON.`);
+                    }
+                }
+            } catch (e) {
+                console.error("Error en fallback de JSON estático:", e);
+            }
+        }
+
+        // 3. Fallback 2 (Offline / Desconectado): Cargar desde IndexedDB
+        if (!binsLoaded) {
+            try {
+                const cachedBinsList = await getCachedData('slotting_valid_bins');
+                if (cachedBinsList && Array.isArray(cachedBinsList) && cachedBinsList.length > 0) {
+                    const binsSet = new Set(cachedBinsList.map(b => b.toUpperCase()));
+                    setValidBins(binsSet);
+                    console.log(`Logix Offline: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde caché local.`);
+                } else {
+                    console.warn("Logix: Sin ubicaciones válidas de slotting en caché local.");
+                }
+            } catch (e) {
+                console.error("Error al cargar bins de slotting desde IndexedDB:", e);
+            }
         }
     };
 
@@ -866,7 +912,7 @@ const Inbound = () => {
                         }
                     }
 
-                    setItemData({
+                    const itemDataObj = {
                         itemCode: localItem.Item_Code,
                         description: localItem.Item_Description,
                         binLocation: localItem.Bin_1,
@@ -880,7 +926,8 @@ const Inbound = () => {
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin,
                         expectedBreakdown: offlineBreakdown
-                    });
+                    };
+                    setItemData(itemDataObj);
                     if (!editId) {
                         setQuantity('');
                         setLabelUnits('');
@@ -906,10 +953,26 @@ const Inbound = () => {
         if (!itemData) return alert("Busque un item primero");
 
         // Validación de Ubicación (Slotting)
+        const currentBin = (itemData.binLocation || '').trim().toUpperCase();
+        const hasValidMasterBin = currentBin && currentBin !== 'N/A' && currentBin !== 'SIN UBICACION' && currentBin !== 'NONE' && (validBins.size === 0 || validBins.has(currentBin));
+        const hasRelocatedBin = relocatedBin.trim().length > 0;
+
+        if (!hasValidMasterBin && !hasRelocatedBin) {
+            if (itemData.suggestedBin) {
+                setRelocatedBin(itemData.suggestedBin);
+                alert(`El ítem ingresado no tiene una ubicación registrada en el maestro de ubicaciones. Se ha sugerido la ubicación: ${itemData.suggestedBin}. Por favor confirme o asigne la ubicación.`);
+            } else {
+                alert("El ítem ingresado no tiene una ubicación registrada en el maestro de ubicaciones. Se debe asignar una ubicación.");
+            }
+            setTimeout(() => relocatedBinRef.current?.focus(), 100);
+            return;
+        }
+
         if (relocatedBin.trim()) {
             const normalizedBin = relocatedBin.trim().toUpperCase();
             if (validBins.size > 0 && normalizedBin !== 'XDOCK' && !validBins.has(normalizedBin)) {
                 alert(`La ubicación "${normalizedBin}" no existe.`);
+                setTimeout(() => relocatedBinRef.current?.focus(), 100);
                 return;
             }
         }
@@ -1168,7 +1231,7 @@ const Inbound = () => {
                                 <div><label className="form-label font-normal text-gray-800">Unidades</label><input type="number" value={labelUnits} onChange={e => setLabelUnits(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
                                 <div><label className="form-label font-normal text-gray-800">Etiquetas</label><input type="number" value={labelCount} onChange={e => setLabelCount(e.target.value)} className="font-normal text-xl text-black border border-zinc-400 focus:border-black outline-none" min="0" /></div>
                                 <div><label className="form-label font-normal text-gray-800">Bin (Original)</label><div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div></div>
-                                <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
+                                <div><label className="form-label font-normal text-gray-800">Relocate (New)</label><input type="text" ref={relocatedBinRef} value={relocatedBin} onChange={e => setRelocatedBin(e.target.value.toUpperCase())} className="font-normal text-black border border-zinc-400 focus:border-black outline-none" placeholder="(Opcional)" /></div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
