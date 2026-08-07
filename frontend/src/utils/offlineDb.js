@@ -154,19 +154,11 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
             if (sum > 0) return sum;
         }
 
-        // 4. Fallback: buscar por Import_Reference === normalizedIr
+        // 4. Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
         const fallbackSum = itemGrns
             .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
             .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
-        if (fallbackSum > 0) return fallbackSum;
-
-        // 5. Fallback 2: buscar en po_lookup si no hay registros en grn_pending (no hay 280)
-        if (poInfo && poInfo.items) {
-            return poInfo.items
-                .filter(it => String(it.item_code || '').toUpperCase().trim() === normalizedCode)
-                .reduce((acc, curr) => acc + (parseInt(curr.qty) || 0), 0);
-        }
-        return 0;
+        return fallbackSum;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -274,20 +266,11 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
             if (sum > 0) {
                 resultMap[key] = sum;
             } else {
-                // Fallback: buscar por Import_Reference === normalizedIr
+                // Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
                 const fallbackSum = itemGrns
                     .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
                     .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
-                if (fallbackSum > 0) {
-                    resultMap[key] = fallbackSum;
-                } else if (poInfo && poInfo.items) {
-                    // Fallback 2: buscar en po_lookup si no hay registros en grn_pending (no hay 280)
-                    resultMap[key] = poInfo.items
-                        .filter(it => String(it.item_code || '').toUpperCase().trim() === normalizedCode)
-                        .reduce((acc, curr) => acc + (parseInt(curr.qty) || 0), 0);
-                } else {
-                    resultMap[key] = 0;
-                }
+                resultMap[key] = fallbackSum;
             }
         });
     } catch (err) {

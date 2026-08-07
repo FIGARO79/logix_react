@@ -49,20 +49,12 @@ async def find_item(
             status_code=404, detail=f"Artículo {item_code} no encontrado en el maestro."
         )
 
-    # Intentar obtener la cantidad esperada de la GRN si está cargada y asociada a esta IR
-    expected_quantity = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
-        import_reference, item_code, db=db
-    )
-    if expected_quantity is None:
-        # Fallback 1: Si no hay GRN cargada o asociada, obtener la cantidad de la PO
-        expected_quantity = await csv_handler.get_expected_quantity_from_po(
-            import_reference, item_code
+    # Obtener la cantidad esperada de la GRN (reporte 280) si está cargada y asociada a esta IR
+    expected_quantity = (
+        await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+            import_reference, item_code, db=db
         )
-    if expected_quantity == 0:
-        # Fallback 2: Si es 0, intentar obtener la cantidad total del item en la GRN en general
-        expected_quantity = await csv_handler.get_total_expected_quantity_for_item(
-            item_code
-        )
+    ) or 0
 
     original_bin = item_details.get("Bin_1", "N/A")
 
@@ -234,16 +226,12 @@ async def add_log(
         )
 
     expected_qty = data.qtyGrn
-    if expected_qty is None or expected_qty == 0:
-        expected_qty = await csv_handler.get_expected_quantity_from_po(
-            data.importReference, item_code_form
-        )
-    if expected_qty == 0:
-        expected_qty = await csv_handler.get_total_expected_quantity_for_item(
-            item_code_form
-        )
-
-    await csv_handler.get_total_expected_quantity_for_item(item_code_form)
+    if expected_qty is None:
+        expected_qty = (
+            await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+                data.importReference, item_code_form, db=db
+            )
+        ) or 0
 
     latest_relocated_bin = await db_logs.get_latest_relocated_bin_async(
         db, item_code_form

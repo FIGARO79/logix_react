@@ -166,16 +166,16 @@ async def align_log_totals(
         if cur_exp > expected_map.get(group_key, 0):
             expected_map[group_key] = cur_exp
 
+
     for group_key in list(totals_received.keys()):
         if expected_map.get(group_key, 0) == 0:
             ref, item = group_key[1], group_key[2]
-            exp_po = 0
             if ref and item:
-                exp_po = await csv_handler.get_expected_quantity_from_po(ref, item)
-            if (not exp_po or exp_po == 0) and item:
-                exp_po = await csv_handler.get_total_expected_quantity_for_item(item)
-            if exp_po:
-                expected_map[group_key] = int(exp_po)
+                grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+                    ref, item, db=db
+                )
+                if grn_exp:
+                    expected_map[group_key] = int(grn_exp)
 
     aligned_logs = []
     for log in logs_copy:
