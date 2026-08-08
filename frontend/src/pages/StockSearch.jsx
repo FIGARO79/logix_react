@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
@@ -45,7 +46,14 @@ const StockSearch = () => {
 
     // Función para ejecutar búsqueda directamente (usada por el scanner o botón)
     const executeSearch = async (query) => {
-        if (!query.trim()) return;
+        let cleanQuery = query ? query.trim() : '';
+        if (!cleanQuery) return;
+
+        const gs1 = parseGS1Barcode(cleanQuery);
+        if ((gs1.isGS1 || gs1.isMultiField) && gs1.itemCode) {
+            cleanQuery = gs1.itemCode.trim();
+            setItemCode(cleanQuery);
+        }
 
         setLoading(true);
         setError('');

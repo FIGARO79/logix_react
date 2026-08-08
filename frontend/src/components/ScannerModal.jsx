@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 
 const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" }) => {
     const html5QrCode = useRef(null);
@@ -42,8 +43,12 @@ const ScannerModal = ({ onClose, onScan, title = "Apunta la cámara al código" 
                     (decodedText) => {
                         const cleanCode = decodedText.trim().toUpperCase();
                         if (cleanCode) {
+                            const parsed = parseGS1Barcode(cleanCode);
+                            const finalCode = (parsed.isGS1 || parsed.isMultiField) && parsed.itemCode
+                                ? parsed.itemCode.trim().toUpperCase()
+                                : cleanCode;
                             playBeep();
-                            onScan(cleanCode);
+                            onScan(finalCode, parsed);
                         }
                     },
                     (_errorMessage) => {

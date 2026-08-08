@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 
 const SpotCheck = () => {
     const context = useTabContext();
@@ -54,8 +55,14 @@ const SpotCheck = () => {
     }, [fetchRecentChecks]);
 
     const handleSearchItem = async (query) => {
-        const q = (query || itemCode || '').trim().toUpperCase();
+        let q = (query || itemCode || '').trim().toUpperCase();
         if (!q) return;
+
+        const gs1 = parseGS1Barcode(q);
+        if ((gs1.isGS1 || gs1.isMultiField) && gs1.itemCode) {
+            q = gs1.itemCode.trim().toUpperCase();
+            setItemCode(q);
+        }
 
         setLoading(true);
         setItemData(null);

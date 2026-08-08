@@ -5,6 +5,8 @@ import QRCode from 'qrcode';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SandvikLabel from '../components/labels/SandvikLabel';
+import ScannerModal from '../components/ScannerModal';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 import '../styles/Label.css';
 
 
@@ -18,6 +20,7 @@ const LabelPrinting = () => {
     const [itemData, setItemData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [qrImage, setQrImage] = useState(null);
+    const [scannerOpen, setScannerOpen] = useState(false);
 
     // Refs
     const itemCodeInputRef = useRef(null);
@@ -35,17 +38,28 @@ const LabelPrinting = () => {
         }
     }, [itemData, itemCode]);
 
-    const findItem = async () => {
-        if (!itemCode.trim()) {
+    const findItem = async (codeToUse) => {
+        let code = (codeToUse || itemCode).trim().toUpperCase();
+        if (!code) {
             toast.error("Ingrese un código de item");
             return;
+        }
+
+        const gs1 = parseGS1Barcode(code);
+        if ((gs1.isGS1 || gs1.isMultiField) && gs1.itemCode) {
+            code = gs1.itemCode.trim().toUpperCase();
+            setItemCode(code);
+            if (gs1.quantity && (!quantity || quantity === 1)) {
+                setQuantity(gs1.quantity);
+            }
+            toast.info(`Código decodificado: ${code}`);
         }
 
         setLoading(true);
         setItemData(null);
 
         try {
-            const res = await fetch(`/api/get_item_details/${encodeURIComponent(itemCode.toUpperCase())}`);
+            const res = await fetch(`/api/get_item_details/${encodeURIComponent(code)}`);
             const data = await res.json();
 
             if (res.ok) {
@@ -68,6 +82,14 @@ const LabelPrinting = () => {
         }
     };
 
+    const handleScan = (scannedCode) => {
+        setScannerOpen(false);
+        if (scannedCode) {
+            setItemCode(scannedCode);
+            findItem(scannedCode);
+        }
+    };
+
     const handlePrint = useReactToPrint({
         contentRef: labelComponentRef,
         content: () => labelComponentRef.current,
@@ -80,6 +102,7 @@ const LabelPrinting = () => {
     return (
         <div className="container-wrapper px-4 py-4">
             <ToastContainer position="top-right" autoClose={3000} />
+            {scannerOpen && <ScannerModal onClose={() => setScannerOpen(false)} onScan={handleScan} />}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
@@ -101,11 +124,22 @@ const LabelPrinting = () => {
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 onKeyDown={(e) => e.key === 'Enter' && findItem()}
                                 className="font-normal text-black border border-zinc-400 focus:border-black outline-none uppercase flex-grow h-[30px] px-2 rounded"
-                                placeholder="Ingrese código y presione Enter"
+                                placeholder="Ingrese código o escanee GS1/QR"
                                 autoFocus
                             />
                             <button
-                                onClick={findItem}
+                                type="button"
+                                onClick={() => setScannerOpen(true)}
+                                className="h-[30px] px-3 bg-zinc-700 text-white rounded hover:bg-zinc-800 transition-colors flex items-center justify-center flex-shrink-0"
+                                title="Escanear con cámara"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                                    <path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => findItem()}
                                 className="h-[30px] px-4 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all flex-shrink-0"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
