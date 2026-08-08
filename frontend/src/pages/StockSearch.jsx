@@ -129,7 +129,7 @@ const StockSearch = () => {
                     </h2>
                     <button
                         onClick={() => navigate('/spot-check')}
-                        className="btn-sap btn-secondary text-[9px] uppercase font-normal tracking-wider px-4 flex items-center"
+                        className="btn-sap btn-secondary text-[9px] uppercase font-normal tracking-normal px-4 flex items-center"
                     >
                         Verificar Saldo
                     </button>
@@ -152,7 +152,7 @@ const StockSearch = () => {
                             <button
                                 type="button"
                                 onClick={() => setScannerOpen(true)}
-                                className="btn-sap btn-secondary w-[38px] h-[38px] !p-0 flex items-center justify-center"
+                                className="btn-sap btn-secondary w-[35px] h-[35px] !p-0 flex items-center justify-center"
                                 title="Escanear Código"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -162,7 +162,7 @@ const StockSearch = () => {
                             </button>
                             <button
                                 type="submit"
-                                className="btn-sap btn-primary h-[38px]"
+                                className="btn-sap btn-primary h-[35px]"
                                 disabled={loading}
                             >
                                 {loading ? 'Buscando...' : 'Consultar'}
@@ -170,7 +170,7 @@ const StockSearch = () => {
                             <button
                                 type="button"
                                 onClick={clearSearch}
-                                className="btn-sap btn-secondary h-[38px]"
+                                className="btn-sap btn-secondary h-[35px]"
                             >
                                 Limpiar
                             </button>
