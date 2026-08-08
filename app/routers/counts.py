@@ -753,8 +753,8 @@ async def export_all_counts(
         # 3. Formatear las filas para que coincidan con la estructura exacta de la tabla
         formatted_rows = []
         for c in counts:
-            sys_qty = int(c.get("system_qty") or 0)
-            cnt_qty = int(c.get("counted_qty") or 0)
+            sys_qty = float(c.get("system_qty") or 0.0)
+            cnt_qty = float(c.get("counted_qty") or 0.0)
             diff = c.get("difference") if c.get("difference") is not None else (cnt_qty - sys_qty)
             abs_diff = abs(diff)
 

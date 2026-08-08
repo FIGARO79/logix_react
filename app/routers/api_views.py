@@ -589,7 +589,7 @@ async def get_counts_data(
         except (ValueError, TypeError):
             system_qty = None
 
-        counted_qty = int(count.get("counted_qty", 0))
+        counted_qty = float(count.get("counted_qty", 0))
         difference = (counted_qty - system_qty) if system_qty is not None else None
 
         session_info = session_map.get(count.get("session_id"), {})

@@ -28,6 +28,7 @@ from app.models.sql_models import (
     RecountList,
     SessionLocation,
     BinLocation,
+    W2WInventorySnapshot,
 )
 from app.services.csv_to_db import sync_master_csv_to_db
 
@@ -248,15 +249,38 @@ async def start_inventory_stage_1(
         await db.execute(delete(CountSession))
         await db.execute(delete(SessionLocation))
         await db.execute(delete(RecountList))
+        await db.execute(delete(W2WInventorySnapshot))
 
-        # MySQL no requiere resetear autoincrement como SQLite
-        # Los IDs continuarán desde donde quedaron
         print("Tablas de inventario limpiadas.")
 
         # Sincronizar maestro de items desde CSV a DB
         print("Sincronizando maestro de items...")
         await sync_master_csv_to_db(db)
+        await csv_handler.reload_cache_if_needed()
         print("Sincronización completada.")
+
+        # Congelar snapshot estático de stock del sistema
+        now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+        snapshot_records = []
+        for code, sys_qty in csv_handler.master_qty_map.items():
+            code_clean = str(code).upper().strip()
+            desc = csv_handler.master_desc_map.get(code_clean, "N/A")
+            bin_loc = csv_handler.master_bin_map.get(code_clean, "SYSTEM")
+            cost = float(csv_handler.master_cost_map.get(code_clean, 0.0))
+            snapshot_records.append(
+                W2WInventorySnapshot(
+                    session_id=0,
+                    item_code=code_clean,
+                    description=desc,
+                    bin_location=bin_loc,
+                    system_qty=float(sys_qty),
+                    unit_cost=cost,
+                    created_at=now_ts,
+                )
+            )
+        if snapshot_records:
+            db.add_all(snapshot_records)
+            print(f"Snapshot estático de inventario congelado con {len(snapshot_records)} ítems.")
 
         # Actualizar estado
         stmt_update = (
@@ -1031,7 +1055,7 @@ from pydantic import BaseModel
 class W2WCountPayload(BaseModel):
     session_id: int
     item_code: str
-    counted_qty: float
+    counted_qty: int
     counted_location: str
     description: Optional[str] = "N/A"
     bin_location_system: Optional[str] = "N/A"
@@ -1287,9 +1311,26 @@ async def get_inventory_reconciliation_api(
     qty_tolerance = float(qty_tol_str)
     val_tolerance = float(val_tol_str)
 
-    # 5. Ejecutar consolidación y tolerancia acelerada en Rust
+    # 4.5 Cargar Snapshot Estático del Sistema si está disponible
+    snaps = []
     try:
-        import logix_rust_core
+        res_snap = await db.execute(select(W2WInventorySnapshot))
+        snaps = res_snap.scalars().all()
+    except Exception as e:
+        print(f"Aviso consultando snapshot W2W: {e}")
+
+    if snaps:
+        master_items_tuples = [
+            (
+                s.item_code,
+                s.description or "ITEM NO CATALOGADO",
+                s.bin_location or "N/A",
+                float(s.system_qty),
+                float(s.unit_cost),
+            )
+            for s in snaps
+        ]
+    else:
         master_items_tuples = [
             (
                 code,
@@ -1300,6 +1341,10 @@ async def get_inventory_reconciliation_api(
             )
             for code in csv_handler.master_qty_map.keys()
         ]
+
+    # 5. Ejecutar consolidación y tolerancia acelerada en Rust
+    try:
+        import logix_rust_core
         count_records_tuples = [
             (str(r.item_code).upper().strip(), float(r.counted_qty or 0.0), int(r.inventory_stage))
             for r in counts_rows

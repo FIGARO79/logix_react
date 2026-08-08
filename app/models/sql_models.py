@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, ForeignKey, Text, Numeric
+from sqlalchemy import Integer, String, ForeignKey, Text, Numeric, Float
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db import Base
 from typing import Optional
@@ -143,12 +143,28 @@ class StockCount(Base):
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
     item_description: Mapped[Optional[str]] = mapped_column(String(255))
-    counted_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    counted_qty: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     counted_location: Mapped[str] = mapped_column(String(100), nullable=False)
     bin_location_system: Mapped[Optional[str]] = mapped_column(String(100))
     username: Mapped[Optional[str]] = mapped_column(String(100))
 
     session = relationship("CountSession", back_populates="counts")
+
+
+class W2WInventorySnapshot(Base):
+    __tablename__ = "w2w_inventory_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("count_sessions.id", ondelete="CASCADE"), nullable=False, default=0, index=True
+    )
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
+    system_qty: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    unit_cost: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    created_at: Mapped[str] = mapped_column(String(50), nullable=False)
+
 
 
 class CycleCount(Base):

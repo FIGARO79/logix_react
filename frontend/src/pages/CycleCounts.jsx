@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync } from '../utils/offlineDb';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
@@ -266,8 +267,18 @@ const CycleCounts = () => {
         loadSlottingBins();
     }, [isOnline]);
 
-    const fetchItemData = async (code) => {
+    const searchItem = async (codeToSearch) => {
+        let code = codeToSearch || itemCode;
         if (!code) return;
+
+        // Parsear código GS1 si aplica
+        const gs1Result = parseGS1Barcode(code);
+        if (gs1Result.isGS1 && gs1Result.itemCode) {
+            code = gs1Result.itemCode;
+            setItemCode(code);
+            toast.info(`Código GS1 decodificado: SKU ${code}` + (gs1Result.lotNumber ? ` | Lote: ${gs1Result.lotNumber}` : ''));
+        }
+
         setLoadingItem(true);
         setDescription('');
         setBinSys('');
@@ -323,10 +334,16 @@ const CycleCounts = () => {
             return;
         }
 
+        const parsedQty = parseInt(countedQty, 10);
+        if (isNaN(parsedQty)) {
+            toast.error("Ingrese una cantidad entera válida");
+            return;
+        }
+
         const payload = {
             session_id: activeSession.id || activeSession.session_id,
             item_code: itemCode,
-            counted_qty: parseInt(countedQty),
+            counted_qty: parsedQty,
             counted_location: normalizedLocation,
             description: description,
             bin_location_system: binSys,
@@ -804,6 +821,7 @@ const CycleCounts = () => {
                                             onChange={e => setCountedQty(e.target.value)}
                                             className="h-7 flex-grow border-y border-slate-300 text-center font-sans text-xs font-normal text-black bg-white focus:outline-none focus:ring-1 focus:ring-black px-1"
                                             min="0"
+                                            step="1"
                                             required
                                         />
                                         <button

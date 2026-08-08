@@ -9,6 +9,7 @@ import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
+import { parseGS1Barcode } from '../utils/gs1Parser';
 
 
 const EMPTY_ARRAY = [];
@@ -743,7 +744,13 @@ const Inbound = () => {
             return;
         }
         setLoading(true);
-        const normalizedCode = itemCode.trim().toUpperCase();
+
+        let normalizedCode = itemCode.trim().toUpperCase();
+        const gs1Result = parseGS1Barcode(normalizedCode);
+        if (gs1Result.isGS1 && gs1Result.itemCode) {
+            normalizedCode = gs1Result.itemCode.trim().toUpperCase();
+            setItemCode(normalizedCode);
+        }
 
         let onlineFound = false;
         if (navigator.onLine) {
