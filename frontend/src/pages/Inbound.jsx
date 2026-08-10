@@ -167,10 +167,17 @@ const Inbound = () => {
             let grnMap = {};
             try {
                 const db = await getDB();
-                const itemsToQuery = allLogsSorted.map(log => ({
-                    itemCode: log.itemCode,
-                    importRef: log.importReference || log.importRef || ''
-                }));
+                const uniqueQueryKeys = new Set();
+                const itemsToQuery = [];
+                allLogsSorted.forEach(log => {
+                    const code = log.itemCode;
+                    const ir = log.importReference || log.importRef || '';
+                    const key = `${code}|${ir}`;
+                    if (code && ir && !uniqueQueryKeys.has(key)) {
+                        uniqueQueryKeys.add(key);
+                        itemsToQuery.push({ itemCode: code, importRef: ir });
+                    }
+                });
                 grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
             } catch (e) { console.error("Error loading GRN info", e); }
 
@@ -738,19 +745,20 @@ const Inbound = () => {
         }
     };
 
-    const findItem = async () => {
-        if (!itemCode || !importRef) {
+    const findItem = async (codeToSearch = null) => {
+        const rawCode = (codeToSearch !== null && typeof codeToSearch === 'string') ? codeToSearch : itemCode;
+        if (!rawCode || !importRef) {
             alert("Ingrese Import Reference e Item Code");
             return;
         }
         setLoading(true);
 
-        let normalizedCode = itemCode.trim().toUpperCase();
+        let normalizedCode = rawCode.trim().toUpperCase();
         const gs1Result = parseGS1Barcode(normalizedCode);
         if (gs1Result.isGS1 && gs1Result.itemCode) {
             normalizedCode = gs1Result.itemCode.trim().toUpperCase();
-            setItemCode(normalizedCode);
         }
+        setItemCode(normalizedCode);
 
         let onlineFound = false;
         if (navigator.onLine) {
@@ -991,7 +999,7 @@ const Inbound = () => {
                             bc.postMessage({ type: 'INBOUND_MUTATED' });
                             bc.close();
                         }
-                        loadLogs(); resetForm(); return;
+                        resetForm(); return;
                     }
                 } catch (e) { console.error("Connection error, falling back to offline save", e); }
             }
@@ -1017,7 +1025,7 @@ const Inbound = () => {
                 }
                 setHasWarnedOffline(true);
             }
-            loadLogs(); resetForm();
+            resetForm();
         } catch (e) {
             alert("Error al guardar");
         } finally {
@@ -1065,10 +1073,10 @@ const Inbound = () => {
     };
 
     const handleScan = (code) => {
-        const upperCode = code.toUpperCase();
-        setItemCode(upperCode);
         setScannerOpen(false);
-        setTimeout(() => { setItemCode(upperCode); findItem(); }, 200);
+        if (code) {
+            findItem(code.toUpperCase());
+        }
     };
 
     const itemLogs = logs.filter(l => l.itemCode === itemData?.itemCode && (l.importReference || l.importRef || '').trim().toUpperCase() === importRef.trim().toUpperCase());
@@ -1120,7 +1128,7 @@ const Inbound = () => {
                                 <div className="sm:col-span-2">
                                     <label className="form-label font-normal text-black">Item Code</label>
                                     <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem())} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
+                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem(e.target.value))} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
                                         <button
                                             type="button"
                                             className="btn-sap btn-secondary w-[30px] h-[30px] !p-0 flex items-center justify-center"
