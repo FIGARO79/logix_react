@@ -910,6 +910,39 @@ async def get_count_differences(
     return ORJSONResponse({"items": items, "count": len(items)})
 
 
+@router.get("/counts/export_recordings")
+async def export_recordings(
+    username: str = Depends(permission_required("inventory")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Exporta los registros de conteo a Excel."""
+    data = await get_cycle_count_recordings(username, db)
+    if not data:
+        return ORJSONResponse(
+            content={"error": "No hay datos para exportar"}, status_code=400
+        )
+
+    df = pl.DataFrame(data)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "RegistroConteos"
+    ws.append(df.columns)
+    for row in df.iter_rows():
+        ws.append(list(row))
+    for i, col_name in enumerate(df.columns, start=1):
+        col_data = df[col_name].cast(pl.Utf8, strict=False)
+        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
+        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=registro_conteos.xlsx"},
+    )
+
+
 @router.get("/counts/{count_id}")
 async def get_count_by_id(
     count_id: int,
@@ -979,35 +1012,3 @@ async def delete_count(
     await db.commit()
     return ORJSONResponse({"message": "Registro eliminado correctamente"})
 
-
-@router.get("/counts/export_recordings")
-async def export_recordings(
-    username: str = Depends(permission_required("inventory")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Exporta los registros de conteo a Excel."""
-    data = await get_cycle_count_recordings(username, db)
-    if not data:
-        return ORJSONResponse(
-            content={"error": "No hay datos para exportar"}, status_code=400
-        )
-
-    df = pl.DataFrame(data)
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "RegistroConteos"
-    ws.append(df.columns)
-    for row in df.iter_rows():
-        ws.append(list(row))
-    for i, col_name in enumerate(df.columns, start=1):
-        col_data = df[col_name].cast(pl.Utf8, strict=False)
-        max_len = max(col_data.str.len_chars().max() or 0, len(col_name)) + 2
-        ws.column_dimensions[get_column_letter(i)].width = float(max_len)
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
-    return Response(
-        content=output.getvalue(),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=registro_conteos.xlsx"},
-    )

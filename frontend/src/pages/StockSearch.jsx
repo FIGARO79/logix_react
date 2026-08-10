@@ -9,6 +9,7 @@ import { parseGS1Barcode } from '../utils/gs1Parser';
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
     const navigate = useNavigate();
+    const inputRef = React.useRef(null);
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
@@ -18,6 +19,11 @@ const StockSearch = () => {
 
     React.useEffect(() => {
         setTitle("Consulta de Stock");
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        }, 50);
     }, [setTitle]);
 
     // Audio Beep Function
@@ -93,6 +99,7 @@ const StockSearch = () => {
         setSearchResults([]);
         setItemCode('');
         playBeep();
+        setTimeout(() => inputRef.current?.focus(), 50);
     };
 
     const handleScan = (code) => {
@@ -112,6 +119,7 @@ const StockSearch = () => {
         setItemData(null);
         setSearchResults([]);
         setError('');
+        setTimeout(() => inputRef.current?.focus(), 50);
     };
 
     return (
@@ -140,6 +148,7 @@ const StockSearch = () => {
                         <div className="flex-grow">
                             <label className="form-label mb-1">Código o Descripción</label>
                             <input
+                                ref={inputRef}
                                 type="text"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
