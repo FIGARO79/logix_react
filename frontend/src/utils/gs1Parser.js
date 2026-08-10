@@ -10,6 +10,12 @@ export const parseGS1Barcode = (rawInput) => {
     }
 
     let input = rawInput.trim();
+
+    // Eliminar Symbology Identifier (AIM Flag) de escáneres móviles (ej: "]Q3", "]Q", "]d1", "]C1", "]e0")
+    if (input.startsWith(']')) {
+        input = input.replace(/^\][A-Za-z0-9]{1,3}/, '');
+    }
+
     let result = {
         isGS1: false,
         isMultiField: false,
@@ -136,7 +142,47 @@ export const parseGS1Barcode = (rawInput) => {
         }
     }
 
-    // 5. Fallback: GS1 crudo sin paréntesis que empieza con 01 (14 dígitos GTIN)
+    // 5. Caso: QR delimitado por '#' con prefijo de proveedor/planta (+Q...) e identificadores GS1 (#10..., #21, #422...)
+    if (input.includes('#')) {
+        const parts = input.split('#').map(p => p.trim()).filter(Boolean);
+        if (parts.length > 0) {
+            result.isMultiField = true;
+            result.isGS1 = true;
+            let seg0 = parts[0];
+
+            // Extraer el código de ítem / SKU eliminando los primeros 6 caracteres (incluyendo el '+', ej: "+Q3240")
+            if (seg0.startsWith('+')) {
+                result.itemCode = seg0.length > 6 ? seg0.substring(6) : seg0.substring(1);
+            } else {
+                result.itemCode = seg0.replace(/^0+/, '');
+            }
+
+            // Procesar segmentos adicionales delimitados por '#'
+            for (let i = 1; i < parts.length; i++) {
+                const part = parts[i];
+                // GS1 AI 10: Lote / Batch
+                if (part.startsWith('10') && part.length > 2) {
+                    result.lotNumber = part.substring(2);
+                }
+                // GS1 AI 21: Número de Serie
+                else if (part.startsWith('21')) {
+                    result.serialNumber = part.length > 2 ? part.substring(2) : part;
+                }
+                // GS1 AI 422: País de Origen (ISO 3166 alpha-2: CN, IT, US, etc.)
+                else if (part.startsWith('422')) {
+                    result.countryOfOrigin = part.substring(3);
+                }
+                // Fallback para lote si no se ha capturado
+                else if (!result.lotNumber) {
+                    result.lotNumber = part;
+                }
+            }
+
+            if (result.itemCode) return result;
+        }
+    }
+
+    // 6. Fallback: GS1 crudo sin paréntesis que empieza con 01 (14 dígitos GTIN)
     if (input.length >= 16 && input.startsWith('01')) {
         result.isGS1 = true;
         result.isMultiField = true;
