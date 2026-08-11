@@ -1,9 +1,10 @@
 import orjson
 import os
+from collections import defaultdict
 
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from app.models.sql_models import MasterItem, Log, BinLocation, SlottingRule
 from app.core.config import SLOTTING_PARAMS_PATH
 
@@ -348,41 +349,40 @@ class SlottingService:
         return candidates[0]["bin"]
 
     async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
-        """Calcula cuántos SKUs hay en cada bin (Cruza maestro + reubicaciones activas)."""
-        occupancy = {}
+        """Calcula cuántos SKUs únicos hay en cada bin (Cruza maestro + reubicaciones activas)."""
+        bin_skus: Dict[str, set] = defaultdict(set)
         try:
             # 1. Master Items (Stock físico actual)
             master_stmt = (
-                select(MasterItem.bin_1, func.count(MasterItem.item_code))
+                select(MasterItem.bin_1, MasterItem.item_code)
                 .where(MasterItem.physical_qty > 0)
-                .group_by(MasterItem.bin_1)
             )
             master_res = await db.execute(master_stmt)
-            for bin_code, count in master_res.all():
-                if bin_code:
+            for bin_code, item_code in master_res.all():
+                if bin_code and item_code:
                     code = str(bin_code).strip().upper()
-                    occupancy[code] = occupancy.get(code, 0) + count
+                    bin_skus[code].add(str(item_code).strip().upper())
 
-            # 2. Logs Activos (Mercancía en camino a un bin)
+            # 2. Logs Activos (Mercancía en camino o reubicada en tiempo real)
             logs_stmt = (
-                select(Log.relocatedBin, func.count(func.distinct(Log.itemCode)))
+                select(Log.relocatedBin, Log.itemCode)
                 .where(
                     and_(
-                        Log.archived_at is None,
+                        or_(Log.archived_at.is_(None), Log.archived_at == ""),
                         Log.relocatedBin != "",
-                        Log.relocatedBin is not None,
+                        Log.relocatedBin.is_not(None),
                     )
                 )
-                .group_by(Log.relocatedBin)
             )
             logs_res = await db.execute(logs_stmt)
-            for bin_code, count in logs_res.all():
-                if bin_code:
+            for bin_code, item_code in logs_res.all():
+                if bin_code and item_code:
                     code = str(bin_code).strip().upper()
-                    occupancy[code] = occupancy.get(code, 0) + count
+                    bin_skus[code].add(str(item_code).strip().upper())
         except Exception as e:
             print(f"Error calculando ocupación: {e}")
-        return occupancy
+
+        return {code: len(skus) for code, skus in bin_skus.items()}
 
     async def get_occupancy_report(self, db: AsyncSession) -> Dict[str, Any]:
         """Genera el reporte de métricas del mapa de slotting."""
