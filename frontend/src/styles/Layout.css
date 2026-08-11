@@ -145,13 +145,35 @@
     height: 34px;
     padding: 0 10px 0 14px;
     border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    transition: background-color 0.1s;
+    cursor: grab;
+    transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
     position: relative;
     user-select: none;
     background-color: rgba(255, 255, 255, 0.04); /* Inactivo muy oscuro */
     color: rgba(255, 255, 255, 0.7);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-item:active {
+    cursor: grabbing;
+}
+
+/* Estado de Arrastre */
+.tab-item.dragging {
+    opacity: 0.35;
+    background-color: rgba(255, 255, 255, 0.08);
+    cursor: grabbing;
+}
+
+/* Indicadores visuales de punto de inserción (soltado) */
+.tab-item.drag-over-left {
+    border-left: 2px solid #3b82f6 !important;
+    box-shadow: -3px 0 8px -1px rgba(59, 130, 246, 0.6);
+}
+
+.tab-item.drag-over-right {
+    border-right: 2px solid #3b82f6 !important;
+    box-shadow: 3px 0 8px -1px rgba(59, 130, 246, 0.6);
 }
 
 /* Pestaña Activa */

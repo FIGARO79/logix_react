@@ -171,6 +171,9 @@ const Layout = () => {
         return [{ id: 'dashboard-' + Date.now(), path: '/dashboard', label: 'Inicio' }];
     });
 
+    const [draggedTabIndex, setDraggedTabIndex] = useState(null);
+    const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
+
     const [activeTabId, setActiveTabId] = useState(() => {
         const savedActive = localStorage.getItem('logix_active_tab');
         // Validar que el ID guardado realmente exista en la lista de pestañas cargada
@@ -288,6 +291,39 @@ const Layout = () => {
         ));
     };
 
+    const handleDragStart = (e, index) => {
+        setDraggedTabIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index.toString());
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (dragOverTabIndex !== index) {
+            setDragOverTabIndex(index);
+        }
+    };
+
+    const handleDrop = (e, targetIndex) => {
+        e.preventDefault();
+        if (draggedTabIndex !== null && draggedTabIndex !== targetIndex) {
+            setTabs(prev => {
+                const newTabs = [...prev];
+                const [movedTab] = newTabs.splice(draggedTabIndex, 1);
+                newTabs.splice(targetIndex, 0, movedTab);
+                return newTabs;
+            });
+        }
+        setDraggedTabIndex(null);
+        setDragOverTabIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedTabIndex(null);
+        setDragOverTabIndex(null);
+    };
+
     useEffect(() => {
         document.title = title;
         checkAndSyncIfNeeded();
@@ -321,31 +357,44 @@ const Layout = () => {
 
                 <div className="tabs-wrapper flex-grow mr-4 min-w-0">
                     <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
-                        {tabs.map(tab => (
-                            <div
-                                key={tab.id}
-                                onClick={() => switchTab(tab.id)}
-                                className={`tab-item ${activeTabId === tab.id ? 'active' : ''}`}
-                            >
-                                <span className="tab-label">{tab.label}</span>
-                                <div className="tab-actions flex items-center gap-1 ml-2">
-                                    <button
-                                        onClick={(e) => refreshTab(e, tab.id)}
-                                        className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                        title="Refrescar datos"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                        </svg>
-                                    </button>
-                                    {tabs.length > 1 && (
-                                        <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
-                                            <span>&#215;</span>
+                        {tabs.map((tab, index) => {
+                            let dropPositionClass = '';
+                            if (dragOverTabIndex === index && draggedTabIndex !== null && draggedTabIndex !== index) {
+                                dropPositionClass = index < draggedTabIndex ? 'drag-over-left' : 'drag-over-right';
+                            }
+                            const isDragging = draggedTabIndex === index;
+
+                            return (
+                                <div
+                                    key={tab.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    onClick={() => switchTab(tab.id)}
+                                    className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${dropPositionClass}`}
+                                >
+                                    <span className="tab-label">{tab.label}</span>
+                                    <div className="tab-actions flex items-center gap-1 ml-2">
+                                        <button
+                                            onClick={(e) => refreshTab(e, tab.id)}
+                                            className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                            title="Refrescar datos"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                            </svg>
                                         </button>
-                                    )}
+                                        {tabs.length > 1 && (
+                                            <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
+                                                <span>&#215;</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <button onClick={addTab} className="add-tab-btn">+</button>
                 </div>
