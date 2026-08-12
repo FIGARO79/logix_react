@@ -450,30 +450,55 @@ async def get_daily_items_for_execution(
             "items_with_diff_count": 0,
         }
 
-    item_codes = [item.get("Item Code") for item in daily_items]
+    # Mapear conteos previos por item_code (manteniendo la última ocurrencia)
+    prev_map = {}
+    for r in prev_counts:
+        prev_map[r.item_code] = r
 
-    # Obtener info maestra para los ítems del plan
+    item_codes = list(set([item.get("Item Code") for item in daily_items if item.get("Item Code")] + list(prev_map.keys())))
+
+    # Obtener info maestra para todos los ítems
     res_master = await db.execute(
         select(MasterItem).where(MasterItem.item_code.in_(item_codes))
     )
     master_map = {m.item_code: m for m in res_master.scalars().all()}
 
-    enriched = []
+    enriched_dict = {}
     for item in daily_items:
-        m = master_map.get(item.get("Item Code"))
-        enriched.append(
-            {
-                "item_code": item.get("Item Code"),
-                "description": item.get("Description"),
-                "abc_code": item.get("ABC Code"),
-                "bin_location": m.bin_1 if m else "N/A",
-                "additional_locations": m.additional_bin
-                if m and m.additional_bin
-                else "",
-                "system_qty": m.physical_qty if m else 0,
+        code = item.get("Item Code")
+        if not code:
+            continue
+        m = master_map.get(code)
+        prev_rec = prev_map.get(code)
+        enriched_dict[code] = {
+            "item_code": code,
+            "description": item.get("Description") or (m.description if m else ""),
+            "abc_code": item.get("ABC Code") or (m.abc_code if m else "C"),
+            "bin_location": m.bin_1 if m and m.bin_1 else "N/A",
+            "additional_locations": m.additional_bin if m and m.additional_bin else "",
+            "system_qty": m.physical_qty if m else (prev_rec.system_qty if prev_rec else 0),
+            "physical_qty": prev_rec.physical_qty if prev_rec else "",
+            "status": "saved" if prev_rec else "pending",
+            "planned_date": date,
+        }
+
+    # Agregar ítems de prev_counts que no estaban en la lista del plan
+    for code, prev_rec in prev_map.items():
+        if code not in enriched_dict:
+            m = master_map.get(code)
+            enriched_dict[code] = {
+                "item_code": code,
+                "description": prev_rec.item_description or (m.description if m else ""),
+                "abc_code": prev_rec.abc_code or (m.abc_code if m else "C"),
+                "bin_location": m.bin_1 if m and m.bin_1 else (prev_rec.bin_location or "N/A"),
+                "additional_locations": m.additional_bin if m and m.additional_bin else "",
+                "system_qty": m.physical_qty if m else prev_rec.system_qty,
+                "physical_qty": prev_rec.physical_qty,
+                "status": "saved",
                 "planned_date": date,
             }
-        )
+
+    enriched = list(enriched_dict.values())
 
     return {
         "items": sorted(enriched, key=lambda x: x["bin_location"]),
