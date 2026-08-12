@@ -95,7 +95,8 @@ start_wsl.sh
 
 # Agentes IA y herramientas locales
 .agents/
-
+GEMINI.md
+.gemini
 # Rust target directory
 rust_core/target/
 

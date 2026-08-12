@@ -279,7 +279,7 @@ const Inbound = () => {
 
         // Check inicial
         runAutoSync();
-        syncPendingInbound().then(() => queryClient.invalidateQueries(['inbound_logs']));
+        syncPendingInbound().then(() => queryClient.invalidateQueries({ queryKey: ['inbound_logs'] }));
 
         // Intervalo de revisión cada 10 minutos
         const syncInterval = setInterval(() => {
@@ -962,6 +962,31 @@ const Inbound = () => {
             timestamp: new Date().toISOString()
         };
 
+        // Actualización optimista instantánea (0ms latencia visual en la tabla)
+        const optimisticEntry = {
+            id: typeof editId === 'number' ? editId : targetClientId,
+            timestamp: payload.timestamp,
+            importReference: payload.importReference,
+            waybill: payload.waybill,
+            itemCode: payload.itemCode,
+            itemDescription: payload.itemDescription,
+            binLocation: payload.binLocation,
+            relocatedBin: payload.relocatedBin,
+            qtyReceived: payload.quantity,
+            qtyGrn: payload.qtyGrn,
+            difference: payload.quantity - payload.qtyGrn,
+            username: 'TÚ (Reciente)',
+            client_id: targetClientId,
+            expected_qty: payload.qtyGrn
+        };
+
+        queryClient.setQueryData(['inbound_logs', currentVersion], (old = []) => {
+            if (editId) {
+                return old.map(l => (l.id === editId || l.client_id === targetClientId) ? { ...l, ...optimisticEntry } : l);
+            }
+            return [optimisticEntry, ...old.filter(l => l.client_id !== targetClientId)];
+        });
+
         try {
             if (navigator.onLine) {
                 try {
@@ -991,9 +1016,9 @@ const Inbound = () => {
                         });
                     }
                     if (res.ok) {
-                        queryClient.invalidateQueries(['inbound_logs']);
-                        queryClient.invalidateQueries(['reconciliation']);
-                        queryClient.invalidateQueries(['ir_reconciliations']);
+                        queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+                        queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+                        queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
                         if (typeof BroadcastChannel !== 'undefined') {
                             const bc = new BroadcastChannel('logix_events');
                             bc.postMessage({ type: 'INBOUND_MUTATED' });
@@ -1009,9 +1034,9 @@ const Inbound = () => {
             if (navigator.onLine) {
                 syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
             }
-            queryClient.invalidateQueries(['inbound_logs']);
-            queryClient.invalidateQueries(['reconciliation']);
-            queryClient.invalidateQueries(['ir_reconciliations']);
+            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+            queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'INBOUND_MUTATED' });

@@ -461,6 +461,55 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
     return breakdown
 
 
+_po_lookup_cache_data = None
+_po_lookup_mtime = 0.0
+
+def get_po_lookup_cached():
+    global _po_lookup_cache_data, _po_lookup_mtime
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    import orjson
+    if os.path.exists(PO_LOOKUP_JSON_PATH):
+        try:
+            mtime = os.path.getmtime(PO_LOOKUP_JSON_PATH)
+            if _po_lookup_cache_data is None or mtime > _po_lookup_mtime:
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                    _po_lookup_cache_data = orjson.loads(f.read())
+                _po_lookup_mtime = mtime
+            return _po_lookup_cache_data
+        except Exception:
+            pass
+    return {}
+
+_grn_json_cache_map = None
+_grn_json_mtime = 0.0
+
+def get_grn_json_map_cached():
+    global _grn_json_cache_map, _grn_json_mtime
+    from app.core.config import GRN_JSON_DATA_PATH
+    import orjson
+    if os.path.exists(GRN_JSON_DATA_PATH):
+        try:
+            mtime = os.path.getmtime(GRN_JSON_DATA_PATH)
+            if _grn_json_cache_map is None or mtime > _grn_json_mtime:
+                with open(GRN_JSON_DATA_PATH, "rb") as f:
+                    grn_data = orjson.loads(f.read())
+                ir_map = {}
+                if isinstance(grn_data, list):
+                    for row in grn_data:
+                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
+                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                        if ir and grn:
+                            if ir not in ir_map:
+                                ir_map[ir] = set()
+                            ir_map[ir].add(grn)
+                _grn_json_cache_map = ir_map
+                _grn_json_mtime = mtime
+            return _grn_json_cache_map
+        except Exception:
+            pass
+    return {}
+
+
 async def get_expected_quantity_from_grn_for_import_ref(
     import_reference: str, item_code: str, db: Optional[AsyncSession] = None
 ) -> Optional[int]:
@@ -476,63 +525,35 @@ async def get_expected_quantity_from_grn_for_import_ref(
     import_reference = import_reference.strip().upper()
     item_code = item_code.strip().upper()
 
-    from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
     from app.models.sql_models import GRNMaster
     from sqlalchemy import select, func
-    import orjson
 
     grns = set()
 
     # A. Consultar desde po_lookup.json
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
-        try:
-            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                cache = orjson.loads(f.read())
-            # Desde ir_to_data
-            ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
-            items = ir_data.get("items", [])
-            for it in items:
-                grn_val = it.get("grn", "")
-                if grn_val:
-                    for g in str(grn_val).split(","):
-                        if g.strip():
-                            grns.add(g.strip().upper())
-            # Desde wb_to_data
-            for wb, data in cache.get("wb_to_data", {}).items():
-                ir = str(data.get("import_ref", "")).strip().upper()
-                if ir == import_reference:
-                    for item in data.get("items", []):
-                        grn_val = item.get("grn", "")
-                        if grn_val:
-                            for g in str(grn_val).split(","):
-                                if g.strip():
-                                    grns.add(g.strip().upper())
-        except Exception as e:
-            print(f"Error leyendo po_lookup para buscar GRNs: {e}")
+    cache = get_po_lookup_cached()
+    if cache:
+        ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
+        for it in ir_data.get("items", []):
+            grn_val = it.get("grn", "")
+            if grn_val:
+                for g in str(grn_val).split(","):
+                    if g.strip():
+                        grns.add(g.strip().upper())
+        for wb, data in cache.get("wb_to_data", {}).items():
+            ir = str(data.get("import_ref", "")).strip().upper()
+            if ir == import_reference:
+                for item in data.get("items", []):
+                    grn_val = item.get("grn", "")
+                    if grn_val:
+                        for g in str(grn_val).split(","):
+                            if g.strip():
+                                grns.add(g.strip().upper())
 
-    # B. Consultar desde grn_master_data.json
-    if os.path.exists(GRN_JSON_DATA_PATH):
-        try:
-            with open(GRN_JSON_DATA_PATH, "rb") as f:
-                grn_data = orjson.loads(f.read())
-            if isinstance(grn_data, list):
-                for row in grn_data:
-                    ir = (
-                        str(
-                            row.get("Import_Reference", row.get("import_reference", ""))
-                        )
-                        .strip()
-                        .upper()
-                    )
-                    grn = (
-                        str(row.get("GRN_Number", row.get("grn_number", "")))
-                        .strip()
-                        .upper()
-                    )
-                    if ir == import_reference and grn:
-                        grns.add(grn)
-        except Exception as e:
-            print(f"Error leyendo grn_master_data para buscar GRNs: {e}")
+    # B. Consultar desde grn_master_data.json (usando mapa indexado en memoria)
+    grn_map = get_grn_json_map_cached()
+    if import_reference in grn_map:
+        grns.update(grn_map[import_reference])
 
     # C. Consultar desde la Base de Datos SQL GRNMaster
     if db:

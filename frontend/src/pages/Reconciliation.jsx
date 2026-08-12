@@ -99,7 +99,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 const result = await res.json();
                 alert(`Instantánea guardada correctamente: ${result.archive_date}`);
-                queryClient.invalidateQueries(['reconciliation']);
+                queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             } else {
                 alert("Error al guardar la instantánea");
             }
@@ -123,7 +123,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Lote desarchivado con éxito");
                 setCurrentVersion('');
-                queryClient.invalidateQueries(['reconciliation']);
+                queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             } else {
                 const err = await res.json();
                 alert(`Error al desarchivar: ${err.detail || 'Error desconocido'}`);
@@ -148,7 +148,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Registros restaurados con éxito como logs activos.");
                 setSelectedRowIds([]);
-                queryClient.invalidateQueries(['reconciliation']);
+                queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             } else {
                 const err = await res.json();
                 alert(`Error al restaurar: ${err.detail || 'Error desconocido'}`);
@@ -173,7 +173,7 @@ const Reconciliation = () => {
             if (res.ok) {
                 alert("Registros eliminados con éxito.");
                 setSelectedRowIds([]);
-                queryClient.invalidateQueries(['reconciliation']);
+                queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             } else {
                 const err = await res.json();
                 alert(`Error al eliminar: ${err.detail || 'Error desconocido'}`);

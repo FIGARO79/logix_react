@@ -52,7 +52,7 @@ const IRReconciliation = () => {
                 credentials: 'include'
             });
             if (res.ok) {
-                queryClient.invalidateQueries(['ir_reconciliations']);
+                queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
             } else {
                 alert("Error al eliminar el registro");
             }
