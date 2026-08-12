@@ -59,6 +59,20 @@ pub struct Candidate {
     pub score: i32,
 }
 
+fn py_any_to_string(v: &Bound<'_, PyAny>) -> Option<String> {
+    if let Ok(s) = v.extract::<String>() {
+        Some(s)
+    } else if let Ok(i) = v.extract::<i64>() {
+        Some(i.to_string())
+    } else if let Ok(f) = v.extract::<f64>() {
+        Some(f.to_string())
+    } else if let Ok(s) = v.str() {
+        s.extract::<String>().ok()
+    } else {
+        None
+    }
+}
+
 /// Suma una lista de números enteros de 64 bits a alta velocidad.
 #[pyfunction]
 pub fn sum_list_rust(numbers: Vec<i64>) -> PyResult<i64> {
@@ -81,8 +95,8 @@ pub fn get_suggested_bin_rust(
     for (key, val) in storage_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let zone: Option<String> = val_dict.get_item("zone")?.and_then(|v| v.extract().ok());
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| v.extract().ok());
+            let zone: Option<String> = val_dict.get_item("zone")?.and_then(|v| py_any_to_string(&v));
+            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
             let score: i32 = val_dict.get_item("score")?.and_then(|v| v.extract().ok()).unwrap_or(0);
             
             let level: i32 = if let Some(lvl_val) = val_dict.get_item("level")? {
@@ -105,14 +119,14 @@ pub fn get_suggested_bin_rust(
     for (key, val) in turnover_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| v.extract().ok());
+            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
             turnover.insert(key_str, TurnoverInfo { spot });
         }
     }
 
     let get_rule_string = |key: &str, default: &str| -> String {
         zone_rules_dict.get_item(key).ok().flatten()
-            .and_then(|v| v.extract::<String>().ok())
+            .and_then(|v| py_any_to_string(&v))
             .unwrap_or_else(|| default.to_string())
     };
 
@@ -136,7 +150,7 @@ pub fn get_suggested_bin_rust(
 
     let get_limit_string = |key: &str, default: &str| -> String {
         mix_limits_dict.get_item(key).ok().flatten()
-            .and_then(|v| v.extract::<String>().ok())
+            .and_then(|v| py_any_to_string(&v))
             .unwrap_or_else(|| default.to_string())
     };
     let mix_limits = MixLimits {
@@ -147,7 +161,7 @@ pub fn get_suggested_bin_rust(
 
     let get_item_string = |key: &str| -> String {
         item_details_dict.get_item(key).ok().flatten()
-            .and_then(|v| v.extract::<String>().ok())
+            .and_then(|v| py_any_to_string(&v))
             .unwrap_or_default()
     };
     let mut weight_str = get_item_string("Weight_per_Unit");
@@ -210,7 +224,7 @@ pub fn get_suggested_bin_rust(
     let cantilever_kw: Vec<String> = zone_rules.cantilever_keywords.split(',').map(|k| k.trim().to_uppercase()).filter(|k| !k.is_empty()).collect();
     let is_cantilever = cantilever_kw.iter().any(|kw| description.contains(kw));
 
-    let minuteria_weight_max: f64 = zone_rules.minuteria_weight_max.parse().unwrap_or(0.1);
+    let minuteria_weight_max: f64 = zone_rules.minuteria_weight_max.parse().unwrap_or(0.2);
     let heavy_weight_min: f64 = zone_rules.heavy_weight_min.parse().unwrap_or(10.0);
     let heavy_levels: Vec<i32> = zone_rules.heavy_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
 
@@ -366,8 +380,8 @@ pub fn get_suggested_bins_batch_rust(
     for (key, val) in storage_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let zone: Option<String> = val_dict.get_item("zone")?.and_then(|v| v.extract().ok());
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| v.extract().ok());
+            let zone: Option<String> = val_dict.get_item("zone")?.and_then(|v| py_any_to_string(&v));
+            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
             let score: i32 = val_dict.get_item("score")?.and_then(|v| v.extract().ok()).unwrap_or(0);
             
             let level: i32 = if let Some(lvl_val) = val_dict.get_item("level")? {
@@ -390,7 +404,7 @@ pub fn get_suggested_bins_batch_rust(
     for (key, val) in turnover_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| v.extract().ok());
+            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
             turnover.insert(key_str, TurnoverInfo { spot });
         }
     }
@@ -404,7 +418,7 @@ pub fn get_suggested_bins_batch_rust(
 
     let get_rule_string = |key: &str, default: &str| -> String {
         zone_rules_dict.get_item(key).ok().flatten()
-            .and_then(|v| v.extract::<String>().ok())
+            .and_then(|v| py_any_to_string(&v))
             .unwrap_or_else(|| default.to_string())
     };
     let zone_rules = ZoneRules {
@@ -427,7 +441,7 @@ pub fn get_suggested_bins_batch_rust(
 
     let get_limit_string = |key: &str, default: &str| -> String {
         mix_limits_dict.get_item(key).ok().flatten()
-            .and_then(|v| v.extract::<String>().ok())
+            .and_then(|v| py_any_to_string(&v))
             .unwrap_or_else(|| default.to_string())
     };
     let mix_limits = MixLimits {
@@ -460,7 +474,7 @@ pub fn get_suggested_bins_batch_rust(
         if let Ok(item_dict) = py_item.downcast::<PyDict>() {
             let get_item_string = |key: &str| -> String {
                 item_dict.get_item(key).ok().flatten()
-                    .and_then(|v| v.extract::<String>().ok())
+                    .and_then(|v| py_any_to_string(&v))
                     .unwrap_or_default()
             };
             
