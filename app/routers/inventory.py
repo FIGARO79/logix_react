@@ -29,6 +29,7 @@ from app.models.sql_models import (
     SessionLocation,
     BinLocation,
     W2WInventorySnapshot,
+    CycleCount,
 )
 from app.services.csv_to_db import sync_master_csv_to_db
 
@@ -245,11 +246,12 @@ async def start_inventory_stage_1(
 
     try:
         print("Limpiando tablas de inventario para un nuevo ciclo...")
+        await db.execute(update(CycleCount).values(count_id=None))
+        await db.execute(delete(SessionLocation))
+        await db.execute(delete(W2WInventorySnapshot))
         await db.execute(delete(StockCount))
         await db.execute(delete(CountSession))
-        await db.execute(delete(SessionLocation))
         await db.execute(delete(RecountList))
-        await db.execute(delete(W2WInventorySnapshot))
 
         print("Tablas de inventario limpiadas.")
 
@@ -854,10 +856,12 @@ async def start_inventory_stage_1_api(
     else:
         stage_state.value = "1"
 
-    # Limpiar tablas (logica simplificada de start_inventory_stage_1)
+    # Limpiar tablas respetando FK constraints
+    await db.execute(update(CycleCount).values(count_id=None))
+    await db.execute(delete(SessionLocation))
+    await db.execute(delete(W2WInventorySnapshot))
     await db.execute(delete(StockCount))
     await db.execute(delete(CountSession))
-    await db.execute(delete(SessionLocation))
     await db.execute(delete(RecountList))
 
     await db.commit()

@@ -102,15 +102,34 @@ const PlannerExecution = () => {
             try { savedCounts = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { /* ignore */ }
 
             const initializedItems = (data.items || []).map(item => {
-                const savedQty = savedCounts[item.item_code] || '';
-                const hasSaved = savedQty !== '';
+                const localDraftQty = savedCounts[item.item_code];
+                const hasLocalDraft = localDraftQty !== undefined && localDraftQty !== '';
+                const isAlreadySavedInDB = item.status === 'saved' || (item.physical_qty !== "" && item.physical_qty !== null && item.physical_qty !== undefined);
+
+                let physicalQty = '';
+                let status = 'pending';
+                let isSaved = false;
+
+                if (hasLocalDraft) {
+                    physicalQty = localDraftQty;
+                    const qty = parseInt(localDraftQty);
+                    status = !isNaN(qty) ? 'counted' : 'pending';
+                } else if (isAlreadySavedInDB) {
+                    physicalQty = String(item.physical_qty);
+                    status = 'saved';
+                    isSaved = true;
+                }
+
                 const sysQty = item.system_qty || 0;
-                const qty = parseInt(savedQty);
+                const qty = parseInt(physicalQty);
+                const diff = !isNaN(qty) ? qty - sysQty : (item.difference ?? null);
+
                 return {
                     ...item,
-                    physical_qty: savedQty,
-                    difference: hasSaved && !isNaN(qty) ? qty - sysQty : null,
-                    status: hasSaved && !isNaN(qty) ? 'counted' : 'pending'
+                    physical_qty: physicalQty,
+                    difference: diff,
+                    status: status,
+                    saved: isSaved
                 };
             });
             setItems(initializedItems);
@@ -145,15 +164,34 @@ const PlannerExecution = () => {
             try { savedCounts = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (e) { /* ignore */ }
 
             const initializedItems = data.items.map(item => {
-                const savedQty = savedCounts[item.item_code] ?? '';
-                const hasSaved = savedQty !== '';
+                const localDraftQty = savedCounts[item.item_code];
+                const hasLocalDraft = localDraftQty !== undefined && localDraftQty !== '';
+                const isAlreadySavedInDB = item.status === 'saved' || (item.physical_qty !== "" && item.physical_qty !== null && item.physical_qty !== undefined);
+
+                let physicalQty = '';
+                let status = 'pending';
+                let isSaved = false;
+
+                if (hasLocalDraft) {
+                    physicalQty = localDraftQty;
+                    const qty = parseInt(localDraftQty);
+                    status = !isNaN(qty) ? 'counted' : 'pending';
+                } else if (isAlreadySavedInDB) {
+                    physicalQty = String(item.physical_qty);
+                    status = 'saved';
+                    isSaved = true;
+                }
+
                 const sysQty = item.system_qty || 0;
-                const qty = parseInt(savedQty);
+                const qty = parseInt(physicalQty);
+                const diff = !isNaN(qty) ? qty - sysQty : (item.difference ?? null);
+
                 return {
                     ...item,
-                    physical_qty: savedQty,
-                    difference: hasSaved && !isNaN(qty) ? qty - sysQty : null,
-                    status: hasSaved && !isNaN(qty) ? 'counted' : 'pending'
+                    physical_qty: physicalQty,
+                    difference: diff,
+                    status: status,
+                    saved: isSaved
                 };
             });
 
@@ -175,6 +213,9 @@ const PlannerExecution = () => {
     const handleCountChange = (index, value) => {
         const newItems = [...items];
         newItems[index].physical_qty = value;
+        if (newItems[index].saved) {
+            newItems[index].saved = false;
+        }
         setItems(newItems);
 
         // Persistir cantidades en localStorage por fecha
@@ -385,9 +426,16 @@ const PlannerExecution = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {items.map((item, index) => (
-                                    <tr key={index} className={item.saved ? "bg-green-50" : ""}>
+                                    <tr key={index} className={item.saved ? "bg-emerald-50/70" : ""}>
                                         <td className="px-2 py-2">
-                                            <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
+                                                {item.saved && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        ✓ Guardado
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
                                         </td>
                                         <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">
@@ -403,11 +451,10 @@ const PlannerExecution = () => {
                                             <input
                                                 id={`qty-${index}`}
                                                 type="number"
-                                                className="w-16 text-center p-1 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm no-spinner"
+                                                className={`w-16 text-center p-1 border rounded text-sm no-spinner ${item.saved ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`}
                                                 value={item.physical_qty}
                                                 onChange={(e) => handleCountChange(index, e.target.value)}
                                                 onBlur={() => calculateDifference(index)}
-                                                disabled={item.saved}
                                                 placeholder="-"
                                             />
                                         </td>
@@ -420,13 +467,20 @@ const PlannerExecution = () => {
                     {/* Mobile Card View */}
                     <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
                         {items.map((item, index) => (
-                            <div key={index} className={`bg-white rounded-lg shadow-sm p-3 border ${item.saved ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                            <div key={index} className={`bg-white rounded-lg shadow-sm p-3 border ${item.saved ? 'border-emerald-300 bg-emerald-50/50' : 'border-gray-200'}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <span className="text-lg font-medium  text-indigo-700 block">{item.item_code}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg font-medium text-indigo-700">{item.item_code}</span>
+                                            {item.saved && (
+                                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-semibold rounded border border-emerald-200">
+                                                    ✓ Guardado
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-xs text-gray-500">{item.description}</span>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-xs font-medium  ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
                                         item.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-blue-100 text-[#1e4a74]'
                                         }`}>
@@ -436,27 +490,26 @@ const PlannerExecution = () => {
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase text-gray-400 font-medium  tracking-wider">Ubicación</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-medium tracking-wider">Ubicación</span>
                                         <span className="text-sm font-mono font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded self-start">
                                             {item.bin_location || 'N/A'}
                                         </span>
                                         {item.additional_locations && (
                                             <span className="text-[10px] text-gray-500 mt-1 pl-1">
-                                                <span className="font-medium ">Adic:</span> {item.additional_locations}
+                                                <span className="font-medium">Adic:</span> {item.additional_locations}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[10px] uppercase text-gray-400 font-medium  tracking-wider mb-1">Cant. Física</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-medium tracking-wider mb-1">Cant. Física</span>
                                         <input
                                             id={`qty-mobile-${index}`}
                                             type="number"
-                                            className="w-24 text-center p-2 border rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-medium  shadow-sm"
+                                            className={`w-24 text-center p-2 border rounded-lg text-lg font-medium shadow-sm ${item.saved ? 'border-emerald-400 bg-emerald-50 font-bold text-emerald-900' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`}
                                             value={item.physical_qty}
                                             onChange={(e) => handleCountChange(index, e.target.value)}
                                             onBlur={() => calculateDifference(index)}
-                                            disabled={item.saved}
                                             placeholder="0"
                                             inputMode="numeric"
                                         />
@@ -464,9 +517,9 @@ const PlannerExecution = () => {
                                 </div>
                                 {item.saved && (
                                     <div className="mt-2 text-right">
-                                        <span className="text-xs font-medium  text-green-600 flex items-center justify-end gap-1">
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                            Guardado
+                                        <span className="text-xs font-medium text-emerald-700 flex items-center justify-end gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Conteos guardados previamente en BD
                                         </span>
                                     </div>
                                 )}
@@ -476,13 +529,23 @@ const PlannerExecution = () => {
 
                     {/* Bulk Save Footer */}
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-700">
-                            Items contados: <span className="font-medium ">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
+                        <div className="text-sm text-gray-700 flex flex-wrap items-center gap-3">
+                            <span>
+                                Guardados en BD: <span className="font-semibold text-emerald-700">{items.filter(i => i.saved).length}</span>
+                            </span>
+                            <span className="text-gray-300">|</span>
+                            <span>
+                                Nuevos a guardar: <span className="font-semibold text-indigo-600">{items.filter(i => i.status === 'counted' && !i.saved).length}</span>
+                            </span>
+                            <span className="text-gray-300">|</span>
+                            <span>
+                                Total plan: <span className="font-semibold text-gray-900">{items.length}</span>
+                            </span>
                         </div>
                         <button
                             onClick={handleBulkSave}
-                            disabled={submitting || items.filter(i => i.status === 'counted').length === 0}
-                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-medium text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
+                            disabled={submitting || items.filter(i => i.status === 'counted' && !i.saved).length === 0}
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-medium text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted' && !i.saved).length === 0
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
                                 }`}

@@ -117,8 +117,15 @@ const AdminInventory = () => {
         try {
             const res = await fetch(actionUrl, { method: 'POST' });
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.detail || "Error en la operación");
+                let errorMsg = "Error en la operación";
+                try {
+                    const data = await res.json();
+                    errorMsg = data.detail || data.message || errorMsg;
+                } catch {
+                    const text = await res.text();
+                    errorMsg = text || `Error HTTP ${res.status} al ejecutar acción.`;
+                }
+                throw new Error(errorMsg);
             }
             const data = await res.json();
             setMessage(data.message);
