@@ -1,7 +1,7 @@
 from sqlalchemy import Integer, String, ForeignKey, Text, Numeric, Float
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db import Base
-from typing import Optional
+from typing import Optional, List
 import datetime
 
 
@@ -550,4 +550,103 @@ class IRReconciliation(Base):
             "total_grns": self.total_grns,
             "completed_grns": self.completed_grns,
             "username": self.username,
+        }
+
+
+class SavedGRNReconciliation(Base):
+    """Cabecera de conciliación histórica permanente de GRN."""
+
+    __tablename__ = "saved_grn_reconciliations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    grn_number: Mapped[str] = mapped_column(String(100), index=True)
+    import_reference: Mapped[str] = mapped_column(String(100), index=True)
+    waybill: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    total_lines: Mapped[int] = mapped_column(Integer, default=0)
+    total_expected: Mapped[float] = mapped_column(Float, default=0.0)
+    total_received: Mapped[float] = mapped_column(Float, default=0.0)
+    total_difference: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(50), default="CONCILIADO_OK")
+    reconciled_by: Mapped[str] = mapped_column(String(100), default="admin")
+    reconciled_at: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    items: Mapped[List["SavedGRNReconciliationItem"]] = relationship(
+        "SavedGRNReconciliationItem",
+        back_populates="header",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "grn_number": self.grn_number,
+            "import_reference": self.import_reference,
+            "waybill": self.waybill or "",
+            "total_lines": self.total_lines,
+            "total_expected": self.total_expected,
+            "total_received": self.total_received,
+            "total_difference": self.total_difference,
+            "status": self.status,
+            "reconciled_by": self.reconciled_by,
+            "reconciled_at": self.reconciled_at,
+            "notes": self.notes or "",
+        }
+
+
+class SavedGRNReconciliationItem(Base):
+    """Ítem de conciliación histórica permanente de GRN."""
+
+    __tablename__ = "saved_grn_reconciliation_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    reconciliation_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("saved_grn_reconciliations.id", ondelete="CASCADE"),
+        index=True,
+    )
+    grn_number: Mapped[str] = mapped_column(String(100))
+    import_reference: Mapped[str] = mapped_column(String(100))
+    waybill: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    order_line: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    item_code: Mapped[str] = mapped_column(String(100), index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    relocated_bin: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    qty_expected: Mapped[float] = mapped_column(Float, default=0.0)
+    qty_received: Mapped[float] = mapped_column(Float, default=0.0)
+    difference: Mapped[float] = mapped_column(Float, default=0.0)
+    difference_reason: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    operator_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reconciled_at: Mapped[str] = mapped_column(
+        String(50),
+        default=lambda: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+    header: Mapped["SavedGRNReconciliation"] = relationship(
+        "SavedGRNReconciliation", back_populates="items"
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "reconciliation_id": self.reconciliation_id,
+            "grn_number": self.grn_number,
+            "import_reference": self.import_reference,
+            "waybill": self.waybill or "",
+            "order_line": self.order_line or "",
+            "item_code": self.item_code,
+            "description": self.description or "",
+            "location": self.location or "",
+            "relocated_bin": self.relocated_bin or "",
+            "qty_expected": self.qty_expected,
+            "qty_received": self.qty_received,
+            "difference": self.difference,
+            "difference_reason": self.difference_reason or "",
+            "operator_comment": self.operator_comment or "",
+            "reconciled_at": self.reconciled_at,
         }

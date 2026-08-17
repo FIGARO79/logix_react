@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.utils.auth import permission_required
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import orjson
 import os
 import datetime
@@ -15,7 +15,13 @@ from app.core.config import (
     PO_EXTRACTOR_EXCEL_PATH,
     GRN_JSON_DATA_PATH,
 )
-from app.models.sql_models import Log, GRNMaster, IRReconciliation
+from app.models.sql_models import (
+    Log,
+    GRNMaster,
+    IRReconciliation,
+    SavedGRNReconciliation,
+    SavedGRNReconciliationItem,
+)
 
 router = APIRouter(prefix="/api/inbound", tags=["inbound"])
 
@@ -626,3 +632,155 @@ async def delete_ir_reconciliation(
     await db.delete(recon)
     await db.commit()
     return {"message": "Registro de conciliación eliminado exitosamente"}
+
+
+# --- Conciliaciones Históricas Permanentes de GRN (Instantáneas / Snapshots) ---
+
+
+class SavedGRNReconciliationItemPayload(BaseModel):
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    order_line: Optional[str] = ""
+    item_code: str
+    description: Optional[str] = ""
+    location: Optional[str] = ""
+    relocated_bin: Optional[str] = ""
+    qty_expected: float = 0.0
+    qty_received: float = 0.0
+    difference: float = 0.0
+    difference_reason: Optional[str] = ""
+    operator_comment: Optional[str] = ""
+
+
+class SaveGRNReconciliationPayload(BaseModel):
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    items: List[SavedGRNReconciliationItemPayload]
+    username: Optional[str] = "admin"
+    notes: Optional[str] = ""
+
+
+@router.post("/save_grn_reconciliation")
+async def save_grn_reconciliation(
+    payload: SaveGRNReconciliationPayload,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Guarda una instantánea permanente de la conciliación de una GRN."""
+    now_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    total_lines = len(payload.items)
+    total_expected = sum(item.qty_expected for item in payload.items)
+    total_received = sum(item.qty_received for item in payload.items)
+    total_difference = sum(item.difference for item in payload.items)
+    has_diff = any(abs(item.difference) > 0.0001 for item in payload.items)
+    status = "CON_DIFERENCIAS" if has_diff else "CONCILIADO_OK"
+
+    reconciled_by = payload.username or (
+        user if isinstance(user, str) else getattr(user, "username", "admin")
+    )
+
+    header = SavedGRNReconciliation(
+        grn_number=payload.grn_number.strip().upper(),
+        import_reference=payload.import_reference.strip().upper(),
+        waybill=(payload.waybill or "").strip().upper(),
+        total_lines=total_lines,
+        total_expected=total_expected,
+        total_received=total_received,
+        total_difference=total_difference,
+        status=status,
+        reconciled_by=reconciled_by,
+        reconciled_at=now_ts,
+        notes=(payload.notes or "").strip(),
+    )
+    db.add(header)
+    await db.flush()
+
+    for it in payload.items:
+        item_row = SavedGRNReconciliationItem(
+            reconciliation_id=header.id,
+            grn_number=it.grn_number.strip().upper(),
+            import_reference=it.import_reference.strip().upper(),
+            waybill=(it.waybill or "").strip().upper(),
+            order_line=(it.order_line or "").strip(),
+            item_code=it.item_code.strip().upper(),
+            description=(it.description or "").strip(),
+            location=(it.location or "").strip(),
+            relocated_bin=(it.relocated_bin or "").strip(),
+            qty_expected=it.qty_expected,
+            qty_received=it.qty_received,
+            difference=it.difference,
+            difference_reason=(it.difference_reason or "").strip(),
+            operator_comment=(it.operator_comment or "").strip(),
+            reconciled_at=now_ts,
+        )
+        db.add(item_row)
+
+    await db.commit()
+    return {"id": header.id, "message": "Conciliación guardada exitosamente"}
+
+
+@router.get("/saved_grn_reconciliations")
+async def get_saved_grn_reconciliations(
+    grn_filter: Optional[str] = None,
+    ir_filter: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Lista las conciliaciones históricas guardadas."""
+    stmt = select(SavedGRNReconciliation).order_by(SavedGRNReconciliation.id.desc())
+    if grn_filter and grn_filter.strip():
+        stmt = stmt.where(
+            SavedGRNReconciliation.grn_number.ilike(f"%{grn_filter.strip()}%")
+        )
+    if ir_filter and ir_filter.strip():
+        stmt = stmt.where(
+            SavedGRNReconciliation.import_reference.ilike(f"%{ir_filter.strip()}%")
+        )
+
+    result = await db.execute(stmt)
+    headers = result.scalars().all()
+    return [h.to_dict() for h in headers]
+
+
+@router.get("/saved_grn_reconciliations/{recon_id}")
+async def get_saved_grn_reconciliation_detail(
+    recon_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Obtiene el detalle completo de una conciliación histórica guardada."""
+    stmt = select(SavedGRNReconciliation).where(SavedGRNReconciliation.id == recon_id)
+    result = await db.execute(stmt)
+    header = result.scalars().first()
+    if not header:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada")
+
+    stmt_items = (
+        select(SavedGRNReconciliationItem)
+        .where(SavedGRNReconciliationItem.reconciliation_id == recon_id)
+        .order_by(SavedGRNReconciliationItem.id.asc())
+    )
+    res_items = await db.execute(stmt_items)
+    items = res_items.scalars().all()
+
+    return {"header": header.to_dict(), "items": [it.to_dict() for it in items]}
+
+
+@router.delete("/saved_grn_reconciliations/{recon_id}")
+async def delete_saved_grn_reconciliation(
+    recon_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Elimina una conciliación guardada y sus ítems."""
+    stmt = select(SavedGRNReconciliation).where(SavedGRNReconciliation.id == recon_id)
+    result = await db.execute(stmt)
+    header = result.scalars().first()
+    if not header:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada")
+
+    await db.delete(header)
+    await db.commit()
+    return {"message": "Conciliación eliminada exitosamente"}
