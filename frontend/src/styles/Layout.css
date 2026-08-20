@@ -154,6 +154,10 @@
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.tab-item:hover {
+    cursor: pointer;
+}
+
 .tab-item:active {
     cursor: grabbing;
 }
