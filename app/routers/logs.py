@@ -67,8 +67,14 @@ async def find_item(
     )
 
     # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
+    # Consolidación: si el item ya fue reubicado, usar esa ubicación como Bin_1
+    # para que el algoritmo evalúe contra la posición real, no el maestro ERP.
+    item_details_for_slotting = dict(item_details)
+    if latest_relocated_bin:
+        item_details_for_slotting["Bin_1"] = latest_relocated_bin
+
     traditional_suggested_bin = await slotting_service.get_suggested_bin(
-        db, item_details
+        db, item_details_for_slotting
     )
 
     # 2. Sugerencia de IA (Aprendizaje Histórico)
