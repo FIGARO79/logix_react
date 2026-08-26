@@ -131,6 +131,10 @@ async def find_item(
         if is_pred_minuteria and (weight > minuteria_weight_max or is_cantilever):
             final_suggested_bin = traditional_suggested_bin
             is_ai_prediction = False
+        # Regla 1b: Ítem Cantilever (por keywords) DEBE ir a zona Cantilever
+        elif is_cantilever and pred_zone.upper() != "CANTILEVER":
+            final_suggested_bin = traditional_suggested_bin
+            is_ai_prediction = False
         else:
             # Regla 2: Límite dinámico de capacidad por zona
             limit_minuteria = int(mix_limits.get("minuteria_max_skus", 3))
