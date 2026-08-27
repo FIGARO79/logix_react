@@ -12,6 +12,7 @@ from app.models.sql_models import (
     CountSession,
     CycleCountRecording,
     ReconciliationHistory,
+    SavedGRNReconciliationItem,
     BinLocation,
 )
 
@@ -106,6 +107,49 @@ async def get_reconciliation_data(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        def reconciliation_item_key(row):
+            return (
+                str(row.get("import_reference", "")).strip().upper(),
+                str(row.get("grn_number", "")).strip().upper(),
+                str(row.get("item_code", "")).strip().upper(),
+                str(row.get("order_line", "") or "").strip(),
+            )
+
+        saved_items_result = await db.execute(
+            select(SavedGRNReconciliationItem).order_by(
+                desc(SavedGRNReconciliationItem.id)
+            )
+        )
+        saved_comments = {}
+        for saved_item in saved_items_result.scalars().all():
+            comment = {
+                "Motivo_Diferencia": saved_item.difference_reason or "",
+                "Observacion_Operador": saved_item.operator_comment or "",
+            }
+            if not any(comment.values()):
+                continue
+
+            item_key = reconciliation_item_key(
+                {
+                    "import_reference": saved_item.import_reference,
+                    "grn_number": saved_item.grn_number,
+                    "item_code": saved_item.item_code,
+                    "order_line": saved_item.order_line,
+                }
+            )
+            saved_comments.setdefault(
+                item_key,
+                comment,
+            )
+            saved_comments.setdefault((*item_key[:3], ""), comment)
+            saved_comments.setdefault((item_key[1], item_key[2]), comment)
+
+        def get_saved_comment(row):
+            item_key = reconciliation_item_key(row)
+            return saved_comments.get(item_key) or saved_comments.get(
+                (item_key[0], item_key[1], item_key[2], "")
+            ) or saved_comments.get((item_key[1], item_key[2]), {})
+
         # 0. Obtener lista de versiones disponibles
         archive_versions = await db_logs.get_archived_versions_db_async(db)
         snapshot_versions_res = await db.execute(
@@ -136,6 +180,14 @@ async def get_reconciliation_data(
                     "Cant_Esperada": r.qty_expected,
                     "Cant_Recibida": r.qty_received,
                     "Diferencia": r.difference,
+                    **get_saved_comment(
+                        {
+                            "import_reference": r.import_reference,
+                            "grn_number": r.grn,
+                            "item_code": r.item_code,
+                            "order_line": "",
+                        }
+                    ),
                 }
                 for r in rows
             ]
@@ -151,6 +203,17 @@ async def get_reconciliation_data(
         result_data = await reconciliation_service.get_reconciliation_calculations(
             db, archive_date
         )
+        for row in result_data:
+            row.update(
+                get_saved_comment(
+                    {
+                        "import_reference": row.get("Import_Reference"),
+                        "grn_number": row.get("GRN"),
+                        "item_code": row.get("Codigo_Item"),
+                        "order_line": row.get("Order_Line"),
+                    }
+                )
+            )
 
         return {
             "data": result_data,

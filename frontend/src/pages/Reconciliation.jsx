@@ -376,7 +376,6 @@ const Reconciliation = () => {
                     difference_reason: r.Motivo_Diferencia || '',
                     operator_comment: r.Observacion_Operador || '',
                 })),
-                username: 'admin',
                 notes: saveNotes.trim()
             };
 
@@ -1056,7 +1055,7 @@ const Reconciliation = () => {
             {/* MODAL 3: Historial de Conciliaciones Guardadas */}
             {showHistoryModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden border border-zinc-200 flex flex-col">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-[92vw] max-h-[85vh] overflow-hidden border border-zinc-200 flex flex-col">
                         <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between" style={{ background: '#354a5f' }}>
                             <div className="flex items-center gap-2">
                                 <span className="text-white text-base">📁</span>
@@ -1108,13 +1107,13 @@ const Reconciliation = () => {
                                     </div>
 
                                     {/* Tabla de ítems guardados en la foto */}
-                                    <div className="overflow-auto max-h-[50vh] border border-zinc-200 rounded-lg">
-                                        <table className="w-full text-left text-[11px]">
+                                    <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] border border-zinc-200 rounded-lg">
+                                        <table className="w-full table-fixed text-left text-[11px]">
                                             <thead className="bg-zinc-100 text-zinc-700 font-semibold sticky top-0">
                                                 <tr>
                                                     <th className="px-2 py-1.5">Línea</th>
                                                     <th className="px-2 py-1.5">Ítem</th>
-                                                    <th className="px-2 py-1.5">Descripción</th>
+                                                        <th className="px-2 py-1.5 w-[18%]">Descripción</th>
                                                     <th className="px-2 py-1.5">Ubicación</th>
                                                     <th className="px-2 py-1.5 text-center">Esperada</th>
                                                     <th className="px-2 py-1.5 text-center">Recibida</th>
@@ -1127,14 +1126,14 @@ const Reconciliation = () => {
                                                     <tr key={i} className="hover:bg-zinc-50">
                                                         <td className="px-2 py-1.5 text-center">{it.order_line || '-'}</td>
                                                         <td className="px-2 py-1.5 font-medium text-[#1e4a74]">{it.item_code}</td>
-                                                        <td className="px-2 py-1.5 truncate max-w-[200px]">{it.description}</td>
+                                                        <td className="px-2 py-1.5 break-words">{it.description}</td>
                                                         <td className="px-2 py-1.5">{it.location || '-'}</td>
                                                         <td className="px-2 py-1.5 text-center">{it.qty_expected}</td>
                                                         <td className="px-2 py-1.5 text-center">{it.qty_received}</td>
                                                         <td className={`px-2 py-1.5 text-center font-bold ${it.difference > 0 ? 'text-blue-600' : it.difference < 0 ? 'text-red-600' : 'text-zinc-800'}`}>
                                                             {it.difference > 0 ? `+${it.difference}` : it.difference}
                                                         </td>
-                                                        <td className="px-2 py-1.5 text-[10px] text-zinc-600">
+                                                        <td className="px-2 py-1.5 text-[10px] text-zinc-600 break-words">
                                                             {it.difference_reason && <span className="font-semibold text-zinc-800 block">{it.difference_reason}</span>}
                                                             {it.operator_comment && <span>{it.operator_comment}</span>}
                                                             {!it.difference_reason && !it.operator_comment && <span className="text-zinc-400">-</span>}
@@ -1152,21 +1151,21 @@ const Reconciliation = () => {
                                             Cargando historial de conciliaciones...
                                         </div>
                                     ) : savedHistoryList.length > 0 ? (
-                                        <div className="overflow-auto max-h-[60vh] border border-zinc-200 rounded-lg">
-                                            <table className="w-full text-left text-[11px]">
+                                        <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] border border-zinc-200 rounded-lg">
+                                            <table className="w-full table-fixed text-left text-[11px]">
                                                 <thead className="bg-zinc-100 text-zinc-700 font-semibold sticky top-0">
                                                     <tr>
                                                         <th className="px-3 py-2">ID</th>
                                                         <th className="px-3 py-2">GRN</th>
                                                         <th className="px-3 py-2">I.R.</th>
-                                                        <th className="px-3 py-2">Fecha Guardado</th>
+                                                        <th className="px-3 py-2 w-[12%]">Fecha Guardado</th>
                                                         <th className="px-3 py-2">Operador</th>
                                                         <th className="px-3 py-2 text-center">Líneas</th>
                                                         <th className="px-3 py-2 text-center">Esperada</th>
                                                         <th className="px-3 py-2 text-center">Recibida</th>
                                                         <th className="px-3 py-2 text-center">Diferencia</th>
                                                         <th className="px-3 py-2 text-center">Estado</th>
-                                                        <th className="px-3 py-2 text-center">Acciones</th>
+                                                        <th className="px-3 py-2 w-[19%] text-center">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-zinc-100">
@@ -1175,7 +1174,7 @@ const Reconciliation = () => {
                                                             <td className="px-3 py-2 font-mono text-zinc-500">#{rec.id}</td>
                                                             <td className="px-3 py-2 font-bold text-zinc-900">{rec.grn_number}</td>
                                                             <td className="px-3 py-2 text-zinc-800">{rec.import_reference}</td>
-                                                            <td className="px-3 py-2 text-zinc-600">{formatDateShort(rec.reconciled_at)}</td>
+                                                            <td className="px-3 py-2 text-zinc-600 break-words">{formatDateShort(rec.reconciled_at)}</td>
                                                             <td className="px-3 py-2 text-zinc-600">{rec.reconciled_by}</td>
                                                             <td className="px-3 py-2 text-center">{rec.total_lines}</td>
                                                             <td className="px-3 py-2 text-center font-medium">{rec.total_expected}</td>
@@ -1188,27 +1187,33 @@ const Reconciliation = () => {
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-3 py-2 text-center space-x-1 whitespace-nowrap">
+                                                            <td className="px-2 py-2 text-center align-middle">
+                                                                <div className="flex flex-row items-center justify-center gap-1 whitespace-nowrap">
                                                                 <button
                                                                     onClick={() => handleViewSavedDetail(rec.id)}
-                                                                    className="px-2 py-1 text-[10px] font-medium text-white rounded shadow-sm bg-[#285f94] hover:bg-[#1e4a74] cursor-pointer"
+                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded bg-[#285f94] text-sm text-white shadow-sm hover:bg-[#1e4a74] cursor-pointer"
+                                                                    title="Ver detalle"
+                                                                    aria-label="Ver detalle"
                                                                 >
-                                                                    Ver Detalle
+                                                                    👁
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleExportSavedFromList(rec.id)}
-                                                                    className="px-2 py-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded shadow-sm cursor-pointer"
-                                                                    title="Exportar esta conciliación histórica a Excel"
+                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 shadow-sm hover:bg-emerald-100 cursor-pointer"
+                                                                    title="Exportar a Excel"
+                                                                    aria-label="Exportar a Excel"
                                                                 >
-                                                                    📊 Exportar
+                                                                    📊
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDeleteSavedRecon(rec.id, rec.grn_number)}
-                                                                    className="px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-sm text-red-600 hover:bg-red-50 cursor-pointer"
                                                                     title="Eliminar"
+                                                                    aria-label="Eliminar"
                                                                 >
-                                                                    🗑️
+                                                                    🗑
                                                                 </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}

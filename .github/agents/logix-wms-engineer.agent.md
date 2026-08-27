@@ -53,3 +53,4 @@ Preserve existing public APIs, domain behavior, security controls, and productio
 ## Output
 
 Keep the final report concise and factual. Lead with blockers or remaining risks, then summarize the change and validation. Reference workspace files with clickable paths when useful.
+When modifying code, return only the requested code fragment without explanations.

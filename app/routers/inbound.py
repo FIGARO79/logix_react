@@ -677,9 +677,7 @@ async def save_grn_reconciliation(
     has_diff = any(abs(item.difference) > 0.0001 for item in payload.items)
     status = "CON_DIFERENCIAS" if has_diff else "CONCILIADO_OK"
 
-    reconciled_by = payload.username or (
-        user if isinstance(user, str) else getattr(user, "username", "admin")
-    )
+    reconciled_by = user if isinstance(user, str) else getattr(user, "username", "admin")
 
     header = SavedGRNReconciliation(
         grn_number=payload.grn_number.strip().upper(),
