@@ -620,18 +620,24 @@ const Reconciliation = () => {
                         {/* Botón Historial Guardado */}
                         <button
                             onClick={handleOpenHistory}
-                            className="h-8 px-3 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 hover:bg-zinc-50 transition-colors"
+                            className="h-8 px-3 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 hover:bg-zinc-50 transition-colors cursor-pointer"
                         >
-                            📁 Historial Guardado
+                            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            Historial Guardado
                         </button>
 
                         {/* Botón Guardar Conciliación */}
                         <button
                             onClick={() => setShowSaveModal(true)}
                             disabled={filteredBySelectors.length === 0}
-                            className="h-8 px-3.5 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-600 hover:bg-emerald-700"
+                            className="h-8 px-3.5 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
                         >
-                            💾 Guardar Conciliación
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            Guardar Conciliación
                         </button>
 
                         {/* Botón Exportar */}
@@ -643,7 +649,10 @@ const Reconciliation = () => {
                             onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                             onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                         >
-                            📊 Exportar Excel
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Exportar Excel
                         </button>
                     </div>
                 </div>
@@ -670,8 +679,11 @@ const Reconciliation = () => {
                     </div>
                     {reconciliationSummary.diffLines > 0 && (
                         <div className="flex items-center gap-1.5 ml-auto">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                                ⚠️ {reconciliationSummary.diffLines} línea(s) con discrepancia ({reconciliationSummary.justifiedLines} justificadas)
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                <svg className="w-3 h-3 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                {reconciliationSummary.diffLines} línea(s) con discrepancia ({reconciliationSummary.justifiedLines} justificadas)
                             </span>
                         </div>
                     )}
@@ -753,7 +765,6 @@ const Reconciliation = () => {
                                                         <td className="px-3 py-1.5 text-[11px] max-w-[200px] truncate text-zinc-700" style={{ borderBottom: '1px solid #f1f1f1' }}>
                                                             {row.Motivo_Diferencia ? (
                                                                 <span className="inline-flex items-center gap-1 text-[10px] bg-sky-50 text-sky-800 px-1.5 py-0.5 rounded border border-sky-200">
-                                                                    <span>🏷️</span>
                                                                     <span className="truncate">{row.Motivo_Diferencia}</span>
                                                                 </span>
                                                             ) : (
@@ -766,9 +777,11 @@ const Reconciliation = () => {
                                                         <td className="px-2 py-1.5 text-[11px] whitespace-nowrap text-center" style={{ borderBottom: '1px solid #f1f1f1' }}>
                                                             <button
                                                                 onClick={() => handleOpenEditRow(row)}
-                                                                className={`h-6 px-2 text-[10px] rounded flex items-center gap-1 font-medium transition-colors ${hasDiff || hasEdit ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'}`}
+                                                                className={`h-6 px-2 text-[10px] rounded flex items-center gap-1 font-medium transition-colors cursor-pointer ${hasDiff || hasEdit ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'}`}
                                                             >
-                                                                <span>📝</span>
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
                                                                 <span>{hasEdit ? 'Justificado' : 'Editar'}</span>
                                                             </button>
                                                         </td>
@@ -812,7 +825,9 @@ const Reconciliation = () => {
                     <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-zinc-200">
                         <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between" style={{ background: '#354a5f' }}>
                             <div className="flex items-center gap-2">
-                                <span className="text-white text-base">📝</span>
+                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
                                 <h3 className="text-[13px] font-semibold text-white uppercase tracking-tight">
                                     Conciliar / Editar Diferencia de Ítem
                                 </h3>
@@ -958,7 +973,9 @@ const Reconciliation = () => {
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-zinc-200">
                         <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between bg-emerald-700">
                             <div className="flex items-center gap-2">
-                                <span className="text-white text-base">💾</span>
+                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
                                 <h3 className="text-[13px] font-semibold text-white uppercase tracking-tight">
                                     Guardar Conciliación Permanente
                                 </h3>
@@ -973,8 +990,10 @@ const Reconciliation = () => {
 
                         <div className="p-5 space-y-4 text-[11px]">
                             {saveSuccessMsg ? (
-                                <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200 text-center font-medium">
-                                    <p className="text-lg mb-1">✅</p>
+                                <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200 text-center font-medium flex flex-col items-center">
+                                    <svg className="w-7 h-7 text-emerald-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                                     <p>{saveSuccessMsg}</p>
                                 </div>
                             ) : (
@@ -1058,7 +1077,9 @@ const Reconciliation = () => {
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-[92vw] max-h-[85vh] overflow-hidden border border-zinc-200 flex flex-col">
                         <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between" style={{ background: '#354a5f' }}>
                             <div className="flex items-center gap-2">
-                                <span className="text-white text-base">📁</span>
+                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
                                 <h3 className="text-[13px] font-semibold text-white uppercase tracking-tight">
                                     Historial de Conciliaciones Guardadas
                                 </h3>
@@ -1098,10 +1119,13 @@ const Reconciliation = () => {
                                             </span>
                                             <button
                                                 onClick={() => handleExportSavedDetail(viewingDetail)}
-                                                className="px-2.5 py-1 text-[10px] font-medium text-white rounded-lg shadow-sm bg-[#285f94] hover:bg-[#1e4a74] transition-colors flex items-center gap-1 cursor-pointer"
+                                                className="px-2.5 py-1 text-[10px] font-medium text-white rounded-lg shadow-sm bg-[#285f94] hover:bg-[#1e4a74] transition-colors flex items-center gap-1.5 cursor-pointer"
                                                 title="Exportar esta conciliación a Excel"
                                             >
-                                                📊 Exportar Excel
+                                                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Exportar Excel
                                             </button>
                                         </div>
                                     </div>
@@ -1188,31 +1212,49 @@ const Reconciliation = () => {
                                                                 </span>
                                                             </td>
                                                             <td className="px-2 py-2 text-center align-middle">
-                                                                <div className="flex flex-row items-center justify-center gap-1 whitespace-nowrap">
-                                                                <button
-                                                                    onClick={() => handleViewSavedDetail(rec.id)}
-                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded bg-[#285f94] text-sm text-white shadow-sm hover:bg-[#1e4a74] cursor-pointer"
-                                                                    title="Ver detalle"
-                                                                    aria-label="Ver detalle"
-                                                                >
-                                                                    👁
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleExportSavedFromList(rec.id)}
-                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 shadow-sm hover:bg-emerald-100 cursor-pointer"
-                                                                    title="Exportar a Excel"
-                                                                    aria-label="Exportar a Excel"
-                                                                >
-                                                                    📊
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteSavedRecon(rec.id, rec.grn_number)}
-                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-sm text-red-600 hover:bg-red-50 cursor-pointer"
-                                                                    title="Eliminar"
-                                                                    aria-label="Eliminar"
-                                                                >
-                                                                    🗑
-                                                                </button>
+                                                                <div className="flex flex-row items-center justify-center gap-1.5 whitespace-nowrap">
+                                                                    {/* Botón Ver Detalle */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleViewSavedDetail(rec.id)}
+                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-[#285f94] text-white hover:bg-[#1e4a74] shadow-sm transition-all active:scale-95 cursor-pointer"
+                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        title="Ver detalle de conciliación"
+                                                                        aria-label="Ver detalle"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                        </svg>
+                                                                    </button>
+
+                                                                    {/* Botón Exportar Excel */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleExportSavedFromList(rec.id)}
+                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all active:scale-95 cursor-pointer"
+                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        title="Exportar a Excel"
+                                                                        aria-label="Exportar a Excel"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </button>
+
+                                                                    {/* Botón Eliminar */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteSavedRecon(rec.id, rec.grn_number)}
+                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
+                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        title="Eliminar conciliación guardada"
+                                                                        aria-label="Eliminar"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         </tr>
