@@ -186,7 +186,7 @@ class AISlottingService:
         if item_code in self._item_cache:
             bins = self._item_cache[item_code]
             best_bin = max(bins, key=bins.get)
-            if bins[best_bin] >= 2:
+            if bins[best_bin] >= 1:
                 return best_bin
 
         # Prioridad 2: Categoría SIC (Media Confianza con Conciencia Espacial)

@@ -232,13 +232,13 @@ pub fn get_suggested_bin_rust(
     let high_rotation_min_score: i32 = zone_rules.high_rotation_min_score.parse().unwrap_or(1);
     let high_rotation_max_score: i32 = zone_rules.high_rotation_max_score.parse().unwrap_or(10);
 
-    let _medium_rotation_levels: Vec<i32> = zone_rules.medium_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _medium_rotation_min_score: i32 = zone_rules.medium_rotation_min_score.parse().unwrap_or(4);
-    let _medium_rotation_max_score: i32 = zone_rules.medium_rotation_max_score.parse().unwrap_or(6);
+    let medium_rotation_levels: Vec<i32> = zone_rules.medium_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let medium_rotation_min_score: i32 = zone_rules.medium_rotation_min_score.parse().unwrap_or(4);
+    let medium_rotation_max_score: i32 = zone_rules.medium_rotation_max_score.parse().unwrap_or(6);
 
     let default_levels: Vec<i32> = zone_rules.default_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _exile_levels: Vec<i32> = zone_rules.exile_rack_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _exile_sics: Vec<String> = zone_rules.exile_sic_codes.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect();
+    let exile_levels: Vec<i32> = zone_rules.exile_rack_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let exile_sics: Vec<String> = zone_rules.exile_sic_codes.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect();
 
     let weight_val_clean = item_details.Weight_per_Unit.replace(',', "");
     let weight: f64 = weight_val_clean.parse().unwrap_or(0.0);
@@ -261,8 +261,18 @@ pub fn get_suggested_bin_rust(
         target_score_min = Some(high_rotation_min_score);
         target_score_max = Some(high_rotation_max_score);
         Some("Rack".to_string())
+    } else if sic_code == "Y" || sic_code == "K" {
+        // Rotación media: niveles intermedios con filtro de score
+        target_levels = Some(medium_rotation_levels);
+        target_score_min = Some(medium_rotation_min_score);
+        target_score_max = Some(medium_rotation_max_score);
+        Some("Rack".to_string())
+    } else if exile_sics.contains(&sic_code) {
+        // Exilio (L, Z, 0): ítems fríos a niveles altos/menos accesibles
+        target_levels = Some(exile_levels);
+        Some("Rack".to_string())
     } else {
-        // Resto de ítems (Y, K, L, Z, 0) de peso <= 10 kg: centralizados en Nivel 2
+        // Fallback para SIC codes desconocidos
         target_levels = Some(default_levels);
         Some("Rack".to_string())
     };
@@ -456,12 +466,12 @@ pub fn get_suggested_bins_batch_rust(
     let high_rotation_levels_val: Vec<i32> = zone_rules.high_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(-1)).filter(|&lvl| lvl >= 0).collect();
     let high_rotation_min_score_val: i32 = zone_rules.high_rotation_min_score.parse().unwrap_or(1);
     let high_rotation_max_score_val: i32 = zone_rules.high_rotation_max_score.parse().unwrap_or(10);
-    let _medium_rotation_levels_val: Vec<i32> = zone_rules.medium_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _medium_rotation_min_score_val: i32 = zone_rules.medium_rotation_min_score.parse().unwrap_or(4);
-    let _medium_rotation_max_score_val: i32 = zone_rules.medium_rotation_max_score.parse().unwrap_or(6);
+    let medium_rotation_levels_val: Vec<i32> = zone_rules.medium_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let medium_rotation_min_score_val: i32 = zone_rules.medium_rotation_min_score.parse().unwrap_or(4);
+    let medium_rotation_max_score_val: i32 = zone_rules.medium_rotation_max_score.parse().unwrap_or(6);
     let default_levels_val: Vec<i32> = zone_rules.default_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _exile_levels_val: Vec<i32> = zone_rules.exile_rack_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
-    let _exile_sics_val: Vec<String> = zone_rules.exile_sic_codes.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect();
+    let exile_levels_val: Vec<i32> = zone_rules.exile_rack_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let exile_sics_val: Vec<String> = zone_rules.exile_sic_codes.split(',').map(|s| s.trim().to_uppercase()).filter(|s| !s.is_empty()).collect();
     let minuteria_zone_val = zone_rules.minuteria_zone.trim().to_uppercase();
     let limit_minuteria_val: i32 = mix_limits.minuteria_max_skus.parse().unwrap_or(3);
     let limit_n2_val: i32 = mix_limits.nivel2_max_skus.parse().unwrap_or(6);
@@ -557,8 +567,18 @@ pub fn get_suggested_bins_batch_rust(
                 target_score_min = Some(high_rotation_min_score_val);
                 target_score_max = Some(high_rotation_max_score_val);
                 Some("Rack".to_string())
+            } else if sic_code == "Y" || sic_code == "K" {
+                // Rotación media: niveles intermedios con filtro de score
+                target_levels = Some(medium_rotation_levels_val.clone());
+                target_score_min = Some(medium_rotation_min_score_val);
+                target_score_max = Some(medium_rotation_max_score_val);
+                Some("Rack".to_string())
+            } else if exile_sics_val.contains(&sic_code) {
+                // Exilio (L, Z, 0): ítems fríos a niveles altos/menos accesibles
+                target_levels = Some(exile_levels_val.clone());
+                Some("Rack".to_string())
             } else {
-                // Resto de ítems (Y, K, L, Z, 0) de peso <= 10 kg: centralizados en Nivel 2
+                // Fallback para SIC codes desconocidos
                 target_levels = Some(default_levels_val.clone());
                 Some("Rack".to_string())
             };
@@ -650,6 +670,7 @@ pub fn get_suggested_bins_batch_rust(
             }
 
             results.push(Some(candidates[0].bin.clone()));
+            *occupancy.entry(candidates[0].bin.to_uppercase()).or_insert(0) += 1;
         } else {
             results.push(None);
         }

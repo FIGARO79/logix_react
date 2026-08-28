@@ -216,7 +216,7 @@ class SlottingService:
 
         medium_rotation_levels = [
             int(lvl.strip())
-            for lvl in str(zone_rules.get("medium_rotation_levels", "1", "2")).split(",")
+            for lvl in str(zone_rules.get("medium_rotation_levels", "1, 2")).split(",")
             if lvl.strip().isdigit()
         ]
         medium_rotation_min_score = int(zone_rules.get("medium_rotation_min_score", 4))
@@ -261,8 +261,18 @@ class SlottingService:
             target_levels = high_rotation_levels
             target_score_min = high_rotation_min_score
             target_score_max = high_rotation_max_score
+        elif sic_code in ["Y", "K"]:
+            # Rotación media: niveles intermedios con filtro de score
+            target_zone = "Rack"
+            target_levels = medium_rotation_levels
+            target_score_min = medium_rotation_min_score
+            target_score_max = medium_rotation_max_score
+        elif sic_code in exile_sics:
+            # Exilio (L, Z, 0): ítems fríos a niveles altos/menos accesibles
+            target_zone = "Rack"
+            target_levels = exile_levels
         else:
-            # Resto de ítems (Y, K, L, Z, 0): Peso medio/bajo (<= 10 kg) centralizados en Nivel 2
+            # Fallback para SIC codes desconocidos
             target_zone = "Rack"
             target_levels = default_levels
 
