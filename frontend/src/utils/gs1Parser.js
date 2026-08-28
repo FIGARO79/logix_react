@@ -135,7 +135,7 @@ export const parseGS1Barcode = (rawInput) => {
             if (result.itemCode) return result;
 
             // Si no eran clave-valor, tomar el primer segmento como ítem/SKU y el segundo como lote si aplica
-            result.itemCode = parts[0].replace(/^0+/, '');
+            result.itemCode = parts[0];
             if (parts[1]) result.lotNumber = parts[1];
             if (parts[2] && !isNaN(parseInt(parts[2], 10))) result.quantity = parseInt(parts[2], 10);
             return result;
@@ -154,7 +154,7 @@ export const parseGS1Barcode = (rawInput) => {
             if (seg0.startsWith('+')) {
                 result.itemCode = seg0.length > 6 ? seg0.substring(6) : seg0.substring(1);
             } else {
-                result.itemCode = seg0.replace(/^0+/, '');
+                result.itemCode = seg0;
             }
 
             // Procesar segmentos adicionales delimitados por '#'

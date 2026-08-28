@@ -67,7 +67,7 @@ const StockSearch = () => {
         setSearchResults([]);
 
         try {
-            const res = await fetch(`/api/search_items?q=${encodeURIComponent(query)}`);
+            const res = await fetch(`/api/search_items?q=${encodeURIComponent(cleanQuery)}`);
             const data = await res.json();
 
             if (res.ok) {
