@@ -266,7 +266,7 @@ const OccupancyDashboard = () => {
                                             </span>
                                         </div>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
                                             {bins.map(bin => {
                                                 const occupancyColor =
                                                     bin.occupancy_pct === 0 ? 'bg-zinc-100 text-black border-zinc-200 font-normal' :
@@ -277,25 +277,21 @@ const OccupancyDashboard = () => {
                                                 return (
                                                     <div
                                                         key={bin.bin_code}
-                                                        className={`border p-2.5 rounded-sm flex flex-col justify-between h-20 ${occupancyColor} shadow-sm`}
+                                                        title={`${bin.bin_code} • ${bin.skus} SKUs • ${bin.spot}`}
+                                                        className={`border p-1.5 rounded-sm flex flex-col justify-between h-14 ${occupancyColor} shadow-sm`}
                                                     >
-                                                        <div className="flex justify-between items-start">
-                                                            <span className="text-[12px] font-normal font-mono tracking-tight text-black">{bin.bin_code}</span>
-                                                            <span className={`text-[12px] uppercase font-normal px-1 rounded-sm ${bin.spot === 'Hot'
+                                                        <div className="flex justify-between items-start gap-0.5">
+                                                            <span className="text-[10px] font-normal font-mono tracking-tighter text-black truncate">{bin.bin_code}</span>
+                                                            <span className={`text-[8px] uppercase font-normal px-0.5 rounded-sm shrink-0 ${bin.spot === 'Hot'
                                                                 ? 'bg-orange-500 text-white'
                                                                 : 'bg-blue-500 text-white'
                                                                 }`}>
                                                                 {bin.spot}
                                                             </span>
                                                         </div>
-                                                        <div className="mt-2 flex justify-between items-end">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[12px] uppercase tracking-tighter opacity-80 text-black">SKUs</span>
-                                                                <span className="text-[12px] font-normal font-mono leading-none text-black">{bin.skus}</span>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="text-[12px] font-mono font-normal text-black">{bin.occupancy_pct}%</span>
-                                                            </div>
+                                                        <div className="flex justify-between items-end">
+                                                            <span className="text-[9px] font-normal font-mono leading-none text-black opacity-80">{bin.skus}sk</span>
+                                                            <span className="text-[10px] font-mono font-normal text-black">{bin.occupancy_pct}%</span>
                                                         </div>
                                                     </div>
                                                 );
