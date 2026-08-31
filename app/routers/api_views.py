@@ -126,8 +126,6 @@ async def get_reconciliation_data(
                 "Motivo_Diferencia": saved_item.difference_reason or "",
                 "Observacion_Operador": saved_item.operator_comment or "",
             }
-            if not any(comment.values()):
-                continue
 
             item_key = reconciliation_item_key(
                 {

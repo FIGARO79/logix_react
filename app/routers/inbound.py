@@ -653,6 +653,18 @@ class SavedGRNReconciliationItemPayload(BaseModel):
     operator_comment: Optional[str] = ""
 
 
+class UpsertDraftCommentPayload(BaseModel):
+    """Payload para guardar/actualizar comentario individual en draft."""
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    order_line: Optional[str] = ""
+    item_code: str
+    difference_reason: Optional[str] = ""
+    operator_comment: Optional[str] = ""
+    qty_received: Optional[float] = None
+
+
 class SaveGRNReconciliationPayload(BaseModel):
     grn_number: str
     import_reference: str
@@ -661,8 +673,64 @@ class SaveGRNReconciliationPayload(BaseModel):
     username: Optional[str] = "admin"
     notes: Optional[str] = ""
 
+@router.post("/upsert_draft_comment")
+async def upsert_draft_comment(
+    payload: UpsertDraftCommentPayload,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """UPSERT: Guarda o actualiza comentario individual en BD (sin reconciliation_id)."""
+    from sqlalchemy import and_
+    
+    now_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Buscar si ya existe un registro con esta combinación
+    stmt = select(SavedGRNReconciliationItem).where(
+        and_(
+            SavedGRNReconciliationItem.reconciliation_id.is_(None),
+            SavedGRNReconciliationItem.import_reference == payload.import_reference.strip().upper(),
+            SavedGRNReconciliationItem.grn_number == payload.grn_number.strip().upper(),
+            SavedGRNReconciliationItem.item_code == payload.item_code.strip().upper(),
+            SavedGRNReconciliationItem.order_line == (payload.order_line or "").strip(),
+        )
+    )
+    
+    result = await db.execute(stmt)
+    existing_item = result.scalars().first()
+    
+    if existing_item:
+        # Actualizar existente
+        existing_item.difference_reason = (payload.difference_reason or "").strip()
+        existing_item.operator_comment = (payload.operator_comment or "").strip()
+        if payload.qty_received is not None:
+            existing_item.qty_received = payload.qty_received
+        existing_item.reconciled_at = now_ts
+        db.add(existing_item)
+    else:
+        # Crear nuevo
+        item_row = SavedGRNReconciliationItem(
+            reconciliation_id=None,  # Draft, no associated with snapshot
+            grn_number=payload.grn_number.strip().upper(),
+            import_reference=payload.import_reference.strip().upper(),
+            waybill=(payload.waybill or "").strip().upper(),
+            order_line=(payload.order_line or "").strip(),
+            item_code=payload.item_code.strip().upper(),
+            description="",
+            location="",
+            relocated_bin="",
+            qty_expected=0.0,
+            qty_received=payload.qty_received or 0.0,
+            difference=0.0,
+            difference_reason=(payload.difference_reason or "").strip(),
+            operator_comment=(payload.operator_comment or "").strip(),
+            reconciled_at=now_ts,
+        )
+        db.add(item_row)
+    
+    await db.commit()
+    return {"message": "Comentario guardado exitosamente"}
 
-@router.post("/save_grn_reconciliation")
+@router.post("/upsert_draft_comment")
 async def save_grn_reconciliation(
     payload: SaveGRNReconciliationPayload,
     db: AsyncSession = Depends(get_db),

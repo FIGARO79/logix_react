@@ -604,10 +604,11 @@ class SavedGRNReconciliationItem(Base):
     __tablename__ = "saved_grn_reconciliation_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    reconciliation_id: Mapped[int] = mapped_column(
+    reconciliation_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("saved_grn_reconciliations.id", ondelete="CASCADE"),
         index=True,
+        nullable=True,
     )
     grn_number: Mapped[str] = mapped_column(String(100))
     import_reference: Mapped[str] = mapped_column(String(100))

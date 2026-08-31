@@ -316,14 +316,33 @@ const Reconciliation = () => {
         const rowKey = `${editingRow.Import_Reference}_${editingRow.GRN}_${editingRow.Codigo_Item}_${editingRow.Order_Line || ''}`;
         const rectNum = editRectifiedQty.trim() !== '' ? parseFloat(editRectifiedQty) : editingRow.Cant_Recibida;
 
+        const editData = {
+            difference_reason: editReason.trim(),
+            operator_comment: editComment.trim(),
+            rectified_qty: isNaN(rectNum) ? editingRow.Cant_Recibida : rectNum
+        };
+
+        // Guardar en estado local (inmediato)
         setDifferenceEdits(prev => ({
             ...prev,
-            [rowKey]: {
-                difference_reason: editReason.trim(),
-                operator_comment: editComment.trim(),
-                rectified_qty: isNaN(rectNum) ? editingRow.Cant_Recibida : rectNum
-            }
+            [rowKey]: editData
         }));
+
+        // Guardar en BD (asíncrono, no bloquea UI)
+        fetch('/api/inbound/upsert_draft_comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                grn_number: editingRow.GRN,
+                import_reference: editingRow.Import_Reference,
+                waybill: editingRow.Waybill || '',
+                order_line: editingRow.Order_Line || '',
+                item_code: editingRow.Codigo_Item,
+                difference_reason: editData.difference_reason,
+                operator_comment: editData.operator_comment,
+                qty_received: editData.rectified_qty
+            })
+        }).catch(err => console.error("Error guardando comentario:", err));
 
         setEditingRow(null);
     };
