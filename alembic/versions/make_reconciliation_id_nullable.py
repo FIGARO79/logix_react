@@ -20,13 +20,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema - make reconciliation_id nullable for draft comments."""
-    op.alter_column('saved_grn_reconciliation_items', 'reconciliation_id',
-               existing_type=sa.Integer(),
-               nullable=True)
+    with op.batch_alter_table('saved_grn_reconciliation_items') as batch_op:
+        batch_op.alter_column('reconciliation_id',
+                   existing_type=sa.Integer(),
+                   nullable=True)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.alter_column('saved_grn_reconciliation_items', 'reconciliation_id',
-               existing_type=sa.Integer(),
-               nullable=False)
+    with op.batch_alter_table('saved_grn_reconciliation_items') as batch_op:
+        batch_op.alter_column('reconciliation_id',
+                   existing_type=sa.Integer(),
+                   nullable=False)

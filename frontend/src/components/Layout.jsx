@@ -99,7 +99,7 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
                 to={to}
                 draggable
                 onDragStart={handleDragStart}
-                className={`flex-grow flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] cursor-grab active:cursor-grabbing
+                className={`flex-grow flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] cursor-default
                 ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'border-transparent hover:border-blue-400/40'}`}
                 onClick={onClick}
                 title="Arrastra esta opción al Dashboard para fijarla"

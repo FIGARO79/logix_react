@@ -146,14 +146,14 @@ const StockSearch = () => {
                 <div className="p-6">
                     <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
                         <div className="flex-grow">
-                            <label className="form-label mb-1">Código o Descripción</label>
+                            <label className="form-label mb-1">Código, Descripción o Ubicación</label>
                             <input
                                 ref={inputRef}
                                 type="text"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full uppercase"
-                                placeholder="Escribe código o descripción..."
+                                placeholder="Escribe código, descripción o ubicación..."
                                 autoFocus
                             />
                         </div>
@@ -201,13 +201,19 @@ const StockSearch = () => {
                                 onClick={() => handleSelectResult(item)}
                                 className="px-6 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center"
                             >
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <div className="font-medium text-gray-900 text-[#1e4a74]">{item.itemCode}</div>
                                     <div className="text-sm text-gray-600 truncate max-w-md">{item.description}</div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-xs font-medium text-gray-900 text-gray-400 uppercase">Stock</div>
-                                    <div className="font-medium text-gray-900 text-gray-800">{item.physicalQty}</div>
+                                <div className="flex items-center gap-4 ml-4 shrink-0">
+                                    <div className="text-right">
+                                        <div className="text-xs font-medium text-gray-400 uppercase">Ubic.</div>
+                                        <div className="text-sm font-medium text-gray-700">{item.binLocation || '-'}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-medium text-gray-400 uppercase">Stock</div>
+                                        <div className="font-medium text-gray-800">{item.physicalQty}</div>
+                                    </div>
                                 </div>
                             </li>
                         ))}
@@ -302,7 +308,7 @@ const StockSearch = () => {
             {/* Empty State / Intro */}
             {!itemData && searchResults.length === 0 && !error && (
                 <div className="text-center text-gray-500 mt-12">
-                    <p>Ingrese un código de item o parte de su descripción para consultar.</p>
+                    <p>Ingrese un código de item, parte de su descripción o una ubicación para consultar.</p>
                 </div>
             )}
 

@@ -40,9 +40,10 @@ async def search_items(
             or_(
                 MasterItem.item_code.ilike(f"%{query_str}%"),
                 MasterItem.description.ilike(f"%{query_str}%"),
+                MasterItem.bin_1.ilike(f"%{query_str}%"),
             )
         )
-        .limit(20)
+        .limit(50)
     )
 
     result = await db.execute(stmt)

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
-export const CATEGORIES_CONFIG = [
+const CATEGORIES_CONFIG = [
     { id: 'recepcion', title: 'Gestión de Recepción', accent: 'bg-blue-600', dropBg: 'bg-blue-50/60' },
     { id: 'despacho', title: 'Operaciones de Despacho', accent: 'bg-emerald-600', dropBg: 'bg-emerald-50/60' },
     { id: 'inventario', title: 'Control de Inventario', accent: 'bg-amber-600', dropBg: 'bg-amber-50/60' },
@@ -16,8 +16,8 @@ const DEFAULT_CATEGORIES = [
         accent: 'bg-blue-600',
         items: [
             { href: '/inbound', text: 'REGISTRO INBOUND', desc: 'Entrada de mercancía y referencias', categoryId: 'recepcion' },
-            { href: '/reconciliation', text: 'CONCILIACIÓN', desc: 'Cruce de documentos y discrepancias', categoryId: 'recepcion' },
-            { href: '/view_logs', text: 'HISTORIAL', desc: 'Consulta de registros históricos', categoryId: 'recepcion' },
+            { href: '/reconciliation', text: 'CONCILIACIÓN GRN', desc: 'Cruce de documentos y discrepancias', categoryId: 'recepcion' },
+            { href: '/view_logs', text: 'CONSULTAR INBOUND', desc: 'Consulta de registros inbound', categoryId: 'recepcion' },
             { href: '/stock', text: 'CONSULTAR STOCK', desc: 'Búsqueda global de inventario y saldos', categoryId: 'recepcion' }
         ]
     },
@@ -26,9 +26,9 @@ const DEFAULT_CATEGORIES = [
         title: 'Operaciones de Despacho',
         accent: 'bg-emerald-600',
         items: [
-            { href: '/picking', text: 'AUDITORÍA PICKING', desc: 'Verificación de pedidos y empaque', categoryId: 'despacho' },
-            { href: '/view_picking_audits', text: 'REPORTES EMPAQUE', desc: 'Listas de empaque y auditorías', categoryId: 'despacho' },
-            { href: '/shipments', text: 'CONSOLIDACIÓN', desc: 'Gestión de despachos y embarques', categoryId: 'despacho' },
+            { href: '/picking', text: 'EMPACAR PICKING', desc: 'Verificación de pedidos y empaque', categoryId: 'despacho' },
+            { href: '/view_picking_audits', text: 'PICKINGS EMPACADOS', desc: 'Listas de empaque y auditorías', categoryId: 'despacho' },
+            { href: '/shipments', text: 'CONSOLIDAR DESPACHOS', desc: 'Gestión de despachos y embarques', categoryId: 'despacho' },
             { href: '/label', text: 'ETIQUETADO', desc: 'Impresión de etiquetas operativas', categoryId: 'despacho' }
         ]
     },
@@ -66,7 +66,28 @@ const Dashboard = () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    // Lookup de metadata fresca desde el código fuente
+                    const freshItems = {};
+                    DEFAULT_CATEGORIES.forEach(cat => {
+                        cat.items.forEach(item => { freshItems[item.href] = item; });
+                    });
+
+                    // Mantener layout del usuario, pero usar títulos/descripciones actualizados
+                    return parsed.map(cat => {
+                        const config = CATEGORIES_CONFIG.find(c => c.id === cat.id);
+                        return {
+                            ...cat,
+                            title: config?.title || cat.title,
+                            accent: config?.accent || cat.accent,
+                            items: cat.items.map(item => ({
+                                ...item,
+                                text: freshItems[item.href]?.text || item.text,
+                                desc: freshItems[item.href]?.desc || item.desc,
+                            }))
+                        };
+                    });
+                }
             }
         } catch (e) {
             console.error("Error cargando configuración de dashboard:", e);
@@ -77,6 +98,7 @@ const Dashboard = () => {
     const [activeDropCategory, setActiveDropCategory] = useState(null);
     const [draggedItem, setDraggedItem] = useState(null);
     const [feedbackMessage, setFeedbackMessage] = useState(null);
+    const [dropTargetInfo, setDropTargetInfo] = useState(null);
 
     useEffect(() => {
         setTitle("Dashboard");
@@ -162,6 +184,23 @@ const Dashboard = () => {
         e.dataTransfer.effectAllowed = 'move';
     };
 
+    const handleDragOverItem = (e, categoryId, index) => {
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertIndex = e.clientY < midY ? index : index + 1;
+
+        if (!dropTargetInfo || dropTargetInfo.categoryId !== categoryId || dropTargetInfo.index !== insertIndex) {
+            setDropTargetInfo({ categoryId, index: insertIndex });
+        }
+    };
+
+    const handleDragEnd = () => {
+        setDraggedItem(null);
+        setActiveDropCategory(null);
+        setDropTargetInfo(null);
+    };
+
     const handleDragOverCategory = (e, categoryId) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copyMove';
@@ -179,6 +218,8 @@ const Dashboard = () => {
     const handleDropOnCategory = (e, categoryId) => {
         e.preventDefault();
         setActiveDropCategory(null);
+        const insertIndex = dropTargetInfo?.categoryId === categoryId ? dropTargetInfo.index : null;
+        setDropTargetInfo(null);
 
         let data = null;
         try {
@@ -194,11 +235,35 @@ const Dashboard = () => {
 
         if (!data || !data.href) return;
 
-        // Si viene de arrastre interno de una categoría a otra
+        // Si viene de arrastre interno de una categoría
         if (draggedItem && draggedItem.fromCatId) {
             const fromCatId = draggedItem.fromCatId;
+
+            // Reordenar dentro de la misma categoría
+            if (fromCatId === categoryId) {
+                const cat = categories.find(c => c.id === categoryId);
+                if (!cat) return;
+                const oldIndex = cat.items.findIndex(i => i.href === data.href);
+                if (oldIndex === -1 || insertIndex === null || oldIndex === insertIndex || oldIndex + 1 === insertIndex) {
+                    setDraggedItem(null);
+                    return;
+                }
+                const newItems = [...cat.items];
+                const [moved] = newItems.splice(oldIndex, 1);
+                const adjustedIndex = insertIndex > oldIndex ? insertIndex - 1 : insertIndex;
+                newItems.splice(adjustedIndex, 0, moved);
+
+                const updated = categories.map(c =>
+                    c.id === categoryId ? { ...c, items: newItems } : c
+                );
+                saveCategories(updated);
+                setDraggedItem(null);
+                return;
+            }
+
+            // Mover entre categorías diferentes
             const updated = categories.map(cat => {
-                if (cat.id === fromCatId && fromCatId !== categoryId) {
+                if (cat.id === fromCatId) {
                     return {
                         ...cat,
                         items: cat.items.filter(i => i.href !== data.href)
@@ -207,10 +272,13 @@ const Dashboard = () => {
                 if (cat.id === categoryId) {
                     const alreadyIn = cat.items.some(i => i.href === data.href);
                     if (!alreadyIn) {
-                        return {
-                            ...cat,
-                            items: [...cat.items, { ...data, categoryId }]
-                        };
+                        const newItem = { ...data, categoryId };
+                        if (insertIndex !== null) {
+                            const newItems = [...cat.items];
+                            newItems.splice(insertIndex, 0, newItem);
+                            return { ...cat, items: newItems };
+                        }
+                        return { ...cat, items: [...cat.items, newItem] };
                     }
                 }
                 return cat;
@@ -271,37 +339,52 @@ const Dashboard = () => {
                                             <p className="text-[11px] text-slate-400 font-normal">Arrastra opciones aquí para fijarlas</p>
                                         </div>
                                     ) : (
-                                        category.items.map((item, idx) => (
-                                            <div
-                                                key={item.href || idx}
-                                                draggable
-                                                onDragStart={(e) => handleDragStartCard(e, item, category.id, idx)}
-                                                className="group relative block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing select-none"
-                                            >
-                                                <Link to={item.href} className="block pr-5">
-                                                    <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
-                                                        {item.text}
-                                                    </div>
-                                                    <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
-                                                        {item.desc}
-                                                    </div>
-                                                </Link>
+                                        <>
+                                            {category.items.map((item, idx) => (
+                                                <React.Fragment key={item.href || idx}>
+                                                    {/* Indicador de posición de inserción */}
+                                                    {dropTargetInfo?.categoryId === category.id && dropTargetInfo.index === idx && draggedItem && (
+                                                        <div className="h-0.5 bg-blue-500 rounded-full mx-1 shadow-sm shadow-blue-300" />
+                                                    )}
+                                                    <div
+                                                        draggable
+                                                        onDragStart={(e) => handleDragStartCard(e, item, category.id, idx)}
+                                                        onDragOver={(e) => handleDragOverItem(e, category.id, idx)}
+                                                        onDragEnd={handleDragEnd}
+                                                        className={`group relative block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing select-none ${
+                                                            draggedItem?.item?.href === item.href ? 'opacity-30 scale-95' : ''
+                                                        }`}
+                                                    >
+                                                        <Link to={item.href} className="block pr-5">
+                                                            <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
+                                                                {item.text}
+                                                            </div>
+                                                            <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
+                                                                {item.desc}
+                                                            </div>
+                                                        </Link>
 
-                                                {/* Botón de Desfijar / Retirar */}
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => unpinItem(e, item.href)}
-                                                    className="w-6 h-6 !p-0 absolute top-2 right-2 flex items-center justify-center text-slate-300 hover:text-red-600 rounded-md hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-pointer"
-                                                    style={{ padding: 0, width: '24px', height: '24px', minWidth: '24px' }}
-                                                    title="Retirar del Dashboard"
-                                                    aria-label="Retirar del Dashboard"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))
+                                                        {/* Botón de Desfijar / Retirar */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => unpinItem(e, item.href)}
+                                                            className="w-6 h-6 !p-0 absolute top-2 right-2 flex items-center justify-center text-slate-300 hover:text-red-600 rounded-md hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-pointer"
+                                                            style={{ padding: 0, width: '24px', height: '24px', minWidth: '24px' }}
+                                                            title="Retirar del Dashboard"
+                                                            aria-label="Retirar del Dashboard"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </React.Fragment>
+                                            ))}
+                                            {/* Indicador al final de la lista */}
+                                            {dropTargetInfo?.categoryId === category.id && dropTargetInfo.index === category.items.length && draggedItem && (
+                                                <div className="h-0.5 bg-blue-500 rounded-full mx-1 shadow-sm shadow-blue-300" />
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
