@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_
+from sqlalchemy import and_, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.utils.auth import permission_required
@@ -730,7 +730,7 @@ async def upsert_draft_comment(
     await db.commit()
     return {"message": "Comentario guardado exitosamente"}
 
-@router.post("/upsert_draft_comment")
+@router.post("/save_grn_reconciliation")
 async def save_grn_reconciliation(
     payload: SaveGRNReconciliationPayload,
     db: AsyncSession = Depends(get_db),
@@ -764,24 +764,44 @@ async def save_grn_reconciliation(
     await db.flush()
 
     for it in payload.items:
-        item_row = SavedGRNReconciliationItem(
-            reconciliation_id=header.id,
-            grn_number=it.grn_number.strip().upper(),
-            import_reference=it.import_reference.strip().upper(),
-            waybill=(it.waybill or "").strip().upper(),
-            order_line=(it.order_line or "").strip(),
-            item_code=it.item_code.strip().upper(),
-            description=(it.description or "").strip(),
-            location=(it.location or "").strip(),
-            relocated_bin=(it.relocated_bin or "").strip(),
-            qty_expected=it.qty_expected,
-            qty_received=it.qty_received,
-            difference=it.difference,
-            difference_reason=(it.difference_reason or "").strip(),
-            operator_comment=(it.operator_comment or "").strip(),
-            reconciled_at=now_ts,
+        grn_number = it.grn_number.strip().upper()
+        import_reference = it.import_reference.strip().upper()
+        order_line = (it.order_line or "").strip()
+        item_code = it.item_code.strip().upper()
+
+        # Convertir el borrador de observación en la línea archivada.
+        stmt_draft = select(SavedGRNReconciliationItem).where(
+            and_(
+                SavedGRNReconciliationItem.reconciliation_id.is_(None),
+                SavedGRNReconciliationItem.grn_number == grn_number,
+                SavedGRNReconciliationItem.import_reference == import_reference,
+                SavedGRNReconciliationItem.item_code == item_code,
+                SavedGRNReconciliationItem.order_line == order_line,
+            )
         )
-        db.add(item_row)
+        draft_item = (await db.execute(stmt_draft)).scalars().first()
+
+        if draft_item:
+            item_row = draft_item
+            item_row.reconciliation_id = header.id
+        else:
+            item_row = SavedGRNReconciliationItem()
+            db.add(item_row)
+
+        item_row.grn_number = grn_number
+        item_row.import_reference = import_reference
+        item_row.waybill = (it.waybill or "").strip().upper()
+        item_row.order_line = order_line
+        item_row.item_code = item_code
+        item_row.description = (it.description or "").strip()
+        item_row.location = (it.location or "").strip()
+        item_row.relocated_bin = (it.relocated_bin or "").strip()
+        item_row.qty_expected = it.qty_expected
+        item_row.qty_received = it.qty_received
+        item_row.difference = it.difference
+        item_row.difference_reason = (it.difference_reason or "").strip()
+        item_row.operator_comment = (it.operator_comment or "").strip()
+        item_row.reconciled_at = now_ts
 
     await db.commit()
     return {"id": header.id, "message": "Conciliación guardada exitosamente"}
