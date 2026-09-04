@@ -131,7 +131,7 @@ const DashboardInventario = () => {
     };
 
     if (loading) return (
-        <div className="flex items-center justify-center min-h-[60vh] bg-slate-50 font-['Segoe_UI',_system-ui,_sans-serif]">
+        <div className="flex items-center justify-center min-h-[60vh] bg-slate-50 font-segoe-ui">
             <div className="flex flex-col items-center gap-3 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                 <div className="text-slate-800 text-xs font-semibold uppercase tracking-wider">Cargando 18 Indicadores Ejecutivos...</div>
@@ -140,7 +140,7 @@ const DashboardInventario = () => {
     );
 
     if (error) return (
-        <div className="flex items-center justify-center min-h-[50vh] font-['Segoe_UI',_system-ui,_sans-serif]">
+        <div className="flex items-center justify-center min-h-[50vh] font-segoe-ui">
             <div className="bg-red-50 text-red-900 p-5 rounded-xl border border-red-200 text-xs font-normal max-w-md text-center shadow-sm">
                 <div className="flex items-center justify-center gap-2 mb-1 text-red-700 font-semibold">
                     <Icons.ShieldAlert />
@@ -152,7 +152,7 @@ const DashboardInventario = () => {
     );
 
     if (stats?.empty) return (
-        <div className="flex items-center justify-center min-h-[50vh] font-['Segoe_UI',_system-ui,_sans-serif]">
+        <div className="flex items-center justify-center min-h-[50vh] font-segoe-ui">
             <div className="text-slate-700 bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center max-w-sm">
                 <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Icons.Boxes />
@@ -164,7 +164,7 @@ const DashboardInventario = () => {
     );
 
     return (
-        <div className="max-w-[1440px] mx-auto px-4 py-3 font-['Segoe_UI',_system-ui,_sans-serif] bg-slate-50/60 min-h-screen text-slate-800 leading-normal">
+        <div className="max-w-[1440px] mx-auto px-4 py-3 font-segoe-ui bg-slate-50/60 min-h-screen text-slate-800 leading-normal">
 
             {/* Top Navigation & Control Header */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -651,7 +651,7 @@ const DashboardInventario = () => {
 
             {/* Modal para Asignar Causa Raíz */}
             {causeModalItem && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-['Segoe_UI',_system-ui,_sans-serif]">
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-segoe-ui">
                     <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-2xl">
                         <div className="flex items-center gap-2 mb-1">
                             <div className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 flex items-center justify-center">

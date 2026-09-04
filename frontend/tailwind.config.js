@@ -7,8 +7,11 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Segoe UI"', '-apple-system', 'BlinkMacSystemFont', 'Roboto', 'sans-serif'],
-                inter: ['"Segoe UI"', 'sans-serif'],
+                sans: ['"Segoe UI"', 'Segoe', '-apple-system', 'BlinkMacSystemFont', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                'segoe-ui': ['"Segoe UI"', 'Segoe', '-apple-system', 'BlinkMacSystemFont', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                segoe: ['"Segoe UI"', 'Segoe', '-apple-system', 'BlinkMacSystemFont', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                inter: ['"Segoe UI"', 'Segoe', '-apple-system', 'BlinkMacSystemFont', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                mono: ['Consolas', '"Segoe UI Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', '"Courier New"', 'monospace'],
                 print: ['Arial', 'Helvetica', 'sans-serif'],
             },
         },

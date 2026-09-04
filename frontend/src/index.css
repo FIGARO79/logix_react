@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 :root {
-    --sap-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    --sap-font-heading: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    --logix-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --sap-font-family: var(--logix-font-family);
+    --sap-font-heading: var(--logix-font-family);
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
@@ -12,8 +13,22 @@
     --sap-text-header: #000000;
 }
 
+html, body {
+    font-family: var(--logix-font-family);
+}
+
 body, button, input, select, textarea, table, h1, h2, h3, h4, h5, h6, div, p, span, a, label {
-    font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+    font-family: var(--logix-font-family);
+}
+
+/* Soporte normalizado para clases monospace (SKUs, ubicaciones, códigos de barra) */
+.font-mono, [class*="font-mono"] {
+    font-family: Consolas, 'Segoe UI Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace !important;
+}
+
+/* Preservar tipografía de etiquetas térmicas de impresión */
+.label-container, .label-container * {
+    font-family: Arial, Helvetica, sans-serif !important;
 }
 
 body {

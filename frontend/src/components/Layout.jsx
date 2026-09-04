@@ -179,7 +179,7 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
                 {initialized ? (
                     <Component setTitle={tabSetTitle} {...resolved.params} />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-segoe-ui text-normal uppercase tracking-tight bg-[#fafafa]">
+                    <div className="flex items-center justify-center h-full font-segoe-ui text-normal uppercase tracking-tight bg-[#fafafa]">
                         <span>Cargando módulo...</span>
                     </div>
                 )}

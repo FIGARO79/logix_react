@@ -94,7 +94,7 @@ const LabelPrinting = () => {
         contentRef: labelComponentRef,
         content: () => labelComponentRef.current,
         documentTitle: itemData ? `Etiqueta_${itemData.itemCode}` : "Etiqueta",
-        pageStyle: "@page { size: 70mm 100mm; margin: 0; } body { margin: 0; -webkit-print-color-adjust: exact; }"
+        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { margin: 0; font-family: Arial, Helvetica, sans-serif !important; -webkit-print-color-adjust: exact; } .label-container, .label-container * { font-family: Arial, Helvetica, sans-serif !important; } }"
     });
 
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';

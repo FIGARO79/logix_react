@@ -1116,7 +1116,7 @@ const Inbound = () => {
     const handlePrint = useReactToPrint({
         contentRef: labelComponentRef,
         documentTitle: itemData ? `Etiqueta-${itemData.itemCode}` : 'Etiqueta',
-        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }",
+        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { margin: 0; font-family: Arial, Helvetica, sans-serif !important; -webkit-print-color-adjust: exact; } .label-container, .label-container * { font-family: Arial, Helvetica, sans-serif !important; } }",
     });
 
     return (
