@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const ViewCounts = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const [counts, setCounts] = useState([]);
     const [filteredCounts, setFilteredCounts] = useState([]);
@@ -60,15 +58,6 @@ const ViewCounts = () => {
             setFilteredCounts(counts.filter(c => c.username === selectedUser));
         }
     }, [selectedUser, counts]);
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("¿Eliminar este registro de conteo permanentemente?")) return;
-        try {
-            const res = await fetch(`/api/counts/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Error al eliminar");
-            fetchData(); // Reload all
-        } catch (e) { alert(e.message); }
-    };
 
     return (
         <div className="max-w-[1920px] mx-auto px-4 py-1 font-segoe-ui text-normal text-black">

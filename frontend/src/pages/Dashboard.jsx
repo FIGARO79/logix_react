@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
@@ -105,19 +105,19 @@ const Dashboard = () => {
     }, [setTitle]);
 
     // Guardar en localStorage
-    const saveCategories = (newCats) => {
+    const saveCategories = useCallback((newCats) => {
         setCategories(newCats);
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newCats));
         } catch (e) {
             console.error("Error guardando dashboard:", e);
         }
-    };
+    }, []);
 
-    const showFeedback = (msg) => {
+    const showFeedback = useCallback((msg) => {
         setFeedbackMessage(msg);
         setTimeout(() => setFeedbackMessage(null), 3000);
-    };
+    }, []);
 
     // Escuchar eventos de fijación desde el menú lateral
     useEffect(() => {
@@ -128,10 +128,10 @@ const Dashboard = () => {
         };
         window.addEventListener('logix_dashboard_pin_item', handleGlobalPin);
         return () => window.removeEventListener('logix_dashboard_pin_item', handleGlobalPin);
-    }, [categories]);
+    }, [categories, pinItem]);
 
     // Fijar / Añadir un ítem a una categoría
-    const pinItem = (moduleItem, targetCategoryId = null) => {
+    const pinItem = useCallback((moduleItem, targetCategoryId = null) => {
         const catId = targetCategoryId || moduleItem.categoryId || 'recepcion';
         let alreadyExists = false;
 
@@ -155,7 +155,7 @@ const Dashboard = () => {
 
         saveCategories(updated);
         showFeedback(`"${moduleItem.text}" fijado en el Dashboard.`);
-    };
+    }, [categories, saveCategories, showFeedback]);
 
     // Desfijar / Retirar un ítem del Dashboard
     const unpinItem = (e, href) => {

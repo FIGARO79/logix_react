@@ -24,7 +24,6 @@ const ManageCycleCountDifferences = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [onlyDifferences, setOnlyDifferences] = useState(true);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const [editingItem, setEditingItem] = useState(null);
     const [newPhysicalQty, setNewPhysicalQty] = useState('');
@@ -116,7 +115,7 @@ const ManageCycleCountDifferences = () => {
         return () => {
             if (bc) bc.close();
         };
-    }, [fetchData, refreshTrigger]);
+    }, [fetchData]);
 
 
     const handleEdit = (item) => {

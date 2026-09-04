@@ -374,7 +374,7 @@ const Layout = () => {
             if (u.username === 'admin' || perms.includes('admin')) {
                 hasAdminPerm = true;
             }
-        } catch (e) {}
+        } catch (e) { console.warn('No se pudo leer el usuario local:', e); }
     }
 
     return (

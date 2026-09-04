@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { exportExcelFile } from '../utils/exportExcel';
 
@@ -10,8 +10,6 @@ const Reconciliation = () => {
     const { setTitle } = useOutletContext();
     const location = useLocation();
     useEffect(() => { setTitle("Conciliación"); }, [setTitle]);
-    const queryClient = useQueryClient();
-
     // Filtros de navegación
     const [selectedIR, setSelectedIR] = useState('');
     const [selectedGRN, setSelectedGRN] = useState('');
@@ -41,7 +39,7 @@ const Reconciliation = () => {
     const [savedHistoryList, setSavedHistoryList] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [viewingDetail, setViewingDetail] = useState(null);
-    const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+    const [, setIsLoadingDetail] = useState(false);
 
     // Query para obtener datos de conciliación activa
     const { data: queryData = { data: [] }, isLoading: loading, refetch } = useQuery({

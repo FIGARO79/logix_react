@@ -229,7 +229,7 @@ const CycleCounts = () => {
         }
     }, [activeSession, countedLocation, updateSidebarData, fetchRecountList]);
 
-    const loadSlottingBins = async () => {
+    const loadSlottingBins = useCallback(async () => {
         let binsLoaded = false;
         if (isOnline) {
             try {
@@ -261,13 +261,13 @@ const CycleCounts = () => {
                 console.error("Error loading cached bins:", e);
             }
         }
-    };
+    }, [isOnline]);
 
     useEffect(() => {
         loadSlottingBins();
-    }, [isOnline]);
+    }, [loadSlottingBins]);
 
-    const searchItem = async (codeToSearch) => {
+    const fetchItemData = async (codeToSearch) => {
         let code = codeToSearch || itemCode;
         if (!code) return;
 

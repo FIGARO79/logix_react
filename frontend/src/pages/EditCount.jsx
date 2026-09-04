@@ -30,7 +30,7 @@ const EditCount = ({ id: propId }) => {
         };
         fetchCount();
         if (setTitle) setTitle(`Editar Conteo #${id}`);
-    }, [id]);
+    }, [id, setTitle]);
 
     const handleSave = async (e) => {
         e.preventDefault();

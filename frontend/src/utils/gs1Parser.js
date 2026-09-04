@@ -70,7 +70,7 @@ export const parseGS1Barcode = (rawInput) => {
     }
 
     // 3. Caso: Formato GS1 con paréntesis (ej: (01)07701234567890(10)LOTE123(17)261231)
-    const parenRegex = /\((01|10|17|21|30)\)([^\(\)]+)/g;
+    const parenRegex = /\((01|10|17|21|30)\)([^()]+)/g;
     let match;
     let foundParen = false;
     while ((match = parenRegex.exec(input)) !== null) {
@@ -106,7 +106,7 @@ export const parseGS1Barcode = (rawInput) => {
     }
 
     // 4. Caso: Separador de Grupo ASCII 29 (GS / \x1D) o barras horizontales / comas / punto y coma / tabs
-    const gsClean = input.replace(/\x1D/g, '|');
+    const gsClean = input.split(String.fromCharCode(29)).join('|');
     if (gsClean.includes('|') || gsClean.includes(';') || gsClean.includes('\t') || gsClean.includes('\n')) {
         const delimiter = gsClean.includes('|') ? '|' : (gsClean.includes(';') ? ';' : (gsClean.includes('\t') ? '\t' : '\n'));
         const parts = gsClean.split(delimiter).map(p => p.trim()).filter(Boolean);

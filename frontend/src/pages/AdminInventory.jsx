@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const AdminInventory = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const [activeTab, setActiveTab] = useState('cycle');
 
@@ -14,25 +12,11 @@ const AdminInventory = () => {
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
-    // --- Manage Counts State ---
-    const [counts, setCounts] = useState([]);
-    const [filteredCounts, setFilteredCounts] = useState([]);
-    const [countStats, setCountStats] = useState(null);
-    const [usernames, setUsernames] = useState([]);
-    const [selectedUser, setSelectedUser] = useState('');
-
-    // Reopen Location Form State
-    const [reopenSessionId, setReopenSessionId] = useState('');
-    const [reopenLocationCode, setReopenLocationCode] = useState('');
-    const [adminMsg, setAdminMsg] = useState('');
-
     // --- Reconciliation State ---
     const [reconItems, setReconItems] = useState([]);
     const [reconLoading, setReconLoading] = useState(false);
     const [reconFilter, setReconFilter] = useState('counted'); // 'counted' | 'all' | 'pending'
     const [searchQuery, setSearchQuery] = useState('');
-    const [settings, setSettings] = useState({ w2w_qty_tolerance: 0.02, w2w_val_tolerance: 10.00 });
-    const [settingsLoading, setSettingsLoading] = useState(false);
 
     const fetchReconciliation = useCallback(async () => {
         setReconLoading(true);
@@ -41,54 +25,12 @@ const AdminInventory = () => {
             if (!res.ok) throw new Error("Error cargando conciliación");
             const data = await res.json();
             setReconItems(data.items);
-            if (data.settings) {
-                setSettings(data.settings);
-            }
         } catch (err) {
             setError(err.message);
         } finally {
             setReconLoading(false);
         }
     }, []);
-
-    const handleSaveSettings = async (e) => {
-        e.preventDefault();
-        setSettingsLoading(true);
-        try {
-            const res = await fetch('/api/admin/inventory/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    w2w_qty_tolerance: settings.w2w_qty_tolerance.toString(),
-                    w2w_val_tolerance: settings.w2w_val_tolerance.toString()
-                })
-            });
-            if (!res.ok) throw new Error("Error actualizando configuraciones");
-            alert("Tolerancias guardadas correctamente.");
-            fetchReconciliation();
-            fetchStats();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            setSettingsLoading(false);
-        }
-    };
-
-    const handleApproveItem = async (itemCode) => {
-        if (!window.confirm(`¿Aprobar manualmente la diferencia de ${itemCode}?`)) return;
-        try {
-            const res = await fetch('/api/admin/inventory/approve_item', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item_code: itemCode })
-            });
-            if (!res.ok) throw new Error("Error aprobando item");
-            fetchReconciliation();
-            fetchStats();
-        } catch (err) {
-            alert(err.message);
-        }
-    };
 
     const fetchStats = useCallback(async () => {
         try {
@@ -97,9 +39,6 @@ const AdminInventory = () => {
             const data = await res.json();
             setStats(data.stats);
             setStage(data.stage);
-            if (data.settings) {
-                setSettings(data.settings);
-            }
         } catch (err) {
             setError(err.message);
         }
@@ -142,24 +81,6 @@ const AdminInventory = () => {
             setLoading(false);
         }
     };
-
-    const fetchCounts = useCallback(async () => {
-        try {
-            const [resAll, resStats] = await Promise.all([
-                fetch('/api/counts/all'),
-                fetch('/api/counts/stats')
-            ]);
-            if (!resAll.ok) throw new Error("Error cargando conteos");
-            const data = await resAll.json();
-            setCounts(data);
-            setFilteredCounts(selectedUser ? data.filter(c => c.username === selectedUser) : data);
-            const distinctUsers = [...new Set(data.map(c => c.username).filter(Boolean))].sort();
-            setUsernames(distinctUsers);
-            if (resStats.ok) setCountStats(await resStats.json());
-        } catch (err) {
-            setError(err.message);
-        }
-    }, [selectedUser]);
 
     const [auditorZones, setAuditorZones] = useState([]);
     const [editedZones, setEditedZones] = useState({});
@@ -224,10 +145,7 @@ const AdminInventory = () => {
 
     useEffect(() => {
         fetchStats();
-        if (activeTab === 'counts') fetchCounts();
-        if (activeTab === 'cycle') {
-            fetchCounts();
-        } else if (activeTab === 'reconciliation') {
+        if (activeTab === 'reconciliation') {
             fetchReconciliation();
         } else if (activeTab === 'zones') {
             fetchAuditorZones();
@@ -236,7 +154,6 @@ const AdminInventory = () => {
         let interval = setInterval(() => {
             if (navigator.onLine && !document.hidden) {
                 fetchStats();
-                if (activeTab === 'cycle') fetchCounts();
             }
         }, 5000);
 
@@ -246,7 +163,6 @@ const AdminInventory = () => {
             bc.onmessage = (event) => {
                 if (event.data?.type === 'CYCLE_COUNT_MUTATED') {
                     fetchStats();
-                    fetchCounts();
                     fetchReconciliation();
                     fetchAuditorZones();
                 }
@@ -257,7 +173,7 @@ const AdminInventory = () => {
             clearInterval(interval);
             if (bc) bc.close();
         };
-    }, [activeTab, fetchStats, fetchCounts, fetchReconciliation, fetchAuditorZones]);
+    }, [activeTab, fetchStats, fetchReconciliation, fetchAuditorZones]);
 
     useEffect(() => {
         if (message) {
@@ -272,15 +188,6 @@ const AdminInventory = () => {
             return () => clearTimeout(timer);
         }
     }, [error]);
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("¿Eliminar este registro?")) return;
-        try {
-            const res = await fetch(`/api/counts/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Error");
-            fetchCounts();
-        } catch (e) { alert(e.message); }
-    };
 
     return (
         <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
