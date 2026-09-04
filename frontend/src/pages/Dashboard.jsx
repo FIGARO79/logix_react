@@ -119,18 +119,9 @@ const Dashboard = () => {
         setTimeout(() => setFeedbackMessage(null), 3000);
     }, []);
 
-    // Escuchar eventos de fijación desde el menú lateral
-    useEffect(() => {
-        const handleGlobalPin = (e) => {
-            if (e.detail) {
-                pinItem(e.detail);
-            }
-        };
-        window.addEventListener('logix_dashboard_pin_item', handleGlobalPin);
-        return () => window.removeEventListener('logix_dashboard_pin_item', handleGlobalPin);
-    }, [categories, pinItem]);
-
     // Fijar / Añadir un ítem a una categoría
+    // IMPORTANTE: Debe declararse ANTES del useEffect que lo referencia
+    // para evitar TDZ (Temporal Dead Zone) en el bundle minificado de producción.
     const pinItem = useCallback((moduleItem, targetCategoryId = null) => {
         const catId = targetCategoryId || moduleItem.categoryId || 'recepcion';
         let alreadyExists = false;
@@ -156,6 +147,17 @@ const Dashboard = () => {
         saveCategories(updated);
         showFeedback(`"${moduleItem.text}" fijado en el Dashboard.`);
     }, [categories, saveCategories, showFeedback]);
+
+    // Escuchar eventos de fijación desde el menú lateral
+    useEffect(() => {
+        const handleGlobalPin = (e) => {
+            if (e.detail) {
+                pinItem(e.detail);
+            }
+        };
+        window.addEventListener('logix_dashboard_pin_item', handleGlobalPin);
+        return () => window.removeEventListener('logix_dashboard_pin_item', handleGlobalPin);
+    }, [categories, pinItem]);
 
     // Desfijar / Retirar un ítem del Dashboard
     const unpinItem = (e, href) => {

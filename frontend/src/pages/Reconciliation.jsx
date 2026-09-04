@@ -383,7 +383,10 @@ const Reconciliation = () => {
 
     // Guardar snapshot de conciliación permanente
     const handleConfirmSaveReconciliation = async () => {
-        const targetData = finalDisplayData.length > 0 ? finalDisplayData : filteredBySelectors;
+        // IMPORTANTE: usar filteredBySelectors (todos los ítems de la GRN seleccionada)
+        // y NO finalDisplayData (que puede estar filtrado por texto o por diferencias),
+        // para garantizar que el archivo siempre contenga las 100% de las líneas.
+        const targetData = filteredBySelectors.length > 0 ? filteredBySelectors : rawData;
         if (targetData.length === 0) {
             alert("No hay registros filtrados para conciliar y guardar.");
             return;
@@ -1218,7 +1221,7 @@ const Reconciliation = () => {
                                     </div>
 
                                     {/* Tabla de ítems guardados en la foto */}
-                                    <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] border border-zinc-200 rounded-lg">
+                                    <div className="overflow-x-auto border border-zinc-200 rounded-lg">
                                         <table className="w-full table-fixed text-left text-[11px]">
                                             <thead className="bg-zinc-100 text-zinc-700 font-normal sticky top-0">
                                                 <tr>
