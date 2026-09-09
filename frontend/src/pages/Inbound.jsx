@@ -9,6 +9,7 @@ import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
+import '../styles/Inbound.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
 
 
@@ -27,7 +28,7 @@ const DEFAULT_IR_STATS = {
     grnProgressPercent: 0
 };
 
-const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
+const Dial = ({ percent, label, valueText, strokeColor = "#0078d4", strokeWidth = 8, trackStrokeWidth = 5 }) => {
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
@@ -1121,7 +1122,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
+            <div className="inbound-page container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-1">
@@ -1283,7 +1284,7 @@ const Inbound = () => {
 
                         {/* Columna 3: Vista Etiqueta */}
                         <div className="lg:col-span-1 bg-white p-1 rounded shadow-sm border border-gray-200 flex flex-col justify-between">
-                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                            <h2 className="text-[12px] font-normal text-black uppercase tracking-normal mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
                                 Vista Etiqueta
                             </h2>
                             <div className="flex-grow flex flex-col justify-center items-center">
@@ -1302,7 +1303,7 @@ const Inbound = () => {
                             <button
                                 type="button"
                                 onClick={handlePrint}
-                                className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                                className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-normal active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-normal"
                                 style={{ background: '#285f94' }}
                                 onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
                                 onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
@@ -1328,25 +1329,25 @@ const Inbound = () => {
                                             percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.completedLines / irStats.totalLines) * 100)) : 0} 
                                             label="Líneas OK" 
                                             valueText={`${irStats.completedLines}/${irStats.totalLines}`} 
-                                            strokeColor="#1679E0" 
+                                            strokeColor="#0078d4"
                                         />
                                         <Dial 
                                             percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.startedLines / irStats.totalLines) * 100)) : 0} 
                                             label="Iniciadas" 
                                             valueText={`${irStats.startedLines}/${irStats.totalLines}`} 
-                                            strokeColor="#D97706" 
+                                            strokeColor="#ca5010"
                                         />
                                         <Dial 
                                             percent={irStats.expectedUnits > 0 ? Math.min(100, Math.round((irStats.receivedUnits / irStats.expectedUnits) * 100)) : 0} 
                                             label="Unidades" 
                                             valueText={`${irStats.receivedUnits}/${irStats.expectedUnits}`} 
-                                            strokeColor="#10B981" 
+                                            strokeColor="#107c10"
                                         />
                                         <Dial 
                                             percent={irStats.totalGrns > 0 ? irStats.grnProgressPercent : 0} 
                                             label="GRNs OK" 
                                             valueText={`${irStats.completedGrns}/${irStats.totalGrns}`} 
-                                            strokeColor="#8B5CF6" 
+                                            strokeColor="#8764b8"
                                         />
                                     </div>
                                     

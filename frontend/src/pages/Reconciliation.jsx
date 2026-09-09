@@ -5,6 +5,7 @@ import { cacheData, getCachedData } from '../utils/offlineDb';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { exportExcelFile } from '../utils/exportExcel';
+import '../styles/Reconciliation.css';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -558,7 +559,7 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
+        <div className="reconciliation-page flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
             {/* Barra de Filtros y Acciones */}
             <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
                 <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 px-0 py-2 rounded-xl border border-zinc-100">
