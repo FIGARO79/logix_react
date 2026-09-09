@@ -2,6 +2,11 @@
 
 /* Note: Base header styles are in Global.css (.top-header) */
 
+/* Contraste de los encabezados del menú claro */
+.fixed.left-0.w-64 nav > div > div:first-child {
+    color: #605e5c !important;
+}
+
 /* SAP Fiori Side Navigation (Menu Desplegable) */
 .dropdown-menu {
     position: fixed;
@@ -106,6 +111,11 @@
 }
 
 /* Estilos de Pestañas (Tab System) */
+.top-header {
+    background-color: #ffffff !important;
+    color: #201f1e !important;
+}
+
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
@@ -120,7 +130,7 @@
     align-items: flex-end;
     gap: 2px;
     height: 100%;
-    margin-left: 1rem;
+    margin-left: 0.75rem;
     padding-top: 6px; /* Para que las pestañas no toquen el borde superior */
 }
 
@@ -144,14 +154,15 @@
     max-width: 240px;
     height: 34px;
     padding: 0 10px 0 14px;
-    border-radius: 8px 8px 0 0;
+    border-radius: 4px 4px 0 0;
     cursor: grab;
     transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
     position: relative;
     user-select: none;
-    background-color: rgba(255, 255, 255, 0.04); /* Inactivo muy oscuro */
-    color: rgba(255, 255, 255, 0.7);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #e8e8e8;
+    color: #323130;
+    border: 1px solid #d2d0ce;
+    border-bottom: 0;
 }
 
 .tab-item:hover {
@@ -165,7 +176,7 @@
 /* Estado de Arrastre */
 .tab-item.dragging {
     opacity: 0.35;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: #f3f3f3;
     cursor: grabbing;
 }
 
@@ -182,20 +193,21 @@
 
 /* Pestaña Activa */
 .tab-item.active {
-    background-color: rgba(255, 255, 255, 0.15); /* Activo más claro, uniendo con toolbar */
-    color: #ffffff;
-    border-right: 1px solid transparent; /* Sin borde en activo */
+    background-color: #f3f3f3;
+    color: #201f1e;
+    border-right: 1px solid #e1dfdd;
     z-index: 2; /* Por encima de las demás */
 }
 
 .tab-item:not(.active):hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: #deddda;
+    color: #201f1e;
 }
 
 .tab-label {
     font-size: 0.85rem;
-    font-weight: 400; /* Chrome es font normal */
-    letter-spacing: -0.015em;
+    font-weight: 400;
+    letter-spacing: 0;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -219,7 +231,7 @@
     opacity: 0;
     transition: background-color 0.1s;
     background-color: transparent;
-    color: rgba(255, 255, 255, 0.7);
+    color: #8a8886;
 }
 
 .tab-item:hover .tab-close-btn,
@@ -228,8 +240,8 @@
 }
 
 .tab-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: white;
+    background-color: #eaeaea;
+    color: #201f1e;
 }
 
 /* Separador Chrome ' | ' antes del + */
@@ -247,7 +259,7 @@
     min-width: 28px;
     border-radius: 50%;
     background-color: transparent; /* Sin fondo circular por defecto */
-    color: rgba(255, 255, 255, 0.8);
+    color: #605e5c;
     border: none;
     transition: background-color 0.2s;
     margin-left: 8px;
@@ -257,7 +269,7 @@
 }
 
 .add-tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #f3f3f3;
     color: white;
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/Update.css';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
@@ -274,7 +275,7 @@ const Update = () => {
     };
 
     return (
-        <div className="max-w-[1440px] mx-auto px-6 py-4 font-sans bg-[#fcfcfc] min-h-screen text-zinc-900 text-[12px]">
+        <div className="update-page max-w-[1440px] mx-auto min-h-screen bg-[#f5f5f5] px-5 py-5 font-sans text-[12px] text-[#201f1e] lg:px-10">
 
             {/* Mensajes de Notificación con Temporizador y Cierre Manual */}
             {messages.error && (
@@ -290,7 +291,7 @@ const Update = () => {
                         style={{ width: '16px', height: '16px' }}
                         title="Cerrar"
                     >
-                        ✕
+                        Cerrar
                     </button>
                 </div>
             )}
@@ -307,7 +308,7 @@ const Update = () => {
                         style={{ width: '16px', height: '16px' }}
                         title="Cerrar"
                     >
-                        ✕
+                        Cerrar
                     </button>
                 </div>
             )}
@@ -324,7 +325,7 @@ const Update = () => {
                         style={{ width: '16px', height: '16px' }}
                         title="Cerrar"
                     >
-                        ✕
+                        Cerrar
                     </button>
                 </div>
             )}
@@ -650,7 +651,7 @@ const Update = () => {
                                     finally { setIsLoading(false); setBackupPassword(''); }
                                 }} className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-[10px] font-normal text-zinc-800 uppercase tracking-tight">Exportar Respaldo Global</label>
+                                        <label className="text-[10px] font-normal text-zinc-800 uppercase tracking-normal">Exportar Respaldo Global</label>
                                         <span className="text-[9px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded border border-zinc-200">Excel (.xlsx)</span>
                                     </div>
                                     <div className="relative w-full">
@@ -668,13 +669,15 @@ const Update = () => {
                                             onClick={() => setShowBackupPassword(!showBackupPassword)}
                                             className="w-6 h-6 !p-0 absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-700 cursor-pointer"
                                             tabIndex={-1}
+                                            title={showBackupPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            aria-label={showBackupPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                                         >
                                             {showBackupPassword ? (
-                                                <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
                                                 </svg>
                                             ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>

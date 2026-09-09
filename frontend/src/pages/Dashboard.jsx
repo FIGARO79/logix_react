@@ -297,11 +297,11 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] px-6 pt-4 pb-12 lg:px-12 lg:pt-6 lg:pb-12">
+        <div className="min-h-[calc(100vh-80px)] bg-[#f5f5f5] px-5 pt-5 pb-12 lg:px-10 lg:pt-7 lg:pb-12">
             <div className="max-w-7xl mx-auto">
                 {/* Feedback Toast */}
                 {feedbackMessage && (
-                    <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium rounded-md shadow-sm transition-all flex items-center justify-between">
+                    <div className="mb-5 flex items-center justify-between border-l-4 border-[#0078d4] bg-white px-4 py-3 text-xs font-medium text-[#323130] shadow-sm transition-all">
                         <span>{feedbackMessage}</span>
                         <button
                             type="button"
@@ -315,7 +315,7 @@ const Dashboard = () => {
                 )}
 
                 {/* Grid de Categorías con Drop Zones */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                     {categories.map((category) => {
                         const isHovered = activeDropCategory === category.id;
                         const config = CATEGORIES_CONFIG.find(c => c.id === category.id) || CATEGORIES_CONFIG[0];
@@ -326,19 +326,19 @@ const Dashboard = () => {
                                 onDragOver={(e) => handleDragOverCategory(e, category.id)}
                                 onDragLeave={(e) => handleDragLeaveCategory(e, category.id)}
                                 onDrop={(e) => handleDropOnCategory(e, category.id)}
-                                className={`flex flex-col p-2 rounded-xl transition-all duration-200 border-2 ${
-                                    isHovered ? `border-dashed border-blue-500 ${config.dropBg} scale-[1.01] shadow-lg` : 'border-transparent bg-transparent'
+                                className={`flex flex-col rounded-sm border p-3 transition-all duration-200 ${
+                                    isHovered ? `border-dashed border-[#0078d4] ${config.dropBg} shadow-md` : 'border-transparent bg-transparent'
                                 }`}
                             >
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className={`h-4 w-1 ${category.accent || config.accent} rounded-full`}></div>
-                                    <h2 className="text-sm font-normal text-black uppercase tracking-normal">{category.title}</h2>
+                                <div className="mb-4 flex items-center gap-3 border-b border-[#e1dfdd] pb-3">
+                                    <div className={`h-5 w-1 ${category.accent || config.accent}`}></div>
+                                    <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-[#323130]">{category.title}</h2>
                                 </div>
 
                                 <div className="space-y-3 min-h-[140px] flex flex-col">
                                     {category.items.length === 0 ? (
-                                        <div className="flex-1 flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-lg text-center bg-white/50">
-                                            <p className="text-[11px] text-slate-400 font-normal">Arrastra opciones aquí para fijarlas</p>
+                                        <div className="flex min-h-[140px] flex-1 flex-col items-center justify-center border border-dashed border-[#c8c6c4] bg-white p-6 text-center">
+                                            <p className="text-[11px] font-normal text-[#797775]">Arrastra opciones aquí para fijarlas</p>
                                         </div>
                                     ) : (
                                         <>
@@ -346,22 +346,22 @@ const Dashboard = () => {
                                                 <React.Fragment key={item.href || idx}>
                                                     {/* Indicador de posición de inserción */}
                                                     {dropTargetInfo?.categoryId === category.id && dropTargetInfo.index === idx && draggedItem && (
-                                                        <div className="h-0.5 bg-blue-500 rounded-full mx-1 shadow-sm shadow-blue-300" />
+                                                        <div className="mx-1 h-0.5 bg-[#0078d4]" />
                                                     )}
                                                     <div
                                                         draggable
                                                         onDragStart={(e) => handleDragStartCard(e, item, category.id, idx)}
                                                         onDragOver={(e) => handleDragOverItem(e, category.id, idx)}
                                                         onDragEnd={handleDragEnd}
-                                                        className={`group relative block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing select-none ${
-                                                            draggedItem?.item?.href === item.href ? 'opacity-30 scale-95' : ''
+                                                        className={`group relative block cursor-grab select-none rounded-sm border border-[#e1dfdd] bg-white p-4 transition-all duration-200 active:cursor-grabbing hover:border-[#8a8886] hover:shadow-md ${
+                                                            draggedItem?.item?.href === item.href ? 'scale-[0.98] opacity-30' : ''
                                                         }`}
                                                     >
                                                         <Link to={item.href} className="block pr-5">
-                                                            <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
+                                                            <div className="text-xs font-semibold tracking-normal text-[#323130] transition-colors group-hover:text-[#0078d4]">
                                                                 {item.text}
                                                             </div>
-                                                            <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
+                                                            <div className="mt-1 text-[11px] font-normal uppercase tracking-normal text-[#605e5c]">
                                                                 {item.desc}
                                                             </div>
                                                         </Link>
@@ -370,7 +370,7 @@ const Dashboard = () => {
                                                         <button
                                                             type="button"
                                                             onClick={(e) => unpinItem(e, item.href)}
-                                                            className="w-6 h-6 !p-0 absolute top-2 right-2 flex items-center justify-center text-slate-300 hover:text-red-600 rounded-md hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-pointer"
+                                                            className="absolute right-2 top-2 flex h-6 w-6 !p-0 cursor-pointer items-center justify-center rounded-sm text-[#a19f9d] opacity-0 transition-all duration-150 hover:bg-[#fde7e9] hover:text-[#a4262c] group-hover:opacity-100"
                                                             style={{ padding: 0, width: '24px', height: '24px', minWidth: '24px' }}
                                                             title="Retirar del Dashboard"
                                                             aria-label="Retirar del Dashboard"
@@ -384,7 +384,7 @@ const Dashboard = () => {
                                             ))}
                                             {/* Indicador al final de la lista */}
                                             {dropTargetInfo?.categoryId === category.id && dropTargetInfo.index === category.items.length && draggedItem && (
-                                                <div className="h-0.5 bg-blue-500 rounded-full mx-1 shadow-sm shadow-blue-300" />
+                                                        <div className="mx-1 h-0.5 bg-[#0078d4]" />
                                             )}
                                         </>
                                     )}
@@ -395,17 +395,17 @@ const Dashboard = () => {
                 </div>
 
                 {/* Footer con botón de Restaurar Distribución */}
-                <div className="mt-12 pt-6 border-t border-slate-200/80 flex items-center justify-end">
+                <div className="mt-10 flex items-center justify-end border-t border-[#e1dfdd] pt-5">
                     <button
                         type="button"
                         onClick={handleResetLayout}
-                        className="text-[11px] text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-[#8a8886] bg-white px-3 py-1.5 text-[11px] text-[#323130] shadow-sm transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e] active:scale-95"
                         title="Restaurar todas las tarjetas por defecto"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px', minWidth: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Restaurar Distribución por Defecto
+                        Restaurar
                     </button>
                 </div>
             </div>

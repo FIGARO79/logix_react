@@ -94,13 +94,13 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
     };
 
     return (
-        <div className="group/item flex items-center justify-between pr-2 hover:bg-white/5 transition-all">
+        <div className="group/item flex items-center justify-between pr-2 transition-all hover:bg-[#f0f0f0]">
             <Link
                 to={to}
                 draggable
                 onDragStart={handleDragStart}
-                className={`flex-grow flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] cursor-default
-                ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'border-transparent hover:border-blue-400/40'}`}
+                className={`flex-grow flex cursor-default items-center border-l-[4px] px-4 py-1 leading-tight transition-all
+                ${isActive ? 'border-[#0078d4] bg-[#eaeaea] font-semibold text-[#0078d4]' : 'border-transparent text-[#323130] hover:border-[#0078d4]/40'}`}
                 onClick={onClick}
                 title="Arrastra esta opción al Dashboard para fijarla"
             >
@@ -110,7 +110,7 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
             <button
                 type="button"
                 onClick={handleQuickPin}
-                className="opacity-0 group-hover/item:opacity-100 !p-0 inline-flex items-center justify-center text-slate-400 hover:text-amber-400 hover:bg-white/10 rounded transition-all cursor-pointer"
+                className="inline-flex h-[22px] w-[22px] min-w-[22px] cursor-pointer items-center justify-center rounded text-[#8a8886] opacity-0 transition-all hover:bg-[#eaeaea] hover:text-[#0078d4] group-hover/item:opacity-100 !p-0"
                 style={{ width: '22px', height: '22px', minWidth: '22px', padding: 0 }}
                 title="Fijar en Dashboard"
                 aria-label="Fijar en Dashboard"
@@ -378,11 +378,11 @@ const Layout = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
+        <div className="flex min-h-screen flex-col bg-[#f3f3f3] font-sans text-[#201f1e] print:block print:h-auto print:overflow-visible">
             {/* Header / Shell Bar */}
-            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden no-print border-none">
+            <header className="top-header sticky top-0 z-50 flex h-[48px] items-center gap-4 border-b border-[#e1dfdd] bg-white px-4 text-[#201f1e] shadow-sm print:hidden no-print">
                 <button
-                    className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
+                    className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
                     onClick={toggleMenu}
                     aria-label="Menú"
                 >
@@ -437,30 +437,30 @@ const Layout = () => {
 
                 <div className="header-actions flex items-center gap-3">
                     {pendingCount > 0 && (
-                        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-amber-500/20 text-white border border-amber-500/30 rounded text-[10px] font-medium cursor-pointer" onClick={syncPendingData}>
+                        <div className="hidden cursor-pointer items-center gap-1.5 rounded border border-[#f7c948] bg-[#fff4ce] px-2 py-1 text-[10px] font-medium text-[#323130] sm:flex" onClick={syncPendingData}>
                             {pendingCount} PENDIENTES
                         </div>
                     )}
-                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 border-red-500/30' : 'bg-emerald-500/20 border-emerald-500/30'}`}>
+                    <div className={`flex items-center gap-1.5 rounded-full border border-solid px-3 py-1 text-[9px] font-medium uppercase tracking-tight transition-all ${!isOnline ? 'border-[#d13438] bg-[#fde7e9] text-[#a4262c]' : 'border-[#107c41] bg-[#dff6dd] text-[#107c41]'}`}>
                         {!isOnline ? 'OFFLINE' : 'ONLINE'}
                     </div>
-                    <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
+                    <Link to="/admin/login" className="rounded border border-[#d2d0ce] px-3 py-1 text-[11px] font-medium uppercase tracking-tight text-[#605e5c] opacity-0 transition-all duration-200 hover:bg-[#f3f3f3] hover:text-[#201f1e] hover:opacity-100">Admin</Link>
                 </div>
             </header>
 
             {/* Sidebar Menu Sincronizado a 48px */}
             <div
-                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed left-0 z-[999] w-64 overflow-y-auto border-r border-[#e1dfdd] bg-[#f9f9f9] shadow-xl transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
                 <nav className="py-2">
                     <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1">Principal</div>
+                        <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Principal</div>
                         <MenuItem to="/dashboard" label="Inicio" desc="Panel principal y accesos rápidos" categoryId="recepcion" onClick={toggleMenu} />
                         <MenuItem to="/stock" label="Consultar Stock" desc="Búsqueda global de inventario y saldos" categoryId="recepcion" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Inbound</div>
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Operaciones Inbound</div>
                         <MenuItem to="/inbound" label="Recepción" desc="Entrada de mercancía y referencias" categoryId="recepcion" onClick={toggleMenu} />
                         <MenuItem to="/reconciliation" label="Conciliación" desc="Cruce de documentos y discrepancias" categoryId="recepcion" onClick={toggleMenu} />
                         <MenuItem to="/inbound/audit" label="Auditoría Agente" desc="Control de calidad y recepción física" categoryId="recepcion" onClick={toggleMenu} />
@@ -468,14 +468,14 @@ const Layout = () => {
                         <MenuItem to="/ir-reconciliation" label="Dashboard IR" desc="Estado general de Import References" categoryId="recepcion" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Outbound</div>
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Operaciones Outbound</div>
                         <MenuItem to="/picking" label="Picking" desc="Verificación de pedidos y empaque" categoryId="despacho" onClick={toggleMenu} />
                         <MenuItem to="/view_picking_audits" label="Empaque" desc="Listas de empaque y auditorías" categoryId="despacho" onClick={toggleMenu} />
                         <MenuItem to="/shipments" label="Despacho" desc="Gestión de despachos y embarques" categoryId="despacho" onClick={toggleMenu} />
                         <MenuItem to="/label" label="Etiquetado" desc="Impresión de etiquetas operativas" categoryId="despacho" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Control Inventario</div>
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Control Inventario</div>
                         <MenuItem to="/planner" label="Plan Cíclico" desc="Programación de conteos cíclicos" categoryId="inventario" onClick={toggleMenu} />
                         <MenuItem to="/inventory-dashboard" label="Métricas" desc="Indicadores de exactitud" categoryId="inventario" onClick={toggleMenu} />
                         <MenuItem to="/view_counts/recordings" label="Históricos" desc="Grabaciones y trazabilidad" categoryId="inventario" onClick={toggleMenu} />
@@ -487,13 +487,13 @@ const Layout = () => {
                         <MenuItem to="/spot-check" label="Spot Check" desc="Auditorías rápidas en piso" categoryId="inventario" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Sistema</div>
                         <MenuItem to="/admin/inventory" label="Adm. Inventario" desc="Control de ciclos de conteo" categoryId="admin" onClick={toggleMenu} />
                         <MenuItem to="/admin/slotting" label="Config. Slotting" desc="Parámetros de ubicaciones" categoryId="admin" onClick={toggleMenu} />
                         <MenuItem to="/occupancy" label="Ocupación Bodega" desc="Análisis de espacio y ubicaciones" categoryId="admin" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" desc="Actualización masiva vía ficheros" categoryId="admin" onClick={toggleMenu} />
                         <button
-                            className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left cursor-pointer"
+                            className="mt-2 flex w-full cursor-pointer items-center justify-start !justify-start border-l-[4px] border-transparent px-4 py-1 text-left text-[12px] font-semibold uppercase tracking-tight text-[#a4262c] transition-all hover:bg-[#fde7e9]"
                             style={{ justifyContent: 'flex-start' }}
                             onClick={async () => {
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
@@ -508,13 +508,13 @@ const Layout = () => {
 
             {/* Overlay Sincronizado a 48px */}
             <div
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] print:hidden no-print ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                className={`fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm transition-opacity print:hidden no-print ${isMenuOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}
                 style={{ top: '48px' }}
                 onClick={toggleMenu}
             ></div>
 
             {/* Main Content */}
-            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto bg-[#fafafa]">
+            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden bg-[#f3f3f3] print:h-auto print:overflow-visible">
                 <div className="w-full h-full">
                     {tabs.map(tab => (
                         <TabContentWrapper
