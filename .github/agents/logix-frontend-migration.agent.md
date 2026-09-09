@@ -27,6 +27,7 @@ The migration must preserve existing behavior, routes, API calls, permissions, o
 - Prefer the repository's existing inline SVG approach if no icon library is already used. Do not add an icon dependency just for styling.
 - Keep cards and panels restrained: small radius, subtle borders, light shadows, compact spacing, and no nested decorative cards.
 - Keep controls stable and responsive. Text must fit without overlap at desktop and mobile widths.
+- For label or print-related UI, respect the typography established in `frontend/src/components/labels/SandvikLabel.jsx`: use Arial/Helvetica, keep the 12pt bold header, 10pt data text, and 7pt footer text, and do not replace or scale this hierarchy without an explicit requirement.
 - Preserve the established light shell and neutral operational background. Do not introduce purple gradients, dark-mode-only surfaces, decorative blobs, or unrelated visual themes.
 - Do not add explanatory UI copy that merely describes the design or the implementation.
 

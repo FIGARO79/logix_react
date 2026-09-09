@@ -229,6 +229,13 @@ const Layout = () => {
         }
     }, [activeTabId]);
 
+    useEffect(() => {
+        const activeTab = tabs.find(tab => tab.id === activeTabId);
+        if (activeTab) {
+            setTitle(activeTab.label);
+        }
+    }, [activeTabId, tabs]);
+
     const activeTabIdRef = useRef(activeTabId);
     useEffect(() => {
         activeTabIdRef.current = activeTabId;
