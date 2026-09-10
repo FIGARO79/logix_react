@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const AdminInventory = () => {
     const { setTitle } = useOutletContext();
@@ -190,7 +191,7 @@ const AdminInventory = () => {
     }, [error]);
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
+        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
             {/* Barra de Acciones */}
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
@@ -459,7 +460,7 @@ const AdminInventory = () => {
 
                                 <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="bg-[#1e4a74] sticky top-0 z-10 shadow-sm text-white">
+                                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 {[
                                                     'Ítem',
@@ -597,11 +598,11 @@ const AdminInventory = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-zinc-200 bg-zinc-50 text-[11px] text-black uppercase font-normal">
-                                    <th className="p-3">ID</th>
-                                    <th className="p-3">Usuario Auditor</th>
-                                    <th className="p-3">Pasillos Asignados</th>
-                                    <th className="p-3 text-right">Acción</th>
+                                <tr className="border-b border-zinc-300 bg-zinc-100 text-[11px] text-zinc-800 uppercase font-semibold">
+                                    <th className="p-3 text-zinc-800">ID</th>
+                                    <th className="p-3 text-zinc-800">Usuario Auditor</th>
+                                    <th className="p-3 text-zinc-800">Pasillos Asignados</th>
+                                    <th className="p-3 text-right text-zinc-800">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-100">

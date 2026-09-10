@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import '../styles/FluentPages.css';
 
 const ConsolidatedPackingList = () => {
     const { id } = useParams();
@@ -90,13 +91,9 @@ const ConsolidatedPackingList = () => {
         <div className="flex justify-between items-end mb-3 text-sm print:gap-2 print:mb-2 border-b border-zinc-100 pb-1">
             <div className="flex-1">
                 <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
-                <span className="text-lg text-black font-medium ">
+                <span className="text-lg text-black font-medium">
                     {order.order_number} <span className="mx-1 text-gray-300">/</span> {order.despatch_number}
                 </span>
-            </div>
-            <div className="text-right">
-                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
-                <span className="text-2xl font-medium  text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
             </div>
         </div>
     );
@@ -155,7 +152,7 @@ const ConsolidatedPackingList = () => {
     const commonCustomerHeader = uniqueClients.join(' / ');
 
     return (
-        <div className="bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="consolidated-packing-list-page bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {

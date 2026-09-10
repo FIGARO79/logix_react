@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const InboundAudit = () => {
     const { setTitle } = useOutletContext();
@@ -167,7 +168,7 @@ const InboundAudit = () => {
     };
 
     return (
-        <div className="w-full px-6 py-6 font-sans">
+        <div className="inbound-audit-page w-full px-6 py-6 font-sans">
             {/* KPI Banner */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between">
@@ -286,7 +287,7 @@ const InboundAudit = () => {
             <div className="bg-white shadow-sm rounded-b-lg overflow-hidden border border-gray-200">
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
-                        <thead className="bg-slate-700 text-white">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                             <tr>
                                 {activeTab === 'pending' && (
                                     <th className="px-4 py-2 text-center font-medium w-10">

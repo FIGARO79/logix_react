@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const Planner = () => {
     const { setTitle } = useOutletContext();
@@ -199,7 +200,7 @@ const Planner = () => {
     );
 
     return (
-        <div className="container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
+        <div className="planner-page container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
@@ -267,12 +268,12 @@ const Planner = () => {
                     <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Resumen Categorías (ABC)</h3>
                     <table className="w-full border-collapse text-xs">
                         <thead>
-                            <tr className="bg-gray-200">
-                                <th className="border border-gray-400 px-2 py-1">Categoría</th>
-                                <th className="border border-gray-400 px-2 py-1">N° Items</th>
-                                <th className="border border-gray-400 px-2 py-1">Ciclos</th>
-                                <th className="border border-gray-400 px-2 py-1">Total Req</th>
-                                <th className="border border-gray-400 px-2 py-1">Items/Día</th>
+                            <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Categoría</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">N° Items</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Ciclos</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Total Req</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Items/Día</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -302,9 +303,9 @@ const Planner = () => {
                     <div className="flex gap-4">
                         <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
-                                <tr className="bg-[#34495e] text-white">
-                                    <th className="border border-gray-400 px-2 py-1 uppercase tracking-wider text-[10px]">Código</th>
-                                    <th className="border border-gray-400 px-2 py-1 uppercase tracking-wider text-[10px] w-32">Criterio (Hits)</th>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                    <th className="border border-zinc-300 px-2 py-1 uppercase tracking-wider text-[10px] text-zinc-800">Código</th>
+                                    <th className="border border-zinc-300 px-2 py-1 uppercase tracking-wider text-[10px] w-32 text-zinc-800">Criterio (Hits)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -343,12 +344,12 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
+                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">TOTAL</th>
+                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -369,13 +370,13 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
-                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
-                                    ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">W2W</th>
-                                </tr>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                     <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
+                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
+                                         <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
+                                     ))}
+                                     <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">W2W</th>
+                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
                                 {stats.executed && (
@@ -415,12 +416,12 @@ const Planner = () => {
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-1.5 text-left font-medium  min-w-[150px]">Categoria/Mes</th>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-gray-300 px-2 py-1.5 text-center font-medium ">{m}</th>
+                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
                                     ))}
-                                    <th className="border border-gray-300 px-2 py-1.5 text-center font-medium ">TOTAL</th>
+                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">

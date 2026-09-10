@@ -554,19 +554,19 @@ const Reconciliation = () => {
             }
         } catch (e) {
             console.error("Error al exportar conciliación desde historial:", e);
-            alert(`Error al exportar: ${e.message || e}`);
+            alert(`Error al exportar la conciliación: ${e.message}`);
         }
     };
 
     return (
-        <div className="reconciliation-page flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
+        <div className="reconciliation-page flex flex-col h-full bg-[#f9f9f9] text-[#201f1e] font-segoe-ui">
             {/* Barra de Filtros y Acciones */}
-            <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
-                <div className="flex flex-wrap items-center gap-2 bg-zinc-50/50 px-0 py-2 rounded-xl border border-zinc-100">
+            <div className="px-4 py-2.5 border-b border-[#d2d0ce] bg-white sticky top-0 z-30 shadow-xs">
+                <div className="flex flex-wrap items-center gap-2.5">
                     
                     {/* Selector de I.R. */}
                     <div className="w-44 flex flex-col">
-                        <label className="text-[11px] uppercase font-normal text-zinc-500 mb-0.5 tracking-tight">Import Ref (I.R.)</label>
+                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Import Ref (I.R.)</label>
                         <div className="relative">
                             <input
                                 list="ir-list"
@@ -577,7 +577,7 @@ const Reconciliation = () => {
                                     setSelectedIR(e.target.value.trim().toUpperCase());
                                     setSelectedGRN(''); // Reset GRN al cambiar IR
                                 }}
-                                className="w-full h-8 px-2 text-[11px] text-zinc-900 font-normal bg-white border border-zinc-200 rounded-lg outline-none uppercase focus:border-[#285f94]"
+                                className="w-full h-8 px-2 text-xs text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="ir-list">
                                 {availableIRs.map(ir => (
@@ -589,7 +589,7 @@ const Reconciliation = () => {
 
                     {/* Selector de GRN */}
                     <div className="w-40 flex flex-col">
-                        <label className="text-[11px] uppercase font-normal text-zinc-500 mb-0.5 tracking-tight">Número de GRN</label>
+                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Número de GRN</label>
                         <div className="relative">
                             <input
                                 list="grn-list"
@@ -597,7 +597,7 @@ const Reconciliation = () => {
                                 placeholder="TODAS LAS GRN"
                                 value={selectedGRN}
                                 onChange={(e) => setSelectedGRN(e.target.value.trim().toUpperCase())}
-                                className="w-full h-8 px-2 text-[11px] text-zinc-900 font-normal bg-white border border-zinc-200 rounded-lg outline-none uppercase focus:border-[#285f94]"
+                                className="w-full h-8 px-2 text-xs text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="grn-list">
                                 {availableGRNs.map(g => (
@@ -609,35 +609,21 @@ const Reconciliation = () => {
 
                     {/* Búsqueda General */}
                     <div className="flex-1 min-w-[200px] flex flex-col">
-                        <label className="text-[11px] uppercase font-normal text-zinc-500 mb-0.5 tracking-tight">Búsqueda Rápida</label>
+                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Búsqueda Rápida</label>
                         <div className="relative">
-                            <span style={{
-                                position: 'absolute',
-                                left: '8px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                pointerEvents: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                color: '#a1a1aa',
-                                zIndex: 2
-                            }}>
-                                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </span>
                             <input
                                 type="text"
-                                placeholder="BUSCAR ÍTEM, DESCRIPCIÓN, UBICACIÓN..."
-                                className="w-full h-8 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-zinc-900 font-normal uppercase tracking-wider"
-                                style={{ paddingLeft: '28px', paddingRight: filterText ? '28px' : '10px' }}
+                                placeholder="Buscar ítem, descripción, ubicación..."
+                                className="w-full h-8 px-2.5 text-xs bg-white border border-[#8a8886] rounded outline-none text-[#201f1e] font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                style={{ paddingRight: filterText ? '28px' : '10px' }}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
                             />
                             {filterText && (
                                 <button
                                     onClick={() => setFilterText('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-zinc-200 hover:bg-zinc-300 text-zinc-600 flex items-center justify-center text-[10px]"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#edebe9] hover:bg-[#d2d0ce] text-[#605e5c] flex items-center justify-center text-[10px]"
+                                    aria-label="Borrar búsqueda"
                                 >
                                     ✕
                                 </button>
@@ -656,7 +642,7 @@ const Reconciliation = () => {
                                     setFilterOnlyDiff(false);
                                     setFilterNoDiff(false);
                                 }}
-                                className="h-8 px-2.5 text-[11px] text-zinc-600 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors font-medium active:scale-95 flex items-center justify-center cursor-pointer"
+                                className="h-8 px-3 text-xs text-[#201f1e] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] rounded transition-colors font-normal cursor-pointer"
                             >
                                 Limpiar
                             </button>
@@ -664,15 +650,12 @@ const Reconciliation = () => {
                     )}
 
                     {/* Acciones Principales */}
-                    <div className="flex items-center gap-1.5 ml-auto self-end">
+                    <div className="flex items-center gap-2 ml-auto self-end">
                         {/* Botón Historial Guardado */}
                         <button
                             onClick={handleOpenHistory}
-                            className="h-8 px-3 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 hover:bg-zinc-50 transition-colors cursor-pointer"
+                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors cursor-pointer shadow-xs"
                         >
-                            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                            </svg>
                             Historial Guardado
                         </button>
 
@@ -680,11 +663,8 @@ const Reconciliation = () => {
                         <button
                             onClick={() => setShowSaveModal(true)}
                             disabled={filteredBySelectors.length === 0}
-                            className="h-8 px-3.5 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                            className="h-8 px-3.5 text-xs text-white bg-[#0078d4] hover:bg-[#106ebe] border border-transparent rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                         >
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
                             Guardar Conciliación
                         </button>
 
@@ -692,46 +672,40 @@ const Reconciliation = () => {
                         <button
                             onClick={handleExport}
                             disabled={loading || rawData.length === 0}
-                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                            style={{ background: '#285f94' }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                            onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs whitespace-nowrap"
                         >
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
-                            </svg>
                             Exportar Excel
                         </button>
                     </div>
                 </div>
 
                 {/* Banner de Resumen de Conciliación Seleccionada */}
-                <div className="flex flex-wrap items-center gap-4 bg-white px-3 py-1.5 mt-1 rounded-lg border border-zinc-200/80 text-[11px]">
-                    <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 uppercase">Líneas:</span>
-                        <span className="font-normal text-zinc-800">{reconciliationSummary.totalLines}</span>
+                <div className="flex flex-wrap items-center gap-4 bg-[#f9f9f9] px-3 py-1.5 mt-2 rounded border border-[#d2d0ce] text-xs">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#605e5c] font-normal">Líneas:</span>
+                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalLines}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 uppercase">Cant. Esperada:</span>
-                        <span className="font-normal text-zinc-800">{reconciliationSummary.totalExp}</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#605e5c] font-normal">Cant. Esperada:</span>
+                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalExp}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 uppercase">Cant. Recibida:</span>
-                        <span className="font-normal text-zinc-800">{reconciliationSummary.totalRec}</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#605e5c] font-normal">Cant. Recibida:</span>
+                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalRec}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-zinc-400 uppercase">Diferencia Neta:</span>
-                        <span className={`font-normal ${reconciliationSummary.totalDiff > 0 ? 'text-blue-600' : reconciliationSummary.totalDiff < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#605e5c] font-normal">Diferencia Neta:</span>
+                        <span className={`font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                             {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                         </span>
                     </div>
 
                     {/* Separador */}
-                    <div className="h-4 w-px bg-zinc-200 hidden sm:block"></div>
+                    <div className="h-3.5 w-px bg-[#d2d0ce] hidden sm:block"></div>
 
                     {/* Filtros de Diferencia */}
                     <div className="flex items-center gap-3">
-                        <label htmlFor="filter-only-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-zinc-700 hover:text-zinc-900 font-normal">
+                        <label htmlFor="filter-only-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-[#201f1e] font-normal">
                             <input
                                 id="filter-only-diff"
                                 type="checkbox"
@@ -741,15 +715,15 @@ const Reconciliation = () => {
                                     setFilterOnlyDiff(checked);
                                     if (checked) setFilterNoDiff(false);
                                 }}
-                                className="w-3.5 h-3.5 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
                             />
-                            <span className="uppercase text-[10.5px]">Solo Diferencias</span>
-                            <span className={`px-1.5 py-0.2 text-[10px] rounded font-normal ${filterOnlyDiff ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-zinc-100 text-zinc-600 border border-zinc-200'}`}>
+                            <span>Solo Diferencias</span>
+                            <span className="px-1.5 py-0.2 text-[11px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
                                 {diffStats.withDiff}
                             </span>
                         </label>
 
-                        <label htmlFor="filter-no-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-zinc-700 hover:text-zinc-900 font-normal">
+                        <label htmlFor="filter-no-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-[#201f1e] font-normal">
                             <input
                                 id="filter-no-diff"
                                 type="checkbox"
@@ -759,10 +733,10 @@ const Reconciliation = () => {
                                     setFilterNoDiff(checked);
                                     if (checked) setFilterOnlyDiff(false);
                                 }}
-                                className="w-3.5 h-3.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
                             />
-                            <span className="uppercase text-[10.5px]">Sin Diferencias</span>
-                            <span className={`px-1.5 py-0.2 text-[10px] rounded font-normal ${filterNoDiff ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-zinc-100 text-zinc-600 border border-zinc-200'}`}>
+                            <span>Sin Diferencias</span>
+                            <span className="px-1.5 py-0.2 text-[11px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
                                 {diffStats.withoutDiff}
                             </span>
                         </label>
@@ -770,10 +744,7 @@ const Reconciliation = () => {
 
                     {reconciliationSummary.diffLines > 0 && (
                         <div className="flex items-center gap-1.5 ml-auto">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-normal bg-amber-50 text-amber-800 border border-amber-200">
-                                <svg className="w-3 h-3 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
+                            <span className="px-2 py-0.5 rounded text-[11px] font-normal bg-[#fff4ce] text-[#797673] border border-[#d2d0ce]">
                                 {reconciliationSummary.diffLines} línea(s) con discrepancia ({reconciliationSummary.justifiedLines} justificadas)
                             </span>
                         </div>
@@ -783,42 +754,40 @@ const Reconciliation = () => {
 
             {/* Tabla Principal de Conciliación */}
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
-                <div className="bg-white border border-zinc-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1">
+                <div className="bg-white border border-[#d2d0ce] shadow-xs overflow-hidden flex flex-col flex-1 rounded">
                     {loading ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-zinc-400 text-sm font-normal">
+                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-[#605e5c] text-xs font-normal">
                             Cargando datos de conciliación...
                         </div>
                     ) : (
                         <>
                             <div className="overflow-auto max-h-[68vh]">
-                                <table className="w-full text-left border-separate border-spacing-0 font-normal">
+                                <table className="w-full text-left border-collapse font-normal">
                                     <thead className="sticky top-0 z-20 font-normal">
-                                        <tr style={{ background: '#354a5f' }} className="font-normal">
+                                        <tr className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce] font-normal">
                                             {[
                                                 { id: 'Import_Reference', label: 'I.R.' },
-                                                { id: 'Waybill', label: 'WAYBILL' },
+                                                { id: 'Waybill', label: 'Waybill' },
                                                 { id: 'GRN', label: 'GRN' },
-                                                { id: 'Order_Line', label: 'LÍNEA' },
-                                                { id: 'Codigo_Item', label: 'CODIGO ITEM' },
-                                                { id: 'Descripcion', label: 'DESCRIPCION' },
-                                                { id: 'Ubicacion', label: 'UBICACION' },
-                                                { id: 'Reubicado', label: 'REUBICADO' },
-                                                { id: 'Cant_Esperada', label: 'CANT ESPERADA' },
-                                                { id: 'Cant_Recibida', label: 'CANT RECIBIDA' },
-                                                { id: 'Diferencia', label: 'DIFERENCIA' },
-                                                { id: 'Motivo', label: 'MOTIVO / OBSERVACION' },
-                                                { id: 'Timestamp', label: 'FECHA' },
-                                                { id: 'Acciones', label: 'ACCIONES' }
+                                                { id: 'Order_Line', label: 'Línea' },
+                                                { id: 'Codigo_Item', label: 'Código Ítem' },
+                                                { id: 'Descripcion', label: 'Descripción' },
+                                                { id: 'Ubicacion', label: 'Ubicación' },
+                                                { id: 'Reubicado', label: 'Reubicado' },
+                                                { id: 'Cant_Esperada', label: 'Cant. Esperada' },
+                                                { id: 'Cant_Recibida', label: 'Cant. Recibida' },
+                                                { id: 'Diferencia', label: 'Diferencia' },
+                                                { id: 'Motivo', label: 'Motivo / Observación' },
+                                                { id: 'Timestamp', label: 'Fecha' },
+                                                { id: 'Acciones', label: 'Acciones' }
                                             ].map((head) => (
                                                 <th
                                                     key={head.id}
                                                     onClick={() => !['Acciones', 'Motivo'].includes(head.id) && requestSort(head.id)}
-                                                    className={`px-3 py-2 text-[12px] font-normal text-white/90 ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none' : ''} whitespace-nowrap uppercase tracking-wider transition-colors`}
-                                                    style={{ borderRight: '1px solid rgba(255,255,255,0.08)', fontWeight: 'normal' }}
-                                                    onMouseEnter={e => !['Acciones', 'Motivo'].includes(head.id) && (e.currentTarget.style.background = '#2a3c4e')}
-                                                    onMouseLeave={e => !['Acciones', 'Motivo'].includes(head.id) && (e.currentTarget.style.background = '')}
+                                                    className={`px-3 py-2 text-xs font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
+                                                    style={{ borderRight: '1px solid #edebe9' }}
                                                 >
-                                                    <div className="flex items-center gap-1 justify-center">
+                                                    <div className="flex items-center gap-1">
                                                         {head.label}
                                                         {!['Acciones', 'Motivo'].includes(head.id) && getSortIcon(head.id)}
                                                     </div>
@@ -826,7 +795,7 @@ const Reconciliation = () => {
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="font-normal">
+                                    <tbody className="font-normal divide-y divide-[#edebe9]">
                                         {finalDisplayData.length > 0 ? (
                                             finalDisplayData.map((row, idx) => {
                                                 const hasDiff = Math.abs(row.Diferencia || 0) > 0.0001;
@@ -835,44 +804,38 @@ const Reconciliation = () => {
                                                 return (
                                                     <tr
                                                         key={idx}
-                                                        className="transition-colors hover:z-10 relative"
-                                                        style={{ background: idx % 2 === 0 ? '#fff' : '#fcfcfc' }}
-                                                        onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
-                                                        onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fcfcfc'}
+                                                        className="hover:bg-[#f3f9fd] transition-colors"
                                                     >
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900 text-center" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Order_Line || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap tracking-tight" style={{ borderBottom: '1px solid #f1f1f1', color: '#1e4a74' }}>{row.Codigo_Item}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm truncate max-w-[260px] text-zinc-900 tracking-tight" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Reubicado || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-center text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Esperada}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-center text-zinc-900" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Cant_Recibida}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-center" style={{ borderBottom: '1px solid #f1f1f1', color: row.Diferencia > 0 ? '#1e4a74' : row.Diferencia < 0 ? '#dc2626' : '#18181b' }}>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Import_Reference}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Waybill}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.GRN}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e] text-center">{row.Order_Line || '-'}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap font-mono text-[#0078d4]">{row.Codigo_Item}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs truncate max-w-[260px] text-[#201f1e]">{row.Descripcion}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Ubicacion || '-'}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Reubicado || '-'}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Esperada}</td>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Recibida}</td>
+                                                        <td className={`px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center font-mono ${row.Diferencia < 0 ? 'text-[#a4262c]' : row.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                         </td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm max-w-[200px] truncate text-zinc-700" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                        <td className="px-3 py-1.5 font-normal text-xs max-w-[200px] truncate text-[#605e5c]">
                                                             {row.Motivo_Diferencia ? (
-                                                                 <span className="inline-flex items-center gap-1 text-xs bg-sky-50 text-sky-800 px-1.5 py-0.5 rounded border border-sky-200 font-normal">
+                                                                <span className="inline-block text-[11px] bg-[#f3f3f3] text-[#201f1e] px-2 py-0.5 rounded border border-[#d2d0ce] font-normal">
                                                                     <span className="truncate">{row.Motivo_Diferencia}</span>
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-zinc-400">-</span>
+                                                                <span className="text-[#605e5c]">-</span>
                                                             )}
                                                         </td>
-                                                        <td className="px-3 py-1.5 font-normal text-sm whitespace-nowrap text-zinc-600" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#605e5c]">
                                                             {formatDateShort(row.Timestamp)}
                                                         </td>
-                                                        <td className="px-2 py-1.5 font-normal text-sm whitespace-nowrap text-center" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                        <td className="px-2 py-1.5 font-normal text-xs whitespace-nowrap text-center">
                                                             <button
                                                                 onClick={() => handleOpenEditRow(row)}
-                                                                className={`h-6 px-2 text-xs rounded flex items-center gap-1 font-normal transition-colors cursor-pointer ${hasDiff || hasEdit ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'}`}
+                                                                className={`h-6 px-2.5 text-xs rounded font-normal transition-colors cursor-pointer border ${hasEdit ? 'bg-[#eff6fc] text-[#0078d4] border-[#c7e0f4] hover:bg-[#deecf9]' : hasDiff ? 'bg-white text-[#0078d4] border-[#d2d0ce] hover:bg-[#f3f3f3]' : 'bg-white text-[#201f1e] border-[#d2d0ce] hover:bg-[#f3f3f3]'}`}
                                                             >
-                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                </svg>
                                                                 <span>{hasEdit ? 'Justificado' : 'Editar'}</span>
                                                             </button>
                                                         </td>
@@ -881,7 +844,7 @@ const Reconciliation = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan={14} className="px-4 py-20 text-center text-zinc-400 text-sm font-normal">
+                                                <td colSpan={14} className="px-4 py-20 text-center text-[#605e5c] text-xs font-normal">
                                                     No se encontraron registros para los filtros seleccionados
                                                 </td>
                                             </tr>
@@ -891,16 +854,16 @@ const Reconciliation = () => {
                             </div>
 
                             {/* Footer de estado */}
-                            <div className="flex items-center gap-3 px-4 py-2 border-t border-zinc-100 bg-white text-[10px] text-zinc-500">
-                                <span>Mostrando <span className="font-normal text-zinc-700">{finalDisplayData.length}</span> de <span className="font-normal text-zinc-700">{rawData.length}</span> registros totales</span>
+                            <div className="flex items-center gap-3 px-4 py-2 border-t border-[#edebe9] bg-[#f9f9f9] text-xs text-[#605e5c]">
+                                <span>Mostrando <span className="font-normal text-[#201f1e]">{finalDisplayData.length}</span> de <span className="font-normal text-[#201f1e]">{rawData.length}</span> registros totales</span>
                                 {!isOfflineData ? (
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#107c10] inline-block"></span>
                                         Datos en tiempo real
                                     </span>
                                 ) : (
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#ca5010] inline-block"></span>
                                         Datos sin conexión
                                     </span>
                                 )}
@@ -912,63 +875,59 @@ const Reconciliation = () => {
 
             {/* MODAL 1: Justificar / Editar Diferencia de Ítem */}
             {editingRow && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-zinc-200">
-                        <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between" style={{ background: '#354a5f' }}>
-                            <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                <h3 className="text-[13px] font-normal text-white uppercase tracking-tight">
-                                    Conciliar / Editar Diferencia de Ítem
-                                </h3>
-                            </div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+                    <div className="bg-white rounded border border-[#d2d0ce] shadow-2xl max-w-lg w-full overflow-hidden">
+                        <div className="px-5 py-3 border-b border-[#d2d0ce] bg-[#f3f3f3] flex items-center justify-between">
+                            <h3 className="text-sm font-normal text-[#201f1e]">
+                                Conciliar / Editar Diferencia de Ítem
+                            </h3>
                             <button
                                 onClick={() => setEditingRow(null)}
-                                className="text-white/80 hover:text-white text-lg font-normal"
+                                className="text-[#605e5c] hover:text-[#201f1e] text-base font-normal cursor-pointer"
+                                aria-label="Cerrar"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveRowEdit} className="p-5 space-y-4 text-[11px]">
+                        <form onSubmit={handleSaveRowEdit} className="p-5 space-y-4 text-xs">
                             {/* Resumen del Ítem */}
-                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 grid grid-cols-2 gap-2">
+                            <div className="bg-[#f9f9f9] p-3 rounded border border-[#d2d0ce] grid grid-cols-2 gap-2">
                                 <div>
-                                    <span className="text-zinc-500 block text-[9px] uppercase font-normal">Ítem:</span>
-                                    <span className="font-normal text-[#1e4a74] text-[12px]">{editingRow.Codigo_Item}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Ítem:</span>
+                                    <span className="font-mono text-[#0078d4] text-xs">{editingRow.Codigo_Item}</span>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-500 block text-[9px] uppercase font-normal">Línea 280 / PO:</span>
-                                    <span className="font-normal text-zinc-800">{editingRow.Order_Line || '-'}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Línea PO:</span>
+                                    <span className="font-normal text-[#201f1e]">{editingRow.Order_Line || '-'}</span>
                                 </div>
                                 <div className="col-span-2">
-                                    <span className="text-zinc-500 block text-[9px] uppercase font-normal">Descripción:</span>
-                                    <span className="text-zinc-800">{editingRow.Descripcion}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Descripción:</span>
+                                    <span className="text-[#201f1e]">{editingRow.Descripcion}</span>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-500 block text-[9px] uppercase font-normal">GRN:</span>
-                                    <span className="font-normal text-zinc-800">{editingRow.GRN}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">GRN:</span>
+                                    <span className="font-normal text-[#201f1e]">{editingRow.GRN}</span>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-500 block text-[9px] uppercase font-normal">I.R. / Waybill:</span>
-                                    <span className="font-normal text-zinc-800">{editingRow.Import_Reference} / {editingRow.Waybill}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">I.R. / Waybill:</span>
+                                    <span className="font-normal text-[#201f1e]">{editingRow.Import_Reference} / {editingRow.Waybill}</span>
                                 </div>
                             </div>
 
                             {/* Comparación de Cantidades */}
-                            <div className="grid grid-cols-3 gap-2 bg-sky-50/60 p-3 rounded-lg border border-sky-100 text-center">
+                            <div className="grid grid-cols-3 gap-2 bg-[#f9f9f9] p-3 rounded border border-[#d2d0ce] text-center">
                                 <div>
-                                    <span className="text-sky-900 block text-[9px] uppercase font-normal">Esperada</span>
-                                    <span className="text-sm font-normal text-zinc-800">{editingRow.Cant_Esperada}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Esperada</span>
+                                    <span className="text-sm font-normal text-[#201f1e]">{editingRow.Cant_Esperada}</span>
                                 </div>
                                 <div>
-                                    <span className="text-sky-900 block text-[9px] uppercase font-normal">Recibida Actual</span>
-                                    <span className="text-sm font-normal text-zinc-800">{editingRow.Cant_Recibida}</span>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Recibida Actual</span>
+                                    <span className="text-sm font-normal text-[#201f1e]">{editingRow.Cant_Recibida}</span>
                                 </div>
                                 <div>
-                                    <span className="text-sky-900 block text-[9px] uppercase font-normal">Diferencia</span>
-                                    <span className={`text-sm font-normal ${editingRow.Diferencia > 0 ? 'text-blue-600' : editingRow.Diferencia < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                    <span className="text-[#605e5c] block text-[11px] font-normal">Diferencia</span>
+                                    <span className={`text-sm font-mono font-normal ${editingRow.Diferencia < 0 ? 'text-[#a4262c]' : editingRow.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                         {editingRow.Diferencia > 0 ? `+${editingRow.Diferencia}` : editingRow.Diferencia}
                                     </span>
                                 </div>
@@ -976,7 +935,7 @@ const Reconciliation = () => {
 
                             {/* Campo de Rectificación de Cantidad */}
                             <div>
-                                <label className="block text-[10px] font-normal uppercase text-zinc-700 mb-1">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1">
                                     Cantidad Recibida Confirmada / Rectificada:
                                 </label>
                                 <input
@@ -984,22 +943,22 @@ const Reconciliation = () => {
                                     step="any"
                                     value={editRectifiedQty}
                                     onChange={(e) => setEditRectifiedQty(e.target.value)}
-                                    className="w-full h-8 px-2 text-[12px] bg-white border border-zinc-200 rounded-lg outline-none font-normal focus:border-[#285f94]"
+                                    className="w-full h-8 px-2 text-xs bg-white border border-[#8a8886] rounded outline-none font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                 />
-                                <span className="text-[9px] text-zinc-500 mt-0.5 block">
+                                <span className="text-[11px] text-[#605e5c] mt-0.5 block">
                                     Ajuste este valor si se realizó un reconteo físico directo del ítem.
                                 </span>
                             </div>
 
                             {/* Selector de Motivo de Diferencia */}
                             <div>
-                                <label className="block text-[10px] font-normal uppercase text-zinc-700 mb-1">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1">
                                     Motivo de la Discrepancia:
                                 </label>
                                 <select
                                     value={editReason}
                                     onChange={(e) => setEditReason(e.target.value)}
-                                    className="w-full h-8 px-2 text-[11px] bg-white border border-zinc-200 rounded-lg outline-none font-normal focus:border-[#285f94]"
+                                    className="w-full h-8 px-2 text-xs bg-white border border-[#8a8886] rounded outline-none font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                 >
                                     <option value="">-- Seleccionar Motivo --</option>
                                     <option value="Sin Diferencia / Conforme">Sin Diferencia / Conforme</option>
@@ -1015,7 +974,7 @@ const Reconciliation = () => {
 
                             {/* Campo de Observaciones */}
                             <div>
-                                <label className="block text-[10px] font-normal uppercase text-zinc-700 mb-1">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1">
                                     Observación / Justificación del Operador:
                                 </label>
                                 <textarea
@@ -1023,16 +982,16 @@ const Reconciliation = () => {
                                     placeholder="Detalle o nota explicativa para la auditoría..."
                                     value={editComment}
                                     onChange={(e) => setEditComment(e.target.value)}
-                                    className="w-full p-2 text-[11px] bg-white border border-zinc-200 rounded-lg outline-none focus:border-[#285f94]"
+                                    className="w-full p-2 text-xs bg-white border border-[#8a8886] rounded outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                 />
                             </div>
 
                             {/* Botones de Acción */}
-                            <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+                            <div className="flex items-center justify-between pt-2 border-t border-[#edebe9]">
                                 <button
                                     type="button"
                                     onClick={handleClearRowEdit}
-                                    className="px-3 py-1.5 text-[10px] font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                    className="px-3 py-1.5 text-xs font-normal text-[#a4262c] bg-white hover:bg-[#fde7e9] border border-[#d2d0ce] hover:border-[#f3b2b6] rounded transition-colors cursor-pointer"
                                 >
                                     Restablecer Original
                                 </button>
@@ -1040,14 +999,13 @@ const Reconciliation = () => {
                                     <button
                                         type="button"
                                         onClick={() => setEditingRow(null)}
-                                        className="px-3 py-1.5 text-[10px] font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                                        className="px-3.5 py-1.5 text-xs font-normal text-[#201f1e] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] rounded transition-colors cursor-pointer"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-1.5 text-[10px] font-medium text-white rounded-lg shadow-sm"
-                                        style={{ background: '#285f94' }}
+                                        className="px-4 py-1.5 text-xs font-normal text-white bg-[#0078d4] hover:bg-[#106ebe] border border-transparent rounded shadow-xs cursor-pointer transition-colors"
                                     >
                                         Guardar Justificación
                                     </button>
@@ -1060,64 +1018,57 @@ const Reconciliation = () => {
 
             {/* MODAL 2: Guardar Conciliación Snapshot en BD */}
             {showSaveModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-zinc-200">
-                        <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between bg-emerald-700">
-                            <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                                </svg>
-                                <h3 className="text-[13px] font-normal text-white uppercase tracking-tight">
-                                    Guardar Conciliación Permanente
-                                </h3>
-                            </div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+                    <div className="bg-white rounded border border-[#d2d0ce] shadow-2xl max-w-md w-full overflow-hidden">
+                        <div className="px-5 py-3 border-b border-[#d2d0ce] bg-[#f3f3f3] flex items-center justify-between">
+                            <h3 className="text-sm font-normal text-[#201f1e]">
+                                Guardar Conciliación Permanente
+                            </h3>
                             <button
                                 onClick={() => setShowSaveModal(false)}
-                                className="text-white/80 hover:text-white text-lg font-normal"
+                                className="text-[#605e5c] hover:text-[#201f1e] text-base font-normal cursor-pointer"
+                                aria-label="Cerrar"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <div className="p-5 space-y-4 text-[11px]">
+                        <div className="p-5 space-y-4 text-xs">
                             {saveSuccessMsg ? (
-                                <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200 text-center font-normal flex flex-col items-center">
-                                    <svg className="w-7 h-7 text-emerald-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                <div className="bg-[#dff6dd] text-[#107c10] p-4 rounded border border-[#a19f9d]/30 text-center font-normal">
                                     <p>{saveSuccessMsg}</p>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-zinc-600">
-                                        Se guardará una fotografía histórica completa de la conciliación en la base de datos. Aunque se elimine o actualice el archivo 280, estos registros permanecerán intactos para auditoría.
+                                    <p className="text-[#605e5c] leading-relaxed font-normal">
+                                        Se guardará una fotografía histórica completa de la conciliación en la base de datos para fines de auditoría.
                                     </p>
 
                                     {/* Resumen a Guardar */}
-                                    <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-1.5">
+                                    <div className="bg-[#f9f9f9] p-3 rounded border border-[#d2d0ce] space-y-1.5">
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">GRN a Conciliar:</span>
-                                            <span className="font-normal text-zinc-900">{selectedGRN || 'TODAS LAS VISIBLES'}</span>
+                                            <span className="text-[#605e5c] font-normal text-[11px]">GRN a Conciliar:</span>
+                                            <span className="font-normal text-[#201f1e]">{selectedGRN || 'TODAS LAS VISIBLES'}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">Import Reference:</span>
-                                            <span className="font-normal text-zinc-800">{selectedIR || 'TODAS LAS VISIBLES'}</span>
+                                            <span className="text-[#605e5c] font-normal text-[11px]">Import Reference:</span>
+                                            <span className="font-normal text-[#201f1e]">{selectedIR || 'TODAS LAS VISIBLES'}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">Total Líneas:</span>
-                                            <span className="font-normal text-zinc-800">{reconciliationSummary.totalLines}</span>
+                                            <span className="text-[#605e5c] font-normal text-[11px]">Total Líneas:</span>
+                                            <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalLines}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">Cant. Esperada:</span>
-                                            <span className="font-normal text-zinc-800">{reconciliationSummary.totalExp}</span>
+                                            <span className="text-[#605e5c] font-normal text-[11px]">Cant. Esperada:</span>
+                                            <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalExp}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">Cant. Recibida:</span>
-                                            <span className="font-normal text-zinc-800">{reconciliationSummary.totalRec}</span>
+                                            <span className="text-[#605e5c] font-normal text-[11px]">Cant. Recibida:</span>
+                                            <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalRec}</span>
                                         </div>
-                                        <div className="flex justify-between border-t border-zinc-200 pt-1">
-                                            <span className="text-zinc-500 uppercase font-normal text-[10px]">Diferencia Neta:</span>
-                                            <span className={`font-normal ${reconciliationSummary.totalDiff > 0 ? 'text-blue-600' : reconciliationSummary.totalDiff < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                        <div className="flex justify-between border-t border-[#edebe9] pt-1">
+                                            <span className="text-[#605e5c] font-normal text-[11px]">Diferencia Neta:</span>
+                                            <span className={`font-mono font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                 {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                                             </span>
                                         </div>
@@ -1125,7 +1076,7 @@ const Reconciliation = () => {
 
                                     {/* Campo de Notas */}
                                     <div>
-                                        <label className="block text-[10px] font-normal uppercase text-zinc-700 mb-1">
+                                        <label className="block text-xs font-normal text-[#201f1e] mb-1">
                                             Notas Generales de la Conciliación (Opcional):
                                         </label>
                                         <textarea
@@ -1133,16 +1084,16 @@ const Reconciliation = () => {
                                             placeholder="Observaciones de cierre, número de acta, etc..."
                                             value={saveNotes}
                                             onChange={(e) => setSaveNotes(e.target.value)}
-                                            className="w-full p-2 text-[11px] bg-white border border-zinc-200 rounded-lg outline-none focus:border-emerald-600"
+                                            className="w-full p-2 text-xs bg-white border border-[#8a8886] rounded outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                         />
                                     </div>
 
                                     {/* Botones */}
-                                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#edebe9]">
                                         <button
                                             type="button"
                                             onClick={() => setShowSaveModal(false)}
-                                            className="px-3 py-1.5 text-[10px] font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                                            className="px-3.5 py-1.5 text-xs font-normal text-[#201f1e] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] rounded transition-colors cursor-pointer"
                                         >
                                             Cancelar
                                         </button>
@@ -1150,7 +1101,7 @@ const Reconciliation = () => {
                                             type="button"
                                             onClick={handleConfirmSaveReconciliation}
                                             disabled={isSaving}
-                                            className="px-4 py-1.5 text-[10px] font-medium text-white rounded-lg shadow-sm bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                            className="px-4 py-1.5 text-xs font-normal text-white rounded shadow-xs bg-[#0078d4] hover:bg-[#106ebe] border border-transparent transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {isSaving ? 'Guardando en BD...' : 'Confirmar y Guardar'}
                                         </button>
@@ -1164,23 +1115,19 @@ const Reconciliation = () => {
 
             {/* MODAL 3: Historial de Conciliaciones Guardadas */}
             {showHistoryModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-[92vw] max-h-[85vh] overflow-hidden border border-zinc-200 flex flex-col">
-                        <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between" style={{ background: '#354a5f' }}>
-                            <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                </svg>
-                                <h3 className="text-[13px] font-normal text-white uppercase tracking-tight">
-                                    Historial de Conciliaciones Guardadas
-                                </h3>
-                            </div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+                    <div className="bg-white rounded border border-[#d2d0ce] shadow-2xl w-full max-w-[92vw] max-h-[85vh] overflow-hidden flex flex-col">
+                        <div className="px-5 py-3 border-b border-[#d2d0ce] bg-[#f3f3f3] flex items-center justify-between">
+                            <h3 className="text-sm font-normal text-[#201f1e]">
+                                Historial de Conciliaciones Guardadas
+                            </h3>
                             <button
                                 onClick={() => {
                                     setShowHistoryModal(false);
                                     setViewingDetail(null);
                                 }}
-                                className="text-white/80 hover:text-white text-lg font-normal"
+                                className="text-[#605e5c] hover:text-[#201f1e] text-base font-normal cursor-pointer"
+                                aria-label="Cerrar"
                             >
                                 ✕
                             </button>
@@ -1189,46 +1136,43 @@ const Reconciliation = () => {
                         <div className="p-4 flex-1 overflow-auto">
                             {viewingDetail ? (
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                    <div className="flex items-center justify-between pb-2 border-b border-[#edebe9]">
                                         <div>
                                             <button
                                                 onClick={() => setViewingDetail(null)}
-                                                className="text-[11px] font-medium text-[#285f94] hover:underline flex items-center gap-1 mb-1 cursor-pointer"
+                                                className="text-xs font-normal text-[#0078d4] hover:underline flex items-center gap-1 mb-1 cursor-pointer"
                                             >
                                                 ← Volver al listado
                                             </button>
-                                            <h4 className="text-[13px] font-normal text-zinc-900">
+                                            <h4 className="text-sm font-normal text-[#201f1e]">
                                                 Conciliación GRN: {viewingDetail.header.grn_number} (IR: {viewingDetail.header.import_reference})
                                             </h4>
-                                            <p className="text-[10px] text-zinc-500">
+                                            <p className="text-[11px] text-[#605e5c]">
                                                 Fecha: {formatDateShort(viewingDetail.header.reconciled_at)} | Operador: {viewingDetail.header.reconciled_by}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className={`px-2.5 py-1 rounded text-[10px] font-normal ${viewingDetail.header.status === 'CONCILIADO_OK' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                            <span className="px-2 py-0.5 rounded text-[11px] font-normal border border-[#d2d0ce] bg-[#f3f3f3] text-[#201f1e]">
                                                 {viewingDetail.header.status}
                                             </span>
                                             <button
                                                 onClick={() => handleExportSavedDetail(viewingDetail)}
-                                                className="px-2.5 py-1 text-[10px] font-medium text-white rounded-lg shadow-sm bg-[#285f94] hover:bg-[#1e4a74] transition-colors flex items-center gap-1.5 cursor-pointer"
+                                                className="px-3 py-1 text-xs font-normal text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded shadow-xs transition-colors cursor-pointer"
                                                 title="Exportar esta conciliación a Excel"
                                             >
-                                                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
-                                                </svg>
                                                 Exportar Excel
                                             </button>
                                         </div>
                                     </div>
 
                                     {/* Tabla de ítems guardados en la foto */}
-                                    <div className="overflow-x-auto border border-zinc-200 rounded-lg">
-                                        <table className="w-full table-fixed text-left text-[11px]">
-                                            <thead className="bg-zinc-100 text-zinc-700 font-normal sticky top-0">
+                                    <div className="overflow-x-auto border border-[#d2d0ce] rounded">
+                                        <table className="w-full table-fixed text-left text-xs border-collapse">
+                                            <thead className="bg-[#f3f3f3] text-[#201f1e] font-semibold border-b border-[#d2d0ce] sticky top-0">
                                                 <tr>
                                                     <th className="px-2 py-1.5">Línea</th>
                                                     <th className="px-2 py-1.5">Ítem</th>
-                                                        <th className="px-2 py-1.5 w-[18%]">Descripción</th>
+                                                    <th className="px-2 py-1.5 w-[22%]">Descripción</th>
                                                     <th className="px-2 py-1.5">Ubicación</th>
                                                     <th className="px-2 py-1.5 text-center">Esperada</th>
                                                     <th className="px-2 py-1.5 text-center">Recibida</th>
@@ -1236,22 +1180,22 @@ const Reconciliation = () => {
                                                     <th className="px-2 py-1.5">Motivo / Justificación</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-zinc-100">
+                                            <tbody className="divide-y divide-[#edebe9]">
                                                 {viewingDetail.items.map((it, i) => (
-                                                    <tr key={i} className="hover:bg-zinc-50">
-                                                        <td className="px-2 py-1.5 text-center">{it.order_line || '-'}</td>
-                                                        <td className="px-2 py-1.5 font-normal text-[#1e4a74]">{it.item_code}</td>
-                                                        <td className="px-2 py-1.5 break-words">{it.description}</td>
-                                                        <td className="px-2 py-1.5">{it.location || '-'}</td>
-                                                        <td className="px-2 py-1.5 text-center">{it.qty_expected}</td>
-                                                        <td className="px-2 py-1.5 text-center">{it.qty_received}</td>
-                                                        <td className={`px-2 py-1.5 text-center font-normal ${it.difference > 0 ? 'text-blue-600' : it.difference < 0 ? 'text-red-600' : 'text-zinc-800'}`}>
+                                                    <tr key={i} className="hover:bg-[#f3f9fd] transition-colors">
+                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.order_line || '-'}</td>
+                                                        <td className="px-2 py-1.5 font-mono text-[#0078d4]">{it.item_code}</td>
+                                                        <td className="px-2 py-1.5 break-words text-[#201f1e]">{it.description}</td>
+                                                        <td className="px-2 py-1.5 text-[#201f1e]">{it.location || '-'}</td>
+                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.qty_expected}</td>
+                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.qty_received}</td>
+                                                        <td className={`px-2 py-1.5 text-center font-mono font-normal ${it.difference < 0 ? 'text-[#a4262c]' : it.difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {it.difference > 0 ? `+${it.difference}` : it.difference}
                                                         </td>
-                                                        <td className="px-2 py-1.5 text-[10px] text-zinc-600 break-words">
-                                                            {it.difference_reason && <span className="font-normal text-zinc-800 block">{it.difference_reason}</span>}
+                                                        <td className="px-2 py-1.5 text-[11px] text-[#605e5c] break-words">
+                                                            {it.difference_reason && <span className="font-normal text-[#201f1e] block">{it.difference_reason}</span>}
                                                             {it.operator_comment && <span>{it.operator_comment}</span>}
-                                                            {!it.difference_reason && !it.operator_comment && <span className="text-zinc-400">-</span>}
+                                                            {!it.difference_reason && !it.operator_comment && <span className="text-[#605e5c]">-</span>}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1262,43 +1206,43 @@ const Reconciliation = () => {
                             ) : (
                                 <div className="space-y-3">
                                     {isLoadingHistory ? (
-                                        <div className="py-16 text-center text-zinc-400 text-[11px]">
+                                        <div className="py-16 text-center text-[#605e5c] text-xs font-normal">
                                             Cargando historial de conciliaciones...
                                         </div>
                                     ) : savedHistoryList.length > 0 ? (
-                                        <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] border border-zinc-200 rounded-lg">
-                                            <table className="w-full table-fixed text-left text-[11px]">
-                                                <thead className="bg-zinc-100 text-zinc-700 font-normal sticky top-0">
+                                        <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] border border-[#d2d0ce] rounded">
+                                            <table className="w-full table-fixed text-left text-xs border-collapse">
+                                                <thead className="bg-[#f3f3f3] text-[#201f1e] font-semibold border-b border-[#d2d0ce] sticky top-0">
                                                     <tr>
-                                                        <th className="px-3 py-2">ID</th>
+                                                        <th className="px-3 py-2 w-[6%]">ID</th>
                                                         <th className="px-3 py-2">GRN</th>
                                                         <th className="px-3 py-2">I.R.</th>
-                                                        <th className="px-3 py-2 w-[12%]">Fecha Guardado</th>
+                                                        <th className="px-3 py-2 w-[14%]">Fecha Guardado</th>
                                                         <th className="px-3 py-2">Operador</th>
                                                         <th className="px-3 py-2 text-center">Líneas</th>
                                                         <th className="px-3 py-2 text-center">Esperada</th>
                                                         <th className="px-3 py-2 text-center">Recibida</th>
                                                         <th className="px-3 py-2 text-center">Diferencia</th>
                                                         <th className="px-3 py-2 text-center">Estado</th>
-                                                        <th className="px-3 py-2 w-[19%] text-center">Acciones</th>
+                                                        <th className="px-3 py-2 w-[18%] text-center">Acciones</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-zinc-100">
+                                                <tbody className="divide-y divide-[#edebe9]">
                                                     {savedHistoryList.map((rec) => (
-                                                        <tr key={rec.id} className="hover:bg-zinc-50">
-                                                            <td className="px-3 py-2 font-mono text-zinc-500">#{rec.id}</td>
-                                                            <td className="px-3 py-2 font-normal text-zinc-900">{rec.grn_number}</td>
-                                                            <td className="px-3 py-2 text-zinc-800">{rec.import_reference}</td>
-                                                            <td className="px-3 py-2 text-zinc-600 break-words">{formatDateShort(rec.reconciled_at)}</td>
-                                                            <td className="px-3 py-2 text-zinc-600">{rec.reconciled_by}</td>
-                                                            <td className="px-3 py-2 text-center">{rec.total_lines}</td>
-                                                            <td className="px-3 py-2 text-center font-normal">{rec.total_expected}</td>
-                                                            <td className="px-3 py-2 text-center font-normal">{rec.total_received}</td>
-                                                            <td className={`px-3 py-2 text-center font-normal ${rec.total_difference > 0 ? 'text-blue-600' : rec.total_difference < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                        <tr key={rec.id} className="hover:bg-[#f3f9fd] transition-colors">
+                                                            <td className="px-3 py-2 font-mono text-[#605e5c]">#{rec.id}</td>
+                                                            <td className="px-3 py-2 font-normal text-[#201f1e]">{rec.grn_number}</td>
+                                                            <td className="px-3 py-2 text-[#201f1e]">{rec.import_reference}</td>
+                                                            <td className="px-3 py-2 text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
+                                                            <td className="px-3 py-2 text-[#605e5c]">{rec.reconciled_by}</td>
+                                                            <td className="px-3 py-2 text-center text-[#201f1e]">{rec.total_lines}</td>
+                                                            <td className="px-3 py-2 text-center font-normal text-[#201f1e]">{rec.total_expected}</td>
+                                                            <td className="px-3 py-2 text-center font-normal text-[#201f1e]">{rec.total_received}</td>
+                                                            <td className={`px-3 py-2 text-center font-mono font-normal ${rec.total_difference < 0 ? 'text-[#a4262c]' : rec.total_difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                                 {rec.total_difference > 0 ? `+${rec.total_difference}` : rec.total_difference}
                                                             </td>
                                                             <td className="px-3 py-2 text-center">
-                                                                <span className={`px-2 py-0.5 rounded text-[9px] font-normal ${rec.status === 'CONCILIADO_OK' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                                <span className="px-2 py-0.5 rounded text-[11px] font-normal border border-[#d2d0ce] bg-[#f3f3f3] text-[#201f1e]">
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
@@ -1308,43 +1252,30 @@ const Reconciliation = () => {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleViewSavedDetail(rec.id)}
-                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-[#285f94] text-white hover:bg-[#1e4a74] shadow-sm transition-all active:scale-95 cursor-pointer"
-                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        className="h-7 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#0078d4] hover:bg-[#f3f3f3] hover:border-[#0078d4] shadow-xs transition-colors cursor-pointer text-xs font-normal"
                                                                         title="Ver detalle de conciliación"
-                                                                        aria-label="Ver detalle"
                                                                     >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                                        </svg>
+                                                                        Detalle
                                                                     </button>
 
                                                                     {/* Botón Exportar Excel */}
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleExportSavedFromList(rec.id)}
-                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all active:scale-95 cursor-pointer"
-                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        className="h-7 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#201f1e] hover:bg-[#f3f3f3] shadow-xs transition-colors cursor-pointer text-xs font-normal"
                                                                         title="Exportar a Excel"
-                                                                        aria-label="Exportar a Excel"
                                                                     >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
-                                                                        </svg>
+                                                                        Excel
                                                                     </button>
 
                                                                     {/* Botón Eliminar */}
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleDeleteSavedRecon(rec.id, rec.grn_number)}
-                                                                        className="w-7 h-7 !p-0 inline-flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
-                                                                        style={{ padding: 0, minWidth: '28px', width: '28px', height: '28px' }}
+                                                                        className="h-7 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#a4262c] hover:bg-[#fde7e9] hover:border-[#f3b2b6] shadow-xs transition-colors cursor-pointer text-xs font-normal"
                                                                         title="Eliminar conciliación guardada"
-                                                                        aria-label="Eliminar"
                                                                     >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                        </svg>
+                                                                        Eliminar
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -1354,7 +1285,7 @@ const Reconciliation = () => {
                                             </table>
                                         </div>
                                     ) : (
-                                        <div className="py-16 text-center text-zinc-400 text-[11px]">
+                                        <div className="py-16 text-center text-[#605e5c] text-xs font-normal">
                                             No hay conciliaciones guardadas permanentemente aún.
                                         </div>
                                     )}
@@ -1369,3 +1300,4 @@ const Reconciliation = () => {
 };
 
 export default Reconciliation;
+

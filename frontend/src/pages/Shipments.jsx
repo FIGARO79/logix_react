@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import '../styles/FluentPages.css';
 
 const Shipments = () => {
     const { setTitle } = useOutletContext();
@@ -59,7 +60,7 @@ const Shipments = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="shipments-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Barra de Acciones */}
@@ -97,16 +98,16 @@ const Shipments = () => {
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="bg-zinc-900 border-b border-zinc-800 text-white">
+                                <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-800">
                                     <th className="px-4 py-1.5 text-center w-10"></th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-left">ID</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-left">Fecha</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-left">Cliente Principal</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-left">Usuario</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-left">Transporte</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-center">Items</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-white uppercase tracking-widest text-center">Acciones</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">ID</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Fecha</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Cliente Principal</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Usuario</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Transporte</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Items</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>

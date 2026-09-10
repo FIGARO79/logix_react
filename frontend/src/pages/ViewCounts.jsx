@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/CycleCounts.css';
 
 const ViewCounts = () => {
     const { setTitle } = useOutletContext();
@@ -60,7 +61,7 @@ const ViewCounts = () => {
     }, [selectedUser, counts]);
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-1 font-segoe-ui text-normal text-black">
+        <div className="view-counts-page max-w-[1920px] mx-auto px-4 py-1 font-segoe-ui text-normal">
 
             {/* Page Header */}
             <div className="mb-1 flex justify-end items-center border-b border-gray-100 pb-1.5">
@@ -113,7 +114,7 @@ const ViewCounts = () => {
             <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto max-h-[calc(100vh-220px)]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10 bg-[#1e4a74] text-white">
+                        <thead className="sticky top-0 z-10 bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                             <tr>
                                 {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia'].map((h, i) => (
                                     <th key={i} className={`px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : 'text-left'}`}>

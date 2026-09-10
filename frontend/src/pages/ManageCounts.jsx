@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/CycleCounts.css';
 
 const ManageCounts = () => {
     const navigate = useNavigate();
@@ -135,7 +136,7 @@ const ManageCounts = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-2 font-sans text-xs text-[#32363a]">
+        <div className="manage-counts-page max-w-[1920px] mx-auto px-4 py-2 font-sans text-xs">
 
             {/* Page Header */}
             <div className="mb-3 flex justify-between items-center">
@@ -243,7 +244,7 @@ const ManageCounts = () => {
                 </div>
                 <div className="overflow-x-auto max-h-[calc(100vh-280px)]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="bg-[#1e4a74] text-white sticky top-0 z-10">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10">
                             <tr>
                                 {['ID', 'Sesión', 'Etapa', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia', 'Estado', 'Acciones'].map((h, i) => (
                                     <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : h === 'Acciones' || h === 'Estado' ? 'text-center' : 'text-left'}`}>

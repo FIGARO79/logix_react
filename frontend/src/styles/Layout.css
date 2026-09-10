@@ -114,6 +114,7 @@
 .top-header {
     background-color: #ffffff !important;
     color: #201f1e !important;
+    box-shadow: none !important;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -137,32 +138,32 @@
 .tabs-scroll-container {
     display: flex;
     align-items: flex-end;
-    gap: 0px; /* Chrome las tiene juntas */
-    height: calc(100% - 2px);
+    gap: 2px;
+    height: 100%;
     margin-bottom: 0px;
     flex: 0 1 auto;
     min-width: 0;
     max-width: calc(100% - 40px);
 }
 
-/* Estilo de la pestaña individual (Chrome Style) */
+/* Estilo de la pestaña individual (Fluent Style) */
 .tab-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     min-width: 140px;
     max-width: 240px;
-    height: 34px;
+    height: 35px;
     padding: 0 10px 0 14px;
     border-radius: 4px 4px 0 0;
     cursor: grab;
     transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
     position: relative;
     user-select: none;
-    background-color: #e8e8e8;
-    color: #323130;
+    background-color: #edebe9;
+    color: #605e5c;
     border: 1px solid #d2d0ce;
-    border-bottom: 0;
+    border-bottom: none;
 }
 
 .tab-item:hover {
@@ -182,25 +183,29 @@
 
 /* Indicadores visuales de punto de inserción (soltado) */
 .tab-item.drag-over-left {
-    border-left: 2px solid #3b82f6 !important;
-    box-shadow: -3px 0 8px -1px rgba(59, 130, 246, 0.6);
+    border-left: 2px solid #0078d4 !important;
+    box-shadow: -3px 0 8px -1px rgba(0, 120, 212, 0.4);
 }
 
 .tab-item.drag-over-right {
-    border-right: 2px solid #3b82f6 !important;
-    box-shadow: 3px 0 8px -1px rgba(59, 130, 246, 0.6);
+    border-right: 2px solid #0078d4 !important;
+    box-shadow: 3px 0 8px -1px rgba(0, 120, 212, 0.4);
 }
 
-/* Pestaña Activa */
+/* Pestaña Activa integrada al cuerpo */
 .tab-item.active {
     background-color: #f3f3f3;
     color: #201f1e;
-    border-right: 1px solid #e1dfdd;
-    z-index: 2; /* Por encima de las demás */
+    font-weight: 500;
+    border: 1px solid #d2d0ce;
+    border-bottom: 1px solid #f3f3f3 !important; /* Cubre y abre el borde inferior del header hacia el cuerpo */
+    margin-bottom: -1px; /* Solapa exactamente el border-b del header */
+    z-index: 10;
+    box-shadow: none;
 }
 
 .tab-item:not(.active):hover {
-    background-color: #deddda;
+    background-color: #e1dfdd;
     color: #201f1e;
 }
 
@@ -215,32 +220,51 @@
     flex-grow: 1;
 }
 
-/* Botón de cerrar pestaña */
+/* Acciones de pestaña (Refrescar y Cerrar) */
+.tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px !important;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.tab-refresh-btn,
 .tab-close-btn {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
     padding: 0 !important;
-    margin-left: 8px;
-    border-radius: 50%;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Importante para que no se deforme */
-    opacity: 0;
-    transition: background-color 0.1s;
+    flex-shrink: 0;
+    border: none;
     background-color: transparent;
-    color: #8a8886;
+    color: #605e5c;
+    cursor: pointer;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.tab-close-btn span {
+    font-size: 14px;
+    line-height: 1;
+    display: block;
+    margin-top: -1px;
 }
 
 .tab-item:hover .tab-close-btn,
 .tab-item.active .tab-close-btn {
-    opacity: 1; /* En Chrome siempre aparece al hacer hover o estar activa */
+    opacity: 1;
 }
 
+.tab-refresh-btn:hover,
 .tab-close-btn:hover {
-    background-color: #eaeaea;
+    background-color: #e1dfdd;
     color: #201f1e;
 }
 
@@ -249,7 +273,7 @@
     content: '';
 }
 
-/* Botón de añadir pestaña (+) estilo Chrome */
+/* Botón de añadir pestaña (+) estilo Windows Fluent */
 .add-tab-btn {
     display: flex;
     align-items: center;
@@ -257,20 +281,27 @@
     width: 28px;
     height: 28px;
     min-width: 28px;
-    border-radius: 50%;
-    background-color: transparent; /* Sin fondo circular por defecto */
+    border-radius: 4px;
+    background-color: transparent;
     color: #605e5c;
     border: none;
-    transition: background-color 0.2s;
-    margin-left: 8px;
-    margin-bottom: 4px; /* Alinear con el centro de las pestañas */
+    transition: background-color 0.15s, color 0.15s;
+    margin-left: 6px;
+    margin-bottom: 3px; /* Alinear con las pestañas */
     flex-shrink: 0;
     cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
 }
 
 .add-tab-btn:hover {
-    background-color: #f3f3f3;
-    color: white;
+    background-color: #edebe9;
+    color: #201f1e;
+}
+
+.add-tab-btn:active {
+    background-color: #e1dfdd;
+    color: #201f1e;
 }
 
 header .header-actions {

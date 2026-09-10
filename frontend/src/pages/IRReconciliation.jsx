@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import '../styles/FluentPages.css';
 
 const IRReconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -68,7 +69,7 @@ const IRReconciliation = () => {
     );
 
     return (
-        <div className="container-wrapper px-4 pt-4 pb-4">
+        <div className="ir-reconciliation-page container-wrapper px-4 pt-4 pb-4">
             <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
                 <div className="bg-zinc-50/50 p-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3">
                     <div>
@@ -133,17 +134,17 @@ const IRReconciliation = () => {
                     ) : (
                         <table className="w-full text-xs border-collapse">
                             <thead>
-                                <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider">Import Reference (IR)</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Avance Líneas</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Avance GRNs</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Avance Unidades</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Sin Diferencias</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Faltantes</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Sobrantes</th>
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider">Fecha Registro</th>
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider">Operador</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider">Acc</th>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-200">
+                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Import Reference (IR)</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance Líneas</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance GRNs</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance Unidades</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Sin Diferencias</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Faltantes</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Sobrantes</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Fecha Registro</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Operador</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Acc</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">

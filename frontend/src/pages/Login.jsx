@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import '../styles/FluentPages.css';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -49,8 +50,8 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <div className="fiori-login-card">
+        <div className="login-page min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="logix-login-card bg-white">
                 <h2 className="text-2xl font-medium text-gray-900 mb-6 text-center text-[#2c3e50]">Iniciar Sesión</h2>
 
                 {error && (

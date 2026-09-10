@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/CycleCounts.css';
 
 const CycleCountHistory = () => {
     const navigate = useNavigate();
@@ -119,7 +120,7 @@ const CycleCountHistory = () => {
     const visibleRecordings = filteredRecordings.slice(0, displayCount);
 
     return (
-        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-sans text-[#333] gap-1 mt-2">
+        <div className="cycle-count-history-page w-full h-[calc(100vh-110px)] flex flex-col font-sans gap-1 mt-2">
             {/* Header bar similiar to screenshot */}
             <div className="bg-white border-b border-gray-100 px-6 py-2 flex justify-end items-center z-20">
                 <div className="flex gap-3">
@@ -150,7 +151,7 @@ const CycleCountHistory = () => {
 
                 {!loading && !error && (
                     <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11px] leading-tight">
-                        <thead className="bg-[#34495e] text-white sticky top-0 z-20 shadow">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-20 shadow-sm">
                             <tr>
                                 <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SR</th>
                                 <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">ITEM CODE</th>

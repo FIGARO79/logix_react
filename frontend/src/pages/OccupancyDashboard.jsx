@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import '../styles/FluentPages.css';
 
 const OccupancyDashboard = () => {
     const { setTitle } = useOutletContext();
@@ -76,7 +77,7 @@ const OccupancyDashboard = () => {
     const zones = Object.keys(data.zones).sort();
 
     return (
-        <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
 
             {/* Barra de Acciones */}
             <div className="mb-2 border-b border-zinc-200 pb-1.5 flex justify-end items-center">
@@ -115,10 +116,10 @@ const OccupancyDashboard = () => {
                 <div className="overflow-x-auto text-black">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="bg-zinc-950">
-                                <th className="px-6 py-3 text-left text-[12px] font-normal text-white uppercase tracking-wider border-b border-zinc-900">Identificador de Zona</th>
+                            <tr className="bg-zinc-100 border-b border-zinc-300">
+                                <th className="px-6 py-3 text-left text-[12px] font-normal text-zinc-800 uppercase tracking-wider border-b border-zinc-300">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-3 text-center text-[12px] font-normal text-white uppercase tracking-wider border-b border-zinc-800">
+                                    <th key={level} className="px-2 py-3 text-center text-[12px] font-normal text-zinc-800 uppercase tracking-wider border-b border-zinc-300">
                                         Nivel {level}
                                     </th>
                                 ))}

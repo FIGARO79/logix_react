@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { getDB, getGRNExpectedQtyBulk } from '../utils/offlineDb';
+import '../styles/FluentPages.css';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
@@ -152,7 +153,7 @@ const InboundHistory = () => {
     );
 
     return (
-        <div className="w-full px-4 py-3">
+        <div className="inbound-history-page w-full px-4 py-3">
             {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-end items-center mb-2 bg-white p-1.5 rounded shadow-sm border border-gray-200">
                 <div className="flex gap-2 items-center">
@@ -202,7 +203,7 @@ const InboundHistory = () => {
             <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
                 <div className="overflow-x-auto max-h-[70vh]">
                     <table className="w-full text-xs border-collapse">
-                        <thead className="bg-slate-700 text-white sticky top-0 z-10">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10">
                             <tr>
                                 <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
                                 <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>

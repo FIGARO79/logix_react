@@ -387,7 +387,7 @@ const Layout = () => {
     return (
         <div className="flex min-h-screen flex-col bg-[#f3f3f3] font-sans text-[#201f1e] print:block print:h-auto print:overflow-visible">
             {/* Header / Shell Bar */}
-            <header className="top-header sticky top-0 z-50 flex h-[48px] items-center gap-4 border-b border-[#e1dfdd] bg-white px-4 text-[#201f1e] shadow-sm print:hidden no-print">
+            <header className="top-header sticky top-0 z-50 flex h-[48px] items-center gap-4 border-b border-[#e1dfdd] bg-white px-4 text-[#201f1e] shadow-none print:hidden no-print">
                 <button
                     className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
                     onClick={toggleMenu}
@@ -419,18 +419,19 @@ const Layout = () => {
                                     className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${dropPositionClass}`}
                                 >
                                     <span className="tab-label">{tab.label}</span>
-                                    <div className="tab-actions flex items-center gap-1 ml-2">
+                                    <div className="tab-actions">
                                         <button
                                             onClick={(e) => refreshTab(e, tab.id)}
-                                            className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                            className={`tab-refresh-btn ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                             title="Refrescar datos"
+                                            aria-label="Refrescar datos"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                                             </svg>
                                         </button>
                                         {tabs.length > 1 && (
-                                            <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
+                                            <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn" title="Cerrar pestaña" aria-label="Cerrar pestaña">
                                                 <span>&#215;</span>
                                             </button>
                                         )}
@@ -439,7 +440,7 @@ const Layout = () => {
                             );
                         })}
                     </div>
-                    <button onClick={addTab} className="add-tab-btn">+</button>
+                    <button onClick={addTab} className="add-tab-btn" title="Nueva pestaña" aria-label="Nueva pestaña">+</button>
                 </div>
 
                 <div className="header-actions flex items-center gap-3">

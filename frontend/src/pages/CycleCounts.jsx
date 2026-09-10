@@ -6,6 +6,7 @@ import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync } from '../utils/offlineDb';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import '../styles/CycleCounts.css';
 
 const CycleCounts = () => {
     const { setTitle } = useOutletContext();
@@ -653,7 +654,7 @@ const CycleCounts = () => {
     }
 
     return (
-        <div className="max-w-[1600px] mx-auto px-2 py-1.5 font-sans text-[11px] text-black leading-tight">
+        <div className="cycle-counts-page max-w-[1600px] mx-auto px-2 py-1.5 font-sans text-[11px] leading-tight">
             <ToastContainer position="top-right" autoClose={2000} />
 
             {/* Header de Navegación entre Fases */}
@@ -975,7 +976,7 @@ const CycleCounts = () => {
                                 <div className="hidden sm:block bg-white shadow-xs rounded-lg overflow-hidden border border-slate-200">
                                     <div className="overflow-x-auto max-h-[500px]">
                                         <table className="w-full text-xs border-collapse min-w-[600px]">
-                                            <thead className="bg-slate-700 text-white sticky top-0 z-10">
+                                            <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10">
                                                 <tr>
                                                     <th className="px-3 py-2 text-left font-medium">ITEM CODE</th>
                                                     <th className="px-3 py-2 text-left font-medium">DESCRIPCIÓN</th>

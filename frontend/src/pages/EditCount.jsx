@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTabContext } from '../hooks/useTabContext';
+import '../styles/CycleCounts.css';
 
 const EditCount = ({ id: propId }) => {
     const { id: paramId } = useParams();
@@ -53,7 +54,7 @@ const EditCount = ({ id: propId }) => {
     if (!count) return <div className="p-8 text-slate-500 font-medium">Registro de conteo no encontrado.</div>;
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="edit-count-page max-w-2xl mx-auto px-4 py-8">
             <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
                 <h1 className="text-2xl font-bold text-slate-900 mb-6">Editar Conteo #{id}</h1>
 

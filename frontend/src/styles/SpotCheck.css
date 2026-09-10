@@ -1,0 +1,238 @@
+/* src/styles/SpotCheck.css — Windows Fluent visual language */
+.spot-check-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f9f9f9;
+    color: var(--fluent-text);
+    background-color: var(--fluent-subtle) !important;
+}
+
+/* Cards and panels */
+.spot-check-page .rounded-lg,
+.spot-check-page .rounded-md,
+.spot-check-page .rounded {
+    border-radius: 4px;
+}
+
+.spot-check-page .border-zinc-300,
+.spot-check-page .border-zinc-200,
+.spot-check-page .border-zinc-100 {
+    border-color: var(--fluent-border);
+}
+
+.spot-check-page .shadow-sm,
+.spot-check-page .shadow-md,
+.spot-check-page .shadow-inner,
+.spot-check-page .shadow-lg {
+    box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+}
+
+/* Form card background */
+.spot-check-page .bg-white {
+    background-color: var(--fluent-surface);
+}
+
+.spot-check-page .bg-zinc-50,
+.spot-check-page .bg-zinc-100 {
+    background-color: var(--fluent-subtle);
+}
+
+/* Typography */
+.spot-check-page h2 {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.spot-check-page label {
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+/* Inputs */
+.spot-check-page input,
+.spot-check-page select {
+    border-color: #8a8886;
+    border-radius: 2px;
+    color: var(--fluent-text);
+}
+
+.spot-check-page input:focus,
+.spot-check-page select:focus {
+    border-color: var(--fluent-primary) !important;
+    box-shadow: 0 0 0 1px var(--fluent-primary);
+}
+
+/* Scanner buttons */
+.spot-check-page button.shrink-0[style*="width: 40px"] {
+    border-color: #8a8886;
+    background-color: var(--fluent-subtle);
+}
+
+.spot-check-page button.shrink-0[style*="width: 40px"]:hover {
+    background-color: var(--fluent-primary) !important;
+    border-color: var(--fluent-primary) !important;
+    color: white !important;
+}
+
+/* Primary action button */
+.spot-check-page .bg-zinc-900 {
+    background-color: var(--fluent-primary) !important;
+}
+
+.spot-check-page .bg-zinc-900:hover:not(:disabled),
+.spot-check-page .hover\:bg-black:hover:not(:disabled) {
+    background-color: var(--fluent-primary-dark) !important;
+}
+
+.spot-check-page .disabled\:bg-zinc-300:disabled {
+    background-color: #e1dfdd !important;
+    color: #a19f9d !important;
+}
+
+/* Description box */
+.spot-check-page .bg-zinc-100.border-zinc-300 {
+    background-color: var(--fluent-subtle);
+    border-color: var(--fluent-border);
+}
+
+/* Search results dropdown */
+.spot-check-page .bg-blue-50 {
+    background-color: #eff6fc;
+}
+
+.spot-check-page .bg-blue-100 {
+    background-color: #deecf9;
+}
+
+.spot-check-page .border-blue-200,
+.spot-check-page .border-blue-100 {
+    border-color: var(--fluent-border);
+}
+
+.spot-check-page .text-blue-800 {
+    color: var(--fluent-primary-dark);
+}
+
+/* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
+.spot-check-page table thead,
+.spot-check-page table thead tr,
+.spot-check-page table thead th,
+.spot-check-page table th,
+.spot-check-page thead,
+.spot-check-page thead tr,
+.spot-check-page thead th {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+    border-color: var(--fluent-border) !important;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.spot-check-page thead[class*="bg-"],
+.spot-check-page thead tr[class*="bg-"],
+.spot-check-page thead th[class*="bg-"] {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+}
+
+.spot-check-page thead th *,
+.spot-check-page thead tr *,
+.spot-check-page table th * {
+    color: var(--fluent-text) !important;
+}
+
+/* Table body */
+.spot-check-page tbody tr {
+    border-bottom-color: var(--fluent-border);
+}
+
+.spot-check-page tbody tr:hover,
+.spot-check-page .hover\:bg-zinc-50:hover {
+    background-color: #f3f9fd !important;
+}
+
+/* Table header bar */
+.spot-check-page .bg-zinc-100.border-b-2 {
+    background-color: var(--fluent-subtle);
+    border-bottom-color: var(--fluent-border) !important;
+}
+
+/* Export/clear action buttons */
+/* Export button color */
+.spot-check-page [class*="text-[#1e4a74]"] {
+    color: var(--fluent-primary-dark);
+}
+
+.spot-check-page [class*="border-[#1e4a74]"] {
+    border-color: rgba(16, 110, 190, 0.3);
+}
+
+/* Bin match badges */
+.spot-check-page .bg-green-100 {
+    background-color: #dff6dd;
+}
+
+.spot-check-page .text-green-800 {
+    color: #107c10;
+}
+
+.spot-check-page .border-green-200 {
+    border-color: #c8e6c9;
+}
+
+.spot-check-page .bg-orange-100 {
+    background-color: #fff4ce;
+}
+
+.spot-check-page .text-orange-800 {
+    color: #ca5010;
+}
+
+.spot-check-page .border-orange-200 {
+    border-color: #ffe0b2;
+}
+
+/* Offline badge */
+.spot-check-page .bg-red-100 {
+    background-color: #fde7e9;
+}
+
+.spot-check-page .text-red-600 {
+    color: #a4262c;
+}
+
+.spot-check-page .border-red-200 {
+    border-color: #f1c0c0;
+}
+
+/* Navigation button (Stock) */
+.spot-check-page .border-2.border-black {
+    border-color: #8a8886 !important;
+    border-width: 1px !important;
+}
+
+/* Clear and export buttons */
+.spot-check-page .text-red-700 {
+    color: #a4262c;
+}
+
+.spot-check-page .hover\:bg-red-50:hover {
+    background-color: #fde7e9 !important;
+}
+
+.spot-check-page .hover\:bg-blue-50:hover {
+    background-color: #eff6fc !important;
+}
+
+@media (max-width: 1023px) {
+    .spot-check-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}

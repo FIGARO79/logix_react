@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import '../styles/FluentPages.css';
 
 const PackingListPrint = ({ setTitle, id: propId }) => {
     const { id: paramId } = useParams();
@@ -98,7 +99,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
 
     return (
-        <div className="bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="packing-list-print-page bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {

@@ -64,20 +64,26 @@
     background-color: var(--reconciliation-primary-dark) !important;
 }
 
-.reconciliation-page .bg-\[\#354a5f\],
-.reconciliation-page tr[style*="#354a5f"] {
+.reconciliation-page table thead,
+.reconciliation-page table thead tr,
+.reconciliation-page table thead th,
+.reconciliation-page table th,
+.reconciliation-page thead,
+.reconciliation-page thead tr,
+.reconciliation-page thead th {
     background-color: #f3f3f3 !important;
     color: var(--reconciliation-text) !important;
+    border-color: var(--reconciliation-border) !important;
+    font-weight: 600;
 }
 
-.reconciliation-page tr[style*="#354a5f"] th {
+.reconciliation-page table thead th *,
+.reconciliation-page table thead tr * {
     color: var(--reconciliation-text) !important;
-    border-right-color: var(--reconciliation-border) !important;
-    letter-spacing: 0;
 }
 
-.reconciliation-page tr[style*="#354a5f"] th:hover {
-    background-color: #e1dfdd !important;
+.reconciliation-page table thead th:hover {
+    background-color: #e5e5e5 !important;
 }
 
 .reconciliation-page tbody tr:hover {

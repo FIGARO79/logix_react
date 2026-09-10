@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../styles/FluentPages.css';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
@@ -27,8 +28,8 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-full flex items-center justify-center bg-transparent py-12">
-            <div className="fiori-login-card">
+        <div className="admin-login-page min-h-full flex items-center justify-center bg-transparent py-12">
+            <div className="logix-login-card bg-white">
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-medium text-gray-900 text-gray-800">Admin Login</h1>
                     <p className="text-gray-500">Acceso restringido</p>

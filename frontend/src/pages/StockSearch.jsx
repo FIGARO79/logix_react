@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import '../styles/StockSearch.css';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
@@ -123,7 +124,7 @@ const StockSearch = () => {
     };
 
     return (
-        <div className="container-wrapper max-w-4xl mx-auto px-4 py-8">
+        <div className="stock-search-page container-wrapper max-w-4xl mx-auto px-4 py-8">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Search Card */}

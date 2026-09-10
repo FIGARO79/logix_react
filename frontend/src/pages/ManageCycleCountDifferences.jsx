@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const COLUMNS = [
     { label: 'Fecha', key: 'executed_date', align: 'left' },
@@ -199,7 +200,7 @@ const ManageCycleCountDifferences = () => {
 
 
     return (
-        <div className="max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="manage-cycle-diff-page max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             {/* Filtros */}
             <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
                 <div>
@@ -254,7 +255,7 @@ const ManageCycleCountDifferences = () => {
 
             <div className="bg-white shadow-sm border border-zinc-200 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-zinc-900 text-white select-none">
+                    <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 select-none">
                         <tr>
                             {COLUMNS.map((col, i) => {
                                 const isSortable = col.key !== null;
@@ -269,7 +270,7 @@ const ManageCycleCountDifferences = () => {
                                     <th
                                         key={i}
                                         onClick={() => isSortable && handleSort(col.key)}
-                                        className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-800 transition-colors' : ''}`}
+                                        className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap text-zinc-800 ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-200 transition-colors' : ''}`}
                                     >
                                         <div className={`inline-flex items-center gap-1 ${col.align === 'right' ? 'justify-end w-full' : col.align === 'center' ? 'justify-center w-full' : ''}`}>
                                             <span>{col.label}</span>

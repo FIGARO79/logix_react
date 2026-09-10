@@ -7,6 +7,7 @@ import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import '../styles/SpotCheck.css';
 
 const SpotCheck = () => {
     const context = useTabContext();
@@ -277,7 +278,7 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-3 font-sans min-h-screen">
             <ToastContainer position="top-right" autoClose={2000} />
 
             <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">
@@ -416,7 +417,7 @@ const SpotCheck = () => {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-zinc-900 text-white text-[9px] uppercase tracking-widest">
+                                <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 text-[9px] uppercase tracking-widest">
                                     <tr>
                                         <th className="px-3 py-3">Hora</th>
                                         <th className="px-3 py-3">Bin Encontrado</th>

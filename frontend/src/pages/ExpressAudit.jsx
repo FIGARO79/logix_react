@@ -3,6 +3,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import '../styles/ExpressAudit.css';
 
 const ExpressAudit = () => {
     const { setTitle } = useOutletContext();
@@ -140,7 +141,7 @@ const ExpressAudit = () => {
     };
 
     return (
-        <div className="container-wrapper max-w-6xl mx-auto px-4 py-4 space-y-4">
+        <div className="express-audit-page container-wrapper max-w-6xl mx-auto px-4 py-4 space-y-4">
             <ToastContainer position="top-right" autoClose={2000} />
 
             <style>{`

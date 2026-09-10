@@ -76,16 +76,28 @@ h6 {
 }
 
 /* ===== SAP Fiori Shell Bar (Header) ===== */
-.logix-shell-bar,
-.top-header {
+.logix-shell-bar {
     background-color: var(--logix-shell-bg);
     color: var(--logix-shell-text);
     height: 48px;
-    /* Fixed height from templates */
     display: flex;
     align-items: center;
     padding: 0 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.top-header {
+    background-color: #ffffff;
+    color: #201f1e;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    box-shadow: none;
     position: sticky;
     top: 0;
     width: 100%;
@@ -300,14 +312,12 @@ table {
 table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%);
-    /* Original Dark Gradient */
-    color: #ffffff;
-    /* White text for contrast */
-    font-weight: 400;
+    background-color: var(--logix-table-header-bg);
+    color: var(--logix-text);
+    font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--sap-table-border);
+    border-bottom: 1px solid var(--logix-table-border);
     position: sticky;
     top: 0;
     z-index: 10;

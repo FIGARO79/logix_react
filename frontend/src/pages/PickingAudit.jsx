@@ -5,6 +5,7 @@ import DimensionScanner from '../components/DimensionScanner';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync } from '../utils/offlineDb';
 import { downloadPickingTracking, downloadPickingOrder } from '../utils/syncManager';
+import '../styles/FluentPages.css';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -463,7 +464,7 @@ const PickingAudit = () => {
     // -- Render --
     if (auditActive) {
         return (
-            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
+            <div className="picking-audit-page container-wrapper max-w-5xl mx-auto px-4 py-4">
 
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
@@ -589,14 +590,14 @@ const PickingAudit = () => {
                     {/* Desktop Table View */}
                     <div className="hidden sm:block overflow-x-auto border border-gray-300 rounded mb-6">
                         <table className="w-full text-left sap-table">
-                            <thead>
+                            <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                                 <tr>
-                                    <th className="text-center w-12">Línea</th>
-                                    <th>Item</th>
-                                    <th>Descripción</th>
-                                    <th className="text-center w-16">Req</th>
-                                    <th className="text-center w-16">Scan</th>
-                                    <th className="text-center w-16">Dif</th>
+                                    <th className="text-center w-12 text-zinc-800">Línea</th>
+                                    <th className="text-zinc-800">Item</th>
+                                    <th className="text-zinc-800">Descripción</th>
+                                    <th className="text-center w-16 text-zinc-800">Req</th>
+                                    <th className="text-center w-16 text-zinc-800">Scan</th>
+                                    <th className="text-center w-16 text-zinc-800">Dif</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -772,15 +773,15 @@ const PickingAudit = () => {
                             {/* Desktop View */}
                             <div className="hidden sm:block overflow-x-auto">
                                 <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-100">
-                                            <th className="p-2 text-left border w-16">Línea</th>
-                                            <th className="p-2 text-left border">Item</th>
-                                            <th className="p-2 text-center border w-24">Total Scan</th>
+                                    <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                        <tr>
+                                            <th className="p-2 text-left border border-zinc-300 w-16 text-zinc-800">Línea</th>
+                                            <th className="p-2 text-left border border-zinc-300 text-zinc-800">Item</th>
+                                            <th className="p-2 text-center border border-zinc-300 w-24 text-zinc-800">Total Scan</th>
                                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                <th key={i} className="p-2 text-center border w-20">Bulto {i + 1}</th>
+                                                <th key={i} className="p-2 text-center border border-zinc-300 w-20 text-zinc-800">Bulto {i + 1}</th>
                                             ))}
-                                            <th className="p-2 text-center border w-24">Asignado</th>
+                                            <th className="p-2 text-center border border-zinc-300 w-24 text-zinc-800">Asignado</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -907,7 +908,7 @@ const PickingAudit = () => {
     }
 
     return (
-        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
+        <div className="picking-audit-page container-wrapper max-w-3xl mx-auto px-2 py-2">
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex justify-between items-center mb-6">
@@ -965,15 +966,15 @@ const PickingAudit = () => {
                     {/* Desktop View */}
                     <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-[500px] overflow-y-auto">
                         <table className="w-full text-left text-sm sap-table">
-                            <thead className="sticky top-0 z-10 bg-slate-700 text-white shadow-sm">
+                            <thead className="sticky top-0 z-10 bg-zinc-100 text-zinc-800 border-b border-zinc-300 shadow-sm">
                                 <tr>
-                                    <th className="py-2.5 px-3 font-medium ">Order</th>
-                                    <th className="py-2.5 px-3 font-medium ">Despatch</th>
-                                    <th className="py-2.5 px-3 font-medium ">Cód. Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium ">Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium  text-center">Líneas</th>
+                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Order</th>
+                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Despatch</th>
+                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Cód. Cliente</th>
+                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Cliente</th>
+                                    <th className="py-2.5 px-3 font-medium text-zinc-800 text-center">Líneas</th>
                                     <th
-                                        className="py-2.5 px-3 font-medium  cursor-pointer hover:bg-slate-600 select-none flex items-center gap-1"
+                                        className="py-2.5 px-3 font-medium text-zinc-800 cursor-pointer hover:bg-zinc-200 select-none flex items-center gap-1"
                                         onClick={() => {
                                             setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
                                         }}
@@ -1087,48 +1088,48 @@ const PickingAudit = () => {
                         <div className="overflow-x-auto border border-gray-200 rounded shadow-sm max-h-[500px]">
                             <table className="w-full text-left text-sm sap-table border-collapse min-w-[750px]">
                                 <thead>
-                                    <tr>
-                                        <th className="py-2 px-3 font-semibold border-b border-r border-slate-600 text-white" style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}>
+                                    <tr className="bg-zinc-100 text-zinc-800">
+                                        <th className="py-2 px-3 font-semibold border-b border-r border-zinc-300 text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}>
                                             Fecha
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <th
                                                 key={date}
-                                                className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                                className="py-2 px-3 font-semibold text-center border-b border-r border-zinc-300 text-zinc-800"
                                                 colSpan={2}
-                                                style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
+                                                style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}
                                             >
                                                 {formatDateLabel(date)}
                                             </th>
                                         ))}
                                         {/* Columna Total General en Cabecera */}
                                         <th
-                                            className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                            className="py-2 px-3 font-semibold text-center border-b border-r border-zinc-300 text-zinc-800"
                                             colSpan={2}
-                                            style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
+                                            style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}
                                         >
                                             Total General
                                         </th>
                                     </tr>
-                                    <tr className="bg-slate-600 text-white">
-                                        <th className="py-1.5 px-3 font-medium border-b border-r border-slate-500 text-xs uppercase text-white" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                    <tr className="bg-zinc-100 text-zinc-800">
+                                        <th className="py-1.5 px-3 font-medium border-b border-r border-zinc-300 text-xs uppercase text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Customer
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <React.Fragment key={date}>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                                     Ordenes
                                                 </th>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                                     Lineas
                                                 </th>
                                             </React.Fragment>
                                         ))}
                                         {/* Subcolumnas de Total en Cabecera */}
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Ordenes
                                         </th>
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Lineas
                                         </th>
                                     </tr>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const SlottingConfig = () => {
     const { setTitle } = useOutletContext();
@@ -167,7 +168,7 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
+        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
 
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
                 <div className="flex items-center gap-3">
@@ -253,11 +254,11 @@ const SlottingConfig = () => {
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 sticky top-0 z-10 shadow-sm">
                                         <tr>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-white">BIN</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-white">ZONA</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-white">PASILLO</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-white">NIVEL</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center text-white">SPOT</th>
+                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-zinc-800">BIN</th>
+                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-zinc-800">ZONA</th>
+                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-zinc-800">PASILLO</th>
+                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-zinc-800">NIVEL</th>
+                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center text-zinc-800">SPOT</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-50">

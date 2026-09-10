@@ -1448,19 +1448,19 @@ const Inbound = () => {
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-0 z-20">
-                                <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Acc</th>
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Item</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">New</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">User</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Acc</th>
                                 </tr>
                             </thead>
 

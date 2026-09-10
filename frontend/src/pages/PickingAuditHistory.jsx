@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import '../styles/FluentPages.css';
 
 const PickingAuditHistory = () => {
     const { setTitle } = useOutletContext();
@@ -324,7 +325,7 @@ const PickingAuditHistory = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="picking-audit-history-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {loading && (
@@ -344,7 +345,7 @@ const PickingAuditHistory = () => {
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="bg-zinc-50 border-b border-zinc-200">
+                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                                     <th className="px-4 py-1.5 text-center w-10">
                                         <input
                                             type="checkbox"
@@ -361,14 +362,14 @@ const PickingAuditHistory = () => {
                                         />
                                     </th>
                                     <th className="px-4 py-1.5 text-center w-8"></th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">ID</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Orden</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Despacho</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Cliente</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Usuario</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Fecha</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-center">Acciones</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">ID</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">Orden</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">Despacho</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">Cliente</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">Usuario</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-left">Fecha</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-4 py-1.5 text-[12px] font-medium text-zinc-800 uppercase tracking-widest text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -599,7 +600,7 @@ const PickingAuditHistory = () => {
                         <div className="overflow-y-auto mb-8 pr-2">
                             <table className="min-w-full">
                                 <thead>
-                                    <tr className="bg-[#4A5D73] text-white text-[10px] font-medium  uppercase tracking-widest">
+                                    <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-200 text-[10px] font-medium uppercase tracking-widest">
                                         <th className="p-4 text-left w-12">Lín.</th>
                                         <th className="p-4 text-left w-32">Código</th>
                                         <th className="p-4 text-left">Descripción</th>

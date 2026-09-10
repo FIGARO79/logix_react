@@ -8,6 +8,7 @@ import SandvikLabel from '../components/labels/SandvikLabel';
 import ScannerModal from '../components/ScannerModal';
 import { parseGS1Barcode } from '../utils/gs1Parser';
 import '../styles/Label.css';
+import '../styles/FluentPages.css';
 
 
 const LabelPrinting = () => {
@@ -100,7 +101,7 @@ const LabelPrinting = () => {
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
     return (
-        <div className="container-wrapper px-4 py-4">
+        <div className="label-printing-page container-wrapper px-4 py-4">
             <ToastContainer position="top-right" autoClose={3000} />
             {scannerOpen && <ScannerModal onClose={() => setScannerOpen(false)} onScan={handleScan} />}
 

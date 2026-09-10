@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const AdminUsers = () => {
     const navigate = useNavigate();
@@ -116,7 +117,8 @@ const AdminUsers = () => {
     };
 
     return (
-        <AdminLayout title="Gestión de Usuarios">
+        <div className="admin-users-page">
+            <AdminLayout title="Gestión de Usuarios">
             {message && (
                 <div className="mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -145,15 +147,15 @@ const AdminUsers = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="uppercase font-normal text-xs border-b border-gray-200">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 uppercase font-semibold text-xs">
                             <tr>
-                                <th className="px-6 py-3 text-center w-16">ID</th>
-                                <th className="px-6 py-3 font-normal">Usuario</th>
-                                <th className="px-6 py-3 text-center font-normal">Estado</th>
+                                <th className="px-6 py-3 text-center w-16 text-zinc-800">ID</th>
+                                <th className="px-6 py-3 font-semibold text-zinc-800">Usuario</th>
+                                <th className="px-6 py-3 text-center font-semibold text-zinc-800">Estado</th>
                                 {MODULES.map(m => (
-                                    <th key={m} className="px-2 py-3 text-center font-normal text-xs">{m.toUpperCase()}</th>
+                                    <th key={m} className="px-2 py-3 text-center font-semibold text-zinc-800 text-xs">{m.toUpperCase()}</th>
                                 ))}
-                                <th className="px-6 py-3 text-center font-normal">Acciones</th>
+                                <th className="px-6 py-3 text-center font-semibold text-zinc-800">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -249,7 +251,8 @@ const AdminUsers = () => {
                     Volver a la aplicación principal
                 </button>
             </div>
-        </AdminLayout>
+            </AdminLayout>
+        </div>
     );
 };
 

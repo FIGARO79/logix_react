@@ -4,6 +4,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import '../styles/FluentPages.css';
 
 const PlannerExecution = () => {
     const { setTitle } = useOutletContext();
@@ -315,7 +316,7 @@ const PlannerExecution = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="planner-execution-page max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
             <ToastContainer position="top-center" autoClose={3000} containerId="planner-execution" />
 
             {/* Date Selection - Mobile Optimized */}
@@ -416,12 +417,12 @@ const PlannerExecution = () => {
                     {/* Desktop Table View */}
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-[#34495e] text-white">
+                            <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider w-auto">Item</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium  uppercase tracking-wider w-24">Ubicación</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium  uppercase tracking-wider w-16">ABC</th>
-                                    <th className="px-1 py-3 text-center text-xs font-medium  uppercase tracking-wider w-16">Físico</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-auto text-zinc-800">Item</th>
+                                    <th className="px-2 py-3 text-center text-xs font-medium uppercase tracking-wider w-24 text-zinc-800">Ubicación</th>
+                                    <th className="px-2 py-3 text-center text-xs font-medium uppercase tracking-wider w-16 text-zinc-800">ABC</th>
+                                    <th className="px-1 py-3 text-center text-xs font-medium uppercase tracking-wider w-16 text-zinc-800">Físico</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">

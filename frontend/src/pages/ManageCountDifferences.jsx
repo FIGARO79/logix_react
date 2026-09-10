@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext } from '../hooks/useTabContext';
+import '../styles/CycleCounts.css';
 
 const ManageCountDifferences = () => {
     const { setTitle } = useTabContext();
@@ -126,7 +127,7 @@ const ManageCountDifferences = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="manage-count-diff-page max-w-7xl mx-auto px-4 py-6">
 
                 {/* Header Page */}
                 <div className="flex justify-between items-center mb-6">
@@ -205,18 +206,18 @@ const ManageCountDifferences = () => {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="uppercase font-medium  border-b">
+                            <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 uppercase font-semibold text-xs">
                                 <tr>
-                                    <th className="p-3 w-20">Acciones</th>
-                                    <th className="p-3">Item Code</th>
-                                    <th className="p-3">Descripción</th>
-                                    <th className="p-3">Ubicación</th>
-                                    <th className="p-3 text-right">Qty Sistema</th>
-                                    <th className="p-3 text-right">Qty Contada</th>
-                                    <th className="p-3 text-right">Diferencia</th>
-                                    <th className="p-3 text-right">% Var</th>
-                                    <th className="p-3">Fecha</th>
-                                    <th className="p-3">Usuario</th>
+                                    <th className="p-3 w-20 text-zinc-800">Acciones</th>
+                                    <th className="p-3 text-zinc-800">Item Code</th>
+                                    <th className="p-3 text-zinc-800">Descripción</th>
+                                    <th className="p-3 text-zinc-800">Ubicación</th>
+                                    <th className="p-3 text-right text-zinc-800">Qty Sistema</th>
+                                    <th className="p-3 text-right text-zinc-800">Qty Contada</th>
+                                    <th className="p-3 text-right text-zinc-800">Diferencia</th>
+                                    <th className="p-3 text-right text-zinc-800">% Var</th>
+                                    <th className="p-3 text-zinc-800">Fecha</th>
+                                    <th className="p-3 text-zinc-800">Usuario</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
