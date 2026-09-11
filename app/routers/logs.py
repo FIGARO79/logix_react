@@ -66,28 +66,55 @@ async def find_item(
         latest_relocated_bin if latest_relocated_bin else original_bin
     )
 
-    # 1. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
-    # Consolidación: si el item ya fue reubicado, usar esa ubicación como Bin_1
-    # para que el algoritmo evalúe contra la posición real, no el maestro ERP.
-    item_details_for_slotting = dict(item_details)
-    if latest_relocated_bin:
-        item_details_for_slotting["Bin_1"] = latest_relocated_bin
+    non_physical_bins = {
+        "",
+        "N/A",
+        "NONE",
+        "SIN UBICACION",
+        "SIN_UBICACION",
+        "PUTAWAY",
+        "STAGE",
+        "TRANSITO",
+        "RECIBO",
+        "RECEPCION",
+        "XDOCK",
+    }
 
-    traditional_suggested_bin = await slotting_service.get_suggested_bin(
-        db, item_details_for_slotting
-    )
+    norm_original_bin = (original_bin or "").strip().upper()
+    has_valid_master_bin = norm_original_bin not in non_physical_bins
 
-    # 2. Sugerencia de IA (Aprendizaje Histórico)
-    ai_predicted_bin = await ai_slotting.predict_best_bin(
-        db=db,
-        item_code=item_code,
-        sic_code=item_details.get("SIC_Code_stockroom"),
-        fallback_bin=traditional_suggested_bin,
-    )
+    # 1. Si el ítem ya fue reubicado o asignado en esta recepción (latest_relocated_bin),
+    # se respeta la decisión del operador y no se sugiere una nueva reubicación.
+    if latest_relocated_bin and latest_relocated_bin.strip().upper() not in non_physical_bins:
+        traditional_suggested_bin = None
+        ai_predicted_bin = None
+        final_suggested_bin = None
+        is_ai_prediction = False
+    else:
+        # 2. Sugerencia de Slotting Dinámico (Algoritmo Tradicional)
+        traditional_suggested_bin = await slotting_service.get_suggested_bin(
+            db, item_details
+        )
 
-    # 3. VALIDACIÓN DE CAPACIDAD Y REGLAS DE ZONA PARA LA IA
-    final_suggested_bin = ai_predicted_bin
-    is_ai_prediction = ai_predicted_bin != traditional_suggested_bin
+        # Si el ítem ya tiene ubicación física válida en el maestro y el algoritmo tradicional
+        # determina que no requiere reubicación (cumple las reglas de slotting), no sugerir cambio.
+        if has_valid_master_bin and not traditional_suggested_bin:
+            ai_predicted_bin = None
+            final_suggested_bin = None
+            is_ai_prediction = False
+        else:
+            # 3. Sugerencia de IA (Aprendizaje Histórico)
+            # Solo aplica si el ítem carece de ubicación física o si el algoritmo tradicional recomendó reubicación
+            ai_predicted_bin = await ai_slotting.predict_best_bin(
+                db=db,
+                item_code=item_code,
+                sic_code=item_details.get("SIC_Code_stockroom"),
+                fallback_bin=traditional_suggested_bin,
+            )
+
+            # 4. VALIDACIÓN DE CAPACIDAD Y REGLAS DE ZONA PARA LA IA
+            final_suggested_bin = ai_predicted_bin
+            is_ai_prediction = ai_predicted_bin != traditional_suggested_bin
 
     if is_ai_prediction and ai_predicted_bin:
         config = await slotting_service._get_layout_config(db)
