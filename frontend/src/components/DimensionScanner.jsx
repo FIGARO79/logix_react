@@ -434,16 +434,16 @@ const DimensionScanner = ({ onConfirm, onClose, packageNumber }) => {
                 )}
 
                 {loading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white">
-                        <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-[10px] font-medium text-gray-900 tracking-widest uppercase">Iniciando IA...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white z-20">
+                        <div className="w-10 h-10 border-4 border-cyan-500/20 border-t-cyan-400 animate-spin mb-4" style={{ borderRadius: '9999px' }}></div>
+                        <p className="text-[10px] font-medium text-cyan-200 tracking-widest uppercase">Iniciando IA...</p>
                     </div>
                 )}
 
                 {(flowState === STATES.PROCESSING || flowState === STATES.CAPTURING) && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 text-white z-20">
-                        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-xs font-medium text-gray-900 tracking-widest uppercase animate-pulse">Procesando 3D...</p>
+                        <div className="w-12 h-12 border-4 border-amber-500/20 border-t-amber-400 animate-spin mb-4" style={{ borderRadius: '9999px' }}></div>
+                        <p className="text-xs font-medium text-amber-200 tracking-widest uppercase animate-pulse">Procesando 3D...</p>
                     </div>
                 )}
             </div>

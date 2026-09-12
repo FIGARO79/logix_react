@@ -65,7 +65,141 @@ body {
 }
 
 .animate-spin {
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Fluent UI Progress Spinner Ring (compatibilidad previa) */
+.fluent-spinner {
+    border-radius: 9999px !important;
+    border-style: solid;
+    border-color: #edebe9;
+    border-top-color: #0078d4;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ==========================================================================
+   Logix 3-Ring Orbital Loader (Estilo loader.png)
+   Tres anillos concéntricos orbitando en direcciones opuestas en color cyan
+   (#2cb8ff) con mensaje centrado (#customMessage) y contenedor (#loader-wrapper)
+   ========================================================================== */
+@keyframes logix-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes logix-spin-reverse {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+.loader-wrapper, #loader-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.loader-wrapper.is-fullscreen, #loader-wrapper.is-fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background-color: #171717;
+    background-color: rgba(23, 23, 23, 0.96);
+    backdrop-filter: blur(4px);
+}
+
+.logix-loader, #loader {
+    display: block;
+    position: relative;
+    width: var(--loader-size, 80px);
+    height: var(--loader-size, 80px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin 2s linear infinite;
+    box-sizing: border-box;
+}
+
+.logix-loader::before, #loader::before {
+    content: "";
+    position: absolute;
+    top: var(--loader-gap1, 5px);
+    left: var(--loader-gap1, 5px);
+    right: var(--loader-gap1, 5px);
+    bottom: var(--loader-gap1, 5px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin-reverse 3s linear infinite;
+    box-sizing: border-box;
+}
+
+.logix-loader::after, #loader::after {
+    content: "";
+    position: absolute;
+    top: var(--loader-gap2, 13px);
+    left: var(--loader-gap2, 13px);
+    right: var(--loader-gap2, 13px);
+    bottom: var(--loader-gap2, 13px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin 1.5s linear infinite;
+    box-sizing: border-box;
+}
+
+/* Escalas dimensionales para los 3 anillos concéntricos */
+.logix-loader-xs {
+    --loader-size: 18px;
+    --loader-border: 1.5px;
+    --loader-gap1: 2px;
+    --loader-gap2: 4px;
+}
+
+.logix-loader-sm {
+    --loader-size: 30px;
+    --loader-border: 2px;
+    --loader-gap1: 3px;
+    --loader-gap2: 7px;
+}
+
+.logix-loader-md {
+    --loader-size: 52px;
+    --loader-border: 2.5px;
+    --loader-gap1: 4px;
+    --loader-gap2: 10px;
+}
+
+.logix-loader-lg {
+    --loader-size: 80px;
+    --loader-border: 3px;
+    --loader-gap1: 5px;
+    --loader-gap2: 13px;
+}
+
+.logix-loader-xl {
+    --loader-size: 120px;
+    --loader-border: 3px;
+    --loader-gap1: 6px;
+    --loader-gap2: 16px;
+}
+
+/* Mensaje inferior centrado (#customMessage en loader.png) */
+.loader-message, #customMessage {
+    display: inline-block;
+    font-family: var(--logix-font-family, 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif);
+    font-weight: 400;
+    letter-spacing: 0.025em;
+    text-align: center;
+    color: #dedede !important;
+}
+
+.loader-wrapper.is-light .loader-message,
+.loader-wrapper.is-light #customMessage {
+    color: #334155 !important;
 }
 
 /* Reset de impresión global */
@@ -142,4 +276,21 @@ thead.text-white th {
 .fixed.left-0.w-64 button.text-red-500,
 .fixed.left-0.w-64 button.text-red-400 {
     color: #ef4444 !important;
+}
+
+/* Table body font size normalization and compact vertical padding */
+table:not(.print-table):not([class*="print:"]) tbody td,
+.sap-table tbody td,
+.logix-table tbody td {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+table:not(.print-table):not([class*="print:"]) thead th,
+.sap-table thead th,
+.logix-table thead th {
+    padding-top: 0.3125rem;
+    padding-bottom: 0.3125rem;
 }

@@ -38,19 +38,11 @@ import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
 import InboundAudit from './pages/InboundAudit';
 import IRReconciliation from './pages/IRReconciliation';
+import Spinner from './components/Spinner';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
-    <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#0070f3'
-    }}>
-        Cargando...
-    </div>
+    <Spinner size="xl" label="Cargando módulo..." fullPage />
 );
 
 // Protected Route Component

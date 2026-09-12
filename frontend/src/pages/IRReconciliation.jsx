@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Spinner from '../components/Spinner';
 import '../styles/FluentPages.css';
 
 const IRReconciliation = () => {
@@ -73,7 +74,7 @@ const IRReconciliation = () => {
             <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
                 <div className="bg-zinc-50/50 p-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3">
                     <div>
-                        <h1 className="text-base font-semibold text-black uppercase tracking-wider">Historial de Conciliaciones de Contenedores (IR)</h1>
+                        <h1 className="text-base font-normal text-black uppercase">Historial de Conciliaciones de Contenedores (IR)</h1>
                         <p className="text-xs text-zinc-500 mt-0.5">Avance general de las Import References conciliadas en el sistema</p>
                     </div>
                     
@@ -87,7 +88,7 @@ const IRReconciliation = () => {
                             <input
                                 type="text"
                                 placeholder="BUSCAR CONTENEDOR (IR)..."
-                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all"
+                                className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase focus:border-zinc-400 transition-all"
                                 style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -106,7 +107,7 @@ const IRReconciliation = () => {
 
                         <button
                             onClick={() => refetch()}
-                            className="h-9 px-4 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                            className="h-9 px-4 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase active:scale-95 transition-all hover:bg-zinc-50"
                             title="Recargar datos"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,32 +120,31 @@ const IRReconciliation = () => {
 
                 <div className="overflow-x-auto min-h-[300px]">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-zinc-500 uppercase tracking-widest text-[11px] gap-3">
-                            <span className="animate-spin inline-block w-8 h-8 border-3 border-zinc-300 border-t-zinc-600 rounded-full"></span>
-                            Cargando historial de conciliaciones...
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <Spinner size="lg" label="Cargando historial de conciliaciones..." />
                         </div>
                     ) : error ? (
-                        <div className="text-center py-20 text-red-500 uppercase tracking-widest text-[11px] font-medium">
+                        <div className="text-center py-20 text-red-500 uppercase text-[11px] font-normal">
                             Error: {error}
                         </div>
                     ) : filteredReconciliations.length === 0 ? (
-                        <div className="text-center py-20 text-zinc-400 uppercase tracking-widest text-[11px]">
+                        <div className="text-center py-20 text-zinc-400 uppercase text-[11px]">
                             No hay conciliaciones registradas
                         </div>
                     ) : (
                         <table className="w-full text-xs border-collapse">
                             <thead>
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-200">
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Import Reference (IR)</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance Líneas</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance GRNs</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Avance Unidades</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Sin Diferencias</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Faltantes</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Sobrantes</th>
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Fecha Registro</th>
-                                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-800">Operador</th>
-                                    <th className="px-4 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-800">Acc</th>
+                                    <th className="px-3 py-1.5 text-left text-[11px] font-normal uppercase text-zinc-800">Import Reference (IR)</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Avance Líneas</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Avance GRNs</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Avance Unidades</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Sin Diferencias</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Faltantes</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Sobrantes</th>
+                                    <th className="px-3 py-1.5 text-left text-[11px] font-normal uppercase text-zinc-800">Fecha Registro</th>
+                                    <th className="px-3 py-1.5 text-left text-[11px] font-normal uppercase text-zinc-800">Operador</th>
+                                    <th className="px-3 py-1.5 text-center text-[11px] font-normal uppercase text-zinc-800">Acc</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -161,67 +161,67 @@ const IRReconciliation = () => {
 
                                     return (
                                         <tr key={recon.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 transition-colors`}>
-                                            <td className="px-4 py-3 font-semibold text-sm text-black uppercase tracking-wider">
+                                            <td className="px-3 py-1 font-normal text-sm text-black uppercase">
                                                 {recon.import_reference}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-3 py-1 text-center">
                                                 <div className="flex flex-col items-center justify-center min-w-[120px]">
-                                                    <span className="font-semibold text-black text-sm">{recon.completed_lines} / {recon.total_lines}</span>
-                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                                    <span className="font-normal text-black text-sm">{recon.completed_lines} / {recon.total_lines}</span>
+                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1 overflow-hidden">
                                                         <div 
                                                             className="bg-[#1679E0] h-full rounded-full transition-all" 
                                                             style={{ width: `${Math.min(100, linesPercent)}%` }}
                                                         ></div>
                                                     </div>
-                                                    <span className="text-[10px] text-zinc-500 font-medium mt-1">{linesPercent}%</span>
+                                                    <span className="text-[10px] text-zinc-500 font-medium mt-0.5">{linesPercent}%</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                             <td className="px-3 py-1 text-center">
                                                 <div className="flex flex-col items-center justify-center min-w-[120px]">
-                                                    <span className="font-semibold text-black text-sm">{recon.completed_grns} / {recon.total_grns}</span>
-                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                                    <span className="font-normal text-black text-sm">{recon.completed_grns} / {recon.total_grns}</span>
+                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1 overflow-hidden">
                                                         <div 
                                                             className="bg-violet-500 h-full rounded-full transition-all" 
                                                             style={{ width: `${Math.min(100, grnsPercent)}%` }}
                                                         ></div>
                                                     </div>
-                                                    <span className="text-[10px] text-zinc-500 font-medium mt-1">{grnsPercent}%</span>
+                                                    <span className="text-[10px] text-zinc-500 font-normal mt-0.5">{grnsPercent}%</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-3 py-1 text-center">
                                                 <div className="flex flex-col items-center justify-center min-w-[120px]">
-                                                    <span className="font-semibold text-black text-sm">{recon.received_units} / {recon.expected_units}</span>
-                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                                    <span className="font-normal text-black text-sm">{recon.received_units} / {recon.expected_units}</span>
+                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full mt-1 overflow-hidden">
                                                         <div 
                                                             className="bg-emerald-500 h-full rounded-full transition-all" 
                                                             style={{ width: `${Math.min(100, unitsPercent)}%` }}
                                                         ></div>
                                                     </div>
-                                                    <span className="text-[10px] text-zinc-500 font-medium mt-1">{unitsPercent}%</span>
+                                                    <span className="text-[10px] text-zinc-500 font-normal mt-0.5">{unitsPercent}%</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-center font-bold text-sm text-emerald-700">
-                                                <span className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded">
+                                            <td className="px-3 py-1 text-center font-bold text-sm text-emerald-700">
+                                                <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded">
                                                     {recon.ok_lines}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center font-bold text-sm text-red-700">
-                                                <span className="px-2 py-1 bg-red-50 border border-red-100 rounded">
+                                            <td className="px-3 py-1 text-center font-bold text-sm text-red-700">
+                                                <span className="px-2 py-0.5 bg-red-50 border border-red-100 rounded">
                                                     {recon.negative_diff_lines}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center font-bold text-sm text-blue-700">
-                                                <span className="px-2 py-1 bg-blue-50 border border-blue-100 rounded">
+                                            <td className="px-3 py-1 text-center font-bold text-sm text-blue-700">
+                                                <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded">
                                                     {recon.positive_diff_lines}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                            <td className="px-3 py-1 text-sm text-gray-700 whitespace-nowrap">
                                                 {formatDate(recon.timestamp)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-800 font-medium uppercase whitespace-nowrap">
+                                            <td className="px-3 py-1 text-sm text-gray-800 font-medium uppercase whitespace-nowrap">
                                                 {recon.username}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-3 py-1 text-center">
                                                 <button 
                                                     onClick={() => handleDelete(recon.id)} 
                                                     className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors" 

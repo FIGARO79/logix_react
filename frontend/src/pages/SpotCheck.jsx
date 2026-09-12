@@ -7,6 +7,7 @@ import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import Spinner from '../components/Spinner';
 import '../styles/SpotCheck.css';
 
 const SpotCheck = () => {
@@ -278,7 +279,7 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-3 font-sans min-h-screen">
+        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-3 min-h-screen">
             <ToastContainer position="top-right" autoClose={2000} />
 
             <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">
@@ -287,7 +288,7 @@ const SpotCheck = () => {
                 </div>
                 <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-medium  uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
+                    className="btn-sap btn-secondary text-[11px] font-normal uppercase px-6 h-9 flex items-center border-2 border-black"
                 >
                     Stock
                 </button>
@@ -364,7 +365,7 @@ const SpotCheck = () => {
                         <div className="p-3 bg-zinc-100 border border-zinc-300 rounded text-[12px] font-black text-black uppercase leading-tight shadow-inner">
                             {loading ? (
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    <Spinner size="xs" />
                                     Buscando...
                                 </div>
                             ) : (itemData?.description || '— ESPERANDO ARTÍCULO —')}
@@ -388,7 +389,7 @@ const SpotCheck = () => {
                                 onClick={handleSave}
                                 disabled={isSaving || !itemData}
                                 style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-medium  uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
+                                className="w-full bg-zinc-900 text-white rounded font-normal uppercase text-[11px] hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
                             >
                                 {isSaving ? '...' : 'REGISTRAR'}
                             </button>
@@ -399,11 +400,11 @@ const SpotCheck = () => {
                 <div className="lg:col-span-2">
                     <div className="bg-white border border-zinc-300 shadow-md overflow-hidden rounded-lg">
                         <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-medium  text-black uppercase tracking-widest">Hallazgos Recientes</h2>
+                            <h2 className="text-[11px] font-normal text-black uppercase">Hallazgos Recientes</h2>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-medium  uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
+                                    className="text-[10px] font-normal uppercase text-[#0078d4] hover:text-[#106ebe] flex items-center gap-1 border border-[#0078d4]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
                                 >
                                     Excel
                                 </button>
@@ -417,40 +418,40 @@ const SpotCheck = () => {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 text-[9px] uppercase tracking-widest">
+                                <thead className="bg-zinc-100 text-zinc-600 border-b border-zinc-300 text-[9px] uppercase font-normal">
                                     <tr>
-                                        <th className="px-3 py-3">Hora</th>
-                                        <th className="px-3 py-3">Bin Encontrado</th>
-                                        <th className="px-3 py-3">Bin Default</th>
-                                        <th className="px-3 py-3">Item</th>
-                                        <th className="px-3 py-3 text-center">Cant</th>
-                                        <th className="px-3 py-3">Usuario</th>
+                                        <th className="px-3 py-1.5">Hora</th>
+                                        <th className="px-3 py-1.5">Bin Encontrado</th>
+                                        <th className="px-3 py-1.5">Bin Default</th>
+                                        <th className="px-3 py-1.5">Item</th>
+                                        <th className="px-3 py-1.5 text-center">Cant</th>
+                                        <th className="px-3 py-1.5">Usuario</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-[10px]">
+                                <tbody className="text-sm">
                                     {recentChecks.length === 0 ? (
-                                        <tr><td colSpan="6" className="px-4 py-12 text-center text-zinc-400 font-medium uppercase">No hay registros recientes</td></tr>
+                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-zinc-400 font-medium uppercase">No hay registros recientes</td></tr>
                                     ) : (
                                         recentChecks.map((check) => {
-                                            const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
-                                            return (
-                                                <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                    <td className="px-3 py-3 text-zinc-600 font-medium font-mono">{formatDate(check.timestamp)}</td>
-                                                    <td className="px-3 py-3 font-black text-sm">
-                                                        <span className={`px-2 py-0.5 rounded font-mono ${isMatch ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
-                                                            {check.bin_location}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-3 font-mono font-bold text-zinc-700">{check.system_bin || check.default_bin || 'N/A'}</td>
-                                                    <td className="px-3 py-3">
-                                                        <div className="font-bold text-[#1e4a74] text-sm">{check.item_code}</div>
+                                             const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
+                                             return (
+                                                 <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                                                     <td className="px-3 py-1 text-zinc-600 font-medium font-mono">{formatDate(check.timestamp)}</td>
+                                                     <td className="px-3 py-1 font-black text-sm">
+                                                         <span className={`px-2 py-0.5 rounded font-mono ${isMatch ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
+                                                             {check.bin_location}
+                                                         </span>
+                                                     </td>
+                                                     <td className="px-3 py-1 font-mono font-bold text-zinc-700">{check.system_bin || check.default_bin || 'N/A'}</td>
+                                                     <td className="px-3 py-1">
+                                                         <div className="font-bold text-[#0078d4] text-sm">{check.item_code}</div>
                                                         <div className="text-[9px] text-zinc-600 font-medium truncate max-w-[200px]">{check.item_description}</div>
-                                                    </td>
-                                                    <td className="px-3 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
-                                                    <td className="px-3 py-3 uppercase text-zinc-600 font-medium">{check.username}</td>
-                                                </tr>
-                                            );
-                                        })
+                                                     </td>
+                                                     <td className="px-3 py-1 text-center font-black text-base text-black">{check.quantity}</td>
+                                                     <td className="px-3 py-1 uppercase text-zinc-600 font-medium">{check.username}</td>
+                                                 </tr>
+                                             );
+                                         })
                                     )}
                                 </tbody>
                             </table>

@@ -332,7 +332,7 @@ const Dashboard = () => {
                             >
                                 <div className="mb-4 flex items-center gap-3 border-b border-[#e1dfdd] pb-3">
                                     <div className={`h-5 w-1 ${category.accent || config.accent}`}></div>
-                                    <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-[#323130]">{category.title}</h2>
+                                    <h2 className="text-xs font-semibold uppercase text-[#323130]">{category.title}</h2>
                                 </div>
 
                                 <div className="space-y-3 min-h-[140px] flex flex-col">
@@ -358,10 +358,10 @@ const Dashboard = () => {
                                                         }`}
                                                     >
                                                         <Link to={item.href} className="block pr-5">
-                                                            <div className="text-xs font-semibold tracking-normal text-[#323130] transition-colors group-hover:text-[#0078d4]">
+                                                            <div className="text-xs font-semibold text-[#323130] transition-colors group-hover:text-[#0078d4]">
                                                                 {item.text}
                                                             </div>
-                                                            <div className="mt-1 text-[11px] font-normal uppercase tracking-normal text-[#605e5c]">
+                                                            <div className="mt-1 text-[11px] font-normal uppercase text-[#605e5c]">
                                                                 {item.desc}
                                                             </div>
                                                         </Link>

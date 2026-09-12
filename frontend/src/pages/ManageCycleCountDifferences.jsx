@@ -200,11 +200,11 @@ const ManageCycleCountDifferences = () => {
 
 
     return (
-        <div className="manage-cycle-diff-page max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="manage-cycle-diff-page max-w-[1800px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-zinc-800">
             {/* Filtros */}
             <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
                 <div>
-                    <label className="block text-[12px] uppercase font-medium  text-black tracking-tight mb-1.5">Año</label>
+                    <label className="block text-[12px] uppercase font-medium  text-black mb-1.5">Año</label>
                     <input
                         type="number"
                         value={year}
@@ -213,7 +213,7 @@ const ManageCycleCountDifferences = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-[12px] uppercase font-medium  text-black tracking-tight mb-1.5">Mes</label>
+                    <label className="block text-[12px] uppercase font-medium  text-black mb-1.5">Mes</label>
                     <select
                         value={month}
                         onChange={(e) => setMonth(e.target.value)}
@@ -233,20 +233,20 @@ const ManageCycleCountDifferences = () => {
                         id="onlyDiff"
                         className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
                     />
-                    <label htmlFor="onlyDiff" className="ml-2 text-[12px] uppercase font-medium  text-black tracking-tight cursor-pointer select-none">Solo Diferencias</label>
+                    <label htmlFor="onlyDiff" className="ml-2 text-[12px] uppercase font-medium  text-black cursor-pointer select-none">Solo Diferencias</label>
                 </div>
                 <div className="flex-grow"></div>
                 <div className="flex gap-2">
                     <button
                         onClick={handleExportToExcel}
                         disabled={data.length === 0}
-                        className="h-8 bg-emerald-700 disabled:bg-zinc-200 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-emerald-800 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-sm"
+                        className="h-8 bg-emerald-700 disabled:bg-zinc-200 text-white px-6 text-[10px] font-medium uppercase rounded hover:bg-emerald-800 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
                         Exportar a Excel
                     </button>
                     <button
                         onClick={() => fetchData(true)}
-                        className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
+                        className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium uppercase rounded hover:bg-black transition-all shadow-sm"
                     >
                         Actualizar Vista
                     </button>
@@ -270,7 +270,7 @@ const ManageCycleCountDifferences = () => {
                                     <th
                                         key={i}
                                         onClick={() => isSortable && handleSort(col.key)}
-                                        className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap text-zinc-800 ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-200 transition-colors' : ''}`}
+                                        className={`px-3 py-1.5 text-[12px] font-normal uppercase whitespace-nowrap text-zinc-800 ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-200 transition-colors' : ''}`}
                                     >
                                         <div className={`inline-flex items-center gap-1 ${col.align === 'right' ? 'justify-end w-full' : col.align === 'center' ? 'justify-center w-full' : ''}`}>
                                             <span>{col.label}</span>
@@ -287,27 +287,27 @@ const ManageCycleCountDifferences = () => {
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                         {loading ? (
-                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">Analizando discrepancias...</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium">Analizando discrepancias...</td></tr>
                         ) : sortedData.length === 0 ? (
-                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">No se encontraron diferencias en este periodo.</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium">No se encontraron diferencias en este periodo.</td></tr>
                         ) : (
                             sortedData.map((row) => (
                                 <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors leading-none">
-                                    <td className="px-4 py-1.5 whitespace-nowrap text-black font-normal">{formatDate(row.executed_date)}</td>
-                                    <td className="px-4 py-1.5 font-normal text-black whitespace-nowrap">{row.item_code}</td>
-                                    <td className="px-4 py-1.5 truncate max-w-[350px] text-black font-normal whitespace-nowrap" title={row.item_description}>{row.item_description}</td>
-                                    <td className="px-4 py-1.5 text-black font-normal whitespace-nowrap">{row.bin_location}</td>
-                                    <td className="px-4 py-1.5 text-center text-black font-normal whitespace-nowrap">{row.abc_code}</td>
-                                    <td className="px-4 py-1.5 text-right text-black font-normal whitespace-nowrap">{row.system_qty}</td>
-                                    <td className="px-4 py-1.5 text-right text-black font-normal whitespace-nowrap">{row.physical_qty}</td>
-                                    <td className={`px-4 py-1.5 text-right whitespace-nowrap ${row.difference !== 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                    <td className="px-3 py-1 whitespace-nowrap text-black font-normal">{formatDate(row.executed_date)}</td>
+                                    <td className="px-3 py-1 font-normal text-black whitespace-nowrap">{row.item_code}</td>
+                                    <td className="px-3 py-1 truncate max-w-[350px] text-black font-normal whitespace-nowrap" title={row.item_description}>{row.item_description}</td>
+                                    <td className="px-3 py-1 text-black font-normal whitespace-nowrap">{row.bin_location}</td>
+                                    <td className="px-3 py-1 text-center text-black font-normal whitespace-nowrap">{row.abc_code}</td>
+                                    <td className="px-3 py-1 text-right text-black font-normal whitespace-nowrap">{row.system_qty}</td>
+                                    <td className="px-3 py-1 text-right text-black font-normal whitespace-nowrap">{row.physical_qty}</td>
+                                    <td className={`px-3 py-1 text-right whitespace-nowrap ${row.difference !== 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                                         {row.difference > 0 ? `+${row.difference}` : row.difference}
                                     </td>
-                                    <td className="px-4 py-1.5 text-black font-normal whitespace-nowrap">{row.username}</td>
-                                    <td className="px-4 py-1.5 text-center whitespace-nowrap">
+                                    <td className="px-3 py-1 text-black font-normal whitespace-nowrap">{row.username}</td>
+                                    <td className="px-3 py-1 text-center whitespace-nowrap">
                                         <button
                                             onClick={() => handleEdit(row)}
-                                            className="text-[12px] font-normal  uppercase tracking-tight text-[#285f94] hover:text-black transition-colors leading-none"
+                                            className="text-[12px] font-normal  uppercase text-[#0078d4] hover:text-black transition-colors leading-none"
                                             title="Recuento"
                                         >
                                             RECOUNT
@@ -325,25 +325,25 @@ const ManageCycleCountDifferences = () => {
                 <div className="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white border border-zinc-200 shadow-2xl max-w-sm w-full overflow-hidden">
                         <div className="bg-zinc-900 px-6 py-3">
-                            <h3 className="text-[10px] font-medium text-white uppercase tracking-widest">Actualizar Cantidad Física</h3>
+                            <h3 className="text-[10px] font-medium text-white uppercase">Actualizar Cantidad Física</h3>
                         </div>
                         <div className="p-6">
                             <div className="mb-6 space-y-1">
-                                <label className="text-[8px] uppercase font-medium  text-zinc-400 tracking-widest block">Referencia</label>
-                                <p className="text-sm font-medium  text-zinc-900 tracking-tight">{editingItem.item_code}</p>
+                                <label className="text-[8px] uppercase font-medium  text-zinc-400 block">Referencia</label>
+                                <p className="text-sm font-medium  text-zinc-900">{editingItem.item_code}</p>
                                 <p className="text-[10px] text-zinc-500 uppercase">{editingItem.item_description}</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 mb-8">
                                 <div className="p-3 bg-zinc-50 border border-zinc-100">
-                                    <label className="text-[8px] uppercase font-medium  text-zinc-400 tracking-widest block mb-1">Stock Sistema</label>
+                                    <label className="text-[8px] uppercase font-medium  text-zinc-400 block mb-1">Stock Sistema</label>
                                     <p className="text-xl font-light text-zinc-900">{editingItem.system_qty}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50/30 border border-blue-100">
-                                    <label className="text-[8px] uppercase font-medium  text-blue-400 tracking-widest block mb-1">Stock Físico</label>
+                                    <label className="text-[8px] uppercase font-medium  text-blue-400 block mb-1">Stock Físico</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-transparent text-xl font-medium  text-[#285f94] focus:outline-none"
+                                        className="w-full bg-transparent text-xl font-medium  text-[#0078d4] focus:outline-none"
                                         value={newPhysicalQty}
                                         onChange={(e) => setNewPhysicalQty(e.target.value)}
                                         autoFocus
@@ -354,13 +354,13 @@ const ManageCycleCountDifferences = () => {
                             <div className="flex justify-end gap-3">
                                 <button
                                     onClick={() => setEditingItem(null)}
-                                    className="px-4 py-2 text-[10px] font-medium  text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors"
+                                    className="px-4 py-2 text-[10px] font-medium  text-zinc-400 uppercase hover:text-zinc-900 transition-colors"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={handleSaveEdit}
-                                    className="px-6 py-2 bg-zinc-900 text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-black transition-all shadow-md"
+                                    className="px-6 py-2 bg-zinc-900 text-white text-[10px] font-medium  uppercase rounded hover:bg-black transition-all shadow-md"
                                 >
                                     Confirmar Ajuste
                                 </button>

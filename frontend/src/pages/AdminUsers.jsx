@@ -147,29 +147,29 @@ const AdminUsers = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 uppercase font-semibold text-xs">
+                        <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 uppercase font-normal text-xs">
                             <tr>
-                                <th className="px-6 py-3 text-center w-16 text-zinc-800">ID</th>
-                                <th className="px-6 py-3 font-semibold text-zinc-800">Usuario</th>
-                                <th className="px-6 py-3 text-center font-semibold text-zinc-800">Estado</th>
+                                <th className="px-4 py-1.5 text-center w-16 text-zinc-800 font-normal">ID</th>
+                                <th className="px-4 py-1.5 font-normal text-zinc-800">Usuario</th>
+                                <th className="px-4 py-1.5 text-center font-normal text-zinc-800">Estado</th>
                                 {MODULES.map(m => (
-                                    <th key={m} className="px-2 py-3 text-center font-semibold text-zinc-800 text-xs">{m.toUpperCase()}</th>
+                                    <th key={m} className="px-2 py-1.5 text-center font-normal text-zinc-800 text-xs">{m.toUpperCase()}</th>
                                 ))}
-                                <th className="px-6 py-3 text-center font-semibold text-zinc-800">Acciones</th>
+                                <th className="px-4 py-1.5 text-center font-normal text-zinc-800">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {users.map(u => (
                                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-center text-gray-500">{u.id}</td>
-                                    <td className="px-6 py-4 font-medium ">{u.username}</td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 py-1 text-center text-gray-500 font-normal">{u.id}</td>
+                                    <td className="px-4 py-1 font-normal text-zinc-900">{u.username}</td>
+                                    <td className="px-4 py-1 text-center">
                                         {u.is_approved ? (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-green-100 text-green-700 border border-green-200/50">
+                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-normal bg-green-100 text-green-700 border border-green-200/50">
                                                 Aprobado
                                             </span>
                                         ) : (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-orange-100 text-orange-700 border border-orange-200/50">
+                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-normal bg-orange-100 text-orange-700 border border-orange-200/50">
                                                 Pendiente
                                             </span>
                                         )}
@@ -180,20 +180,20 @@ const AdminUsers = () => {
                                             : [];
                                         const hasPerm = perms.includes(m);
                                         return (
-                                            <td key={m} className="px-2 py-4 text-center">
+                                            <td key={m} className="px-2 py-1 text-center">
                                                 <input
                                                     type="checkbox"
                                                     checked={hasPerm}
                                                     onChange={() => handlePermissionChange(u.id, m)}
-                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                    className="rounded border-gray-300 text-[#0078d4] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                                 />
                                             </td>
                                         );
                                     })}
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-4 py-1 text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             <button
-                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
+                                                className="px-3 py-1 border border-[#0078d4] text-[#0078d4] rounded text-xs font-normal hover:bg-blue-50 transition-colors cursor-pointer"
                                                 onClick={() => { alert('Verificar contraseña (no implementado en React aún)'); }}
                                             >
                                                 Verificar
@@ -202,7 +202,7 @@ const AdminUsers = () => {
                                             {!u.is_approved && (
                                                 <button
                                                     onClick={() => handleApprove(u.id)}
-                                                    className="px-3 py-1 bg-[#285f94] text-white rounded text-xs hover:bg-[#1e4a74] transition-colors border border-[#285f94]"
+                                                    className="px-3 py-1 bg-[#0078d4] text-white rounded text-xs font-normal hover:bg-[#106ebe] transition-colors border border-[#0078d4] cursor-pointer"
                                                 >
                                                     Aprobar
                                                 </button>
@@ -210,14 +210,14 @@ const AdminUsers = () => {
 
                                             <button
                                                 onClick={() => handleResetPassword(u.id)}
-                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
+                                                className="px-3 py-1 border border-[#0078d4] text-[#0078d4] rounded text-xs font-normal hover:bg-blue-50 transition-colors cursor-pointer"
                                             >
                                                 Reset Pass
                                             </button>
 
                                             <button
                                                 onClick={() => handleDelete(u.id)}
-                                                className="p-1 text-red-600 hover:bg-red-50 rounded border border-red-200 ml-1"
+                                                className="p-1 text-red-600 hover:bg-red-50 rounded border border-red-200 ml-1 cursor-pointer"
                                                 title="Eliminar"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

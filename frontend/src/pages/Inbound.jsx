@@ -1020,6 +1020,7 @@ const Inbound = () => {
                         queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
                         queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
                         queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+                        queryClient.invalidateQueries({ queryKey: ['inbound-auditor-alerts'] });
                         if (typeof BroadcastChannel !== 'undefined') {
                             const bc = new BroadcastChannel('logix_events');
                             bc.postMessage({ type: 'INBOUND_MUTATED' });
@@ -1038,6 +1039,7 @@ const Inbound = () => {
             queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
             queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+            queryClient.invalidateQueries({ queryKey: ['inbound-auditor-alerts'] });
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'INBOUND_MUTATED' });
@@ -1071,6 +1073,12 @@ const Inbound = () => {
         try {
             await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
             loadLogs();
+            queryClient.invalidateQueries({ queryKey: ['inbound-auditor-alerts'] });
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'INBOUND_MUTATED' });
+                bc.close();
+            }
         } catch (e) { alert("Error"); }
     };
 
@@ -1079,6 +1087,12 @@ const Inbound = () => {
         try {
             await fetch(`/api/logs/archive`, { method: 'POST', credentials: 'include' });
             loadLogs(); loadVersions();
+            queryClient.invalidateQueries({ queryKey: ['inbound-auditor-alerts'] });
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'INBOUND_MUTATED' });
+                bc.close();
+            }
         } catch (e) { alert("Error"); }
     };
 
@@ -1128,7 +1142,7 @@ const Inbound = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-1">
                         <div className="lg:col-span-2 bg-white p-2 rounded shadow-sm !mb-0 border border-gray-200">
                             <div className="bg-white text-black px-2 py-1 -mx-2 -mt-2 mb-2 rounded-t border-b border-gray-100 flex justify-between items-center">
-                                <h1 className="text-base font-medium  tracking-tight uppercase">Inbound - Recepción</h1>
+                                <h1 className="text-base font-normal uppercase">Inbound - Recepción</h1>
                                 <div className="flex items-center gap-2">
                                     {pendingCount > 0 && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-medium animate-pulse cursor-pointer" onClick={syncPendingData} title="Sincronizar pendientes ahora">
@@ -1191,7 +1205,7 @@ const Inbound = () => {
                                     <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                         {effectiveXdockPending > 0 ? (
                                             <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
-                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5">XDOCK</h4>
                                                 <div className="flex flex-col gap-0.5 text-black font-medium ">
                                                     <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
                                                     <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium "><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
@@ -1201,7 +1215,7 @@ const Inbound = () => {
 
                                         {effectiveXdockPending > 0 && itemData?.xdockCustomers?.length > 0 ? (
                                             <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
-                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
+                                                <h4 className="text-[10px] font-medium  uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5">RESERVAS:</h4>
                                                 <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium ">
                                                     {itemData.xdockCustomers.map((c, idx) => {
                                                         const custName = typeof c === 'string' ? c : (c?.name || c?.customer_name || 'SIN NOMBRE');
@@ -1245,9 +1259,9 @@ const Inbound = () => {
                             </div>
 
                             <div className="bg-white p-4 border-2 border-zinc-200 rounded-lg mb-2 shadow-sm">
-                                <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3 tracking-widest">Resumen de Recepción</h3>
+                                <h3 className="text-[11px] font-medium  uppercase text-black border-b-2 border-black pb-1 mb-3">Resumen de Recepción</h3>
                                 <div className="grid grid-cols-3 gap-4 mb-4">
-                                    <div><label className="form-label font-normal text-black">Recibido</label><div className="data-field font-normal text-2xl text-[#1e4a74]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
+                                    <div><label className="form-label font-normal text-black">Recibido</label><div className="data-field font-normal text-2xl text-[#0078d4]" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty}</div></div>
                                     <div><label className="form-label font-normal text-black">Esperado</label><div className="data-field font-normal text-2xl text-black" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.defaultQtyGrn || 0}</div></div>
                                     <div><label className="form-label font-normal text-black">Diferencia</label><div className={`data-field font-normal text-2xl ${(cumulativeQty - (itemData?.defaultQtyGrn || 0)) > 0 ? 'text-blue-700' :
                                         (cumulativeQty - (itemData?.defaultQtyGrn || 0)) < 0 ? 'text-red-700' : 'text-black'
@@ -1258,13 +1272,13 @@ const Inbound = () => {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background = '#285f94')}
+                                    className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    style={{ background: '#0078d4' }}
+                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background = '#106ebe')}
+                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background = '#0078d4')}
                                 >
                                     {isSaving ? (
-                                        <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
+                                        <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/25 border-t-white" style={{ borderRadius: '9999px' }}></span> Guardando...</>
                                     ) : (
                                         editId ? 'Guardar Cambios' : 'Añadir Registro'
                                     )}
@@ -1273,7 +1287,7 @@ const Inbound = () => {
                                     <button
                                         type="button"
                                         onClick={resetForm}
-                                        className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                                        className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase active:scale-95 transition-all hover:bg-zinc-50"
                                     >
                                         Cancelar
                                     </button>
@@ -1304,9 +1318,9 @@ const Inbound = () => {
                                 type="button"
                                 onClick={handlePrint}
                                 className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-normal active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-normal"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                style={{ background: '#0078d4' }}
+                                onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#106ebe')}
+                                onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#0078d4')}
                                 disabled={!itemData}
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1383,7 +1397,7 @@ const Inbound = () => {
 
                 <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
                     <div className="bg-zinc-50/50 p-2 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
-                        <h2 className="text-base font-medium  text-black tracking-normal uppercase">Registros de ingreso</h2>
+                        <h2 className="text-base font-normal text-black tracking-normal uppercase">Registros de ingreso</h2>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
@@ -1394,7 +1408,7 @@ const Inbound = () => {
                                 <input
                                     type="text"
                                     placeholder="BUSCAR..."
-                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all"
+                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase focus:border-zinc-400 transition-all"
                                     style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -1426,20 +1440,20 @@ const Inbound = () => {
                                     const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
                                     window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
                                 }}
-                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#0078d4' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#106ebe'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#0078d4'}
                             >
                                 Exportar
                             </button>
 
                             <button
                                 onClick={handleArchive}
-                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase active:scale-95 transition-all whitespace-nowrap"
+                                style={{ background: '#0078d4' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#106ebe'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#0078d4'}
                             >
                                 Archivar
                             </button>
@@ -1449,23 +1463,23 @@ const Inbound = () => {
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-0 z-20">
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Item</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">New</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider text-zinc-800">User</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider text-zinc-800">Acc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Ref</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Item</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Desc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Orig</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">New</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase text-zinc-800">Qty</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase text-zinc-800">Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase text-zinc-800">Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase text-zinc-800">User</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase text-zinc-800">Acc</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>

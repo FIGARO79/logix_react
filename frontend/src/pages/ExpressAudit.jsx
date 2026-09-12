@@ -163,16 +163,16 @@ const ExpressAudit = () => {
                     {/* Encabezado Limpio */}
                     <div className="flex justify-between items-center border-b pb-3">
                         <div>
-                            <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase tracking-tight">
+                            <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase">
                                 Ciclo Manual (Auditoría Express)
                             </h2>
-                            <p className="text-[10px] text-gray-500 uppercase font-medium text-gray-900">
+                            <p className="text-[10px] text-gray-500 uppercase font-normal text-gray-900">
                                 Conteo ciego y verificación rápida de ubicaciones W2W
                             </p>
                         </div>
                         <button
                             onClick={resetAll}
-                            className="btn-sap btn-secondary text-xs font-medium text-gray-900 uppercase h-[36px] px-4"
+                            className="btn-sap btn-secondary text-xs font-normal text-gray-900 uppercase h-[36px] px-4"
                         >
                             Reiniciar Sesión
                         </button>
@@ -184,7 +184,7 @@ const ExpressAudit = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Ubicación (BIN) */}
                             <div>
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
+                                <label className="form-label text-[10px] font-normal text-gray-900 uppercase text-gray-600">
                                     Ubicación (BIN)*
                                 </label>
                                 <div className="flex items-center gap-2">
@@ -194,7 +194,7 @@ const ExpressAudit = () => {
                                         value={binLocation}
                                         onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                         onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
-                                        className="uppercase font-medium text-gray-900 text-[#1e4a74] h-[40px] flex-grow px-3 border rounded"
+                                        className="uppercase font-normal text-gray-900 text-[#0078d4] h-[40px] flex-grow px-3 border rounded"
                                         placeholder="SCAN BIN (EJ. RD72B)"
                                     />
                                     <button
@@ -213,7 +213,7 @@ const ExpressAudit = () => {
 
                             {/* Identificación SKU */}
                             <div>
-                                <label className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600">
+                                <label className="form-label text-[10px] font-normal text-gray-900 uppercase text-gray-600">
                                     Identificación (SKU)*
                                 </label>
                                 <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ const ExpressAudit = () => {
                                         value={itemCode}
                                         onChange={(e) => handleItemChange(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearchItem(e.target.value)}
-                                        className="uppercase font-medium text-gray-900 text-[#1e4a74] h-[30px] flex-grow px-3 border rounded"
+                                        className="uppercase font-normal text-gray-900 text-[#0078d4] h-[30px] flex-grow px-3 border rounded"
                                         placeholder="SCAN SKU (EJ. 64278542)"
                                     />
                                     <button
@@ -298,7 +298,7 @@ const ExpressAudit = () => {
                                 <button
                                     onClick={handleSave}
                                     disabled={isSaving || !itemData}
-                                    className="btn-sap btn-primary h-[30px] px-8 w-full text-[10px] font-medium text-gray-900 uppercase tracking-widest"
+                                    className="btn-sap btn-primary h-[30px] px-8 w-full text-[10px] font-normal text-gray-900 uppercase"
                                 >
                                     {isSaving ? "Guardando..." : "Confirmar Registro"}
                                 </button>
@@ -307,34 +307,34 @@ const ExpressAudit = () => {
 
                         {/* Panel de Análisis de Inventario */}
                         <div className="pt-4 border-t space-y-3">
-                            <h3 className="font-medium text-gray-900 text-[10px] text-gray-700 uppercase tracking-wider">
+                            <h3 className="font-normal text-gray-900 text-[10px] text-gray-700 uppercase">
                                 Análisis de Inventario
                             </h3>
 
                             <div className="grid grid-cols-3 gap-4 bg-gray-50 border rounded-lg p-3 text-center">
                                 <div>
-                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
+                                    <span className="form-label text-[10px] font-normal text-gray-900 uppercase text-gray-600 block">
                                         Stock Sistema
                                     </span>
-                                    <div className="text-xl font-medium text-gray-900 text-gray-900 mt-1">
+                                    <div className="text-xl font-normal text-gray-900 text-gray-900 mt-1">
                                         {itemData?.system_qty ?? 0}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
+                                    <span className="form-label text-[10px] font-normal text-gray-900 uppercase text-gray-600 block">
                                         Auditoría Física
                                     </span>
-                                    <div className="text-xl font-medium text-gray-900 text-gray-900 mt-1">
+                                    <div className="text-xl font-normal text-gray-900 text-gray-900 mt-1">
                                         {physicalQty === '' ? 0 : physicalQty}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <span className="form-label text-[10px] font-medium text-gray-900 uppercase text-gray-600 block">
+                                    <span className="form-label text-[10px] font-normal text-gray-900 uppercase text-gray-600 block">
                                         Diferencia
                                     </span>
-                                    <div className={`text-xl font-medium text-gray-900 mt-1 ${difference > 0 ? 'text-blue-700' : difference < 0 ? 'text-red-700' : 'text-emerald-700'
+                                    <div className={`text-xl font-normal text-gray-900 mt-1 ${difference > 0 ? 'text-blue-700' : difference < 0 ? 'text-red-700' : 'text-emerald-700'
                                         }`}>
                                         {difference > 0 ? `+${difference}` : difference}
                                     </div>
@@ -348,13 +348,13 @@ const ExpressAudit = () => {
                                         : 'bg-red-50 border-red-200 text-red-950'
                                     }`}>
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-gray-900 uppercase tracking-wider leading-tight">
+                                        <span className="text-xs font-normal text-gray-900 uppercase leading-tight">
                                             {binLocation.toUpperCase() === itemData.system_bin?.toUpperCase()
                                                 ? 'Ubicación Correcta'
                                                 : 'Discrepancia de Ubicación Detectada'}
                                         </span>
                                         {binLocation.toUpperCase() !== itemData.system_bin?.toUpperCase() && (
-                                            <span className="text-[10px] font-medium text-gray-900 uppercase mt-0.5">
+                                            <span className="text-[10px] font-normal text-gray-900 uppercase mt-0.5">
                                                 Ubicación Principal en Sistema: {itemData.system_bin || 'NO DEFINIDA'}
                                             </span>
                                         )}
@@ -368,47 +368,47 @@ const ExpressAudit = () => {
                 {/* Tarjeta de Historial Reciente */}
                 <div className="bg-white border border-gray-200 shadow rounded-lg overflow-hidden p-6">
                     <div className="flex justify-between items-center border-b pb-3 mb-4">
-                        <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase tracking-tight">
+                        <h2 className="text-[12px] font-normal text-gray-900 text-gray-800 uppercase">
                             Historial de Auditorías Recientes
                         </h2>
                     </div>
 
                     <div className="overflow-x-auto max-h-[380px]">
-                        <table className="w-full text-xs border-collapse">
-                            <thead className="bg-slate-100 text-slate-700 sticky top-0 border-b border-slate-200">
+                        <table className="w-full text-sm border-collapse">
+                            <thead className="bg-slate-100 text-slate-700 sticky top-0 border-b border-slate-200 text-xs">
                                 <tr>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">Fecha / Hora</th>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">Usuario</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">BIN</th>
-                                    <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider">SKU / Artículo</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">Físico</th>
-                                    <th className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider">Delta</th>
+                                    <th className="px-3 py-1.5 text-left text-[10px] font-normal uppercase">Fecha / Hora</th>
+                                    <th className="px-3 py-1.5 text-left text-[10px] font-normal uppercase">Usuario</th>
+                                    <th className="px-3 py-1.5 text-center text-[10px] font-normal uppercase">BIN</th>
+                                    <th className="px-3 py-1.5 text-left text-[10px] font-normal uppercase">SKU / Artículo</th>
+                                    <th className="px-3 py-1.5 text-center text-[10px] font-normal uppercase">Físico</th>
+                                    <th className="px-3 py-1.5 text-center text-[10px] font-normal uppercase">Delta</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 bg-white">
                                 {recentAudits.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-4 py-12 text-center text-gray-400 uppercase tracking-widest text-[11px] font-medium text-gray-900">
+                                        <td colSpan="6" className="px-3 py-8 text-center text-gray-400 uppercase text-sm font-normal text-gray-900">
                                             No se han registrado auditorías recientes en esta sesión
                                         </td>
                                     </tr>
                                 ) : (
                                     recentAudits.map((audit, idx) => (
                                         <tr key={audit.id || idx} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-                                            <td className="px-4 py-2.5 text-gray-600 font-mono text-[11px]">{formatDate(audit.executed_date)}</td>
-                                            <td className="px-4 py-2.5 text-gray-800 font-medium text-gray-900 uppercase">{audit.username || 'Sistema'}</td>
-                                            <td className="px-4 py-2.5 text-center font-medium text-gray-900">{audit.bin_location}</td>
-                                            <td className="px-4 py-2.5 font-medium text-gray-900 text-[#1e4a74]">
-                                                <div className="font-mono text-xs">{audit.item_code}</div>
+                                            <td className="px-3 py-1 text-gray-600 font-mono text-sm">{formatDate(audit.executed_date)}</td>
+                                            <td className="px-3 py-1 text-gray-800 font-normal text-gray-900 uppercase text-sm">{audit.username || 'Sistema'}</td>
+                                            <td className="px-3 py-1 text-center font-normal text-gray-900 text-sm">{audit.bin_location}</td>
+                                            <td className="px-3 py-1 font-normal text-gray-900 text-[#0078d4]">
+                                                <div className="font-mono text-sm">{audit.item_code}</div>
                                                 {audit.item_description && (
                                                     <div className="text-[10px] text-gray-500 font-normal truncate max-w-[300px]">
                                                         {audit.item_description}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-2.5 text-center font-medium text-gray-900 font-mono text-sm">{audit.physical_qty}</td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                <span className={`font-mono font-medium text-gray-900 text-xs ${audit.difference > 0
+                                            <td className="px-3 py-1 text-center font-normal text-gray-900 font-mono text-sm">{audit.physical_qty}</td>
+                                            <td className="px-3 py-1 text-center">
+                                                <span className={`font-mono font-normal text-gray-900 text-sm ${audit.difference > 0
                                                         ? 'text-blue-700'
                                                         : audit.difference < 0
                                                             ? 'text-red-700'

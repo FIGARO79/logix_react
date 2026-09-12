@@ -62,10 +62,10 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
     const HeaderAndInfo = ({ currentPage, totalPages }) => (
         <>
             <div className="text-center mb-2 border-b border-black pb-2 print:mb-2">
-                <h1 className="text-2xl uppercase tracking-tight mb-1 print:text-xl text-black">Packing List</h1>
+                <h1 className="text-2xl font-normal uppercase mb-1 print:text-xl text-black">Packing List</h1>
                 <div className="text-[10px] text-gray-500 print:text-black flex justify-between px-2">
                     <span>{data.timestamp || ''}</span>
-                    <span className="font-medium ">
+                    <span className="font-normal">
                         PÁG {currentPage} / {totalPages}
                     </span>
                 </div>
@@ -74,7 +74,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
             <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] print:gap-1 print:mb-1">
                 <div className="pb-0.5 border-b border-gray-100 flex items-center gap-2">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black">Cliente:</span>
-                    <span className="text-sm font-medium  text-black flex flex-wrap items-center gap-1 leading-tight">
+                    <span className="text-sm font-normal text-black flex flex-wrap items-center gap-1 leading-tight">
                         {data.customer_code && data.customer_code.trim() !== "" ? (
                             <span>{data.customer_code} - {data.customer_name || 'N/A'}</span>
                         ) : (
@@ -84,11 +84,11 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                 </div>
                 <div className="text-right pb-0.5 border-b border-gray-100">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Total Bultos:</span>
-                    <span className="text-lg font-medium  text-[#285f94] print:text-black">{data.total_packages}</span>
+                    <span className="text-lg font-normal text-[#0078d4] print:text-black">{data.total_packages}</span>
                 </div>
                 <div className="col-span-2">
                     <span className="text-gray-500 uppercase text-[8px] print:text-black mr-2">Pedido / Despacho:</span>
-                    <span className="text-sm font-medium  text-black">
+                    <span className="text-sm font-normal text-black">
                         {data.order_number} <span className="mx-1 text-gray-300">/</span> {data.despatch_number}
                     </span>
                 </div>
@@ -99,7 +99,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
 
     return (
-        <div className="packing-list-print-page bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="packing-list-print-page bg-white min-h-screen text-black p-8 print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
@@ -117,17 +117,17 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
             {/* Control Bar - Hidden when printing */}
             <div className="no-print mb-4 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
                 <div className="max-w-3xl mx-auto flex justify-between items-center p-4">
-                    <h1 className="text-lg text-[#285f94]">Vista Previa Packing List</h1>
+                    <h1 className="text-lg font-normal text-[#0078d4]">Vista Previa Packing List</h1>
                     <div className="flex gap-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-xs font-normal hover:bg-gray-300 transition-colors cursor-pointer"
                         >
                             Cerrar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
+                            className="bg-[#0078d4] text-white px-4 py-2 rounded text-xs font-normal hover:bg-[#106ebe] shadow-sm transition-all active:scale-95 cursor-pointer"
                         >
                             Imprimir
                         </button>
@@ -139,8 +139,8 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
             <div className="max-w-3xl mx-auto print:max-w-none print:w-full print:px-0">
                 {sortedPackageKeys.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <h3 className="text-xl text-gray-400 mb-2">Sin Bultos Asignados</h3>
-                        <p className="text-gray-500">No hay contenido disponible para imprimir en este pedido.</p>
+                        <h3 className="text-xl font-normal text-gray-400 mb-2">Sin Bultos Asignados</h3>
+                        <p className="text-xs text-gray-500 font-normal">No hay contenido disponible para imprimir en este pedido.</p>
                     </div>
                 ) : (
                     sortedPackageKeys.map((key, index) => (
@@ -154,15 +154,15 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                             <div className="mt-4 print:mt-2">
                                 <div className="border border-black rounded-lg overflow-hidden print:border-black print:rounded-none">
                                     <div className="bg-white text-black px-3 py-1 border-b border-black print:py-0.5">
-                                        <h3 className="text-base font-medium  uppercase">Bulto #{key}</h3>
+                                        <h3 className="text-base font-normal uppercase">Bulto #{key}</h3>
                                     </div>
                                     <table className="min-w-full text-base table-fixed">
-                                        <thead className="bg-white text-black border-b border-black">
+                                        <thead className="bg-white text-black border-b border-black font-normal">
                                             <tr>
-                                                <th className="px-2 py-1 text-left w-12 uppercase text-[10px]">Línea</th>
-                                                <th className="px-2 py-1 text-left w-24 uppercase text-[10px]">Código</th>
-                                                <th className="px-2 py-1 text-left uppercase text-[10px]">Descripción</th>
-                                                <th className="px-2 py-1 text-right w-16 uppercase text-[10px]">Cant.</th>
+                                                <th className="px-2 py-1 text-left w-12 uppercase text-[10px] font-normal">Línea</th>
+                                                <th className="px-2 py-1 text-left w-24 uppercase text-[10px] font-normal">Código</th>
+                                                <th className="px-2 py-1 text-left uppercase text-[10px] font-normal">Descripción</th>
+                                                <th className="px-2 py-1 text-right w-16 uppercase text-[10px] font-normal">Cant.</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200 print:divide-black">
@@ -186,7 +186,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                             </div>
 
                             <div className="mt-8 pt-4 border-t border-gray-100 flex justify-center items-center text-[9px] text-gray-400 print:mt-12 print:border-gray-300 print:text-black">
-                                <p className="tracking-widest uppercase">LOGIX - WMS</p>
+                                <p className="uppercase">LOGIX - WMS</p>
                             </div>
                         </div>
                     ))

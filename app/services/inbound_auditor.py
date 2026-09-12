@@ -134,7 +134,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         print(f"[AUDITOR AGENT] Error al cargar alertas existentes de la DB: {e}")
         db_alerts = []
 
-    existing_keys = {(a.import_reference, a.item_code, a.grn) for a in db_alerts}
+    existing_alerts_map = {(a.import_reference, a.item_code, a.grn): a for a in db_alerts}
 
     # Pre-cargar costos unitarios de MasterItem para cálculo de impacto financiero en bulk
     item_codes_all = {
@@ -157,12 +157,6 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         row.get("Codigo_Item")
         for row in calculations
         if row.get("Diferencia", 0) < 0
-        and (
-            row.get("Import_Reference", ""),
-            row.get("Codigo_Item", ""),
-            row.get("GRN", ""),
-        )
-        not in existing_keys
     }
 
     recurrence_map = {}
@@ -187,7 +181,30 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         except Exception as db_err:
             print(f"[AUDITOR AGENT] Error consultando historial bulk: {db_err}")
 
+    # Detección inteligente de posibles cruces / trocas (diferencias simétricas en la misma IR)
+    shortages_by_ir = {}
+    surpluses_by_ir = {}
+    for row in calculations:
+        diff = int(row.get("Diferencia", 0))
+        ir = row.get("Import_Reference", "")
+        item = row.get("Codigo_Item", "")
+        if diff < 0:
+            shortages_by_ir.setdefault(ir, {}).setdefault(abs(diff), []).append(item)
+        elif diff > 0:
+            surpluses_by_ir.setdefault(ir, {}).setdefault(diff, []).append(item)
+
+    detected_swaps = {}
+    for ir, diff_map in shortages_by_ir.items():
+        if ir in surpluses_by_ir:
+            for qty_diff, shortage_items in diff_map.items():
+                if qty_diff in surpluses_by_ir[ir]:
+                    surplus_items = surpluses_by_ir[ir][qty_diff]
+                    for s_item, sur_item in zip(shortage_items, surplus_items):
+                        detected_swaps[(ir, s_item)] = (sur_item, qty_diff)
+                        detected_swaps[(ir, sur_item)] = (s_item, qty_diff)
+
     new_alerts_added = 0
+    alerts_updated = 0
     alerts_auto_resolved = 0
     timestamp_str = datetime.datetime.now().isoformat()
 
@@ -201,130 +218,163 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
         import_ref = row.get("Import_Reference", "")
         item_code = row.get("Codigo_Item", "")
         grn = row.get("GRN", "")
+        key = (import_ref, item_code, grn)
+        existing_alert = existing_alerts_map.get(key)
 
         # A. Faltantes (valores negativos)
         if difference < 0:
-            # Evitar crear una alerta si ya existe una para esta combinación
-            if (import_ref, item_code, grn) in existing_keys:
-                continue
-
-            # Obtener costo unitario e impacto financiero
             cost_per_unit = cost_map.get(item_code, 0.0)
             financial_impact = abs(difference) * cost_per_unit
 
-            # Filtro de ruido
-            if (
-                abs(difference) <= NOISE_DIFF_LIMIT
-                and financial_impact < NOISE_VALUE_LIMIT
-            ):
-                continue
-
-            # Obtener recurrencia desde el mapa bulk
             recurrent_imports = recurrence_map.get(item_code, set())
             recurrent_count = len([r for r in recurrent_imports if r != import_ref])
-
-            # Clasificar el tipo de alerta
             alert_type = "recurrent_shortage" if recurrent_count > 0 else "shortage"
-            notes = (
+
+            base_notes = (
                 f"Faltante recurrente detectado. Este ítem tiene {recurrent_count} discrepancias previas."
                 if recurrent_count > 0
                 else "Discrepancia inicial de recepción (faltante) detectada."
             )
+            if (import_ref, item_code) in detected_swaps:
+                partner, sqty = detected_swaps[(import_ref, item_code)]
+                base_notes += f" [Posible cruce/troca con ítem {partner} (+{sqty} uds)]."
 
-            # 4. Generar borrador de correo
-            draft_email = generate_claim_email(row, recurrent_count)
+            qty_exp = int(row.get("Cant_Esperada", 0))
+            qty_rec = int(row.get("Cant_Recibida", 0))
+            diff_int = int(difference)
 
-            # 5. Crear la nueva alerta en la base de datos
-            new_alert = InboundAlert(
-                alert_id=f"alert-{uuid.uuid4().hex[:12]}",
-                created_at=timestamp_str,
-                item_code=item_code,
-                description=row.get("Descripcion", ""),
-                import_reference=import_ref,
-                waybill=row.get("Waybill", ""),
-                grn=grn,
-                qty_expected=int(row.get("Cant_Esperada", 0)),
-                qty_received=int(row.get("Cant_Recibida", 0)),
-                difference=int(difference),
-                cost_per_unit=cost_per_unit,
-                financial_impact=financial_impact,
-                alert_type=alert_type,
-                status="pending",  # pending, resolved, dismissed
-                draft_claim_email=draft_email,
-                notes=notes,
-                resolved_at=None,
-                resolution_notes=None,
-            )
+            # Si ya existe alerta pendiente, ajustar dinámicamente sus valores
+            if existing_alert and existing_alert.status == "pending":
+                val_changed = (
+                    existing_alert.qty_received != qty_rec or
+                    existing_alert.difference != diff_int or
+                    existing_alert.qty_expected != qty_exp
+                )
+                if val_changed:
+                    prev_diff = existing_alert.difference
+                    existing_alert.qty_expected = qty_exp
+                    existing_alert.qty_received = qty_rec
+                    existing_alert.difference = diff_int
+                    existing_alert.cost_per_unit = cost_per_unit
+                    existing_alert.financial_impact = financial_impact
+                    existing_alert.alert_type = alert_type
+                    existing_alert.draft_claim_email = generate_claim_email(row, recurrent_count)
+                    existing_alert.notes = (
+                        f"Ajustado dinámicamente: diferencia previa {prev_diff} -> actual {diff_int}. "
+                        f"Recibido: {qty_rec}/{qty_exp} uds. {base_notes}"
+                    )
+                    alerts_updated += 1
+            elif not existing_alert:
+                # Filtro de ruido para nuevas alertas
+                if abs(difference) <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
+                    continue
 
-            db.add(new_alert)
-            existing_keys.add((import_ref, item_code, grn))
-            new_alerts_added += 1
+                draft_email = generate_claim_email(row, recurrent_count)
+                new_alert = InboundAlert(
+                    alert_id=f"alert-{uuid.uuid4().hex[:12]}",
+                    created_at=timestamp_str,
+                    item_code=item_code,
+                    description=row.get("Descripcion", ""),
+                    import_reference=import_ref,
+                    waybill=row.get("Waybill", ""),
+                    grn=grn,
+                    qty_expected=qty_exp,
+                    qty_received=qty_rec,
+                    difference=diff_int,
+                    cost_per_unit=cost_per_unit,
+                    financial_impact=financial_impact,
+                    alert_type=alert_type,
+                    status="pending",
+                    draft_claim_email=draft_email,
+                    notes=base_notes,
+                    resolved_at=None,
+                    resolution_notes=None,
+                )
+                db.add(new_alert)
+                existing_alerts_map[key] = new_alert
+                new_alerts_added += 1
 
         # B. Sobrantes (valores positivos)
         elif difference > 0:
-            # Evitar crear una alerta si ya existe una para esta combinación
-            if (import_ref, item_code, grn) in existing_keys:
-                continue
-
-            # Obtener costo unitario e impacto financiero
             cost_per_unit = cost_map.get(item_code, 0.0)
             financial_impact = difference * cost_per_unit
+            base_notes = "Excedente de recepción (sobrante) detectado."
+            if (import_ref, item_code) in detected_swaps:
+                partner, sqty = detected_swaps[(import_ref, item_code)]
+                base_notes += f" [Posible cruce/troca con ítem {partner} (-{sqty} uds)]."
 
-            # Filtro de ruido
-            if difference <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
-                continue
+            qty_exp = int(row.get("Cant_Esperada", 0))
+            qty_rec = int(row.get("Cant_Recibida", 0))
+            diff_int = int(difference)
 
-            # Generar borrador de correo para excedente
-            draft_email = generate_surplus_email(row)
+            # Si ya existe alerta pendiente, ajustar dinámicamente sus valores
+            if existing_alert and existing_alert.status == "pending":
+                val_changed = (
+                    existing_alert.qty_received != qty_rec or
+                    existing_alert.difference != diff_int or
+                    existing_alert.qty_expected != qty_exp or
+                    existing_alert.alert_type != "surplus"
+                )
+                if val_changed:
+                    prev_diff = existing_alert.difference
+                    existing_alert.qty_expected = qty_exp
+                    existing_alert.qty_received = qty_rec
+                    existing_alert.difference = diff_int
+                    existing_alert.cost_per_unit = cost_per_unit
+                    existing_alert.financial_impact = financial_impact
+                    existing_alert.alert_type = "surplus"
+                    existing_alert.draft_claim_email = generate_surplus_email(row)
+                    existing_alert.notes = (
+                        f"Ajustado dinámicamente: excedente previo {prev_diff} -> actual +{diff_int}. "
+                        f"Recibido: {qty_rec}/{qty_exp} uds. {base_notes}"
+                    )
+                    alerts_updated += 1
+            elif not existing_alert:
+                if difference <= NOISE_DIFF_LIMIT and financial_impact < NOISE_VALUE_LIMIT:
+                    continue
 
-            # Crear la nueva alerta en la base de datos
-            new_alert = InboundAlert(
-                alert_id=f"alert-{uuid.uuid4().hex[:12]}",
-                created_at=timestamp_str,
-                item_code=item_code,
-                description=row.get("Descripcion", ""),
-                import_reference=import_ref,
-                waybill=row.get("Waybill", ""),
-                grn=grn,
-                qty_expected=int(row.get("Cant_Esperada", 0)),
-                qty_received=int(row.get("Cant_Recibida", 0)),
-                difference=int(difference),
-                cost_per_unit=cost_per_unit,
-                financial_impact=financial_impact,
-                alert_type="surplus",
-                status="pending",  # pending, resolved, dismissed
-                draft_claim_email=draft_email,
-                notes="Excedente de recepción (sobrante) detectado.",
-                resolved_at=None,
-                resolution_notes=None,
-            )
-
-            db.add(new_alert)
-            existing_keys.add((import_ref, item_code, grn))
-            new_alerts_added += 1
+                draft_email = generate_surplus_email(row)
+                new_alert = InboundAlert(
+                    alert_id=f"alert-{uuid.uuid4().hex[:12]}",
+                    created_at=timestamp_str,
+                    item_code=item_code,
+                    description=row.get("Descripcion", ""),
+                    import_reference=import_ref,
+                    waybill=row.get("Waybill", ""),
+                    grn=grn,
+                    qty_expected=qty_exp,
+                    qty_received=qty_rec,
+                    difference=diff_int,
+                    cost_per_unit=cost_per_unit,
+                    financial_impact=financial_impact,
+                    alert_type="surplus",
+                    status="pending",
+                    draft_claim_email=draft_email,
+                    notes=base_notes,
+                    resolved_at=None,
+                    resolution_notes=None,
+                )
+                db.add(new_alert)
+                existing_alerts_map[key] = new_alert
+                new_alerts_added += 1
 
         # C. Conciliado (diferencia == 0)
         else:
-            # Si el ítem ya no tiene diferencias y había una alerta pendiente (pending), la removemos
-            try:
-                delete_stmt = delete(InboundAlert).where(
-                    InboundAlert.import_reference == import_ref,
-                    InboundAlert.item_code == item_code,
-                    InboundAlert.grn == grn,
-                    InboundAlert.status == "pending",
-                )
-                res = await db.execute(delete_stmt)
-                alerts_auto_resolved += res.rowcount
-            except Exception as delete_err:
-                print(
-                    f"[AUDITOR AGENT] Error eliminando alerta conciliada: {delete_err}"
-                )
+            # Si el ítem ya no tiene diferencias y había una alerta pendiente, se remueve automáticamente
+            if existing_alert and existing_alert.status == "pending":
+                try:
+                    await db.delete(existing_alert)
+                    del existing_alerts_map[key]
+                    alerts_auto_resolved += 1
+                except Exception as delete_err:
+                    print(f"[AUDITOR AGENT] Error eliminando alerta conciliada: {delete_err}")
 
-    # Guardar las alertas si hubo adiciones o auto-resoluciones
-    if new_alerts_added > 0 or alerts_auto_resolved > 0:
+    # Guardar cambios si hubo adiciones, actualizaciones o auto-resoluciones
+    if new_alerts_added > 0 or alerts_updated > 0 or alerts_auto_resolved > 0:
         await db.commit()
         print(
-            f"[AUDITOR AGENT] Auditoría finalizada. Nuevas: {new_alerts_added}, Auto-resueltas: {alerts_auto_resolved}."
+            f"[AUDITOR AGENT] Auditoría finalizada. Nuevas: {new_alerts_added}, "
+            f"Actualizadas: {alerts_updated}, Auto-resueltas: {alerts_auto_resolved}."
         )
     else:
         print(
@@ -341,6 +391,7 @@ async def run_inbound_audit(db: AsyncSession) -> Dict[str, Any]:
     return {
         "status": "success",
         "new_alerts": new_alerts_added,
+        "updated_alerts": alerts_updated,
         "auto_resolved": alerts_auto_resolved,
         "total_alerts": total_alerts,
     }

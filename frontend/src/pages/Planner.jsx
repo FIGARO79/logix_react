@@ -200,17 +200,17 @@ const Planner = () => {
     );
 
     return (
-        <div className="planner-page container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
+        <div className="planner-page container-wrapper max-w-[1600px] mx-auto p-4 text-sm text-[#32383e]">
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Parámetros Generales</h2>
+                <h2 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Parámetros Generales</h2>
                 <div className="flex flex-wrap items-end gap-6">
                     <div>
                         <label className="block text-xs font-medium  text-gray-700 mb-1">Fecha Inicial</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#0078d4] outline-none"
                             value={config.start_date}
                             onChange={e => setConfig({ ...config, start_date: e.target.value })}
                         />
@@ -219,7 +219,7 @@ const Planner = () => {
                         <label className="block text-xs font-medium  text-gray-700 mb-1">Fecha Final</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#0078d4] outline-none"
                             value={config.end_date}
                             onChange={e => setConfig({ ...config, end_date: e.target.value })}
                         />
@@ -231,7 +231,7 @@ const Planner = () => {
                     </div>
                     <div className="ml-auto flex gap-2">
                         <button onClick={handleSaveConfig} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar Fechas</button>
-                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74] border border-[#1e4a74]">
+                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#0078d4] text-white px-4 py-1.5 rounded text-sm hover:bg-[#106ebe] border border-[#106ebe]">
                             {loading ? 'Calculando...' : 'Actualizar Planificación'}
                         </button>
                         <button
@@ -242,7 +242,7 @@ const Planner = () => {
                                 });
                                 window.location.href = `/api/planner/generate_plan?${params.toString()}`;
                             }}
-                            className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74]"
+                            className="bg-[#0078d4] text-white px-4 py-1.5 rounded text-sm hover:bg-[#106ebe]"
                         >
                             Generar Excel
                         </button>
@@ -253,10 +253,10 @@ const Planner = () => {
             {/* 2. Link Ejecución */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
                 <div>
-                    <h2 className="text-base font-medium  text-[#285f94] mb-0 border-l-4 border-[#285f94] pl-2">Ejecución Diaria</h2>
+                    <h2 className="text-base font-medium  text-[#0078d4] mb-0 border-l-4 border-[#0078d4] pl-2">Ejecución Diaria</h2>
                     <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
                 </div>
-                <Link to="/planner/execution" className="bg-[#285f94] text-white px-6 py-2.5 rounded shadow hover:bg-[#1e4a74] flex items-center gap-2 font-medium  no-underline">
+                <Link to="/planner/execution" className="bg-[#0078d4] text-white px-6 py-2.5 rounded shadow hover:bg-[#106ebe] flex items-center gap-2 font-medium  no-underline">
                     Ir a Pantalla de Conteo
                 </Link>
             </div>
@@ -265,15 +265,15 @@ const Planner = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Tabla Resumen ABC */}
                 <div>
-                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Resumen Categorías (ABC)</h3>
+                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Resumen Categorías (ABC)</h3>
                     <table className="w-full border-collapse text-xs">
                         <thead>
                             <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Categoría</th>
-                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">N° Items</th>
-                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Ciclos</th>
-                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Total Req</th>
-                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-semibold">Items/Día</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-normal">Categoría</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-normal">N° Items</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-normal">Ciclos</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-normal">Total Req</th>
+                                <th className="border border-zinc-300 px-2 py-1 text-zinc-800 font-normal">Items/Día</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -299,13 +299,13 @@ const Planner = () => {
                 </div>
 
                 <div>
-                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Leyenda / Clasificación</h3>
+                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Leyenda / Clasificación</h3>
                     <div className="flex gap-4">
                         <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                    <th className="border border-zinc-300 px-2 py-1 uppercase tracking-wider text-[10px] text-zinc-800">Código</th>
-                                    <th className="border border-zinc-300 px-2 py-1 uppercase tracking-wider text-[10px] w-32 text-zinc-800">Criterio (Hits)</th>
+                                    <th className="border border-zinc-300 px-2 py-1 uppercase text-[10px] text-zinc-800 font-normal">Código</th>
+                                    <th className="border border-zinc-300 px-2 py-1 uppercase text-[10px] w-32 text-zinc-800 font-normal">Criterio (Hits)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -338,18 +338,18 @@ const Planner = () => {
             <div className="space-y-6">
                 {/* PLANEADO */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="border-l-4 border-[#285f94] bg-gray-50 px-4 py-2">
-                        <h3 className="text-sm font-medium  text-[#1e4a74]">Planeado (Conteos Programados)</h3>
+                    <div className="border-l-4 border-[#0078d4] bg-gray-50 px-4 py-2">
+                        <h3 className="text-sm font-medium  text-[#0078d4]">Planeado (Conteos Programados)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
+                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-normal text-zinc-800 min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
+                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">{m}</th>
                                     ))}
-                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">TOTAL</th>
+                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -371,11 +371,11 @@ const Planner = () => {
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                     <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
+                                     <th className="border border-zinc-300 px-3 py-1.5 text-left font-normal text-zinc-800 min-w-[150px]">Categoria/Mes</th>
                                      {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                         <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
+                                         <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">{m}</th>
                                      ))}
-                                     <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">W2W</th>
+                                     <th className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">W2W</th>
                                  </tr>
                             </thead>
                             <tbody className="text-gray-600">
@@ -417,11 +417,11 @@ const Planner = () => {
                         <table className="w-full border-collapse text-xs">
                             <thead>
                                 <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
-                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-semibold text-zinc-800 min-w-[150px]">Categoria/Mes</th>
+                                    <th className="border border-zinc-300 px-3 py-1.5 text-left font-normal text-zinc-800 min-w-[150px]">Categoria/Mes</th>
                                     {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'].map(m => (
-                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">{m}</th>
+                                        <th key={m} className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">{m}</th>
                                     ))}
-                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-semibold text-zinc-800">TOTAL</th>
+                                    <th className="border border-zinc-300 px-2 py-1.5 text-center font-normal text-zinc-800">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600">

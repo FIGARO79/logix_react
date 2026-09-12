@@ -59,7 +59,7 @@ const ConsolidatedPackingList = () => {
     // Encabezado del envío reutilizable
     const ShipmentHeader = ({ pageLabel, customerInfo }) => (
         <div className="text-center mb-4 border-b border-black pb-3 print:mb-3">
-            <h1 className="text-3xl uppercase tracking-tight mb-1 print:text-2xl text-black">
+            <h1 className="text-3xl uppercase mb-1 print:text-2xl text-black">
                 Packing List Consolidado
             </h1>
             {customerInfo && (
@@ -103,17 +103,17 @@ const ConsolidatedPackingList = () => {
         <div className="border border-black overflow-hidden print:border-black mb-2 last:mb-0">
             {!hideHeader && (
                 <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                    <h3 className="text-sm font-medium  uppercase">Bulto #{keyName}</h3>
+                    <h3 className="text-sm font-normal uppercase">Bulto #{keyName}</h3>
                     <span className="text-[10px] font-mono border border-black px-1.5 rounded">BOX-{keyName.padStart(3, '0')}</span>
                 </div>
             )}
             <table className="min-w-full text-sm table-fixed">
-                <thead className="bg-white text-black border-b border-black">
+                <thead className="bg-white text-black border-b border-black font-normal">
                     <tr>
-                        <th className="px-2 py-0.5 text-left w-10 uppercase text-[9px]">Línea</th>
-                        <th className="px-2 py-0.5 text-left w-20 uppercase text-[9px]">Código</th>
-                        <th className="px-2 py-0.5 text-left uppercase text-[9px]">Descripción</th>
-                        <th className="px-2 py-0.5 text-right w-14 uppercase text-[9px]">Cant.</th>
+                        <th className="px-2 py-0.5 text-left w-10 uppercase text-[9px] font-normal">Línea</th>
+                        <th className="px-2 py-0.5 text-left w-20 uppercase text-[9px] font-normal">Código</th>
+                        <th className="px-2 py-0.5 text-left uppercase text-[9px] font-normal">Descripción</th>
+                        <th className="px-2 py-0.5 text-right w-14 uppercase text-[9px] font-normal">Cant.</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 print:divide-black">
@@ -152,7 +152,7 @@ const ConsolidatedPackingList = () => {
     const commonCustomerHeader = uniqueClients.join(' / ');
 
     return (
-        <div className="consolidated-packing-list-page bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="consolidated-packing-list-page bg-white min-h-screen text-black p-4 print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
@@ -167,19 +167,19 @@ const ConsolidatedPackingList = () => {
             <div className="no-print mb-4 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
                 <div className="max-w-4xl mx-auto flex justify-between items-center p-4">
                     <div>
-                        <h1 className="text-lg text-[#285f94]">Packing List Consolidado — Envío #{data.shipment_id}</h1>
-                        <p className="text-xs text-gray-500">{data.total_orders} pedido(s) · {data.carrier || 'Sin transportadora'}</p>
+                        <h1 className="text-lg font-normal text-[#0078d4]">Packing List Consolidado — Envío #{data.shipment_id}</h1>
+                        <p className="text-xs text-gray-500 font-normal">{data.total_orders} pedido(s) · {data.carrier || 'Sin transportadora'}</p>
                     </div>
                     <div className="flex gap-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-xs font-normal hover:bg-gray-300 transition-colors cursor-pointer"
                         >
                             Cerrar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
+                            className="bg-[#0078d4] text-white px-4 py-2 rounded text-xs font-normal hover:bg-[#106ebe] shadow-sm transition-all active:scale-95 cursor-pointer"
                         >
                             Imprimir Todo
                         </button>
@@ -233,17 +233,17 @@ const ConsolidatedPackingList = () => {
                                     {order.items && order.items.length > 0 && (
                                         <div className="border border-black overflow-hidden print:border-black mt-2">
                                             <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                                                <h3 className="text-sm font-medium  uppercase leading-tight">
+                                                <h3 className="text-sm font-normal uppercase leading-tight">
                                                     Detalle del Pedido #{order.order_number}
                                                 </h3>
                                             </div>
                                             <table className="min-w-full text-sm">
                                                 <thead>
-                                                    <tr className="bg-slate-50 text-slate-500 font-medium  border-b border-slate-200">
-                                                        <th className="p-1 px-2 text-left w-12 text-[10px]">LÍNEA</th>
-                                                        <th className="p-1 px-2 text-left text-[10px]">CÓDIGO</th>
-                                                        <th className="p-1 text-left text-[10px]">DESCRIPCIÓN</th>
-                                                        <th className="p-1 text-center w-16 text-[10px]">CANT.</th>
+                                                    <tr className="bg-slate-50 text-slate-500 font-normal border-b border-slate-200">
+                                                        <th className="p-1 px-2 text-left w-12 text-[10px] font-normal">LÍNEA</th>
+                                                        <th className="p-1 px-2 text-left text-[10px] font-normal">CÓDIGO</th>
+                                                        <th className="p-1 text-left text-[10px] font-normal">DESCRIPCIÓN</th>
+                                                        <th className="p-1 text-center w-16 text-[10px] font-normal">CANT.</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -266,7 +266,7 @@ const ConsolidatedPackingList = () => {
                         })}
 
                         <div className="mt-8 pt-2 border-t border-gray-100 flex justify-center items-center text-[9px] text-gray-400 print:mt-10 print:border-gray-300 print:text-black">
-                            <p className="tracking-widest uppercase">LOGIX - WMS</p>
+                            <p className="uppercase">LOGIX - WMS</p>
                         </div>
                     </div>
                 )}

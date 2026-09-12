@@ -179,7 +179,7 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
                 {initialized ? (
                     <Component setTitle={tabSetTitle} {...resolved.params} />
                 ) : (
-                    <div className="flex items-center justify-center h-full font-segoe-ui text-normal uppercase tracking-tight bg-[#fafafa]">
+                    <div className="flex items-center justify-center h-full font-segoe-ui text-normal uppercase bg-[#fafafa]">
                         <span>Cargando módulo...</span>
                     </div>
                 )}
@@ -449,10 +449,10 @@ const Layout = () => {
                             {pendingCount} PENDIENTES
                         </div>
                     )}
-                    <div className={`flex items-center gap-1.5 rounded-full border border-solid px-3 py-1 text-[9px] font-medium uppercase tracking-tight transition-all ${!isOnline ? 'border-[#d13438] bg-[#fde7e9] text-[#a4262c]' : 'border-[#107c41] bg-[#dff6dd] text-[#107c41]'}`}>
+                    <div className={`flex items-center gap-1.5 rounded-full border border-solid px-3 py-1 text-[9px] font-medium uppercase transition-all ${!isOnline ? 'border-[#d13438] bg-[#fde7e9] text-[#a4262c]' : 'border-[#107c41] bg-[#dff6dd] text-[#107c41]'}`}>
                         {!isOnline ? 'OFFLINE' : 'ONLINE'}
                     </div>
-                    <Link to="/admin/login" className="rounded border border-[#d2d0ce] px-3 py-1 text-[11px] font-medium uppercase tracking-tight text-[#605e5c] opacity-0 transition-all duration-200 hover:bg-[#f3f3f3] hover:text-[#201f1e] hover:opacity-100">Admin</Link>
+                    <Link to="/admin/login" className="rounded border border-[#d2d0ce] px-3 py-1 text-[11px] font-medium uppercase text-[#605e5c] opacity-0 transition-all duration-200 hover:bg-[#f3f3f3] hover:text-[#201f1e] hover:opacity-100">Admin</Link>
                 </div>
             </header>
 
@@ -501,7 +501,7 @@ const Layout = () => {
                         <MenuItem to="/occupancy" label="Ocupación Bodega" desc="Análisis de espacio y ubicaciones" categoryId="admin" onClick={toggleMenu} />
                         <MenuItem to="/update" label="Carga de Datos" desc="Actualización masiva vía ficheros" categoryId="admin" onClick={toggleMenu} />
                         <button
-                            className="mt-2 flex w-full cursor-pointer items-center justify-start !justify-start border-l-[4px] border-transparent px-4 py-1 text-left text-[12px] font-semibold uppercase tracking-tight text-[#a4262c] transition-all hover:bg-[#fde7e9]"
+                            className="mt-2 flex w-full cursor-pointer items-center justify-start !justify-start border-l-[4px] border-transparent px-4 py-1 text-left text-[12px] font-semibold uppercase text-[#a4262c] transition-all hover:bg-[#fde7e9]"
                             style={{ justifyContent: 'flex-start' }}
                             onClick={async () => {
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }

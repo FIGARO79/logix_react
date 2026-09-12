@@ -7,19 +7,27 @@ import datetime
 from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import Response
 from app.core.responses import ORJSONResponse
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.db import get_db
+from app.core.db import get_db, AsyncSessionLocal
 from app.models.schemas import LogEntry
-from app.services import db_logs, csv_handler
+from app.services import db_logs, csv_handler, inbound_auditor
 from app.services.slotting_service import slotting_service
 from app.utils.auth import login_required, permission_required
 from app.core.config import ASYNC_DB_URL
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import select
+
+async def _trigger_inbound_audit_background():
+    """Ejecuta en segundo plano la auditoría reactiva de Inbound tras registrar o alterar un log."""
+    try:
+        async with AsyncSessionLocal() as session:
+            await inbound_auditor.run_inbound_audit(session)
+    except Exception as e:
+        print(f"[AUDITOR BACKGROUND] Error en recálculo automático: {e}")
 
 # Se mantiene el engine solo para pandas read_sql que requiere una conexión/engine
 async_engine = create_async_engine(
@@ -247,6 +255,7 @@ async def find_item(
 @router.post("/add_log")
 async def add_log(
     data: LogEntry,
+    background_tasks: BackgroundTasks,
     username: str = Depends(permission_required("inbound")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -306,6 +315,7 @@ async def add_log(
     log_id = await db_logs.save_log_entry_db_async(db, entry_data)
 
     if log_id is not None and log_id > 0:
+        background_tasks.add_task(_trigger_inbound_audit_background)
         return ORJSONResponse(
             content={"message": "Registro guardado correctamente", "id": log_id}
         )
@@ -342,12 +352,14 @@ async def get_logs(
 @router.delete("/delete_log/{log_id}")
 async def delete_log(
     log_id: int,
+    background_tasks: BackgroundTasks,
     username: str = Depends(permission_required(["admin", "inbound"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Elimina un registro de log."""
     success = await db_logs.delete_log_entry_db_async(db, log_id)
     if success:
+        background_tasks.add_task(_trigger_inbound_audit_background)
         return ORJSONResponse(content={"message": "Registro eliminado"})
     else:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -357,12 +369,14 @@ async def delete_log(
 async def update_log(
     log_id: int,
     data: dict,
+    background_tasks: BackgroundTasks,
     username: str = Depends(permission_required("inbound")),
     db: AsyncSession = Depends(get_db),
 ):
     """Actualiza un registro de log existente."""
     success = await db_logs.update_log_entry_db_async(db, log_id, data)
     if success:
+        background_tasks.add_task(_trigger_inbound_audit_background)
         return ORJSONResponse(content={"message": "Registro actualizado correctamente"})
     else:
         raise HTTPException(

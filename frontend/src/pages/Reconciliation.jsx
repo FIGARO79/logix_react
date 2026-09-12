@@ -566,7 +566,7 @@ const Reconciliation = () => {
                     
                     {/* Selector de I.R. */}
                     <div className="w-44 flex flex-col">
-                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Import Ref (I.R.)</label>
+                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Import Ref (I.R.)</label>
                         <div className="relative">
                             <input
                                 list="ir-list"
@@ -589,7 +589,7 @@ const Reconciliation = () => {
 
                     {/* Selector de GRN */}
                     <div className="w-40 flex flex-col">
-                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Número de GRN</label>
+                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Número de GRN</label>
                         <div className="relative">
                             <input
                                 list="grn-list"
@@ -609,7 +609,7 @@ const Reconciliation = () => {
 
                     {/* Búsqueda General */}
                     <div className="flex-1 min-w-[200px] flex flex-col">
-                        <label className="text-xs font-normal text-[#605e5c] mb-0.5">Búsqueda Rápida</label>
+                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Búsqueda Rápida</label>
                         <div className="relative">
                             <input
                                 type="text"
@@ -784,7 +784,7 @@ const Reconciliation = () => {
                                                 <th
                                                     key={head.id}
                                                     onClick={() => !['Acciones', 'Motivo'].includes(head.id) && requestSort(head.id)}
-                                                    className={`px-3 py-2 text-xs font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
+                                                    className={`px-3 py-1.5 text-xs font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
                                                     style={{ borderRight: '1px solid #edebe9' }}
                                                 >
                                                     <div className="flex items-center gap-1">
@@ -806,20 +806,20 @@ const Reconciliation = () => {
                                                         key={idx}
                                                         className="hover:bg-[#f3f9fd] transition-colors"
                                                     >
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Import_Reference}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Waybill}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.GRN}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e] text-center">{row.Order_Line || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap font-mono text-[#0078d4]">{row.Codigo_Item}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs truncate max-w-[260px] text-[#201f1e]">{row.Descripcion}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Ubicacion || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#201f1e]">{row.Reubicado || '-'}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Esperada}</td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Recibida}</td>
-                                                        <td className={`px-3 py-1.5 font-normal text-xs whitespace-nowrap text-center font-mono ${row.Diferencia < 0 ? 'text-[#a4262c]' : row.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Import_Reference}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Waybill}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.GRN}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e] text-center">{row.Order_Line || '-'}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap font-mono text-[#0078d4]">{row.Codigo_Item}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm truncate max-w-[260px] text-[#201f1e]">{row.Descripcion}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Ubicacion || '-'}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Reubicado || '-'}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Esperada}</td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Recibida}</td>
+                                                        <td className={`px-3 py-1 font-normal text-sm whitespace-nowrap text-center font-mono ${row.Diferencia < 0 ? 'text-[#a4262c]' : row.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                         </td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs max-w-[200px] truncate text-[#605e5c]">
+                                                        <td className="px-3 py-1 font-normal text-sm max-w-[200px] truncate text-[#605e5c]">
                                                             {row.Motivo_Diferencia ? (
                                                                 <span className="inline-block text-[11px] bg-[#f3f3f3] text-[#201f1e] px-2 py-0.5 rounded border border-[#d2d0ce] font-normal">
                                                                     <span className="truncate">{row.Motivo_Diferencia}</span>
@@ -828,10 +828,10 @@ const Reconciliation = () => {
                                                                 <span className="text-[#605e5c]">-</span>
                                                             )}
                                                         </td>
-                                                        <td className="px-3 py-1.5 font-normal text-xs whitespace-nowrap text-[#605e5c]">
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#605e5c]">
                                                             {formatDateShort(row.Timestamp)}
                                                         </td>
-                                                        <td className="px-2 py-1.5 font-normal text-xs whitespace-nowrap text-center">
+                                                        <td className="px-2 py-1 font-normal text-sm whitespace-nowrap text-center">
                                                             <button
                                                                 onClick={() => handleOpenEditRow(row)}
                                                                 className={`h-6 px-2.5 text-xs rounded font-normal transition-colors cursor-pointer border ${hasEdit ? 'bg-[#eff6fc] text-[#0078d4] border-[#c7e0f4] hover:bg-[#deecf9]' : hasDiff ? 'bg-white text-[#0078d4] border-[#d2d0ce] hover:bg-[#f3f3f3]' : 'bg-white text-[#201f1e] border-[#d2d0ce] hover:bg-[#f3f3f3]'}`}
@@ -1167,32 +1167,32 @@ const Reconciliation = () => {
 
                                     {/* Tabla de ítems guardados en la foto */}
                                     <div className="overflow-x-auto border border-[#d2d0ce] rounded">
-                                        <table className="w-full table-fixed text-left text-xs border-collapse">
-                                            <thead className="bg-[#f3f3f3] text-[#201f1e] font-semibold border-b border-[#d2d0ce] sticky top-0">
+                                        <table className="w-full table-fixed text-left text-sm border-collapse">
+                                            <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                 <tr>
-                                                    <th className="px-2 py-1.5">Línea</th>
-                                                    <th className="px-2 py-1.5">Ítem</th>
-                                                    <th className="px-2 py-1.5 w-[22%]">Descripción</th>
-                                                    <th className="px-2 py-1.5">Ubicación</th>
-                                                    <th className="px-2 py-1.5 text-center">Esperada</th>
-                                                    <th className="px-2 py-1.5 text-center">Recibida</th>
-                                                    <th className="px-2 py-1.5 text-center">Diferencia</th>
-                                                    <th className="px-2 py-1.5">Motivo / Justificación</th>
+                                                    <th className="px-2 py-1.5 font-normal">Línea</th>
+                                                    <th className="px-2 py-1.5 font-normal">Ítem</th>
+                                                    <th className="px-2 py-1.5 w-[22%] font-normal">Descripción</th>
+                                                    <th className="px-2 py-1.5 font-normal">Ubicación</th>
+                                                    <th className="px-2 py-1.5 text-center font-normal">Esperada</th>
+                                                    <th className="px-2 py-1.5 text-center font-normal">Recibida</th>
+                                                    <th className="px-2 py-1.5 text-center font-normal">Diferencia</th>
+                                                    <th className="px-2 py-1.5 font-normal">Motivo / Justificación</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-[#edebe9]">
+                                             <tbody className="divide-y divide-[#edebe9]">
                                                 {viewingDetail.items.map((it, i) => (
                                                     <tr key={i} className="hover:bg-[#f3f9fd] transition-colors">
-                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.order_line || '-'}</td>
-                                                        <td className="px-2 py-1.5 font-mono text-[#0078d4]">{it.item_code}</td>
-                                                        <td className="px-2 py-1.5 break-words text-[#201f1e]">{it.description}</td>
-                                                        <td className="px-2 py-1.5 text-[#201f1e]">{it.location || '-'}</td>
-                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.qty_expected}</td>
-                                                        <td className="px-2 py-1.5 text-center text-[#201f1e]">{it.qty_received}</td>
-                                                        <td className={`px-2 py-1.5 text-center font-mono font-normal ${it.difference < 0 ? 'text-[#a4262c]' : it.difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.order_line || '-'}</td>
+                                                        <td className="px-2 py-1 font-mono text-[#0078d4]">{it.item_code}</td>
+                                                        <td className="px-2 py-1 break-words text-[#201f1e]">{it.description}</td>
+                                                        <td className="px-2 py-1 text-[#201f1e]">{it.location || '-'}</td>
+                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.qty_expected}</td>
+                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.qty_received}</td>
+                                                        <td className={`px-2 py-1 text-center font-mono font-normal ${it.difference < 0 ? 'text-[#a4262c]' : it.difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {it.difference > 0 ? `+${it.difference}` : it.difference}
                                                         </td>
-                                                        <td className="px-2 py-1.5 text-[11px] text-[#605e5c] break-words">
+                                                        <td className="px-2 py-1 text-[11px] text-[#605e5c] break-words">
                                                             {it.difference_reason && <span className="font-normal text-[#201f1e] block">{it.difference_reason}</span>}
                                                             {it.operator_comment && <span>{it.operator_comment}</span>}
                                                             {!it.difference_reason && !it.operator_comment && <span className="text-[#605e5c]">-</span>}
@@ -1211,48 +1211,48 @@ const Reconciliation = () => {
                                         </div>
                                     ) : savedHistoryList.length > 0 ? (
                                         <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] border border-[#d2d0ce] rounded">
-                                            <table className="w-full table-fixed text-left text-xs border-collapse">
-                                                <thead className="bg-[#f3f3f3] text-[#201f1e] font-semibold border-b border-[#d2d0ce] sticky top-0">
+                                            <table className="w-full table-fixed text-left text-sm border-collapse">
+                                                <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                     <tr>
-                                                        <th className="px-3 py-2 w-[6%]">ID</th>
-                                                        <th className="px-3 py-2">GRN</th>
-                                                        <th className="px-3 py-2">I.R.</th>
-                                                        <th className="px-3 py-2 w-[14%]">Fecha Guardado</th>
-                                                        <th className="px-3 py-2">Operador</th>
-                                                        <th className="px-3 py-2 text-center">Líneas</th>
-                                                        <th className="px-3 py-2 text-center">Esperada</th>
-                                                        <th className="px-3 py-2 text-center">Recibida</th>
-                                                        <th className="px-3 py-2 text-center">Diferencia</th>
-                                                        <th className="px-3 py-2 text-center">Estado</th>
-                                                        <th className="px-3 py-2 w-[18%] text-center">Acciones</th>
+                                                        <th className="px-3 py-1.5 w-[6%] font-normal">ID</th>
+                                                        <th className="px-3 py-1.5 font-normal">GRN</th>
+                                                        <th className="px-3 py-1.5 font-normal">I.R.</th>
+                                                        <th className="px-3 py-1.5 w-[14%] font-normal">Fecha Guardado</th>
+                                                        <th className="px-3 py-1.5 font-normal">Operador</th>
+                                                        <th className="px-3 py-1.5 text-center font-normal">Líneas</th>
+                                                        <th className="px-3 py-1.5 text-center font-normal">Esperada</th>
+                                                        <th className="px-3 py-1.5 text-center font-normal">Recibida</th>
+                                                        <th className="px-3 py-1.5 text-center font-normal">Diferencia</th>
+                                                        <th className="px-3 py-1.5 text-center font-normal">Estado</th>
+                                                        <th className="px-3 py-1.5 w-[18%] text-center font-normal">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#edebe9]">
                                                     {savedHistoryList.map((rec) => (
                                                         <tr key={rec.id} className="hover:bg-[#f3f9fd] transition-colors">
-                                                            <td className="px-3 py-2 font-mono text-[#605e5c]">#{rec.id}</td>
-                                                            <td className="px-3 py-2 font-normal text-[#201f1e]">{rec.grn_number}</td>
-                                                            <td className="px-3 py-2 text-[#201f1e]">{rec.import_reference}</td>
-                                                            <td className="px-3 py-2 text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
-                                                            <td className="px-3 py-2 text-[#605e5c]">{rec.reconciled_by}</td>
-                                                            <td className="px-3 py-2 text-center text-[#201f1e]">{rec.total_lines}</td>
-                                                            <td className="px-3 py-2 text-center font-normal text-[#201f1e]">{rec.total_expected}</td>
-                                                            <td className="px-3 py-2 text-center font-normal text-[#201f1e]">{rec.total_received}</td>
-                                                            <td className={`px-3 py-2 text-center font-mono font-normal ${rec.total_difference < 0 ? 'text-[#a4262c]' : rec.total_difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                            <td className="px-3 py-1 font-mono text-[#605e5c]">#{rec.id}</td>
+                                                            <td className="px-3 py-1 font-normal text-[#201f1e]">{rec.grn_number}</td>
+                                                            <td className="px-3 py-1 text-[#201f1e]">{rec.import_reference}</td>
+                                                            <td className="px-3 py-1 text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
+                                                            <td className="px-3 py-1 text-[#605e5c]">{rec.reconciled_by}</td>
+                                                            <td className="px-3 py-1 text-center text-[#201f1e]">{rec.total_lines}</td>
+                                                            <td className="px-3 py-1 text-center font-normal text-[#201f1e]">{rec.total_expected}</td>
+                                                            <td className="px-3 py-1 text-center font-normal text-[#201f1e]">{rec.total_received}</td>
+                                                            <td className={`px-3 py-1 text-center font-mono font-normal ${rec.total_difference < 0 ? 'text-[#a4262c]' : rec.total_difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                                 {rec.total_difference > 0 ? `+${rec.total_difference}` : rec.total_difference}
                                                             </td>
-                                                            <td className="px-3 py-2 text-center">
+                                                            <td className="px-3 py-1 text-center">
                                                                 <span className="px-2 py-0.5 rounded text-[11px] font-normal border border-[#d2d0ce] bg-[#f3f3f3] text-[#201f1e]">
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-2 py-2 text-center align-middle">
+                                                            <td className="px-2 py-1 text-center align-middle">
                                                                 <div className="flex flex-row items-center justify-center gap-1.5 whitespace-nowrap">
                                                                     {/* Botón Ver Detalle */}
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleViewSavedDetail(rec.id)}
-                                                                        className="h-7 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#0078d4] hover:bg-[#f3f3f3] hover:border-[#0078d4] shadow-xs transition-colors cursor-pointer text-xs font-normal"
+                                                                        className="h-6 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#0078d4] hover:bg-[#f3f3f3] hover:border-[#0078d4] shadow-xs transition-colors cursor-pointer text-xs font-normal"
                                                                         title="Ver detalle de conciliación"
                                                                     >
                                                                         Detalle
@@ -1262,7 +1262,7 @@ const Reconciliation = () => {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleExportSavedFromList(rec.id)}
-                                                                        className="h-7 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#201f1e] hover:bg-[#f3f3f3] shadow-xs transition-colors cursor-pointer text-xs font-normal"
+                                                                        className="h-6 px-2 inline-flex items-center justify-center rounded border border-[#d2d0ce] bg-white text-[#201f1e] hover:bg-[#f3f3f3] shadow-xs transition-colors cursor-pointer text-xs font-normal"
                                                                         title="Exportar a Excel"
                                                                     >
                                                                         Excel

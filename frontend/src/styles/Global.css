@@ -5,9 +5,9 @@
 /* ===== SAP Fiori Inspired Theme (Quartz Light / Belize) ===== */
 :root {
     /* Colors */
-    --logix-primary: #285f94;
-    /* Belize Blue update */
-    --logix-primary-dark: #1e4a74;
+    --logix-primary: #0078d4;
+    /* Fluent Blue */
+    --logix-primary-dark: #106ebe;
     --logix-accent: #eebf22;
     /* Gold/Yellow */
     --logix-bg: #f7f7f7;
@@ -25,7 +25,7 @@
     --logix-critical: #e9730c;
     --logix-negative: #bb0000;
     --logix-positive: #107e3e;
-    --logix-informative: #285f94;
+    --logix-informative: #0078d4;
     --logix-neutral: #595c5f;
 
     /* Shell / Header */
@@ -311,7 +311,7 @@ table {
 .sap-table th,
 table th {
     text-align: left;
-    padding: 0.5rem 0.75rem;
+    padding: 0.3125rem 0.5rem;
     background-color: var(--logix-table-header-bg);
     color: var(--logix-text);
     font-weight: 600;
@@ -326,7 +326,7 @@ table th {
 .logix-table td,
 .sap-table td,
 table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.25rem 0.5rem;
     border-bottom: 1px solid var(--sap-table-border);
     color: var(--sap-text);
     vertical-align: middle;

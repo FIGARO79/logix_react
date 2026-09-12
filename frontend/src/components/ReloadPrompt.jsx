@@ -54,7 +54,7 @@ function ReloadPrompt() {
               <button 
                 style={{
                     padding: '6px 12px',
-                    backgroundColor: '#285f94',
+                    backgroundColor: '#0078d4',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',

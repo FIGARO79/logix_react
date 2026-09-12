@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Spinner from '../components/Spinner';
 import '../styles/FluentPages.css';
 
 const Shipments = () => {
@@ -60,7 +61,7 @@ const Shipments = () => {
     };
 
     return (
-        <div className="shipments-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="shipments-page max-w-[1400px] mx-auto px-6 py-6 bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Barra de Acciones */}
@@ -68,11 +69,11 @@ const Shipments = () => {
                 <div className="flex items-center gap-6">
                     <button
                         onClick={fetchShipments}
-                        className="text-[9px] font-normal uppercase tracking-widest text-black hover:text-blue-750 transition-colors"
+                        className="text-[9px] font-normal uppercase text-black hover:text-blue-750 transition-colors"
                     >
                         Sincronizar
                     </button>
-                    <div className="text-[9px] font-normal text-black uppercase tracking-widest border-l border-zinc-200 pl-6">
+                    <div className="text-[9px] font-normal text-black uppercase border-l border-zinc-200 pl-6">
                         {shipments.length} Envíos
                     </div>
                 </div>
@@ -80,11 +81,11 @@ const Shipments = () => {
 
             {loading ? (
                 <div className="flex justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
+                    <Spinner size="lg" label="Cargando envíos consolidados..." />
                 </div>
             ) : shipments.length === 0 ? (
                 <div className="text-center py-20 bg-white border border-zinc-200 shadow-sm">
-                    <h3 className="text-[10px] font-normal text-black uppercase tracking-[0.2em] mb-2">No se encontraron registros</h3>
+                    <h3 className="text-[10px] font-normal text-black uppercase mb-2">No se encontraron registros</h3>
                     <p className="text-[9px] text-black uppercase">
                         Inicia una consolidación desde el{' '}
                         <Link to="/view_picking_audits" className="text-black underline hover:text-blue-750">
@@ -99,15 +100,15 @@ const Shipments = () => {
                         <table className="min-w-full leading-normal">
                             <thead>
                                 <tr className="bg-zinc-100 border-b border-zinc-300 text-zinc-800">
-                                    <th className="px-4 py-1.5 text-center w-10"></th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">ID</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Fecha</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Cliente Principal</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Usuario</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-left">Transporte</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Items</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-normal text-zinc-800 uppercase tracking-widest text-center">Acciones</th>
+                                    <th className="px-3 py-1.5 text-center w-10"></th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-left">ID</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-left">Fecha</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-left">Cliente Principal</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-left">Usuario</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-left">Transporte</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-center">Items</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-center">Estado</th>
+                                    <th className="px-3 py-1.5 text-[12px] font-normal text-zinc-800 uppercase text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -119,7 +120,7 @@ const Shipments = () => {
                                                 ${expandedId === s.id ? 'bg-zinc-50' : ''}`}
                                             onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
                                         >
-                                            <td className="px-4 py-1.5 text-center">
+                                            <td className="px-3 py-1 text-center">
                                                 <svg
                                                     className={`w-3 h-3 text-black transform transition-transform duration-200 ${expandedId === s.id ? 'rotate-90' : ''}`}
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -127,46 +128,46 @@ const Shipments = () => {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </td>
-                                            <td className="px-4 py-1.5 text-[12px] font-normal text-black">#{s.id}</td>
-                                            <td className="px-4 py-1.5 text-[12px] font-normal text-black">{formatDate(s.created_at)}</td>
-                                            <td className="px-4 py-1.5 text-[12px] text-black truncate max-w-[200px] uppercase font-normal">
+                                            <td className="px-3 py-1 text-sm font-normal text-black">#{s.id}</td>
+                                            <td className="px-3 py-1 text-sm font-normal text-black">{formatDate(s.created_at)}</td>
+                                            <td className="px-3 py-1 text-sm text-black truncate max-w-[200px] uppercase font-normal">
                                                 {s.audits.length > 0 && (
-                                                    <>
-                                                        <span className="text-black mr-2">[{s.audits[0].customer_code}]</span>
-                                                        {s.audits[0].customer_name}
-                                                        {s.audits.length > 1 && <span className="text-[12px] bg-zinc-100 px-1 ml-2 text-black">+{s.audits.length - 1}</span>}
-                                                    </>
+                                                     <>
+                                                         <span className="text-black mr-2">[{s.audits[0].customer_code}]</span>
+                                                         {s.audits[0].customer_name}
+                                                         {s.audits.length > 1 && <span className="text-xs bg-zinc-100 px-1 ml-2 text-black">+{s.audits.length - 1}</span>}
+                                                     </>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-1.5 text-[12px] text-black uppercase font-normal">{s.username}</td>
-                                            <td className="px-4 py-1.5 text-[12px] text-black uppercase tracking-tight font-normal">{s.carrier || '—'}</td>
-                                            <td className="px-4 py-1.5 text-center">
-                                                <span className="text-[12px] font-normal text-black bg-zinc-100 px-2 py-0.5 rounded">
+                                            <td className="px-3 py-1 text-sm text-black uppercase font-normal">{s.username}</td>
+                                            <td className="px-3 py-1 text-sm text-black uppercase font-normal">{s.carrier || '—'}</td>
+                                            <td className="px-3 py-1 text-center">
+                                                <span className="text-sm font-normal text-black bg-zinc-100 px-2 py-0.5 rounded">
                                                     {s.total_orders}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-1.5 text-center">
-                                                <span className={`px-2 py-0.5 text-[9px] font-normal uppercase tracking-tight rounded border ${s.status === 'active'
+                                            <td className="px-3 py-1 text-center">
+                                                <span className={`px-2 py-0.5 text-[9px] font-normal uppercase rounded border ${s.status === 'active'
                                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                                     : 'bg-red-50 text-red-800 border-red-200'
                                                     }`}>
                                                     {s.status === 'active' ? 'Activo' : 'Cancelado'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                                            <td className="px-3 py-1 text-center" onClick={e => e.stopPropagation()}>
                                                 <div className="flex justify-center items-center gap-6">
                                                     {s.status === 'active' && (
                                                         <>
                                                             <Link
                                                                 to={`/shipments/print/${s.id}`}
-                                                                className="text-[9px] font-normal uppercase tracking-widest text-black hover:text-blue-750 transition-colors leading-none"
+                                                                className="text-[9px] font-normal uppercase text-black hover:text-blue-750 transition-colors leading-none"
                                                                 title="Imprimir"
                                                             >
                                                                 Print
                                                             </Link>
                                                             <button
                                                                 onClick={() => handleCancel(s.id)}
-                                                                className="text-[9px] font-normal uppercase tracking-widest text-black hover:text-red-650 transition-colors leading-none"
+                                                                className="text-[9px] font-normal uppercase text-black hover:text-red-650 transition-colors leading-none"
                                                                 title="Anular"
                                                             >
                                                                 Anular
@@ -184,18 +185,18 @@ const Shipments = () => {
                                                     <div className="bg-white border border-zinc-200 p-6 shadow-sm">
                                                         <div className="flex justify-between items-start mb-6 border-b border-zinc-50 pb-4">
                                                             <div>
-                                                                <h4 className="text-[9px] font-normal text-black uppercase tracking-[0.2em] mb-2">Observaciones del Envío</h4>
+                                                                <h4 className="text-[9px] font-normal text-black uppercase mb-2">Observaciones del Envío</h4>
                                                                 <p className="text-[11px] text-black font-normal italic">
                                                                     {s.note || "SIN OBSERVACIONES REGISTRADAS"}
                                                                 </p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <span className="text-[8px] font-normal text-black uppercase tracking-widest block">Consolidado por</span>
+                                                                <span className="text-[8px] font-normal text-black uppercase block">Consolidado por</span>
                                                                 <span className="text-[10px] font-normal text-black uppercase">{s.username}</span>
                                                             </div>
                                                         </div>
 
-                                                        <h4 className="text-[9px] font-normal text-black uppercase tracking-[0.2em] mb-4">Pedidos Agrupados</h4>
+                                                        <h4 className="text-[9px] font-normal text-black uppercase mb-4">Pedidos Agrupados</h4>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                                             {s.audits.map(a => (
                                                                 <div key={a.audit_id} className="bg-zinc-50 border border-zinc-100 p-3 hover:border-zinc-200 transition-all">
@@ -207,7 +208,7 @@ const Shipments = () => {
                                                                         <span className="text-black mr-2">[{a.customer_code}]</span>
                                                                         {a.customer_name}
                                                                     </div>
-                                                                    <div className="text-[8px] font-normal text-black uppercase tracking-tighter">
+                                                                    <div className="text-[8px] font-normal text-black uppercase">
                                                                         CONTENIDO: {a.packages} BULTOS
                                                                     </div>
                                                                 </div>
@@ -229,10 +230,10 @@ const Shipments = () => {
                             <div key={s.id} className={`bg-white border border-zinc-200 p-4 shadow-sm ${s.status === 'cancelled' ? 'opacity-60' : ''}`} onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
-                                        <span className="text-[12px] font-normal text-black tracking-tight">ENVÍO #{s.id}</span>
-                                        <span className="text-[8px] text-black uppercase tracking-widest">{formatDate(s.created_at)}</span>
+                                        <span className="text-[12px] font-normal text-black">ENVÍO #{s.id}</span>
+                                        <span className="text-[8px] text-black uppercase">{formatDate(s.created_at)}</span>
                                     </div>
-                                    <span className={`px-2 py-0.5 text-[8px] font-normal uppercase tracking-tight rounded border ${s.status === 'active'
+                                    <span className={`px-2 py-0.5 text-[8px] font-normal uppercase rounded border ${s.status === 'active'
                                         ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
                                         : 'bg-red-50 text-red-800 border-red-100'
                                         }`}>
@@ -250,7 +251,7 @@ const Shipments = () => {
                                 </div>
 
                                 <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
-                                    <span className="text-[8px] font-normal text-black uppercase tracking-widest">{s.total_orders} PEDIDOS</span>
+                                    <span className="text-[8px] font-normal text-black uppercase">{s.total_orders} PEDIDOS</span>
                                     {s.status === 'active' && (
                                         <div className="flex gap-4" onClick={e => e.stopPropagation()}>
                                             <Link to={`/shipments/print/${s.id}`} className="text-[9px] font-normal uppercase text-black hover:text-blue-700">Print</Link>

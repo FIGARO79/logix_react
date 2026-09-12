@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import '../styles/CycleCounts.css';
+import '../styles/FluentPages.css';
 
 const ViewCounts = () => {
     const { setTitle } = useOutletContext();
@@ -61,49 +61,49 @@ const ViewCounts = () => {
     }, [selectedUser, counts]);
 
     return (
-        <div className="view-counts-page max-w-[1920px] mx-auto px-4 py-1 font-segoe-ui text-normal">
+        <div className="view-counts-page max-w-[1920px] mx-auto px-4 py-2 text-xs">
 
             {/* Page Header */}
-            <div className="mb-1 flex justify-end items-center border-b border-gray-100 pb-1.5">
+            <div className="mb-2 flex justify-end items-center border-b border-[#e1dfdd] pb-1.5">
                 <div className="text-right">
-                    <p className="text-[8px] text-gray-400 uppercase font-medium ">Estado del Proceso</p>
-                    <p className="text-base font-light text-green-600">{stats.progress_percentage}% Completado</p>
+                    <p className="text-[10px] text-[#605e5c] uppercase font-normal">Estado del Proceso</p>
+                    <p className="text-sm font-normal text-[#107c10]">{stats.progress_percentage}% Completado</p>
                 </div>
             </div>
 
             {/* Stats Cards Compact */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
                 {[
-                    { title: 'Items con Stock', val: stats.total_items_to_count, color: 'text-gray-500' },
-                    { title: 'Items Contados', val: stats.total_items_counted, color: 'text-gray-600' },
-                    { title: 'Progreso', val: `${stats.progress_percentage}%`, color: 'text-green-700' },
-                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-gray-600' },
-                    { title: 'Total Unidades', val: stats.total_units_counted, color: 'text-gray-600' }
+                    { title: 'Items con Stock', val: stats.total_items_to_count, color: 'text-[#605e5c]' },
+                    { title: 'Items Contados', val: stats.total_items_counted, color: 'text-[#201f1e]' },
+                    { title: 'Progreso', val: `${stats.progress_percentage}%`, color: 'text-[#107c10]' },
+                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-[#201f1e]' },
+                    { title: 'Total Unidades', val: stats.total_units_counted, color: 'text-[#201f1e]' }
                 ].map((s, idx) => (
-                    <div key={idx} className="bg-white border border-gray-200 rounded p-2 shadow-sm">
-                        <h3 className={`text-[10px] font-normal  uppercase tracking-tight mb-1 ${s.color}`}>{s.title}</h3>
-                        <p className={`text-xl font-normal ${s.color}`}>{s.val}</p>
+                    <div key={idx} className="bg-white border border-[#d2d0ce] rounded p-2 shadow-sm">
+                        <h3 className={`text-[10px] font-normal uppercase mb-0.5 ${s.color}`}>{s.title}</h3>
+                        <p className={`text-lg font-normal ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
             </div>
 
             {/* Toolbar */}
-            <div className="flex justify-between items-center mb-6 p-3 bg-white rounded border border-gray-200 shadow-sm">
+            <div className="flex justify-between items-center mb-4 p-2.5 bg-white rounded border border-[#d2d0ce] shadow-sm">
                 <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium  text-gray-400 uppercase tracking-tight">Filtrar Auditor:</label>
+                    <label className="text-xs font-normal text-[#605e5c] uppercase">Filtrar Auditor:</label>
                     <select
                         value={selectedUser}
                         onChange={(e) => setSelectedUser(e.target.value)}
-                        className="h-8 border border-gray-300 rounded px-3 bg-gray-50 text-sm outline-none focus:border-blue-500 transition-colors"
+                        className="h-7 border border-[#8a8886] rounded px-2.5 bg-white text-xs outline-none focus:border-[#0078d4] text-[#201f1e] transition-colors"
                     >
                         <option value="">Todos los auditores</option>
                         {usernames.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-2">
                     <a
                         href="/api/export_counts?tz=America/Bogota"
-                        className="inline-flex items-center px-4 py-1 border border-gray-300 text-gray-600 bg-white text-xs font-medium  uppercase tracking-tighter rounded hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center px-3 py-1 border border-[#d2d0ce] text-[#201f1e] bg-white text-xs font-normal uppercase rounded hover:bg-[#f3f3f3] hover:border-[#8a8886] transition-colors"
                     >
                         Exportar Reporte
                     </a>
@@ -111,24 +111,24 @@ const ViewCounts = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
+            <div className="bg-white shadow-sm rounded border border-[#d2d0ce] overflow-hidden">
                 <div className="overflow-x-auto max-h-[calc(100vh-220px)]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10 bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                        <thead className="sticky top-0 z-10 bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce]">
                             <tr>
                                 {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia'].map((h, i) => (
-                                    <th key={i} className={`px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : 'text-left'}`}>
+                                    <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : 'text-left'}`}>
                                         {h}
                                     </th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#e1dfdd]">
                             {loading ? (
-                                <tr><td colSpan="10" className="py-2 px-2 text-center text-gray-400 font-normal text-xs">Cargando registros...</td></tr>
+                                <tr><td colSpan="10" className="py-2 px-2 text-center text-[#605e5c] font-normal text-xs">Cargando registros...</td></tr>
                             ) : filteredCounts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="py-4 px-2 text-center text-gray-400 uppercase text-xs tracking-widest font-normal">
+                                    <td colSpan="10" className="py-4 px-2 text-center text-[#605e5c] uppercase text-xs font-normal">
                                         No hay registros de conteo físico
                                     </td>
                                 </tr>
@@ -136,20 +136,20 @@ const ViewCounts = () => {
                                 filteredCounts.map((c) => {
                                     const diff = c.difference ?? ((c.counted_qty ?? 0) - (c.system_qty ?? 0));
                                     return (
-                                        <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none border-b border-gray-100 h-5">
-                                            <td className="px-1.5 py-0 text-[10px] font-normal text-blue-600">E{c.inventory_stage || '1'}</td>
-                                            <td className="px-1.5 py-0 text-[10px] font-normal text-gray-500">#{c.session_id}</td>
-                                            <td className="px-1.5 py-0 text-[11px] font-normal text-slate-800">{c.username || 'N/A'}</td>
-                                            <td className="px-1.5 py-0 text-[10px] font-normal text-gray-500 whitespace-nowrap">
+                                        <tr key={c.id} className="hover:bg-[#f3f9fd] transition-colors leading-none border-b border-[#e1dfdd] h-6">
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#0078d4]">E{c.inventory_stage || '1'}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#605e5c]">#{c.session_id}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e]">{c.username || 'N/A'}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#605e5c] whitespace-nowrap">
                                                 {c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                                             </td>
-                                            <td className="px-1.5 py-0 text-[11px] font-normal text-slate-900 tracking-tight uppercase">{c.item_code}</td>
-                                            <td className="px-1.5 py-0 text-[11px] text-gray-600 font-normal truncate max-w-[300px]" title={c.item_description}>{c.item_description}</td>
-                                            <td className="px-1.5 py-0 text-[11px] font-normal text-slate-700 uppercase">{c.counted_location}</td>
-                                            <td className="px-1.5 py-0 text-[11px] font-normal text-[#1e4a74] text-right">{c.counted_qty}</td>
-                                            <td className="px-1.5 py-0 text-[11px] font-normal text-slate-700 text-right">{c.system_qty ?? 0}</td>
-                                            <td className={`px-1.5 py-0 text-[11px] font-medium text-right ${
-                                                diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-700' : 'text-gray-400'
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] uppercase">{c.item_code}</td>
+                                            <td className="px-2 py-0.5 text-sm text-[#605e5c] font-normal truncate max-w-[300px]" title={c.item_description}>{c.item_description}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] uppercase">{c.counted_location}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#0078d4] text-right">{c.counted_qty}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] text-right">{c.system_qty ?? 0}</td>
+                                            <td className={`px-2 py-0.5 text-sm font-normal text-right ${
+                                                diff < 0 ? 'text-[#a4262c]' : diff > 0 ? 'text-[#107c10]' : 'text-[#605e5c]'
                                             }`}>
                                                 {diff > 0 ? `+${diff}` : diff}
                                             </td>

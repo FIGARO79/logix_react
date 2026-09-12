@@ -4,7 +4,7 @@ from sqlalchemy import select, delete
 from app.core.db import get_db
 from app.models.sql_models import SpotCheck, User
 from app.utils.auth import permission_required
-from werkzeug.security import check_password_hash
+from app.utils.auth import check_user_password
 from app.services import csv_handler
 from pydantic import BaseModel
 import datetime
@@ -139,7 +139,7 @@ async def clear_spot_checks(
         user_result = await db.execute(select(User).where(User.username == username))
         user = user_result.scalar_one_or_none()
 
-        if not user or not check_password_hash(user.password_hash, payload.password):
+        if not user or not check_user_password(user.password_hash, payload.password):
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
         await db.execute(delete(SpotCheck))

@@ -52,6 +52,25 @@ async def create_user(
     return True
 
 
+def check_user_password(stored_hash: str, password: str) -> bool:
+    """
+    Verifica la contraseña soportando de forma segura tanto hashes de Werkzeug
+    (scrypt, pbkdf2) como de bcrypt ($2b$, $2a$, $2y$), sin lanzar excepciones no controladas.
+    """
+    if not stored_hash or not password:
+        return False
+    if stored_hash.startswith(("$2b$", "$2a$", "$2y$")):
+        try:
+            import bcrypt
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except Exception:
+            return False
+    try:
+        return check_password_hash(stored_hash, password)
+    except Exception:
+        return False
+
+
 async def verify_user(
     db: AsyncSession, username: str, password: str
 ) -> tuple[bool, str]:
@@ -62,7 +81,7 @@ async def verify_user(
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
 
-    if user and check_password_hash(user.password_hash, password):
+    if user and check_user_password(user.password_hash, password):
         if user.is_approved == 1:
             return True, "approved"
         else:

@@ -275,11 +275,11 @@ const Update = () => {
     };
 
     return (
-        <div className="update-page max-w-[1440px] mx-auto min-h-screen bg-[#f5f5f5] px-5 py-5 font-sans text-[12px] text-[#201f1e] lg:px-10">
+        <div className="update-page max-w-[1440px] mx-auto min-h-screen bg-[#f5f5f5] px-5 py-5 text-[12px] text-[#201f1e] lg:px-10">
 
             {/* Mensajes de Notificación con Temporizador y Cierre Manual */}
             {messages.error && (
-                <div className="mb-4 bg-red-50 text-red-950 px-4 py-2.5 border border-red-200 rounded-lg text-[11px] font-normal uppercase tracking-wide flex items-center justify-between shadow-xs transition-all animate-fadeIn">
+                <div className="mb-4 bg-red-50 text-red-950 px-4 py-2.5 border border-red-200 rounded-lg text-[11px] font-normal uppercase flex items-center justify-between shadow-xs transition-all animate-fadeIn">
                     <div className="flex items-center gap-2">
                         <span className="text-red-700 font-normal">[ERROR]</span>
                         <span>{messages.error}</span>
@@ -296,7 +296,7 @@ const Update = () => {
                 </div>
             )}
             {messages.info && (
-                <div className="mb-4 bg-blue-50 text-blue-950 px-4 py-2.5 border border-blue-200 rounded-lg text-[11px] font-normal uppercase tracking-wide flex items-center justify-between shadow-xs transition-all animate-pulse">
+                <div className="mb-4 bg-blue-50 text-blue-950 px-4 py-2.5 border border-blue-200 rounded-lg text-[11px] font-normal uppercase flex items-center justify-between shadow-xs transition-all animate-pulse">
                     <div className="flex items-center gap-2">
                         <span className="text-blue-700 font-normal">[INFO]</span>
                         <span>{messages.info}</span>
@@ -313,7 +313,7 @@ const Update = () => {
                 </div>
             )}
             {messages.success && (
-                <div className="mb-4 bg-emerald-50 text-emerald-950 px-4 py-2.5 border border-emerald-200 rounded-lg text-[11px] font-normal uppercase tracking-wide flex items-center justify-between shadow-xs transition-all animate-fadeIn">
+                <div className="mb-4 bg-emerald-50 text-emerald-950 px-4 py-2.5 border border-emerald-200 rounded-lg text-[11px] font-normal uppercase flex items-center justify-between shadow-xs transition-all animate-fadeIn">
                     <div className="flex items-center gap-2">
                         <span className="text-emerald-700 font-normal">[OK]</span>
                         <span>{messages.success}</span>
@@ -341,7 +341,7 @@ const Update = () => {
                         <div>
                             <div className="flex justify-between items-center pb-3 mb-4 border-b border-zinc-100">
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-zinc-900 uppercase tracking-tight flex items-center gap-2">
+                                    <h3 className="text-[12px] font-normal text-zinc-900 uppercase flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '15px', height: '15px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
@@ -356,20 +356,20 @@ const Update = () => {
 
                             <div className="bg-zinc-50/80 p-3 rounded-lg border border-zinc-200 flex flex-col sm:flex-row gap-3 items-end">
                                 <div className="flex-1 w-full space-y-1">
-                                    <label className="text-[10px] font-normal text-zinc-700 uppercase tracking-tight">Rango de Fechas (ATD)</label>
+                                    <label className="text-[10px] font-normal text-zinc-700 uppercase">Rango de Fechas (ATD)</label>
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="date"
                                             value={robotStartDate}
                                             onChange={e => setRobotStartDate(e.target.value)}
-                                            className="flex-1 h-8 border border-zinc-300 rounded px-2 text-[11px] outline-none bg-white text-zinc-900 focus:border-[#285f94]"
+                                            className="flex-1 h-8 border border-zinc-300 rounded px-2 text-[11px] outline-none bg-white text-zinc-900 focus:border-[#0078d4]"
                                         />
                                         <span className="text-zinc-400 font-normal">—</span>
                                         <input
                                             type="date"
                                             value={robotEndDate}
                                             onChange={e => setRobotEndDate(e.target.value)}
-                                            className="flex-1 h-8 border border-zinc-300 rounded px-2 text-[11px] outline-none bg-white text-zinc-900 focus:border-[#285f94]"
+                                            className="flex-1 h-8 border border-zinc-300 rounded px-2 text-[11px] outline-none bg-white text-zinc-900 focus:border-[#0078d4]"
                                         />
                                     </div>
                                 </div>
@@ -377,7 +377,7 @@ const Update = () => {
                                     type="button"
                                     onClick={handleRunRobot}
                                     disabled={isRobotRunning || isLoading}
-                                    className="w-full sm:w-auto h-8 px-4 text-[11px] font-normal text-white uppercase tracking-tight rounded bg-[#285f94] hover:bg-[#1e4a74] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0"
+                                    className="w-full sm:w-auto h-8 px-4 text-[11px] font-normal text-white uppercase rounded bg-[#0078d4] hover:bg-[#106ebe] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -387,7 +387,7 @@ const Update = () => {
                             </div>
 
                             {robotMessage.text && (
-                                <div className={`mt-3 px-3.5 py-2 rounded-lg border text-[11px] font-normal uppercase tracking-wide flex items-center justify-between ${
+                                <div className={`mt-3 px-3.5 py-2 rounded-lg border text-[11px] font-normal uppercase flex items-center justify-between ${
                                     robotMessage.type === 'error' ? 'bg-red-50 text-red-950 border-red-200' :
                                     robotMessage.type === 'success' ? 'bg-emerald-50 text-emerald-950 border-emerald-200' :
                                     'bg-blue-50 text-blue-950 border-blue-200 animate-pulse'
@@ -412,7 +412,7 @@ const Update = () => {
                         <div>
                             <div className="flex items-center justify-between pb-3 mb-4 border-b border-zinc-100">
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-zinc-900 uppercase tracking-tight flex items-center gap-2">
+                                    <h3 className="text-[12px] font-normal text-zinc-900 uppercase flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '15px', height: '15px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                         </svg>
@@ -429,7 +429,7 @@ const Update = () => {
                                 {/* Dropzone */}
                                 <div
                                     className={`border-2 border-dashed rounded-lg p-5 text-center transition-all cursor-pointer mb-3.5 ${
-                                        dragActive ? 'border-[#285f94] bg-blue-50/50 scale-[1.01]' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50/50 hover:bg-zinc-50'
+                                        dragActive ? 'border-[#0078d4] bg-blue-50/50 scale-[1.01]' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50/50 hover:bg-zinc-50'
                                     }`}
                                     onDragEnter={() => setDragActive(true)}
                                     onDragLeave={() => setDragActive(false)}
@@ -442,7 +442,7 @@ const Update = () => {
                                         <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '24px', height: '24px' }} className="text-zinc-400 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                         </svg>
-                                        <p className="text-[11px] font-normal uppercase tracking-tight text-zinc-800">
+                                        <p className="text-[11px] font-normal uppercase text-zinc-800">
                                             Haz clic para seleccionar o arrastra archivos aquí
                                         </p>
                                         <p className="text-[10px] text-zinc-500 font-normal">
@@ -455,7 +455,7 @@ const Update = () => {
                                 {files.length > 0 && (
                                     <div className="mb-3.5 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
                                         <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-zinc-200/80">
-                                            <span className="text-[10px] font-normal text-zinc-700 uppercase tracking-tight">
+                                            <span className="text-[10px] font-normal text-zinc-700 uppercase">
                                                 Archivos en Cola ({files.length}):
                                             </span>
                                             <button
@@ -492,22 +492,22 @@ const Update = () => {
                                     <div className="mb-3.5 bg-zinc-50 border border-zinc-200 p-3 rounded-lg shadow-inner">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-1.5 border-b border-zinc-200">
                                             <div className="flex items-center gap-2.5">
-                                                <span className="text-[10px] font-normal text-zinc-800 uppercase tracking-tight">
+                                                <span className="text-[10px] font-normal text-zinc-800 uppercase">
                                                     Filtro de GRN (280)
                                                 </span>
                                                 <div className="flex gap-2 border-l border-zinc-300 pl-2.5 text-[10px]">
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedGrns([...availableGrns])}
-                                                        className={`tracking-tight transition-colors cursor-pointer ${selectedGrns.length === availableGrns.length ? 'text-[12px] text-[#285f94] font-normal' : 'text-[12px] text-zinc-500 hover:text-zinc-800'}`}
+                                                        className={`transition-colors cursor-pointer ${selectedGrns.length === availableGrns.length ? 'text-[12px] text-[#0078d4] font-normal' : 'text-[12px] text-zinc-500 hover:text-zinc-800'}`}
                                                     >
                                                         Marcar Todas    
                                                     </button>
-                                               
+                                                
                                                     <button 
                                                         type="button"
                                                         onClick={() => setSelectedGrns([])}
-                                                        className={`tracking-tight transition-colors cursor-pointer ${selectedGrns.length === 0 ? 'text-[12px] text-[#285f94] font-normal' : 'text-[12px] text-zinc-500 hover:text-zinc-800'}`}
+                                                        className={`transition-colors cursor-pointer ${selectedGrns.length === 0 ? 'text-[12px] text-[#0078d4] font-normal' : 'text-[12px] text-zinc-500 hover:text-zinc-800'}`}
                                                     >
                                                         Desmarcar Todas
                                                     </button>
@@ -516,11 +516,11 @@ const Update = () => {
 
                                             <div className="flex items-center gap-3 text-[10px]">
                                                 <label className="flex items-center gap-1 cursor-pointer">
-                                                    <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#285f94]" />
+                                                    <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#0078d4]" />
                                                     <span className="font-normal text-zinc-700 uppercase">Combinar</span>
                                                 </label>
                                                 <label className="flex items-center gap-1 cursor-pointer">
-                                                    <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#285f94]" />
+                                                    <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#0078d4]" />
                                                     <span className="font-normal text-zinc-700 uppercase">Reemplazar</span>
                                                 </label>
                                             </div>
@@ -533,7 +533,7 @@ const Update = () => {
                                                         type="checkbox"
                                                         checked={selectedGrns.includes(grn)}
                                                         onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))}
-                                                        className="accent-[#285f94]"
+                                                        className="accent-[#0078d4]"
                                                     />
                                                     <span className="text-[10px] font-normal text-zinc-800">{grn}</span>
                                                 </label>
@@ -546,7 +546,7 @@ const Update = () => {
                                 <button
                                     disabled={isLoading || files.length === 0}
                                     type="submit"
-                                    className="w-full h-8 text-[11px] font-normal text-white uppercase tracking-normal rounded bg-[#285f94] hover:bg-[#1e4a74] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] mt-auto"
+                                    className="w-full h-8 text-[11px] font-normal text-white uppercase rounded bg-[#0078d4] hover:bg-[#106ebe] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] mt-auto"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -565,7 +565,7 @@ const Update = () => {
                     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-5">
                         <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-100">
                             <div>
-                                <h3 className="text-[12px] font-normal text-zinc-900 uppercase tracking-tight flex items-center gap-2">
+                                <h3 className="text-[12px] font-normal text-zinc-900 uppercase flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -576,7 +576,7 @@ const Update = () => {
                             <button
                                 type="button"
                                 onClick={fetchSyncStatus}
-                                className="text-[10px] text-[#285f94] hover:text-[#1e4a74] hover:underline uppercase font-normal flex items-center gap-1 cursor-pointer"
+                                className="text-[10px] text-[#0078d4] hover:text-[#106ebe] hover:underline uppercase font-normal flex items-center gap-1 cursor-pointer"
                                 title="Refrescar marcas de tiempo"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '11px', height: '11px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -598,13 +598,13 @@ const Update = () => {
                                 return (
                                     <div key={item.key} className="p-2 rounded-lg border border-zinc-200 bg-zinc-50/70 flex flex-col gap-0.5">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-normal text-zinc-900 uppercase tracking-tight">{item.label}</span>
+                                            <span className="text-[10px] font-normal text-zinc-900 uppercase">{item.label}</span>
                                             <span className="text-[9px] font-mono font-normal bg-white text-zinc-600 px-1.5 py-0.2 rounded border border-zinc-200">
                                                 {item.filename}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-[10px] pt-0.5 border-t border-zinc-200/60">
-                                            <span className="text-zinc-500 uppercase font-normal text-[9px] tracking-tight">Última Modificación</span>
+                                            <span className="text-zinc-500 uppercase font-normal text-[9px]">Última Modificación</span>
                                             <span className={`font-normal text-[10px] flex items-center gap-1 ${hasData ? 'text-zinc-800' : 'text-zinc-400'}`}>
                                                 {hasData && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>}
                                                 {formatTimestamp(syncStatus[item.key])}
@@ -620,7 +620,7 @@ const Update = () => {
                     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-5 flex-1 flex flex-col justify-between">
                         <div>
                             <div className="pb-3 mb-3.5 border-b border-zinc-100">
-                                <h3 className="text-[12px] font-normal text-zinc-900 uppercase tracking-tight flex items-center gap-2">
+                                <h3 className="text-[12px] font-normal text-zinc-900 uppercase flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                                     </svg>
@@ -651,7 +651,7 @@ const Update = () => {
                                     finally { setIsLoading(false); setBackupPassword(''); }
                                 }} className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-[10px] font-normal text-zinc-800 uppercase tracking-normal">Exportar Respaldo Global</label>
+                                        <label className="text-[10px] font-normal text-zinc-800 uppercase">Exportar Respaldo Global</label>
                                         <span className="text-[9px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded border border-zinc-200">Excel (.xlsx)</span>
                                     </div>
                                     <div className="relative w-full">
@@ -661,7 +661,7 @@ const Update = () => {
                                             placeholder="Contraseña de Administrador"
                                             value={backupPassword}
                                             onChange={e => setBackupPassword(e.target.value)}
-                                            className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-zinc-900 focus:border-[#285f94]"
+                                            className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-zinc-900 focus:border-[#0078d4]"
                                             required
                                         />
                                         <button
@@ -686,7 +686,7 @@ const Update = () => {
                                     </div>
                                     <button
                                         type="submit"
-                                        className="w-full h-7 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 text-[10px] font-normal uppercase tracking-tight rounded transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                        className="w-full h-7 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 text-[10px] font-normal uppercase rounded transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '11px', height: '11px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
@@ -698,14 +698,14 @@ const Update = () => {
                                 {/* Limpieza Selectiva de Maestro GRN */}
                                 <div className="space-y-2 pt-3 border-t border-zinc-100">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-[10px] font-normal text-zinc-800 uppercase tracking-tight">
+                                        <label className="text-[10px] font-normal text-zinc-800 uppercase">
                                             Limpieza de Maestro (GRN)
                                         </label>
                                         <button
                                             type="button"
                                             onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({ ...prev, info: '' })) } : fetchMaestroGrns}
                                             disabled={isFetchingMaestro}
-                                            className="h-5 px-2 text-[9px] font-normal uppercase tracking-tight rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
+                                            className="h-5 px-2 text-[9px] font-normal uppercase rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
                                         >
                                             {isFetchingMaestro ? 'Cargando...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'Ocultar' : 'Ver Lista')}
                                         </button>
@@ -716,8 +716,8 @@ const Update = () => {
                                             <div className="flex justify-between items-center">
                                                 <span className="text-[10px] font-normal text-zinc-700 uppercase">{maestroGrns.length} GRNs encontrados</span>
                                                 <div className="flex gap-2">
-                                                    <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[9px] font-normal text-[#285f94] hover:underline uppercase cursor-pointer">Todas</button>
-                                                    <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[9px] font-normal text-[#285f94] hover:underline uppercase cursor-pointer">Ninguna</button>
+                                                    <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer">Todas</button>
+                                                    <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer">Ninguna</button>
                                                 </div>
                                             </div>
                                             <div className="max-h-24 overflow-y-auto bg-white p-1.5 border border-zinc-200 rounded space-y-0.5">
@@ -729,7 +729,7 @@ const Update = () => {
                                                                 type="checkbox"
                                                                 checked={selectedMaestroGrns.includes(grnStr)}
                                                                 onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grnStr]) : setSelectedMaestroGrns(p => p.filter(g => g !== grnStr))}
-                                                                className="accent-[#285f94]"
+                                                                className="accent-[#0078d4]"
                                                             />
                                                             <span className="text-[10px] font-normal text-zinc-800">{grnStr}</span>
                                                         </label>
@@ -744,7 +744,7 @@ const Update = () => {
                                                         placeholder="Contraseña de Administrador"
                                                         value={deleteMaestroPassword}
                                                         onChange={e => setDeleteMaestroPassword(e.target.value)}
-                                                        className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#285f94]"
+                                                        className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#0078d4]"
                                                         required
                                                     />
                                                     <button
@@ -768,7 +768,7 @@ const Update = () => {
                                                 <button
                                                     type="submit"
                                                     disabled={isLoading || selectedMaestroGrns.length === 0}
-                                                    className="w-full h-7 text-[10px] font-normal text-white uppercase tracking-tight rounded bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
+                                                    className="w-full h-7 text-[10px] font-normal text-white uppercase rounded bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
                                                 >
                                                     Eliminar Seleccionados ({selectedMaestroGrns.length})
                                                 </button>
@@ -786,7 +786,7 @@ const Update = () => {
                     <div className="bg-red-50/40 border border-red-200 rounded-lg shadow-xs p-4">
                         <div className="pb-2 mb-2 border-b border-red-200/80 flex items-center justify-between">
                             <div>
-                                <h3 className="text-[11px] font-normal text-red-900 uppercase tracking-tight flex items-center gap-1.5">
+                                <h3 className="text-[11px] font-normal text-red-900 uppercase flex items-center gap-1.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
@@ -840,7 +840,7 @@ const Update = () => {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full h-7 text-[10px] font-normal text-white uppercase tracking-tight rounded bg-red-700 hover:bg-red-800 transition-colors shadow-xs cursor-pointer"
+                                className="w-full h-7 text-[10px] font-normal text-white uppercase rounded bg-red-700 hover:bg-red-800 transition-colors shadow-xs cursor-pointer"
                             >
                                 Limpiar Base de Datos
                             </button>

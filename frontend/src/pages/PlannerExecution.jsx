@@ -4,6 +4,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import Spinner from '../components/Spinner';
 import '../styles/FluentPages.css';
 
 const PlannerExecution = () => {
@@ -393,7 +394,7 @@ const PlannerExecution = () => {
 
                 {/* Badge de modo reconteo */}
                 {isRecountMode && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-100 text-[#1e4a74] px-3 py-1 rounded-full text-xs font-medium ">
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-100 text-[#0078d4] px-3 py-1 rounded-full text-xs font-medium ">
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -404,7 +405,7 @@ const PlannerExecution = () => {
 
             {loading ? (
                 <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                    <Spinner size="lg" label="Cargando ítems planificados..." />
                 </div>
             ) : error ? (
                 <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded">{error}</div>
@@ -419,16 +420,16 @@ const PlannerExecution = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-auto text-zinc-800">Item</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium uppercase tracking-wider w-24 text-zinc-800">Ubicación</th>
-                                    <th className="px-2 py-3 text-center text-xs font-medium uppercase tracking-wider w-16 text-zinc-800">ABC</th>
-                                    <th className="px-1 py-3 text-center text-xs font-medium uppercase tracking-wider w-16 text-zinc-800">Físico</th>
+                                    <th className="px-4 py-1.5 text-left text-xs font-normal uppercase w-auto text-zinc-800">Item</th>
+                                    <th className="px-2 py-1.5 text-center text-xs font-normal uppercase w-24 text-zinc-800">Ubicación</th>
+                                    <th className="px-2 py-1.5 text-center text-xs font-normal uppercase w-16 text-zinc-800">ABC</th>
+                                    <th className="px-1 py-1.5 text-center text-xs font-normal uppercase w-16 text-zinc-800">Físico</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {items.map((item, index) => (
                                     <tr key={index} className={item.saved ? "bg-emerald-50/70" : ""}>
-                                        <td className="px-2 py-2">
+                                        <td className="px-2 py-1">
                                             <div className="flex items-center gap-1.5">
                                                 <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
                                                 {item.saved && (
@@ -439,7 +440,7 @@ const PlannerExecution = () => {
                                             </div>
                                             <div className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
                                         </td>
-                                        <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">
+                                        <td className="px-1 py-1 text-sm text-gray-500 font-mono text-center">
                                             <div>{item.bin_location || 'N/A'}</div>
                                             {item.additional_locations && (
                                                 <div className="text-[10px] text-gray-400 mt-0.5" title="Ubicaciones Adicionales">
@@ -447,8 +448,8 @@ const PlannerExecution = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-1 py-2 text-sm text-gray-500 text-center">{item.abc_code}</td>
-                                        <td className="px-0 py-2 text-center">
+                                        <td className="px-1 py-1 text-sm text-gray-500 text-center">{item.abc_code}</td>
+                                        <td className="px-0 py-1 text-center">
                                             <input
                                                 id={`qty-${index}`}
                                                 type="number"
@@ -483,7 +484,7 @@ const PlannerExecution = () => {
                                     </div>
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
                                         item.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-blue-100 text-[#1e4a74]'
+                                            'bg-blue-100 text-[#0078d4]'
                                         }`}>
                                         {item.abc_code}
                                     </span>
@@ -491,7 +492,7 @@ const PlannerExecution = () => {
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase text-gray-400 font-medium tracking-wider">Ubicación</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-normal">Ubicación</span>
                                         <span className="text-sm font-mono font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded self-start">
                                             {item.bin_location || 'N/A'}
                                         </span>
@@ -503,7 +504,7 @@ const PlannerExecution = () => {
                                     </div>
 
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[10px] uppercase text-gray-400 font-medium tracking-wider mb-1">Cant. Física</span>
+                                        <span className="text-[10px] uppercase text-gray-400 font-normal mb-1">Cant. Física</span>
                                         <input
                                             id={`qty-mobile-${index}`}
                                             type="number"

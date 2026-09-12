@@ -203,7 +203,7 @@ const StockSearch = () => {
                                 className="px-6 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center"
                             >
                                 <div className="min-w-0 flex-1">
-                                    <div className="font-medium text-gray-900 text-[#1e4a74]">{item.itemCode}</div>
+                                    <div className="font-medium text-gray-900 text-[#0078d4]">{item.itemCode}</div>
                                     <div className="text-sm text-gray-600 truncate max-w-md">{item.description}</div>
                                 </div>
                                 <div className="flex items-center gap-4 ml-4 shrink-0">
@@ -244,7 +244,7 @@ const StockSearch = () => {
                         <div>
                             <label className="form-label text-gray-700 font-medium text-gray-900">Ubicación Principal</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium text-gray-900 bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-medium text-gray-900 bg-blue-100 text-[#0078d4] border border-blue-200 shadow-sm">
                                     {itemData.binLocation || 'N/A'}
                                 </span>
                             </div>
@@ -253,7 +253,7 @@ const StockSearch = () => {
                         <div>
                             <label className="form-label text-gray-700 font-medium text-gray-900">Stock Físico</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-black bg-blue-100 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                <span className="inline-flex items-center px-4 py-1.5 rounded-md text-lg font-black bg-blue-100 text-[#0078d4] border border-blue-200 shadow-sm">
                                     {itemData.physicalQty}
                                 </span>
                             </div>
@@ -265,7 +265,7 @@ const StockSearch = () => {
                                 <div className="flex flex-wrap gap-2 mt-1">
                                     {itemData.aditionalBins.split(',').map((bin, index) => (
                                         bin.trim() && (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-gray-900 bg-blue-50 text-[#1e4a74] border border-blue-200 shadow-sm">
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-gray-900 bg-blue-50 text-[#0078d4] border border-blue-200 shadow-sm">
                                                 {bin.trim()}
                                             </span>
                                         )

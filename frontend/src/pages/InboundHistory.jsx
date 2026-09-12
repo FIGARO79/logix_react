@@ -162,7 +162,7 @@ const InboundHistory = () => {
                             type="text"
                             placeholder="Buscar..."
                             style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                            className="px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                            className="px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] focus:outline-none w-full transition-all duration-150"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -181,7 +181,7 @@ const InboundHistory = () => {
                     <select
                         onChange={(e) => loadLogs(e.target.value)}
                         style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                        className="p-1 text-[12px] font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#285f94] w-full sm:w-40"
+                        className="p-1 text-[12px] font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#0078d4] w-full sm:w-40"
                     >
                         <option value="">Actual</option>
                         {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
@@ -205,17 +205,17 @@ const InboundHistory = () => {
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10">
                             <tr>
-                                <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
-                                <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>
-                                <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
-                                <th className="px-2 py-1.5 text-left font-medium">WAYBILL</th>
-                                <th className="px-2 py-1.5 text-left font-medium">ITEM CODE</th>
-                                <th className="px-2 py-1.5 text-left font-medium">DESCRIPCIÓN</th>
-                                <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN</th>
-                                <th className="px-2 py-1.5 text-left font-medium">REUBICACIÓN</th>
-                                <th className="px-2 py-1.5 text-center font-medium">CANT. RECIBIDA</th>
-                                <th className="px-2 py-1.5 text-center font-medium">CANT. ESPERADA</th>
-                                <th className="px-2 py-1.5 text-center font-medium">DIFERENCIA</th>
+                                <th className="px-2 py-1.5 text-left font-normal">TIMESTAMP</th>
+                                <th className="px-2 py-1.5 text-left font-normal">USUARIO</th>
+                                <th className="px-2 py-1.5 text-left font-normal">I.R.</th>
+                                <th className="px-2 py-1.5 text-left font-normal">WAYBILL</th>
+                                <th className="px-2 py-1.5 text-left font-normal">ITEM CODE</th>
+                                <th className="px-2 py-1.5 text-left font-normal">DESCRIPCIÓN</th>
+                                <th className="px-2 py-1.5 text-left font-normal">UBICACIÓN</th>
+                                <th className="px-2 py-1.5 text-left font-normal">REUBICACIÓN</th>
+                                <th className="px-2 py-1.5 text-center font-normal">CANT. RECIBIDA</th>
+                                <th className="px-2 py-1.5 text-center font-normal">CANT. ESPERADA</th>
+                                <th className="px-2 py-1.5 text-center font-normal">DIFERENCIA</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -223,17 +223,17 @@ const InboundHistory = () => {
                             {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-black/60">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
                                 <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{formatDate(log.timestamp)}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.importReference}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.waybill}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black font-normal">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.binLocation}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.relocatedBin}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-black font-normal">{log.expected_qty}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black">{formatDate(log.timestamp)}</td>
+                                    <td className={`px-2 py-1 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black">{log.importReference}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black">{log.waybill}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black font-normal">{log.itemCode}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black">{log.binLocation}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-black">{log.relocatedBin}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
+                                    <td className="px-2 py-1 whitespace-nowrap text-sm text-center text-black font-normal">{log.expected_qty}</td>
+                                    <td className={`px-2 py-1 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
                                 </tr>

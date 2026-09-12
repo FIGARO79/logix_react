@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import Spinner from '../components/Spinner';
 import '../styles/FluentPages.css';
 
 // Únicamente iconos que comunican una función interactiva o estado crítico
@@ -95,11 +96,8 @@ const DashboardInventario = () => {
     };
 
     if (loading) return (
-        <div className="dashboard-inventario-page flex items-center justify-center min-h-[60vh] bg-[#f9f9f9] font-segoe-ui">
-            <div className="flex flex-col items-center gap-3 bg-white p-8 rounded border border-[#d2d0ce] shadow-xs">
-                <div className="w-8 h-8 border-2 border-[#0078d4] border-t-transparent rounded-full animate-spin"></div>
-                <div className="text-[#201f1e] text-xs font-normal">Cargando indicadores ejecutivos...</div>
-            </div>
+        <div className="dashboard-inventario-page flex items-center justify-center min-h-[60vh]">
+            <Spinner size="lg" label="Cargando indicadores ejecutivos..." />
         </div>
     );
 
@@ -552,34 +550,34 @@ const DashboardInventario = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-[#f3f3f3] text-xs font-normal text-[#201f1e] border-b border-[#d2d0ce]">
-                                        <th className="px-4 py-2.5 font-semibold">Código Item</th>
-                                        <th className="px-4 py-2.5 font-semibold">Descripción</th>
-                                        <th className="px-4 py-2.5 text-center font-semibold">Diferencia</th>
-                                        <th className="px-4 py-2.5 text-right font-semibold">Impacto USD</th>
-                                        <th className="px-4 py-2.5 font-semibold">Causa Raíz</th>
-                                        <th className="px-4 py-2.5 text-center font-semibold">Acción</th>
+                                        <th className="px-3 py-1.5 font-normal">Código Item</th>
+                                        <th className="px-3 py-1.5 font-normal">Descripción</th>
+                                        <th className="px-3 py-1.5 text-center font-normal">Diferencia</th>
+                                        <th className="px-3 py-1.5 text-right font-normal">Impacto USD</th>
+                                        <th className="px-3 py-1.5 font-normal">Causa Raíz</th>
+                                        <th className="px-3 py-1.5 text-center font-normal">Acción</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#edebe9] text-xs">
+                                <tbody className="divide-y divide-[#edebe9] text-sm">
                                     {stats.top_losses.map((item, i) => (
                                         <tr key={i} className="hover:bg-[#f3f9fd] transition-colors">
-                                            <td className="px-4 py-2.5 font-normal text-[#201f1e] font-mono">{item.code}</td>
-                                            <td className="px-4 py-2.5 text-[#201f1e] font-normal truncate max-w-[260px]">{item.desc}</td>
-                                            <td className={`px-4 py-2.5 text-center font-mono font-normal ${item.diff < 0 ? 'text-[#a4262c]' : 'text-[#201f1e]'}`}>
+                                            <td className="px-3 py-1 font-normal text-[#201f1e] font-mono">{item.code}</td>
+                                            <td className="px-3 py-1 text-[#201f1e] font-normal truncate max-w-[260px]">{item.desc}</td>
+                                            <td className={`px-3 py-1 text-center font-mono font-normal ${item.diff < 0 ? 'text-[#a4262c]' : 'text-[#201f1e]'}`}>
                                                 {item.diff > 0 ? '+' : ''}{item.diff}
                                             </td>
-                                            <td className="px-4 py-2.5 text-right font-mono font-normal text-[#201f1e]">
+                                            <td className="px-3 py-1 text-right font-mono font-normal text-[#201f1e]">
                                                 {formatMoney(item.abs_val_diff)}
                                             </td>
-                                            <td className="px-4 py-2.5">
+                                            <td className="px-3 py-1">
                                                 <span className="inline-block bg-[#f9f9f9] text-[#201f1e] text-xs font-normal px-2.5 py-0.5 rounded border border-[#d2d0ce]">
                                                     {item.root_cause}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-2.5 text-center">
+                                            <td className="px-3 py-1 text-center">
                                                 <button
                                                     onClick={() => { setCauseModalItem(item); setSelectedCause(item.root_cause !== 'Sin causa determinada' ? item.root_cause : ROOT_CAUSES_LIST[0]); }}
-                                                    className="text-xs font-normal text-[#0078d4] hover:text-[#106ebe] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] hover:border-[#0078d4] px-2.5 py-1 rounded transition-colors"
+                                                    className="text-xs font-normal text-[#0078d4] hover:text-[#106ebe] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] hover:border-[#0078d4] px-2 py-0.5 rounded transition-colors"
                                                 >
                                                     Asignar Causa
                                                 </button>

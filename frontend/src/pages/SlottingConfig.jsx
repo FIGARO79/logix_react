@@ -168,7 +168,7 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
+        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
 
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
                 <div className="flex items-center gap-3">
@@ -194,8 +194,8 @@ const SlottingConfig = () => {
                 </div>
             </div>
 
-            {success && <div className="bg-zinc-50 border border-zinc-200 text-black p-4 mb-6 rounded shadow-sm text-[12px] font-normal uppercase tracking-tight">{success}</div>}
-            {error && <div className="bg-red-50 border border-red-100 text-red-700 p-4 mb-6 rounded shadow-sm text-[12px] font-normal uppercase tracking-tight">{error}</div>}
+            {success && <div className="bg-zinc-50 border border-zinc-200 text-black p-4 mb-6 rounded shadow-sm text-[12px] font-normal uppercase">{success}</div>}
+            {error && <div className="bg-red-50 border border-red-100 text-red-700 p-4 mb-6 rounded shadow-sm text-[12px] font-normal uppercase">{error}</div>}
 
             <div className="flex border-b border-zinc-200 mb-6">
                 <button
@@ -217,19 +217,19 @@ const SlottingConfig = () => {
                     {showUpload && (
                         <div className="bg-zinc-50 border border-zinc-200 rounded p-6 shadow-sm animate-fadeIn mb-8 text-black">
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-[12px] text-black font-normal uppercase tracking-wider">Carga Masiva de Layout</h2>
-                                <button onClick={() => window.location.href = '/api/admin/slotting-template'} className="text-[12px] font-normal text-black hover:underline uppercase tracking-widest">Descargar Plantilla</button>
+                                <h2 className="text-[12px] text-black font-normal uppercase">Carga Masiva de Layout</h2>
+                                <button onClick={() => window.location.href = '/api/admin/slotting-template'} className="text-[12px] font-normal text-black hover:underline uppercase">Descargar Plantilla</button>
                             </div>
                             <div
                                 className="border-2 border-dashed border-zinc-200 rounded-lg p-8 text-center cursor-pointer hover:bg-white transition-colors bg-white/50"
                                 onClick={() => fileInputRef.current.click()}
                             >
                                 <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={e => setSelectedFile(e.target.files[0])} />
-                                <p className="text-[12px] text-black font-normal uppercase tracking-widest">{selectedFile ? `Seleccionado: ${selectedFile.name}` : 'Haga clic para seleccionar archivo Excel'}</p>
+                                <p className="text-[12px] text-black font-normal uppercase">{selectedFile ? `Seleccionado: ${selectedFile.name}` : 'Haga clic para seleccionar archivo Excel'}</p>
                             </div>
                             <div className="mt-4 flex justify-end gap-3">
-                                <button onClick={() => { setShowUpload(false); setSelectedFile(null); }} className="text-[12px] font-normal text-black px-4 py-2 uppercase tracking-widest">Cancelar</button>
-                                <button onClick={handleFileUpload} disabled={!selectedFile || saving} className="bg-black text-white px-6 py-2 rounded text-[12px] font-normal uppercase tracking-widest hover:bg-zinc-800 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 shadow-sm">Subir y Reemplazar</button>
+                                <button onClick={() => { setShowUpload(false); setSelectedFile(null); }} className="text-[12px] font-normal text-black px-4 py-2 uppercase">Cancelar</button>
+                                <button onClick={handleFileUpload} disabled={!selectedFile || saving} className="bg-black text-white px-6 py-2 rounded text-[12px] font-normal uppercase hover:bg-zinc-800 transition-colors disabled:bg-zinc-100 disabled:text-zinc-400 shadow-sm">Subir y Reemplazar</button>
                             </div>
                         </div>
                     )}
@@ -247,43 +247,43 @@ const SlottingConfig = () => {
                                     />
                                 </div>
                                 <div className="whitespace-nowrap shrink-0">
-                                    <span className="text-[12px] text-black font-normal uppercase tracking-tight">{filteredBins.length} registros</span>
+                                    <span className="text-[12px] text-black font-normal uppercase">{filteredBins.length} registros</span>
                                 </div>
                             </div>
                             <div className="overflow-auto flex-1 custom-scrollbar text-black">
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-zinc-100 border-b border-zinc-200 sticky top-0 z-10 shadow-sm">
                                         <tr>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-zinc-800">BIN</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-zinc-800">ZONA</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-zinc-800">PASILLO</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center w-20 text-zinc-800">NIVEL</th>
-                                            <th className="px-4 py-2 text-[12px] font-normal uppercase tracking-wider text-center text-zinc-800">SPOT</th>
+                                            <th className="px-3 py-1.5 text-[12px] font-normal uppercase text-zinc-800">BIN</th>
+                                            <th className="px-3 py-1.5 text-[12px] font-normal uppercase text-zinc-800">ZONA</th>
+                                            <th className="px-3 py-1.5 text-[12px] font-normal uppercase text-center w-20 text-zinc-800">PASILLO</th>
+                                            <th className="px-3 py-1.5 text-[12px] font-normal uppercase text-center w-20 text-zinc-800">NIVEL</th>
+                                            <th className="px-3 py-1.5 text-[12px] font-normal uppercase text-center text-zinc-800">SPOT</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-50">
                                         {loading ? (
-                                            <tr><td colSpan="5" className="p-8 text-center text-black text-[12px] font-normal uppercase tracking-widest italic animate-pulse">Cargando layout...</td></tr>
+                                            <tr><td colSpan="5" className="p-8 text-center text-black text-[12px] font-normal uppercase italic animate-pulse">Cargando layout...</td></tr>
                                         ) : (
-                                            filteredBins.map(([code, info]) => (
+                                             filteredBins.map(([code, info]) => (
                                                 <tr key={code} className="hover:bg-zinc-50 transition-colors leading-none text-black">
-                                                    <td className="px-4 py-3 font-mono text-[12px] font-normal uppercase tracking-tight">{code}</td>
-                                                    <td className="px-4 py-3">
-                                                        <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-[12px] font-normal uppercase focus:ring-0 p-0 h-7 w-full cursor-pointer tracking-tight text-black">
+                                                    <td className="px-3 py-1 font-mono text-sm font-normal uppercase">{code}</td>
+                                                    <td className="px-3 py-1">
+                                                        <select value={info.zone} onChange={e => updateBin(code, 'zone', e.target.value)} className="bg-transparent border-none text-sm font-normal uppercase focus:ring-0 p-0 h-6 w-full cursor-pointer text-black">
                                                             <option value="Rack">Rack</option>
                                                             <option value="Minuteria">Minutería</option>
                                                             <option value="Cantilever">Cantilever</option>
                                                             <option value="Floor">Piso / Isla</option>
                                                         </select>
                                                     </td>
-                                                    <td className="px-4 py-3 text-center w-20">
-                                                        <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-white border border-zinc-200 rounded w-10 text-[12px] font-normal text-center h-7 p-0 font-mono text-black" />
+                                                    <td className="px-3 py-1 text-center w-20">
+                                                        <input type="text" value={info.aisle} onChange={e => updateBin(code, 'aisle', e.target.value)} className="bg-white border border-zinc-200 rounded w-10 text-sm font-normal text-center h-6 p-0 font-mono text-black" />
                                                     </td>
-                                                    <td className="px-4 py-3 text-center w-20">
-                                                        <input type="text" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-white border border-zinc-200 rounded w-10 text-[12px] font-normal text-center h-7 p-0 font-mono text-black" />
+                                                    <td className="px-3 py-1 text-center w-20">
+                                                        <input type="text" value={info.level} onChange={e => updateBin(code, 'level', e.target.value)} className="bg-white border border-zinc-200 rounded w-10 text-sm font-normal text-center h-6 p-0 font-mono text-black" />
                                                     </td>
-                                                    <td className="px-4 py-3 text-center leading-none">
-                                                        <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`bg-transparent border-none text-[12px] font-normal uppercase focus:ring-0 p-0 h-7 w-full cursor-pointer tracking-tight text-center ${getSpotColor(info.spot)}`}>
+                                                    <td className="px-3 py-1 text-center leading-none">
+                                                        <select value={info.spot} onChange={e => updateBin(code, 'spot', e.target.value)} className={`bg-transparent border-none text-sm font-normal uppercase focus:ring-0 p-0 h-6 w-full cursor-pointer text-center ${getSpotColor(info.spot)}`}>
                                                             <option value="Hot" className="text-black font-normal">Hot</option>
                                                             <option value="Warm" className="text-black font-normal">Warm</option>
                                                             <option value="Cold" className="text-black font-normal">Cold</option>
@@ -301,16 +301,16 @@ const SlottingConfig = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* 01. Jerarquía de Rotación */}
                                 <div className="bg-white rounded border border-zinc-200 overflow-hidden flex flex-col shadow-sm text-black">
-                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-black font-normal uppercase tracking-wider">
+                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-black font-normal uppercase">
                                         <span className="text-[12px] text-black">Jerarquía de Rotación (SIC)</span>
                                     </div>
                                     <div className="overflow-auto no-scrollbar">
                                         <table className="w-full text-left border-collapse">
                                             <thead className="bg-zinc-100 border-b border-zinc-200">
                                                 <tr>
-                                                    <th className="px-4 py-2 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase tracking-wider">SIC</th>
-                                                    <th className="px-4 py-2 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase tracking-wider">Hits (Frecuencia)</th>
-                                                    <th className="px-4 py-2 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase tracking-wider">Spot Ideal</th>
+                                                    <th className="px-3 py-1.5 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase">SIC</th>
+                                                    <th className="px-3 py-1.5 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase">Hits (Frecuencia)</th>
+                                                    <th className="px-3 py-1.5 text-[12px] font-normal !bg-none !bg-transparent text-black uppercase">Spot Ideal</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-zinc-50 text-black">
@@ -325,13 +325,13 @@ const SlottingConfig = () => {
                                                     })
                                                     .map(([sic, info]) => (
                                                         <tr key={sic} className="hover:bg-zinc-50 transition-colors leading-none text-black">
-                                                            <td className="px-4 py-3 font-mono text-[12px] font-normal text-black uppercase">{sic}</td>
-                                                            <td className="px-4 py-3 text-[12px] text-black font-normal">{info.range}</td>
-                                                            <td className="px-4 py-3">
+                                                            <td className="px-3 py-1 font-mono text-sm font-normal text-black uppercase">{sic}</td>
+                                                            <td className="px-3 py-1 text-sm text-black font-normal">{info.range}</td>
+                                                            <td className="px-3 py-1">
                                                                 <select
                                                                     value={info.spot?.charAt(0).toUpperCase() + info.spot?.slice(1).toLowerCase()}
                                                                     onChange={(e) => handleSpotChange(sic, e.target.value)}
-                                                                    className="bg-transparent border-none text-[12px] font-normal uppercase focus:ring-0 p-0 h-7 w-24 cursor-pointer tracking-tight text-black text-center"
+                                                                    className="bg-transparent border-none text-sm font-normal uppercase focus:ring-0 p-0 h-6 w-24 cursor-pointer text-black text-center"
                                                                 >
                                                                     <option value="Hot">Hot</option>
                                                                     <option value="Warm">Warm</option>
@@ -345,9 +345,9 @@ const SlottingConfig = () => {
                                     </div>
                                 </div>
 
-                                {/* 02. Zonificación Física Automática */}
+                                 {/* 02. Zonificación Física Automática */}
                                 <div className="bg-white rounded border border-zinc-200 overflow-hidden flex flex-col shadow-sm text-black">
-                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase tracking-wider">
+                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase">
                                         <span>Zonificación Física Automática</span>
                                     </div>
                                     <div className="p-4 space-y-4">
@@ -355,7 +355,7 @@ const SlottingConfig = () => {
                                             <div className="flex justify-between items-center text-[12px] border-b border-zinc-50 pb-2 text-black">
                                                 <span className="font-normal text-black uppercase leading-tight text-black">Cantilever</span>
                                                 <div className="flex items-center gap-1">
-                                                    <span className="text-black uppercase tracking-tighter text-[12px]">PALABRAS CLAVE:</span>
+                                                    <span className="text-black uppercase text-[12px]">PALABRAS CLAVE:</span>
                                                     <input
                                                         type="text"
                                                         value={zoneRules.cantilever_keywords}
@@ -374,10 +374,10 @@ const SlottingConfig = () => {
                                                         onChange={(e) => handleZoneRuleChange('minuteria_weight_max', parseFloat(e.target.value) || 0.1)}
                                                         className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
-                                                    <span className="font-normal text-black uppercase tracking-tighter">KG</span>
+                                                    <span className="font-normal text-black uppercase">KG</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-black uppercase tracking-tighter text-[12px]">ZONA:</span>
+                                                    <span className="text-black uppercase text-[12px]">ZONA:</span>
                                                     <select
                                                         value={zoneRules.minuteria_zone}
                                                         onChange={(e) => handleZoneRuleChange('minuteria_zone', e.target.value)}
@@ -399,10 +399,10 @@ const SlottingConfig = () => {
                                                         onChange={(e) => handleZoneRuleChange('heavy_weight_min', parseFloat(e.target.value) || 10)}
                                                         className="no-spinner h-5 !w-16 min-w-0 !py-0 !px-1 text-[12px] font-mono font-normal text-center border border-zinc-200 rounded text-black outline-none focus:border-black shadow-none bg-white"
                                                     />
-                                                    <span className="font-normal text-black uppercase tracking-tighter">KG</span>
+                                                    <span className="font-normal text-black uppercase">KG</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-black uppercase tracking-tighter text-[12px]">NIVELES:</span>
+                                                    <span className="text-black uppercase text-[12px]">NIVELES:</span>
                                                     <input
                                                         type="text"
                                                         value={zoneRules.heavy_levels}
@@ -416,7 +416,7 @@ const SlottingConfig = () => {
                                                 <span className="font-normal text-black uppercase leading-tight text-black">Alta Rotación (W, X)</span>
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-black uppercase tracking-tighter text-[12px]">NIVELES:</span>
+                                                        <span className="text-black uppercase text-[12px]">NIVELES:</span>
                                                         <input
                                                             type="text"
                                                             value={zoneRules.high_rotation_levels}
@@ -425,7 +425,7 @@ const SlottingConfig = () => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-black uppercase tracking-tighter text-[12px]">SCORE UBIC (MÍN-MÁX):</span>
+                                                        <span className="text-black uppercase text-[12px]">SCORE UBIC (MÍN-MÁX):</span>
                                                         <div className="flex items-center gap-0.5">
                                                             <input
                                                                 type="number"
@@ -449,7 +449,7 @@ const SlottingConfig = () => {
                                                 <span className="font-normal text-black uppercase leading-tight text-black">Media Rotación (Y, K)</span>
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-black uppercase tracking-tighter text-[12px]">NIVELES:</span>
+                                                        <span className="text-black uppercase text-[12px]">NIVELES:</span>
                                                         <input
                                                             type="text"
                                                             value={zoneRules.medium_rotation_levels}
@@ -458,7 +458,7 @@ const SlottingConfig = () => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-black uppercase tracking-tighter text-[12px]">SCORE UBIC (MÍN-MÁX):</span>
+                                                        <span className="text-black uppercase text-[12px]">SCORE UBIC (MÍN-MÁX):</span>
                                                         <div className="flex items-center gap-0.5">
                                                             <input
                                                                 type="number"
@@ -486,7 +486,7 @@ const SlottingConfig = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* 03. Límites de Mezcla de SKUs */}
                                 <div className="bg-white rounded border border-zinc-200 overflow-hidden flex flex-col shadow-sm text-black">
-                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase tracking-wider">
+                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase">
                                         <span>Límites de Mezcla de SKUs</span>
                                     </div>
                                     <div className="p-4 space-y-4">
@@ -540,9 +540,9 @@ const SlottingConfig = () => {
                                     </div>
                                 </div>
 
-                                {/* 04. Matriz de Exilio y Calidad IA */}
+                                 {/* 04. Matriz de Exilio y Calidad IA */}
                                 <div className="bg-white rounded border border-zinc-200 overflow-hidden flex flex-col shadow-sm text-black">
-                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase tracking-wider">
+                                    <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex items-center gap-2 text-[12px] text-black font-normal uppercase">
                                         <span>Matriz de Exilio y Calidad IA</span>
                                     </div>
                                     <div className="p-4 space-y-4">
@@ -598,7 +598,7 @@ const SlottingConfig = () => {
                             </div>
                         </div>
                     )}
-                    <div className="mt-4 text-[12px] text-black font-normal uppercase tracking-[0.2em] text-center italic">
+                    <div className="mt-4 text-[12px] text-black font-normal uppercase text-center italic">
                         {activeTab === 'storage' ? `Visualización del Layout Maestro` : 'Configuración de Reglas Operativas y Parámetros de Optimización'}
                     </div>
                 </div>
@@ -606,7 +606,7 @@ const SlottingConfig = () => {
                 {/* Right Panel: Summary Dashboard (ORIGINAL STATS RESTORED) */}
                 <div className="lg:col-span-1">
                     <div className="bg-white p-6 rounded shadow-sm border border-black sticky top-20 overflow-y-auto h-[calc(100vh-240px)] custom-scrollbar text-black">
-                        <h2 className="text-[12px] font-normal mb-4 border-b border-black pb-2 uppercase tracking-tight leading-tight text-black">
+                        <h2 className="text-[12px] font-normal mb-4 border-b border-black pb-2 uppercase leading-tight text-black">
                             Estado del Almacén
                         </h2>
                         {!summary ? (
@@ -614,7 +614,7 @@ const SlottingConfig = () => {
                         ) : (
                             <div className="space-y-6 text-black">
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-3 tracking-tighter">Capacidad Física</h3>
+                                    <h3 className="text-[12px] font-normal text-black uppercase mb-3">Capacidad Física</h3>
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center text-[12px] border-b border-black pb-1">
                                             <span className="uppercase text-[12px] font-normal text-black">Total Bins</span>
@@ -629,7 +629,7 @@ const SlottingConfig = () => {
                                             <span className="font-mono font-normal text-black text-right min-w-[60px]">{summary.free}</span>
                                         </div>
                                         <div className="pt-2">
-                                            <div className="flex justify-between text-[12px] font-normal text-black mb-1 uppercase tracking-tight">
+                                            <div className="flex justify-between text-[12px] font-normal text-black mb-1 uppercase">
                                                 <span>Índice de Ocupación</span>
                                                 <span className={summary.occupancy_pct > 90 ? 'text-red-600 font-normal' : 'text-black font-normal'}>{summary.occupancy_pct}%</span>
                                             </div>
@@ -641,7 +641,7 @@ const SlottingConfig = () => {
                                 </div>
 
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Carga por Zona</h3>
+                                    <h3 className="text-[12px] font-normal text-black uppercase mb-3 border-t border-black pt-4 text-black">Carga por Zona</h3>
                                     <div className="space-y-2">
                                         {Object.entries(summary.zones_by_items || {}).map(([zone, count]) => (
                                             <div key={zone} className="flex justify-between items-center text-[12px] group py-0.5 border-b border-transparent hover:border-black">
@@ -656,7 +656,7 @@ const SlottingConfig = () => {
                                 </div>
 
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Pasillos Críticos</h3>
+                                    <h3 className="text-[12px] font-normal text-black uppercase mb-3 border-t border-black pt-4 text-black">Pasillos Críticos</h3>
                                     <div className="space-y-2">
                                         {Object.entries(summary.top_aisles || {}).map(([aisle, count]) => (
                                             <div key={aisle} className="flex justify-between items-center text-[12px] group py-0.5 border-b border-transparent hover:border-black">
@@ -670,7 +670,7 @@ const SlottingConfig = () => {
                                 </div>
 
                                 <div>
-                                    <h3 className="text-[12px] font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Saturación</h3>
+                                    <h3 className="text-[12px] font-normal text-black uppercase mb-3 border-t border-black pt-4 text-black">Saturación</h3>
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center text-[12px] border-b border-black pb-1 text-black">
                                             <span className="text-black uppercase font-normal text-[12px]">Ítems Totales</span>

@@ -488,15 +488,15 @@ const PickingAudit = () => {
                                     <button
                                         onClick={() => setActivePackage(i + 1)}
                                         className={`w-8 h-8 rounded-full font-medium  text-xs transition-all ${activePackage === i + 1
-                                            ? 'bg-[#285f94] text-white shadow-sm'
-                                            : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
+                                            ? 'bg-[#0078d4] text-white shadow-sm'
+                                            : 'bg-white text-slate-600 border border-slate-300 hover:border-[#0078d4]'}`}
                                     >
                                         {i + 1}
                                     </button>
                                     {activePackage === i + 1 && (
                                         <button
                                             onClick={() => setDimensionScannerOpen(true)}
-                                            className="absolute -top-1.5 -right-1.5 bg-white border border-[#285f94] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
+                                            className="absolute -top-1.5 -right-1.5 bg-white border border-[#0078d4] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
                                             title="Medir Dimensiones"
                                         >
                                             📏
@@ -544,7 +544,7 @@ const PickingAudit = () => {
                                             return updated;
                                         });
                                     }}
-                                    className="w-8 h-8 rounded-full border border-[#285f94] bg-white text-[#285f94] font-medium  text-xs hover:bg-[#285f94] hover:text-white flex items-center justify-center transition-all"
+                                    className="w-8 h-8 rounded-full border border-[#0078d4] bg-white text-[#0078d4] font-medium  text-xs hover:bg-[#0078d4] hover:text-white flex items-center justify-center transition-all"
                                     title="Añadir Bulto"
                                 >
                                     +
@@ -669,12 +669,12 @@ const PickingAudit = () => {
                                     {/* Grid */}
                                     <div className="grid grid-cols-2 gap-4 text-sm bg-white/50 p-2 rounded">
                                         <div className="flex flex-col border-r border-gray-200">
-                                            <span className="text-gray-500 text-[10px] uppercase tracking-wider">Requerido</span>
+                                            <span className="text-gray-500 text-[10px] uppercase">Requerido</span>
                                             <span className="font-mono font-medium text-lg">{item.qty_req}</span>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <span className="text-gray-500 text-[10px] uppercase tracking-wider">Escaneado</span>
-                                            <span className={`font-medium  text-xl ${diff !== 0 ? 'text-[#285f94]' : 'text-green-600'}`}>{item.qty_scan}</span>
+                                            <span className="text-gray-500 text-[10px] uppercase">Escaneado</span>
+                                            <span className={`font-medium  text-xl ${diff !== 0 ? 'text-[#0078d4]' : 'text-green-600'}`}>{item.qty_scan}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -703,7 +703,7 @@ const PickingAudit = () => {
                 {/* Quantity Modal */}
                 {showQtyModal && scannedItem && (
                     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border-t-4 border-[#285f94]">
+                        <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border-t-4 border-[#0078d4]">
                             <h3 className="text-xl font-medium  text-gray-800 mb-1">{scannedItem.code}</h3>
                             <p className="text-sm text-gray-500 mb-4 truncate">{scannedItem.description}</p>
 
@@ -714,7 +714,7 @@ const PickingAudit = () => {
                                 </div>
                                 <div className="text-right">
                                     <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
-                                    <span className="font-medium  text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
+                                    <span className="font-medium  text-lg text-[#0078d4]">{scannedItem.qty_scan}</span>
                                 </div>
                             </div>
 
@@ -723,7 +723,7 @@ const PickingAudit = () => {
                                 type="number"
                                 value={tempQty}
                                 onChange={e => setTempQty(e.target.value)}
-                                className="text-center text-3xl font-medium  w-full p-4 border-2 border-[#285f94] rounded mb-6"
+                                className="text-center text-3xl font-medium  w-full p-4 border-2 border-[#0078d4] rounded mb-6"
                                 autoFocus
                                 onFocus={(e) => e.target.select()}
                                 onKeyDown={e => {
@@ -741,7 +741,7 @@ const PickingAudit = () => {
                                 </button>
                                 <button
                                     onClick={confirmQuantity}
-                                    className="px-4 py-3 bg-[#285f94] text-white rounded font-medium  hover:bg-[#1e4a74] shadow-md"
+                                    className="px-4 py-3 bg-[#0078d4] text-white rounded font-medium  hover:bg-[#106ebe] shadow-md"
                                 >
                                     CONFIRMAR
                                 </button>
@@ -775,13 +775,13 @@ const PickingAudit = () => {
                                 <table className="w-full text-sm border-collapse">
                                     <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
                                         <tr>
-                                            <th className="p-2 text-left border border-zinc-300 w-16 text-zinc-800">Línea</th>
-                                            <th className="p-2 text-left border border-zinc-300 text-zinc-800">Item</th>
-                                            <th className="p-2 text-center border border-zinc-300 w-24 text-zinc-800">Total Scan</th>
+                                            <th className="px-2 py-1.5 text-left border border-zinc-300 w-16 text-zinc-800">Línea</th>
+                                            <th className="px-2 py-1.5 text-left border border-zinc-300 text-zinc-800">Item</th>
+                                            <th className="px-2 py-1.5 text-center border border-zinc-300 w-24 text-zinc-800">Total Scan</th>
                                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                <th key={i} className="p-2 text-center border border-zinc-300 w-20 text-zinc-800">Bulto {i + 1}</th>
+                                                <th key={i} className="px-2 py-1.5 text-center border border-zinc-300 w-20 text-zinc-800">Bulto {i + 1}</th>
                                             ))}
-                                            <th className="p-2 text-center border border-zinc-300 w-24 text-zinc-800">Asignado</th>
+                                            <th className="px-2 py-1.5 text-center border border-zinc-300 w-24 text-zinc-800">Asignado</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -796,12 +796,12 @@ const PickingAudit = () => {
 
                                             return (
                                                 <tr key={idx} className="border-b hover:bg-gray-50">
-                                                    <td className="p-2 border text-center font-mono text-xs">{item.order_line}</td>
-                                                    <td className="p-2 border font-medium">
+                                                    <td className="px-2 py-1 border text-center font-mono text-xs">{item.order_line}</td>
+                                                    <td className="px-2 py-1 border font-medium">
                                                         {item.code}
                                                         <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
                                                     </td>
-                                                    <td className="p-2 text-center border font-medium ">{item.qty_scan}</td>
+                                                    <td className="px-2 py-1 text-center border font-medium ">{item.qty_scan}</td>
                                                     {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
                                                         <td key={i} className="p-1 border text-center">
                                                             <input
@@ -814,7 +814,7 @@ const PickingAudit = () => {
                                                             />
                                                         </td>
                                                     ))}
-                                                    <td className={`p-2 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                    <td className={`px-2 py-1 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
                                                         {totalAssigned}
                                                     </td>
                                                 </tr>
@@ -867,7 +867,7 @@ const PickingAudit = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#285f94]"
+                                                            className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#0078d4]"
                                                             value={assignments[i + 1] || 0}
                                                             onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                             onFocus={(e) => e.target.select()}
@@ -948,15 +948,15 @@ const PickingAudit = () => {
                 {/* Tracking Table */}
                 <div>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-gray-700">Pedidos Recientes</h3>
+                        <h3 className="font-normal text-gray-700 text-xs uppercase">Pedidos Recientes</h3>
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
-                            className={`flex items-center gap-2 text-sm transition-all ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
+                            className={`flex items-center gap-2 text-xs font-normal transition-all cursor-pointer ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#0078d4] hover:underline'}`}
                         >
                             <span>Actualizar</span>
                             {loadingTracking && (
-                                <svg className="animate-spin h-3.5 w-3.5 text-[#285f94]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin h-3.5 w-3.5 text-[#0078d4]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -966,15 +966,15 @@ const PickingAudit = () => {
                     {/* Desktop View */}
                     <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-[500px] overflow-y-auto">
                         <table className="w-full text-left text-sm sap-table">
-                            <thead className="sticky top-0 z-10 bg-zinc-100 text-zinc-800 border-b border-zinc-300 shadow-sm">
+                            <thead className="sticky top-0 z-10 bg-zinc-100 text-zinc-800 border-b border-zinc-300 shadow-sm font-normal">
                                 <tr>
-                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Order</th>
-                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Despatch</th>
-                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Cód. Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium text-zinc-800">Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium text-zinc-800 text-center">Líneas</th>
+                                    <th className="py-1.5 px-3 font-normal text-zinc-800">Order</th>
+                                    <th className="py-1.5 px-3 font-normal text-zinc-800">Despatch</th>
+                                    <th className="py-1.5 px-3 font-normal text-zinc-800">Cód. Cliente</th>
+                                    <th className="py-1.5 px-3 font-normal text-zinc-800">Cliente</th>
+                                    <th className="py-1.5 px-3 font-normal text-zinc-800 text-center">Líneas</th>
                                     <th
-                                        className="py-2.5 px-3 font-medium text-zinc-800 cursor-pointer hover:bg-zinc-200 select-none flex items-center gap-1"
+                                        className="py-1.5 px-3 font-normal text-zinc-800 cursor-pointer hover:bg-zinc-200 select-none flex items-center gap-1"
                                         onClick={() => {
                                             setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
                                         }}
@@ -1012,7 +1012,7 @@ const PickingAudit = () => {
                                                 <td>{t.despatch_number}</td>
                                                 <td>{t.customer_code}</td>
                                                 <td className="truncate max-w-[150px]">{t.customer_name}</td>
-                                                <td className="text-center font-medium  text-[#285f94]">{t.total_lines}</td>
+                                                <td className="text-center font-medium  text-[#0078d4]">{t.total_lines}</td>
                                                 <td className="text-gray-500 text-xs">{t.print_date}</td>
                                             </tr>
                                         ))
@@ -1021,8 +1021,8 @@ const PickingAudit = () => {
                             {filteredTracking.length > 0 && (
                                 <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                                     <tr>
-                                        <td colSpan="4" className="py-2.5 px-3 text-right font-medium  text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
-                                        <td className="py-2.5 px-3 text-center font-black text-lg text-[#285f94]">
+                                        <td colSpan="4" className="py-1.5 px-3 text-right font-medium  text-gray-600 uppercase text-[10px]">Total Líneas Recientes:</td>
+                                        <td className="py-1.5 px-3 text-center font-black text-lg text-[#0078d4]">
                                             {filteredTracking.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                         </td>
                                         <td></td>
@@ -1048,11 +1048,11 @@ const PickingAudit = () => {
                                     >
                                         <div className="flex justify-between items-center mb-1">
                                             <div className="flex items-center gap-2">
-                                                <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
+                                                <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#106ebe]'} text-lg`}>{t.order_number}</span>
                                                 <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
                                                 {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
                                             </div>
-                                            <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                            <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#0078d4]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                         </div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-[10px] font-medium  text-slate-500 uppercase">Cliente:</span>
@@ -1066,7 +1066,7 @@ const PickingAudit = () => {
                                 ))}
                                 <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
                                     <span className="text-[10px] font-medium  text-slate-500 uppercase">Total Líneas:</span>
-                                    <span className="text-[12px] font-black text-[#285f94]">
+                                    <span className="text-[12px] font-black text-[#0078d4]">
                                         {filteredTracking.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                     </span>
                                 </div>
@@ -1089,13 +1089,13 @@ const PickingAudit = () => {
                             <table className="w-full text-left text-sm sap-table border-collapse min-w-[750px]">
                                 <thead>
                                     <tr className="bg-zinc-100 text-zinc-800">
-                                        <th className="py-2 px-3 font-semibold border-b border-r border-zinc-300 text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal border-b border-r border-zinc-300 text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}>
                                             Fecha
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <th
                                                 key={date}
-                                                className="py-2 px-3 font-semibold text-center border-b border-r border-zinc-300 text-zinc-800"
+                                                className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-zinc-800"
                                                 colSpan={2}
                                                 style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}
                                             >
@@ -1104,7 +1104,7 @@ const PickingAudit = () => {
                                         ))}
                                         {/* Columna Total General en Cabecera */}
                                         <th
-                                            className="py-2 px-3 font-semibold text-center border-b border-r border-zinc-300 text-zinc-800"
+                                            className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-zinc-800"
                                             colSpan={2}
                                             style={{ background: '#f3f3f3', position: 'sticky', top: 0, zIndex: 12 }}
                                         >
@@ -1112,24 +1112,24 @@ const PickingAudit = () => {
                                         </th>
                                     </tr>
                                     <tr className="bg-zinc-100 text-zinc-800">
-                                        <th className="py-1.5 px-3 font-medium border-b border-r border-zinc-300 text-xs uppercase text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal border-b border-r border-zinc-300 text-xs uppercase text-zinc-800" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Customer
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <React.Fragment key={date}>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                                     Ordenes
                                                 </th>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                                     Lineas
                                                 </th>
                                             </React.Fragment>
                                         ))}
                                         {/* Subcolumnas de Total en Cabecera */}
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Ordenes
                                         </th>
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-zinc-300 text-xs uppercase text-zinc-800 w-24" style={{ background: '#f3f3f3', position: 'sticky', top: '33px', zIndex: 12 }}>
                                             Lineas
                                         </th>
                                     </tr>
@@ -1145,7 +1145,7 @@ const PickingAudit = () => {
                                         >
                                             {/* Columna de Customer mostrando Código + Nombre de Cliente */}
                                             <td
-                                                className={`py-1.5 px-3 border-r border-gray-200 cursor-pointer select-none transition-colors ${selectedCustomerFilter === row.customerCode
+                                                className={`py-1 px-3 border-r border-gray-200 cursor-pointer select-none transition-colors ${selectedCustomerFilter === row.customerCode
                                                     ? 'bg-blue-50/60 hover:bg-blue-100/60'
                                                     : 'hover:bg-slate-100'
                                                     }`}
@@ -1160,7 +1160,7 @@ const PickingAudit = () => {
                                                         {row.customerName}
                                                     </span>
                                                     {selectedCustomerFilter === row.customerCode && (
-                                                        <span className="text-[8px] bg-[#285f94] text-white px-1 py-0.5 rounded font-bold uppercase leading-none tracking-wide animate-pulse">
+                                                        <span className="text-[8px] bg-[#0078d4] text-white px-1 py-0.5 rounded font-bold uppercase leading-none animate-pulse">
                                                             Filtrado
                                                         </span>
                                                     )}
@@ -1170,28 +1170,28 @@ const PickingAudit = () => {
                                                 const dayData = row.dates[date] || { orders: 0, lines: 0 };
                                                 return (
                                                     <React.Fragment key={date}>
-                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                        <td className="py-1 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
                                                             {dayData.orders > 0 ? dayData.orders : ''}
                                                         </td>
-                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                        <td className="py-1 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
                                                             {dayData.lines > 0 ? dayData.lines : ''}
                                                         </td>
                                                     </React.Fragment>
                                                 );
                                             })}
                                             {/* Totales Horizontales del Cliente */}
-                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                            <td className="py-1 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
                                                 {row.totalOrders > 0 ? row.totalOrders : ''}
                                             </td>
-                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                            <td className="py-1 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
                                                 {row.totalLines > 0 ? row.totalLines : ''}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="bg-slate-50 border-t-2 border-gray-200 font-semibold sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                <tfoot className="bg-slate-50 border-t border-gray-300 font-normal sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                                     <tr className="bg-slate-50 border-b border-gray-200">
-                                        <td className="py-2.5 px-3 border-r border-gray-200 text-gray-800 font-bold uppercase text-[11px] tracking-wider">
+                                        <td className="py-1.5 px-3 border-r border-gray-200 text-gray-800 font-normal uppercase text-[11px]">
                                             Total
                                         </td>
                                         {matrixData.dates.map(date => {
@@ -1199,20 +1199,20 @@ const PickingAudit = () => {
                                             const totalLines = matrixData.totals[date].lines;
                                             return (
                                                 <React.Fragment key={date}>
-                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                    <td className="py-1.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#0078d4] font-black">
                                                         {totalOrders > 0 ? totalOrders : 0}
                                                     </td>
-                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                    <td className="py-1.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#0078d4] font-black">
                                                         {totalLines > 0 ? totalLines : 0}
                                                     </td>
                                                 </React.Fragment>
                                             );
                                         })}
                                         {/* Gran Total Acumulado en el Pie */}
-                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                        <td className="py-1.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#106ebe] font-black bg-blue-50/50">
                                             {matrixData.grandTotal.orders}
                                         </td>
-                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                        <td className="py-1.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#106ebe] font-black bg-blue-50/50">
                                             {matrixData.grandTotal.lines}
                                         </td>
                                     </tr>

@@ -110,7 +110,7 @@ const LabelPrinting = () => {
                 {/* Form Column */}
                 <div className="lg:col-span-2 space-y-3 bg-white p-4 rounded shadow-sm border border-gray-200">
                     <div className="bg-zinc-50 border-b border-zinc-200 px-4 py-2 -mx-4 -mt-4 rounded-t flex justify-between items-center mb-3">
-                        <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider">
+                        <h2 className="text-[12px] font-normal text-black uppercase">
                             Imprimir Etiqueta
                         </h2>
                     </div>
@@ -141,10 +141,10 @@ const LabelPrinting = () => {
                             </button>
                             <button
                                 onClick={() => findItem()}
-                                className="h-[30px] px-4 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all flex-shrink-0"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-[30px] px-4 text-[10px] font-normal text-white rounded shadow-xs flex items-center justify-center gap-2 uppercase active:scale-95 transition-all flex-shrink-0 cursor-pointer"
+                                style={{ background: '#0078d4' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#106ebe'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#0078d4'}
                                 disabled={loading}
                             >
                                 {loading ? '...' : (
@@ -185,7 +185,7 @@ const LabelPrinting = () => {
 
                 {/* Label Preview Column */}
                 <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col justify-between max-w-sm mx-auto w-full">
-                    <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-2 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                    <h2 className="text-[12px] font-normal text-black uppercase mb-2 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
                         Vista Previa
                     </h2>
 
@@ -198,6 +198,7 @@ const LabelPrinting = () => {
                                     qrImage={qrImage} 
                                     quantity={quantity} 
                                     totalWeight={totalWeight} 
+                                
                                 />
                             </div>
                         </div>
@@ -207,10 +208,10 @@ const LabelPrinting = () => {
                         <button
                             onClick={handlePrint}
                             disabled={!itemData}
-                            className={`h-[30px] px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${!itemData ? 'opacity-60 cursor-not-allowed' : ''}`}
-                            style={{ background: '#285f94' }}
-                            onMouseEnter={e => itemData && (e.currentTarget.style.background = '#1e4a74')}
-                            onMouseLeave={e => itemData && (e.currentTarget.style.background = '#285f94')}
+                            className={`h-[30px] px-6 text-[10px] font-normal text-white rounded shadow-xs flex items-center justify-center gap-2 uppercase active:scale-95 transition-all cursor-pointer ${!itemData ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            style={{ background: '#0078d4' }}
+                            onMouseEnter={e => itemData && (e.currentTarget.style.background = '#106ebe')}
+                            onMouseLeave={e => itemData && (e.currentTarget.style.background = '#0078d4')}
                         >
                             Imprimir Etiqueta
                         </button>

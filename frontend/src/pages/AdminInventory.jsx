@@ -191,7 +191,7 @@ const AdminInventory = () => {
     }, [error]);
 
     return (
-        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
+        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
             {/* Barra de Acciones */}
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
@@ -206,13 +206,13 @@ const AdminInventory = () => {
             </div>
 
             {message && (
-                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase tracking-tight flex justify-between items-center">
+                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase flex justify-between items-center">
                     <span>{message}</span>
                     <button onClick={() => setMessage(null)} className="ml-4 font-bold text-green-800 hover:text-green-950 cursor-pointer">✕</button>
                 </div>
             )}
             {error && (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase tracking-tight flex justify-between items-center">
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase flex justify-between items-center">
                     <span>{error}</span>
                     <button onClick={() => setError(null)} className="ml-4 font-bold text-red-800 hover:text-red-950 cursor-pointer">✕</button>
                 </div>
@@ -291,8 +291,8 @@ const AdminInventory = () => {
                             ].map((item) => (
                                 <div key={item.s} className={`p-6 border bg-white shadow-sm transition-all ${stage === item.s ? 'border-black ring-1 ring-black' : 'border-zinc-200 opacity-60'}`}>
                                     <div className="flex justify-between items-start mb-4">
-                                        <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">{item.t}</h3>
-                                         <span className={`text-[10px] font-normal px-2 py-0.5 rounded uppercase tracking-wider ${
+                                        <h3 className="text-[12px] font-normal text-black uppercase">{item.t}</h3>
+                                         <span className={`text-[10px] font-normal px-2 py-0.5 rounded uppercase ${
                                              stage === item.s
                                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                                  : stage > item.s
@@ -302,7 +302,7 @@ const AdminInventory = () => {
                                              {stage === item.s ? '● ACTIVO' : stage > item.s ? '✓ COMPLETADO' : `FASE 0${item.s}`}
                                          </span>
                                     </div>
-                                    <p className="text-[12px] text-black mb-6 leading-relaxed uppercase font-normal tracking-tight">{item.d}</p>
+                                    <p className="text-[12px] text-black mb-6 leading-relaxed uppercase font-normal">{item.d}</p>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => {
@@ -313,7 +313,7 @@ const AdminInventory = () => {
                                                 }
                                             }}
                                             disabled={loading || !item.enabled}
-                                            className={`flex-1 h-8 text-[11px] font-normal uppercase tracking-widest rounded transition-colors cursor-pointer ${
+                                            className={`flex-1 h-8 text-[11px] font-normal uppercase rounded transition-colors cursor-pointer ${
                                                 stage === item.s
                                                     ? 'bg-black text-white hover:bg-zinc-900 shadow-xs'
                                                     : 'bg-zinc-100 text-zinc-400 border border-zinc-200 disabled:opacity-50 cursor-not-allowed'
@@ -343,13 +343,13 @@ const AdminInventory = () => {
 
                         <div className={`p-8 border-2 border-dashed transition-all ${stage === 4 ? 'border-black bg-zinc-50/50' : 'border-zinc-100 bg-transparent opacity-40'}`}>
                              <div className="flex flex-col items-center text-center">
-                                <h3 className="text-[12px] font-normal text-black mb-2 uppercase tracking-tight">Finalización y Cierre del Ejercicio</h3>
-                                <p className="text-[12px] text-black uppercase font-normal tracking-widest mb-6">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
+                                <h3 className="text-[12px] font-normal text-black mb-2 uppercase">Finalización y Cierre del Ejercicio</h3>
+                                <p className="text-[12px] text-black uppercase font-normal mb-6">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
                                 <div className="flex gap-4 w-full max-w-md">
                                     <button
                                         onClick={() => window.location.href = `/admin/inventory/report`}
                                         disabled={stage !== 4}
-                                        className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[11px] font-normal uppercase tracking-widest rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                                        className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[11px] font-normal uppercase rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
                                     >
                                         Reporte Excel
                                     </button>
@@ -360,7 +360,7 @@ const AdminInventory = () => {
                                             '⚠️ ATENCIÓN: Esta acción finalizará el ejercicio activo, congelará la base de datos actual y reiniciará el sistema a estado inicial (Fase 0) para un nuevo inventario. ¿Desea proceder?'
                                         )}
                                         disabled={loading || stage !== 4}
-                                        className="flex-1 h-10 bg-black text-white text-[11px] font-normal uppercase tracking-widest rounded hover:bg-zinc-900 disabled:opacity-50 transition-all shadow-md cursor-pointer"
+                                        className="flex-1 h-10 bg-black text-white text-[11px] font-normal uppercase rounded hover:bg-zinc-900 disabled:opacity-50 transition-all shadow-md cursor-pointer"
                                     >
                                         Cerrar Ciclo
                                     </button>
@@ -385,9 +385,9 @@ const AdminInventory = () => {
                                         <div className="text-[12px] text-black uppercase font-normal mb-1">Registros de Campo</div>
                                         <div className="text-2xl font-normal text-black font-mono">{stats.total_counts}</div>
                                     </div>
-                                    <div className="pt-4 border-t border-zinc-100">
+                                     <div className="pt-4 border-t border-zinc-100">
                                         <div className="text-[12px] text-black uppercase font-normal mb-1">Fase Activa</div>
-                                        <div className="text-sm font-normal text-black uppercase tracking-tight">
+                                        <div className="text-sm font-normal text-black uppercase">
                                             {stats.current_stage === 0 ? 'Sin Iniciar' : `Fase ${stats.current_stage}`}
                                         </div>
                                     </div>
@@ -424,12 +424,12 @@ const AdminInventory = () => {
                                             placeholder="Buscar SKU, descripción o ubicación..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="h-8 flex-1 max-w-[400px] border border-zinc-300 rounded px-3 text-[12px] bg-white outline-none focus:ring-1 focus:ring-black placeholder-zinc-400 font-sans"
+                                            className="h-8 flex-1 max-w-[400px] border border-zinc-300 rounded px-3 text-[12px] bg-white outline-none focus:ring-1 focus:ring-black placeholder-zinc-400"
                                         />
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => setReconFilter('counted')}
-                                                className={`px-3 py-1 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                                className={`px-3 py-1 text-[10px] font-normal uppercase rounded border transition-colors ${
                                                     reconFilter === 'counted'
                                                         ? 'bg-zinc-800 border-zinc-800 text-white'
                                                         : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
@@ -439,7 +439,7 @@ const AdminInventory = () => {
                                             </button>
                                             <button
                                                 onClick={() => setReconFilter('pending')}
-                                                className={`px-3 py-1 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                                className={`px-3 py-1 text-[10px] font-normal uppercase rounded border transition-colors ${
                                                     reconFilter === 'pending'
                                                         ? 'bg-zinc-800 border-zinc-800 text-white'
                                                         : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
@@ -452,7 +452,7 @@ const AdminInventory = () => {
                                     <button
                                         onClick={fetchReconciliation}
                                         disabled={reconLoading}
-                                        className="h-8 px-4 border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 text-[10px] uppercase font-normal tracking-wider rounded transition-colors disabled:opacity-50"
+                                        className="h-8 px-4 border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 text-[10px] uppercase font-normal rounded transition-colors disabled:opacity-50"
                                     >
                                         {reconLoading ? 'ACTUALIZANDO...' : 'REFRESCAR'}
                                     </button>
@@ -478,7 +478,7 @@ const AdminInventory = () => {
                                                 ].map((h, i) => (
                                                     <th
                                                         key={i}
-                                                        className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider ${['Ítem', 'Descripción', 'Ubicación'].includes(h) ? 'text-left' : 'text-center'}`}
+                                                        className={`px-2 py-1 text-[10px] font-normal uppercase ${['Ítem', 'Descripción', 'Ubicación'].includes(h) ? 'text-left' : 'text-center'}`}
                                                     >
                                                         {h}
                                                     </th>
@@ -508,38 +508,38 @@ const AdminInventory = () => {
                                                         key={item.item_code}
                                                         className="hover:bg-[#f5f8fc] transition-colors leading-none h-6"
                                                     >
-                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-900 tracking-tight uppercase whitespace-nowrap">
+                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-900 uppercase whitespace-nowrap">
                                                             {item.item_code}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-600 truncate max-w-[200px]" title={item.description}>
+                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-600 truncate max-w-[200px]" title={item.description}>
                                                             {item.description}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-left text-[11px] font-normal text-zinc-700 uppercase whitespace-nowrap">
+                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-700 uppercase whitespace-nowrap">
                                                             {item.bin_location}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px]">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm">
                                                             ${item.cost.toFixed(2)}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-600 bg-zinc-50/50">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-600 bg-zinc-50/50">
                                                             {item.system_qty}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
                                                             {item.c1 !== null ? item.c1 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
                                                             {item.c2 !== null ? item.c2 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
                                                             {item.c3 !== null ? item.c3 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] text-zinc-500">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
                                                             {item.c4 !== null ? item.c4 : '-'}
                                                         </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-[10px] bg-zinc-50/50">
+                                                        <td className="px-2 py-0.5 text-center font-normal text-sm bg-zinc-50/50">
                                                             {item.final_counted}
                                                         </td>
                                                         <td
-                                                            className={`px-2 py-0.5 text-center font-normal text-[10px] ${
+                                                            className={`px-2 py-0.5 text-center font-normal text-sm ${
                                                                 item.diff_qty > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_qty < 0
@@ -550,7 +550,7 @@ const AdminInventory = () => {
                                                             {item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
                                                         </td>
                                                         <td
-                                                            className={`px-2 py-0.5 text-center font-normal text-[10px] ${
+                                                            className={`px-2 py-0.5 text-center font-normal text-sm ${
                                                                 item.diff_val > 0
                                                                     ? 'text-green-600'
                                                                     : item.diff_val < 0
@@ -583,7 +583,7 @@ const AdminInventory = () => {
                 <div className="bg-white rounded-lg border border-zinc-200 p-6 shadow-xs text-black">
                     <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
                         <div>
-                            <h2 className="text-sm font-normal text-black uppercase tracking-tight">
+                            <h2 className="text-sm font-normal text-black uppercase">
                                 Asignación de Zonas y Pasillos a Auditores
                             </h2>
                             <p className="text-[11px] text-zinc-500 font-normal">
@@ -598,11 +598,11 @@ const AdminInventory = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-zinc-300 bg-zinc-100 text-[11px] text-zinc-800 uppercase font-semibold">
-                                    <th className="p-3 text-zinc-800">ID</th>
-                                    <th className="p-3 text-zinc-800">Usuario Auditor</th>
-                                    <th className="p-3 text-zinc-800">Pasillos Asignados</th>
-                                    <th className="p-3 text-right text-zinc-800">Acción</th>
+                                <tr className="border-b border-zinc-300 bg-zinc-100 text-[11px] text-zinc-800 uppercase font-normal">
+                                    <th className="px-3 py-1.5 text-zinc-800">ID</th>
+                                    <th className="px-3 py-1.5 text-zinc-800">Usuario Auditor</th>
+                                    <th className="px-3 py-1.5 text-zinc-800">Pasillos Asignados</th>
+                                    <th className="px-3 py-1.5 text-right text-zinc-800">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-100">
@@ -612,9 +612,9 @@ const AdminInventory = () => {
 
                                     return (
                                         <tr key={userItem.id} className="hover:bg-zinc-50/60 transition-colors">
-                                            <td className="p-3 font-mono text-[11px] text-zinc-500">{userItem.id}</td>
-                                            <td className="p-3 font-normal text-black text-xs uppercase font-medium">{userItem.username}</td>
-                                            <td className="p-3 space-y-2">
+                                            <td className="px-3 py-1 font-mono text-sm text-zinc-500">{userItem.id}</td>
+                                            <td className="px-3 py-1 font-normal text-black text-sm uppercase">{userItem.username}</td>
+                                            <td className="px-3 py-1 space-y-2">
                                                 {/* Lista compacta de pasillos oficiales con Checkboxes en una sola fila */}
                                                 <div className="flex flex-wrap items-center gap-1.5">
                                                     {availableAisles.map(aisle => {
@@ -650,10 +650,10 @@ const AdminInventory = () => {
                                                     })}
                                                 </div>
                                             </td>
-                                            <td className="p-3 text-right">
+                                            <td className="px-3 py-1 text-right">
                                                 <button
                                                     onClick={() => handleSaveZones(userItem.id)}
-                                                    className="px-4 py-1.5 bg-black hover:bg-zinc-800 text-white text-[11px] font-normal uppercase tracking-wider rounded shadow-2xs transition-all cursor-pointer"
+                                                    className="px-4 py-1.5 bg-black hover:bg-zinc-800 text-white text-[11px] font-normal uppercase rounded shadow-2xs transition-all cursor-pointer"
                                                 >
                                                     Guardar Pasillos
                                                 </button>
@@ -683,10 +683,10 @@ const AdminInventory = () => {
                                 ⚠️
                             </div>
                             <div>
-                                <h3 className="text-xs font-normal text-black uppercase tracking-tight">
+                                <h3 className="text-xs font-normal text-black uppercase">
                                     {confirmModal.title}
                                 </h3>
-                                <p className="text-[9px] text-zinc-500 uppercase tracking-wider">
+                                <p className="text-[9px] text-zinc-500 uppercase">
                                     Confirmación de Transición de Fase
                                 </p>
                             </div>
@@ -697,13 +697,13 @@ const AdminInventory = () => {
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setConfirmModal({ open: false, title: '', message: '', actionUrl: null })}
-                                className="px-4 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-black text-[10px] font-normal uppercase tracking-wider rounded transition-colors cursor-pointer"
+                                className="px-4 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-black text-[10px] font-normal uppercase rounded transition-colors cursor-pointer"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={() => executeAction(confirmModal.actionUrl)}
-                                className="px-5 py-1.5 bg-black hover:bg-zinc-800 text-white text-[10px] font-normal uppercase tracking-wider rounded shadow-xs transition-all cursor-pointer"
+                                className="px-5 py-1.5 bg-black hover:bg-zinc-800 text-white text-[10px] font-normal uppercase rounded shadow-xs transition-all cursor-pointer"
                             >
                                 Sí, Concluir Fase
                             </button>
