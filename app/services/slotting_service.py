@@ -400,6 +400,25 @@ class SlottingService:
         config = await self._get_layout_config(db)
         storage = config.get("storage", {})
 
+        inventory_items_result = await db.execute(
+            select(
+                MasterItem.abc_code,
+                MasterItem.physical_qty,
+                MasterItem.cost_per_unit,
+            )
+        )
+        inventory_items = inventory_items_result.all()
+        abc_items_by_type = {"A": 0, "B": 0, "C": 0}
+        for abc_code, physical_qty, _ in inventory_items:
+            normalized_abc_code = str(abc_code or "").strip().upper()
+            if normalized_abc_code in abc_items_by_type and (physical_qty or 0) > 0:
+                abc_items_by_type[normalized_abc_code] += 1
+        stock_value = sum(
+            float(physical_qty or 0) * float(cost_per_unit or 0)
+            for _, physical_qty, cost_per_unit in inventory_items
+            if physical_qty and physical_qty > 0
+        )
+
         zones_by_items = {}
         aisles_by_items = {}
         total_items = 0
@@ -412,6 +431,8 @@ class SlottingService:
                 "occupancy_pct": 0,
                 "total_items": 0,
                 "avg_items_per_bin": 0,
+                "abc_items_by_type": abc_items_by_type,
+                "stock_value": round(stock_value, 2),
             },
             "zones": {},
             "analytics": {"zones_by_items": {}, "top_aisles": {}},

@@ -89,18 +89,32 @@ const OccupancyDashboard = () => {
             </div>
 
             {/* Global Utilization Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
-                {[
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-10 gap-3 mb-4">
+                {[ 
                     { label: 'Total Bins', val: data.summary.total_bins, color: 'text-black' },
                     { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-black' },
                     { label: 'Available', val: data.summary.available_bins, color: 'text-black' },
                     { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-750' : 'text-black' },
                     { label: 'Active SKUs', val: data.summary.total_items, color: 'text-black' },
-                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' }
+                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' },
+                    {
+                        label: 'ABC Items',
+                        val: `A:${data.summary.abc_items_by_type?.A||0}  B:${data.summary.abc_items_by_type?.B||0}  C:${data.summary.abc_items_by_type?.C||0}`,
+                        cardClass: 'md:col-span-2 xl:col-span-2',
+                        color: 'text-black',
+                        valueClass: 'text-[14px] whitespace-normal'
+                    },
+                    {
+                        label: 'Stock Value (In Stock)',
+                        val: `$ ${Number(data.summary.stock_value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        cardClass: 'md:col-span-2 xl:col-span-2',
+                        color: 'text-black',
+                        valueClass: 'text-[16px] break-all'
+                    }
                 ].map((s, i) => (
-                    <div key={i} className="bg-white px-3 py-1.5 border border-zinc-200 shadow-sm text-black">
-                        <label className="text-[12px] uppercase text-black font-normal block mb-0.5 leading-tight">{s.label}</label>
-                        <p className={`text-[20px] font-normal font-mono leading-none ${s.color}`}>{s.val}</p>
+                    <div key={i} className={`${s.cardClass || ''} bg-white min-w-0 px-2.5 py-1.5 border border-zinc-200 shadow-sm text-black`}>
+                        <label className="text-[10px] uppercase text-black font-normal block mb-1 leading-tight">{s.label}</label>
+                        <p className={`text-[18px] font-normal font-mono leading-tight ${s.color} ${s.valueClass || ''}`}>{s.val}</p>
                     </div>
                 ))}
             </div>

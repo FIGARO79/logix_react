@@ -204,7 +204,7 @@ const Planner = () => {
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Parámetros Generales</h2>
+                <h2 className="text-base font-medium text-gray-800 mb-2">Parámetros Generales</h2>
                 <div className="flex flex-wrap items-end gap-6">
                     <div>
                         <label className="block text-xs font-medium  text-gray-700 mb-1">Fecha Inicial</label>
@@ -253,7 +253,7 @@ const Planner = () => {
             {/* 2. Link Ejecución */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
                 <div>
-                    <h2 className="text-base font-medium  text-[#0078d4] mb-0 border-l-4 border-[#0078d4] pl-2">Ejecución Diaria</h2>
+                    <h2 className="text-base font-medium text-[#0078d4] mb-0">Ejecución Diaria</h2>
                     <p className="text-xs text-gray-500 mt-1 pl-3">Accede a la interfaz de conteo ciego.</p>
                 </div>
                 <Link to="/planner/execution" className="bg-[#0078d4] text-white px-6 py-2.5 rounded shadow hover:bg-[#106ebe] flex items-center gap-2 font-medium  no-underline">
@@ -264,8 +264,10 @@ const Planner = () => {
             {/* 3. Grid Layout: Resumen y Leyenda */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Tabla Resumen ABC */}
-                <div>
-                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Resumen Categorías (ABC)</h3>
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2">
+                        <h3 className="text-base font-medium text-gray-800">Resumen Categorías (ABC)</h3>
+                    </div>
                     <table className="w-full border-collapse text-xs">
                         <thead>
                             <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
@@ -299,7 +301,7 @@ const Planner = () => {
                 </div>
 
                 <div>
-                    <h3 className="text-base font-medium  text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Leyenda / Clasificación</h3>
+                    <h3 className="text-base font-medium text-gray-800 mb-2">Leyenda / Clasificación</h3>
                     <div className="flex gap-4">
                         <table className="w-auto border-collapse text-xs h-fit shadow-sm">
                             <thead>
@@ -338,7 +340,7 @@ const Planner = () => {
             <div className="space-y-6">
                 {/* PLANEADO */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="border-l-4 border-[#0078d4] bg-gray-50 px-4 py-2">
+                    <div className="bg-gray-50 px-4 py-2">
                         <h3 className="text-sm font-medium  text-[#0078d4]">Planeado (Conteos Programados)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
@@ -364,7 +366,7 @@ const Planner = () => {
 
                 {/* EJECUTADO REAL */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="border-l-4 border-green-600 bg-gray-50 px-4 py-2">
+                    <div className="bg-gray-50 px-4 py-2">
                         <h3 className="text-sm font-medium  text-green-800">Ejecutado (Real)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
@@ -410,7 +412,7 @@ const Planner = () => {
 
                 {/* DELTA (DIFERENCIA) */}
                 <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="border-l-4 border-red-600 bg-gray-50 px-4 py-2">
+                    <div className="bg-gray-50 px-4 py-2">
                         <h3 className="text-sm font-medium  text-red-800">Delta (Diferencia)</h3>
                     </div>
                     <div className="p-0 overflow-x-auto">
