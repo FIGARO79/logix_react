@@ -189,17 +189,17 @@ const OccupancyDashboard = () => {
                         title={card.tooltip}
                         className="bg-white min-w-0 px-3 py-2 rounded border border-[#d2d0ce] shadow-xs flex flex-col justify-between h-[82px] transition-colors hover:border-[#a19f9d]"
                     >
-                        <span className="text-[11px] uppercase font-normal text-[#323130] block truncate leading-none">
+                        <span className="text-[12px] uppercase font-normal text-[#1F1E1E] block truncate leading-none">
                             {card.label}
                         </span>
 
                         <div className="flex items-baseline my-0.5">
-                            <span className={`font-segoe-ui text-[20px] xl:text-[18px] 2xl:text-[20px] font-normal leading-none truncate ${card.valClass || 'text-[#201f1e]'}`}>
+                            <span className={`font-segoe-ui text-[20px] xl:text-[18px] 2xl:text-[20px] font-normal leading-none truncate ${card.valClass || 'text-[#1F1E1E]'}`}>
                                 {card.val}
                             </span>
                         </div>
 
-                        <span className="text-[11px] font-normal text-[#605e5c] block truncate leading-none">
+                        <span className="text-[12px] font-normal text-[#1F1E1E] block truncate leading-none">
                             {card.subtext}
                         </span>
                     </div>
@@ -245,7 +245,7 @@ const OccupancyDashboard = () => {
                                                 <span className="hover:underline">{zoneName}</span>
                                                 <span className="text-[10px] text-[#8a8886] font-normal lowercase">(Ver todo)</span>
                                             </div>
-                                            <div className="text-[12px] text-[#605e5c] font-normal mt-0.5 uppercase">
+                                            <div className="text-[12px] text-[#1F1E1E] font-normal mt-0.5 uppercase">
                                                 {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
                                             </div>
                                         </td>

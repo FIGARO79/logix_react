@@ -436,7 +436,9 @@ class SlottingService:
 
         zones_by_items = {}
         aisles_by_items = {}
-        total_items = 0
+        total_items = sum(
+            1 for _, physical_qty, _, _ in inventory_items if (physical_qty or 0) > 0
+        )
 
         report = {
             "summary": {
@@ -493,8 +495,6 @@ class SlottingService:
                 report["summary"]["filled_bins"] += 1
                 report["zones"][zone]["levels"][level]["occupied_skus"] += current_skus
                 report["zones"][zone]["levels"][level]["occupied_bins"] += 1
-                total_items += current_skus
-
                 zones_by_items[zone] = zones_by_items.get(zone, 0) + current_skus
                 if aisle != "N/A":
                     aisles_by_items[aisle] = (

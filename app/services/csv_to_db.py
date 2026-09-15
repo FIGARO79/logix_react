@@ -78,15 +78,8 @@ async def sync_master_csv_to_db(db: AsyncSession):
                     pl.col(col_name).cast(pl.Utf8).str.slice(0, limit).alias(col_name)
                 )
 
-        # Limitar costo en Polars si está disponible
         if "Cost_per_Unit" in available_columns:
-            exprs.append(
-                pl.when(pl.col("Cost_per_Unit") > 99999999.99)
-                .then(99999999.99)
-                .otherwise(pl.col("Cost_per_Unit"))
-                .fill_null(0.0)
-                .alias("Cost_per_Unit")
-            )
+            exprs.append(pl.col("Cost_per_Unit").fill_null(0.0).alias("Cost_per_Unit"))
         else:
             exprs.append(pl.lit(0.0).alias("Cost_per_Unit"))
 
