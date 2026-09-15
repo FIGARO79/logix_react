@@ -12,11 +12,26 @@ const OccupancyDashboard = () => {
     const [selectedCell, setSelectedCell] = useState(null); // { zone, level }
     const [cellDetails, setCellDetails] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [sekRate, setSekRate] = useState(null); // Tasa COP → SEK del día
 
     useEffect(() => {
         if (setTitle) setTitle('Ocupación de Bodega');
         fetchData();
+        fetchSekRate();
     }, [setTitle]);
+
+    const fetchSekRate = async () => {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/COP');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            if (json?.result === 'success' && json.rates?.SEK) {
+                setSekRate(json.rates.SEK);
+            }
+        } catch (err) {
+            console.warn('No se pudo obtener la tasa COP→SEK:', err);
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -158,10 +173,14 @@ const OccupancyDashboard = () => {
         },
         {
             label: 'Total Stock',
-            val: formatStockMM(stockValue),
-            subtext: 'En millones COP',
-            valClass: 'text-[16px] xl:text-[14px] 2xl:text-[16px] text-[#201f1e]',
-            tooltip: `Valor exacto: $ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP`
+            val: `$ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            subtext: sekRate
+                ? `≈ kr ${(Number(stockValue) * sekRate).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SEK`
+                : 'COP',
+            valClass: 'text-[13px] xl:text-[11px] 2xl:text-[13px] text-[#201f1e]',
+            tooltip: sekRate
+                ? `COP: $ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} — SEK: kr ${(Number(stockValue) * sekRate).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (Tasa: 1 COP = ${sekRate} SEK)`
+                : `Valor exacto: $ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP`
         },
         {
             label: 'Items Frozen',
@@ -171,9 +190,9 @@ const OccupancyDashboard = () => {
         },
         {
             label: 'Valor Frozen',
-            val: formatStockMM(frozenStockValue),
+            val: `$ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
             subtext: `${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock`,
-            valClass: 'text-[16px] xl:text-[14px] 2xl:text-[16px] text-[#201f1e]',
+            valClass: 'text-[13px] xl:text-[11px] 2xl:text-[13px] text-[#201f1e]',
             tooltip: `Valor en frozen: $ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP (${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock total)`
         }
     ];
