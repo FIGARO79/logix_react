@@ -405,18 +405,33 @@ class SlottingService:
                 MasterItem.abc_code,
                 MasterItem.physical_qty,
                 MasterItem.cost_per_unit,
+                MasterItem.frozen_qty,
             )
         )
         inventory_items = inventory_items_result.all()
         abc_items_by_type = {"A": 0, "B": 0, "C": 0}
-        for abc_code, physical_qty, _ in inventory_items:
+        frozen_items = 0
+        frozen_units = 0
+        frozen_stock_value = 0.0
+
+        for abc_code, physical_qty, cost_per_unit, frozen_qty in inventory_items:
             normalized_abc_code = str(abc_code or "").strip().upper()
             if normalized_abc_code in abc_items_by_type and (physical_qty or 0) > 0:
                 abc_items_by_type[normalized_abc_code] += 1
+
+            f_qty = float(frozen_qty or 0)
+            if f_qty > 0:
+                frozen_items += 1
+                frozen_units += int(f_qty)
+                frozen_stock_value += f_qty * float(cost_per_unit or 0)
+
         stock_value = sum(
             float(physical_qty or 0) * float(cost_per_unit or 0)
-            for _, physical_qty, cost_per_unit in inventory_items
+            for _, physical_qty, cost_per_unit, _ in inventory_items
             if physical_qty and physical_qty > 0
+        )
+        frozen_stock_pct = (
+            (frozen_stock_value / stock_value * 100.0) if stock_value > 0 else 0.0
         )
 
         zones_by_items = {}
@@ -433,6 +448,10 @@ class SlottingService:
                 "avg_items_per_bin": 0,
                 "abc_items_by_type": abc_items_by_type,
                 "stock_value": round(stock_value, 2),
+                "frozen_items": frozen_items,
+                "frozen_units": frozen_units,
+                "frozen_stock_value": round(frozen_stock_value, 2),
+                "frozen_stock_pct": round(frozen_stock_pct, 2),
             },
             "zones": {},
             "analytics": {"zones_by_items": {}, "top_aisles": {}},

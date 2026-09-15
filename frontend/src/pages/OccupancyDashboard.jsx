@@ -75,46 +75,133 @@ const OccupancyDashboard = () => {
     const allLevels = [0, 1, 2, 3, 4, 5, 6, 7, 8];
     const zones = Object.keys(data.zones).sort();
 
-    return (
-        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
+    const summary = data?.summary || {};
+    const totalBins = summary.total_bins || 0;
+    const filledBins = summary.filled_bins || 0;
+    const availableBins = summary.available_bins || 0;
+    const occupancyPct = summary.occupancy_pct || 0;
+    const totalItems = summary.total_items || 0;
+    const avgItemsPerBin = summary.avg_items_per_bin || 0;
+    const itemsA = summary.abc_items_by_type?.A || 0;
+    const itemsB = summary.abc_items_by_type?.B || 0;
+    const itemsC = summary.abc_items_by_type?.C || 0;
+    const stockValue = summary.stock_value || 0;
+    const frozenItems = summary.frozen_items || 0;
+    const frozenUnits = summary.frozen_units || 0;
+    const frozenStockValue = summary.frozen_stock_value || 0;
+    const frozenStockPct = summary.frozen_stock_pct || 0;
 
-            {/* Barra de Acciones */}
-            <div className="mb-2 border-b border-zinc-200 pb-1.5 flex justify-end items-center">
-                <button
-                    onClick={fetchData}
-                    className="px-3 py-1.5 border border-black text-black bg-white text-[10px] font-normal uppercase rounded hover:bg-black hover:text-white transition-all shadow-sm"
-                >
-                    Actualizar Datos
-                </button>
-            </div>
+    const formatStockMM = (val) => {
+        if (!val || isNaN(val)) return '0 MM';
+        const num = Number(val) / 1000000;
+        if (num < 1000) {
+            return `${num.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MM`;
+        }
+        return `${Math.round(num).toLocaleString('es-CO')} MM`;
+    };
+
+    const indicators = [
+        {
+            label: 'Total Bins',
+            val: totalBins.toLocaleString(),
+            subtext: 'Capacidad total',
+            tooltip: `${totalBins.toLocaleString()} Bins configurados en total`
+        },
+        {
+            label: 'Bins Ocupados',
+            val: filledBins.toLocaleString(),
+            subtext: totalBins > 0 ? `${Math.round((filledBins / totalBins) * 100)}% ocupación` : 'Con inventario',
+            tooltip: `${filledBins.toLocaleString()} Bins con carga de SKUs`
+        },
+        {
+            label: 'Bins Libres',
+            val: availableBins.toLocaleString(),
+            subtext: totalBins > 0 ? `${Math.round((availableBins / totalBins) * 100)}% disponible` : 'Disponibles',
+            tooltip: `${availableBins.toLocaleString()} Bins disponibles para almacenamiento`
+        },
+        {
+            label: 'Ocupación',
+            val: `${occupancyPct}%`,
+            subtext: occupancyPct >= 85 ? 'Saturación alta' : occupancyPct >= 30 ? 'Capacidad activa' : 'Baja saturación',
+            valClass: occupancyPct >= 85 ? 'text-[#a4262c]' : 'text-[#201f1e]',
+            tooltip: `Nivel de ocupación global: ${occupancyPct}%`
+        },
+        {
+            label: 'SKUs Activos',
+            val: totalItems.toLocaleString(),
+            subtext: 'En almacenamiento',
+            tooltip: `${totalItems.toLocaleString()} SKUs almacenados`
+        },
+        {
+            label: 'Densidad SKU',
+            val: avgItemsPerBin,
+            subtext: 'Promedio por bin',
+            tooltip: `Densidad promedio: ${avgItemsPerBin} SKUs por bin ocupado`
+        },
+        {
+            label: 'Clase A',
+            val: itemsA.toLocaleString(),
+            subtext: 'Alto valor',
+            tooltip: `Ítems Clase A: ${itemsA.toLocaleString()} SKUs (Mayor valor en stock)`
+        },
+        {
+            label: 'Clase B',
+            val: itemsB.toLocaleString(),
+            subtext: 'Valor medio',
+            tooltip: `Ítems Clase B: ${itemsB.toLocaleString()} SKUs (Valor intermedio)`
+        },
+        {
+            label: 'Clase C',
+            val: itemsC.toLocaleString(),
+            subtext: 'Bajo valor',
+            tooltip: `Ítems Clase C: ${itemsC.toLocaleString()} SKUs (Menor valor en stock)`
+        },
+        {
+            label: 'Total Stock',
+            val: formatStockMM(stockValue),
+            subtext: 'En millones COP',
+            valClass: 'text-[16px] xl:text-[14px] 2xl:text-[16px] text-[#201f1e]',
+            tooltip: `Valor exacto: $ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP`
+        },
+        {
+            label: 'Items Frozen',
+            val: frozenItems.toLocaleString(),
+            subtext: `${frozenUnits.toLocaleString()} unidades`,
+            tooltip: `${frozenItems.toLocaleString()} SKUs en congelado / cuarentena (${frozenUnits.toLocaleString()} unidades en total)`
+        },
+        {
+            label: 'Valor Frozen',
+            val: formatStockMM(frozenStockValue),
+            subtext: `${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock`,
+            valClass: 'text-[16px] xl:text-[14px] 2xl:text-[16px] text-[#201f1e]',
+            tooltip: `Valor en frozen: $ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP (${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock total)`
+        }
+    ];
+
+    return (
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-segoe-ui bg-[#fcfcfc] min-h-screen text-[#201f1e] text-[12px] antialiased">
 
             {/* Global Utilization Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-10 gap-3 mb-4">
-                {[ 
-                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-black' },
-                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-black' },
-                    { label: 'Available', val: data.summary.available_bins, color: 'text-black' },
-                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-750' : 'text-black' },
-                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-black' },
-                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' },
-                    {
-                        label: 'ABC Items',
-                        val: `A:${data.summary.abc_items_by_type?.A||0}  B:${data.summary.abc_items_by_type?.B||0}  C:${data.summary.abc_items_by_type?.C||0}`,
-                        cardClass: 'md:col-span-2 xl:col-span-2',
-                        color: 'text-black',
-                        valueClass: 'text-[14px] whitespace-normal'
-                    },
-                    {
-                        label: 'Stock Value (In Stock)',
-                        val: `$ ${Number(data.summary.stock_value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                        cardClass: 'md:col-span-2 xl:col-span-2',
-                        color: 'text-black',
-                        valueClass: 'text-[16px] break-all'
-                    }
-                ].map((s, i) => (
-                    <div key={i} className={`${s.cardClass || ''} bg-white min-w-0 px-2.5 py-1.5 border border-zinc-200 shadow-sm text-black`}>
-                        <label className="text-[10px] uppercase text-black font-normal block mb-1 leading-tight">{s.label}</label>
-                        <p className={`text-[18px] font-normal font-mono leading-tight ${s.color} ${s.valueClass || ''}`}>{s.val}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 mb-4">
+                {indicators.map((card, idx) => (
+                    <div
+                        key={idx}
+                        title={card.tooltip}
+                        className="bg-white min-w-0 px-3 py-2 rounded border border-[#d2d0ce] shadow-xs flex flex-col justify-between h-[82px] transition-colors hover:border-[#a19f9d]"
+                    >
+                        <span className="text-[11px] uppercase font-normal text-[#323130] block truncate leading-none">
+                            {card.label}
+                        </span>
+
+                        <div className="flex items-baseline my-0.5">
+                            <span className={`font-segoe-ui text-[20px] xl:text-[18px] 2xl:text-[20px] font-normal leading-none truncate ${card.valClass || 'text-[#201f1e]'}`}>
+                                {card.val}
+                            </span>
+                        </div>
+
+                        <span className="text-[11px] font-normal text-[#605e5c] block truncate leading-none">
+                            {card.subtext}
+                        </span>
                     </div>
                 ))}
             </div>
@@ -130,9 +217,9 @@ const OccupancyDashboard = () => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="bg-zinc-100 border-b border-zinc-300">
-                                <th className="px-4 py-1.5 text-left text-[12px] font-normal text-zinc-800 uppercase border-b border-zinc-300">Identificador de Zona</th>
+                                <th className="px-4 py-1.5 text-left text-[12px] font-normal text-[#201f1e] uppercase border-b border-zinc-300">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-1.5 text-center text-[12px] font-normal text-zinc-800 uppercase border-b border-zinc-300">
+                                    <th key={level} className="px-2 py-1.5 text-center text-[12px] font-normal text-[#201f1e] uppercase border-b border-zinc-300">
                                         Nivel {level}
                                     </th>
                                 ))}
@@ -150,15 +237,15 @@ const OccupancyDashboard = () => {
                                         <td
                                             onClick={() => handleCellClick(zoneName, null)}
                                             className={`px-4 py-1.5 cursor-pointer transition-all duration-200 ${isZoneSelected
-                                                ? 'bg-zinc-100 border-l-4 border-black font-semibold'
+                                                ? 'bg-zinc-100 border-l-4 border-black font-normal'
                                                 : 'hover:bg-zinc-100/70'
                                                 }`}
                                         >
                                             <div className="text-[12px] font-normal text-black uppercase flex items-center gap-1.5">
                                                 <span className="hover:underline">{zoneName}</span>
-                                                <span className="text-[10px] text-zinc-400 font-normal lowercase">(Ver todo)</span>
+                                                <span className="text-[10px] text-[#8a8886] font-normal lowercase">(Ver todo)</span>
                                             </div>
-                                            <div className="text-[12px] text-zinc-500 font-normal mt-0.5 uppercase">
+                                            <div className="text-[12px] text-[#605e5c] font-normal mt-0.5 uppercase">
                                                 {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
                                             </div>
                                         </td>
@@ -193,7 +280,7 @@ const OccupancyDashboard = () => {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="h-16 flex items-center justify-center text-zinc-200 font-mono text-[12px]">
+                                                        <div className="h-16 flex items-center justify-center text-[#d2d0ce] font-segoe-ui text-[12px]">
                                                             —
                                                         </div>
                                                     )}
@@ -241,7 +328,7 @@ const OccupancyDashboard = () => {
                         </div>
                         <button
                             onClick={() => { setSelectedCell(null); setCellDetails([]); }}
-                            className="text-black hover:text-zinc-500 transition-colors p-1"
+                            className="text-black hover:text-[#605e5c] transition-colors p-1"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -274,7 +361,7 @@ const OccupancyDashboard = () => {
                                             <span className="text-[12px] font-normal text-black uppercase">
                                                 Pasillo: {aisle}
                                             </span>
-                                            <span className="text-[12px] text-black font-normal font-mono">
+                                            <span className="text-[12px] text-black font-normal font-segoe-ui">
                                                 {bins.length} Bins
                                             </span>
                                         </div>
@@ -294,7 +381,7 @@ const OccupancyDashboard = () => {
                                                         className={`border p-1.5 rounded-sm flex flex-col justify-between h-14 ${occupancyColor} shadow-sm`}
                                                     >
                                                         <div className="flex justify-between items-start gap-0.5">
-                                                            <span className="text-[10px] font-normal font-mono text-black truncate">{bin.bin_code}</span>
+                                                            <span className="text-[10px] font-normal font-segoe-ui text-black truncate">{bin.bin_code}</span>
                                                             <span className={`text-[8px] uppercase font-normal px-0.5 rounded-sm shrink-0 ${bin.spot === 'Hot'
                                                                 ? 'bg-orange-500 text-white'
                                                                 : 'bg-blue-500 text-white'
@@ -303,8 +390,8 @@ const OccupancyDashboard = () => {
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between items-end">
-                                                            <span className="text-[9px] font-normal font-mono leading-none text-black opacity-80">{bin.skus}sk</span>
-                                                            <span className="text-[10px] font-mono font-normal text-black">{bin.occupancy_pct}%</span>
+                                                            <span className="text-[9px] font-normal font-segoe-ui leading-none text-black opacity-80">{bin.skus}sk</span>
+                                                            <span className="text-[10px] font-segoe-ui font-normal text-black">{bin.occupancy_pct}%</span>
                                                         </div>
                                                     </div>
                                                 );
