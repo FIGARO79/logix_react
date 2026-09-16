@@ -159,7 +159,7 @@ const Update = () => {
     useEffect(() => {
         const grnFile = files.find(f => {
             const name = f.name.toLowerCase();
-            return name.includes('280') || name.includes('pedido') || name.includes('reporte');
+            return (name.includes('280') || name.includes('grn') || name.includes('pedido') || name.includes('reporte')) && !name.endsWith('.xlsx');
         });
         if (grnFile && grnFile !== previewedFile && !isPreviewing) fetchPreviewGrns(grnFile);
         else if (!grnFile) { setAvailableGrns([]); setSelectedGrns([]); setPreviewedFile(null); }
@@ -175,8 +175,8 @@ const Update = () => {
             const name = file.name.toLowerCase();
             if (name.includes('master') || name.includes('item') || name.includes('maestro') || name.includes('250')) formData.append('item_master', file);
             else if (name.includes('0006') || name.includes('reserva')) formData.append('reservation_file', file);
-            else if (name.includes('280') || name.includes('pedido') || name.includes('reporte')) {
-                if (name.endsWith('.xlsx')) formData.append('grn_excel', file);
+            else if (name.includes('280') || name.includes('grn') || name.includes('pedido') || name.includes('reporte') || name.includes('inbound')) {
+                if (name.endsWith('.xlsx') || name.endsWith('.xls')) formData.append('grn_excel', file);
                 else formData.append('grn_file', file);
             }
             else if (name.includes('240') || name.includes('picking')) formData.append('picking_file', file);
@@ -192,6 +192,20 @@ const Update = () => {
                 setMessages({ success: data.message, error: '' });
                 setFiles([]);
                 fetchSyncStatus();
+
+                // Notificar a toda la aplicación (Auditoría de Inbound, Conciliación, etc.)
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const bc = new BroadcastChannel('logix_events');
+                    bc.postMessage({ type: 'INBOUND_MUTATED' });
+                    setTimeout(() => {
+                        try {
+                            const bcDelayed = new BroadcastChannel('logix_events');
+                            bcDelayed.postMessage({ type: 'INBOUND_MUTATED' });
+                            bcDelayed.close();
+                        } catch (err) {}
+                    }, 1200);
+                    bc.close();
+                }
             }
             else setMessages({ success: '', error: data.error || "ERROR EN CARGA" });
         } catch (err) { setMessages({ success: '', error: err.message }); }

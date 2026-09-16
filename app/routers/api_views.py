@@ -522,9 +522,17 @@ async def archive_reconciliation_snapshot(
         )
 
         # [NUEVO] Ejecutar auditoría de recepción en segundo plano
+        from app.core.db import AsyncSessionLocal
         from app.services.inbound_auditor import run_inbound_audit
 
-        background_tasks.add_task(run_inbound_audit, db)
+        async def _run_audit_snapshot_bg():
+            try:
+                async with AsyncSessionLocal() as session:
+                    await run_inbound_audit(session)
+            except Exception as bg_err:
+                print(f"[AUDITOR SNAPSHOT ERROR]: {bg_err}")
+
+        background_tasks.add_task(_run_audit_snapshot_bg)
 
         return {
             "message": "Instantánea guardada correctamente",

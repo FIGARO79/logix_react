@@ -381,14 +381,6 @@ async def update_files_post(
                 f.write(orjson.dumps(data_list, option=orjson.OPT_INDENT_2))
             message += f'Archivo Excel "{grn_excel.filename}" procesado. '
             files_uploaded = True
-            from app.services.grn_service import seed_grn_from_excel
-            from app.core.db import AsyncSessionLocal
-
-            async def run_sync():
-                async with AsyncSessionLocal() as session:
-                    await seed_grn_from_excel(session)
-
-            background_tasks.add_task(run_sync)
         except Exception as e:
             error += f"Error Excel GRN: {str(e)}. "
 
@@ -410,29 +402,46 @@ async def update_files_post(
             error += f"Error PO Extractor (Crash): {str(e)}. "
 
     if files_uploaded:
-        # Tareas en segundo plano
-        background_tasks.add_task(load_csv_data)
-
-        # Si se subió el maestro de ítems, sincronizar también la base de datos SQL
-        if item_master and item_master.filename:
-            from app.core.db import AsyncSessionLocal
-
-            async def run_sql_sync():
-                async with AsyncSessionLocal() as session:
-                    await sync_master_csv_to_db(session)
-
-            background_tasks.add_task(run_sql_sync)
-
-        # [NUEVO] Ejecutar auditoría de recepción en segundo plano después de cargar datos
         from app.core.db import AsyncSessionLocal
         from app.services.inbound_auditor import run_inbound_audit
 
-        async def run_auditor_sync():
-            async with AsyncSessionLocal() as session:
-                await run_inbound_audit(session)
+        async def process_background_pipeline():
+            # 1. Si se subió grn_excel, sincronizar primero el maestro GRN en SQL
+            if grn_excel and grn_excel.filename:
+                try:
+                    from app.services.grn_service import seed_grn_from_excel
 
-        background_tasks.add_task(run_auditor_sync)
+                    async with AsyncSessionLocal() as session:
+                        await seed_grn_from_excel(session)
+                except Exception as e:
+                    print(f"[UPDATE ERROR] Error en seed_grn_from_excel: {e}")
 
+            # 2. Si se subió el maestro de ítems, sincronizar también la base de datos SQL
+            if item_master and item_master.filename:
+                try:
+                    async with AsyncSessionLocal() as session:
+                        await sync_master_csv_to_db(session)
+                except Exception as e:
+                    print(f"[UPDATE ERROR] Error en sync_master_csv_to_db: {e}")
+
+            # 3. Recargar datos en memoria RAM (Polars)
+            try:
+                await load_csv_data()
+            except Exception as e:
+                print(f"[UPDATE ERROR] Error en load_csv_data: {e}")
+
+            # 4. Ejecutar auditoría de recepción con datos frescos en DB y RAM
+            try:
+                async with AsyncSessionLocal() as session:
+                    res = await run_inbound_audit(session)
+                    print(f"[UPDATE] Auditoría ejecutada con éxito tras actualización de archivos: {res}")
+            except Exception as e:
+                print(f"[UPDATE ERROR] Error en run_inbound_audit: {e}")
+                import traceback
+
+                traceback.print_exc()
+
+        background_tasks.add_task(process_background_pipeline)
         message += " Procesamiento en segundo plano iniciado."
 
     if error:
