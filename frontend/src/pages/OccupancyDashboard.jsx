@@ -172,10 +172,10 @@ const OccupancyDashboard = () => {
             tooltip: `Ítems Clase C: ${itemsC.toLocaleString()} SKUs (Menor valor en stock)`
         },
         {
-            label: 'Total Stock',
-            val: `$ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            label: 'Valor Total Stock',
+            val: `$ ${Number(stockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} COP`,
             subtext: sekRate
-                ? `≈ kr ${(Number(stockValue) * sekRate).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SEK`
+                ? `≈ ${(Number(stockValue) * sekRate).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} SEK`
                 : 'COP',
             valClass: 'text-[13px] xl:text-[11px] 2xl:text-[13px] text-[#201f1e]',
             tooltip: sekRate
