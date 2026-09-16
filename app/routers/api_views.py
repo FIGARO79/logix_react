@@ -930,6 +930,40 @@ async def get_packing_list_data(
     )
 
 
+# --- Caché COP → SEK (consulta diaria al backend, evita CSP del browser) ---
+import time as _time
+import httpx as _httpx
+
+_sek_cache: Dict[str, Any] = {"rate": None, "fetched_at": 0.0}
+_SEK_TTL = 86400  # 24 horas
+_SEK_FALLBACK = 0.0025  # Tasa de respaldo ~Sep 2026
+
+
+async def _get_sek_rate() -> float:
+    """Obtiene la tasa COP→SEK, cacheada por 24h."""
+    now = _time.time()
+    if _sek_cache["rate"] is not None and (now - _sek_cache["fetched_at"]) < _SEK_TTL:
+        return _sek_cache["rate"]
+
+    try:
+        async with _httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get("https://open.er-api.com/v6/latest/COP")
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("result") == "success" and data.get("rates", {}).get("SEK"):
+                _sek_cache["rate"] = data["rates"]["SEK"]
+                _sek_cache["fetched_at"] = now
+                return _sek_cache["rate"]
+    except Exception as e:
+        print(f"[SEK] Error obteniendo tasa COP→SEK: {e}")
+
+    # Si ya hay una tasa cacheada (expirada pero válida), reutilizar
+    if _sek_cache["rate"] is not None:
+        return _sek_cache["rate"]
+
+    return _SEK_FALLBACK
+
+
 @router.get("/occupancy_stats", response_model=Dict[str, Any])
 async def get_occupancy_stats(
     request: Request,
@@ -939,12 +973,14 @@ async def get_occupancy_stats(
     """Obtiene estadísticas de ocupación por zona y nivel para el Dashboard."""
     try:
         report = await slotting_service.get_occupancy_report(db)
+        report["sek_rate"] = await _get_sek_rate()
         return report
     except Exception as e:
         import traceback
 
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/occupancy_detail", response_model=List[Dict[str, Any]])

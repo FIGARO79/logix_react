@@ -12,32 +12,23 @@ const OccupancyDashboard = () => {
     const [selectedCell, setSelectedCell] = useState(null); // { zone, level }
     const [cellDetails, setCellDetails] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const [sekRate, setSekRate] = useState(null); // Tasa COP → SEK del día
+    const [sekRate, setSekRate] = useState(null); // Tasa COP → SEK (viene del backend)
 
     useEffect(() => {
         if (setTitle) setTitle('Ocupación de Bodega');
         fetchData();
-        fetchSekRate();
     }, [setTitle]);
-
-    const fetchSekRate = async () => {
-        try {
-            const res = await fetch('https://open.er-api.com/v6/latest/COP');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            if (json?.result === 'success' && json.rates?.SEK) {
-                setSekRate(json.rates.SEK);
-            }
-        } catch (err) {
-            console.warn('No se pudo obtener la tasa COP→SEK:', err);
-        }
-    };
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const response = await axios.get('/api/views/occupancy_stats');
             setData(response.data);
+            // La tasa SEK viene cacheada desde el backend (1 consulta/día)
+            if (response.data?.sek_rate) {
+                setSekRate(response.data.sek_rate);
+            }
+
         } catch (error) {
             console.error('Error fetching occupancy stats:', error);
             toast.error('Error loading occupancy analytics');
