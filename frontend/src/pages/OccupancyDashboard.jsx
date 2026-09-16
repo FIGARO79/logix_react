@@ -181,7 +181,7 @@ const OccupancyDashboard = () => {
         },
         {
             label: 'Valor Frozen',
-            val: `$ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            val: `$ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} COP`,
             subtext: `${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock`,
             valClass: 'text-[13px] xl:text-[11px] 2xl:text-[13px] text-[#201f1e]',
             tooltip: `Valor en frozen: $ ${Number(frozenStockValue).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} COP (${Number(frozenStockPct).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% del stock total)`
