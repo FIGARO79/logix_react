@@ -209,7 +209,7 @@ const OccupancyDashboard = () => {
                             </span>
                         </div>
 
-                        <span className="text-[12px] font-normal text-[#1F1E1E] block truncate leading-none">
+                        <span className="text-[14px] font-normal text-[#1F1E1E] block truncate leading-none">
                             {card.subtext}
                         </span>
                     </div>
@@ -218,8 +218,8 @@ const OccupancyDashboard = () => {
 
             {/* Heatmap Matrix Section */}
             <div className="bg-white border border-zinc-300 shadow-sm mb-8 overflow-hidden text-black">
-                <div className="px-6 py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center text-black">
-                    <h3 className="text-[12px] font-normal text-black uppercase">
+                <div className="px-4 py-2 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center text-black">
+                    <h3 className="text-[14px] font-normal font-segoe-ui text-black uppercase">
                         Matriz de Saturación de Bins (Nivel vs Zona)
                     </h3>
                 </div>
@@ -227,9 +227,9 @@ const OccupancyDashboard = () => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="bg-zinc-100 border-b border-zinc-300">
-                                <th className="px-4 py-1.5 text-left text-[12px] font-normal text-[#201f1e] uppercase border-b border-zinc-300">Identificador de Zona</th>
+                                <th className="px-4 py-1.5 text-left text-[14px] !font-normal font-segoe-ui text-[#201f1e] uppercase border-b border-zinc-300">Identificador de Zona</th>
                                 {allLevels.map(level => (
-                                    <th key={level} className="px-2 py-1.5 text-center text-[12px] font-normal text-[#201f1e] uppercase border-b border-zinc-300">
+                                    <th key={level} className="px-2 py-1.5 text-center text-[14px] !font-normal font-segoe-ui text-[#201f1e] uppercase border-b border-zinc-300">
                                         Nivel {level}
                                     </th>
                                 ))}
@@ -251,11 +251,11 @@ const OccupancyDashboard = () => {
                                                 : 'hover:bg-zinc-100/70'
                                                 }`}
                                         >
-                                            <div className="text-[12px] font-normal text-black uppercase flex items-center gap-1.5">
+                                            <div className="text-[14px] font-normal text-black uppercase flex items-center gap-1.5">
                                                 <span className="hover:underline">{zoneName}</span>
-                                                <span className="text-[10px] text-[#8a8886] font-normal lowercase">(Ver todo)</span>
+                                                <span className="text-[12px] text-[#8a8886] font-normal lowercase">(Ver todo)</span>
                                             </div>
-                                            <div className="text-[12px] text-[#1F1E1E] font-normal mt-0.5 uppercase">
+                                            <div className="text-[14px] text-[#1F1E1E] font-normal mt-0.5 uppercase">
                                                 {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
                                             </div>
                                         </td>
@@ -281,16 +281,16 @@ const OccupancyDashboard = () => {
                                                                 ${isSelected ? 'ring-2 ring-black border-transparent scale-105 shadow-md z-10' : ''}
                                                             `}
                                                         >
-                                                            <span className="text-[12px] font-normal leading-none mb-1 text-black">{occupancyPercent}%</span>
-                                                            <div className="text-[12px] uppercase font-normal opacity-90 text-center text-black">
+                                                            <span className="text-[14px] font-normal leading-none mb-1 text-black">{occupancyPercent}%</span>
+                                                            <div className="text-[14px] uppercase font-normal opacity-90 text-center text-black">
                                                                 {levelData.occupied_bins !== undefined ? levelData.occupied_bins : levelData.full_bins}/{levelData.total} Bins
                                                             </div>
-                                                            <div className="text-[12px] font-normal opacity-85 text-black">
+                                                            <div className="text-[14px] font-normal opacity-85 text-black">
                                                                 {levelData.occupied_skus} SKUs
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="h-16 flex items-center justify-center text-[#d2d0ce] font-segoe-ui text-[12px]">
+                                                        <div className="h-16 flex items-center justify-center text-[#d2d0ce] font-segoe-ui text-[14px]">
                                                             —
                                                         </div>
                                                     )}
@@ -368,10 +368,10 @@ const OccupancyDashboard = () => {
                                 ).sort(([a], [b]) => String(a).localeCompare(String(b))).map(([aisle, bins]) => (
                                     <div key={aisle} className="border border-zinc-200 rounded-sm p-4 bg-zinc-50/50">
                                         <div className="flex items-center justify-between mb-4 border-b border-zinc-200 pb-2">
-                                            <span className="text-[12px] font-normal text-black uppercase">
+                                            <span className="text-[14px] font-normal text-black">
                                                 Pasillo: {aisle}
                                             </span>
-                                            <span className="text-[12px] text-black font-normal font-segoe-ui">
+                                            <span className="text-[14px] text-black font-normal font-segoe-ui">
                                                 {bins.length} Bins
                                             </span>
                                         </div>
@@ -391,8 +391,8 @@ const OccupancyDashboard = () => {
                                                         className={`border p-1.5 rounded-sm flex flex-col justify-between h-14 ${occupancyColor} shadow-sm`}
                                                     >
                                                         <div className="flex justify-between items-start gap-0.5">
-                                                            <span className="text-[10px] font-normal font-segoe-ui text-black truncate">{bin.bin_code}</span>
-                                                            <span className={`text-[8px] uppercase font-normal px-0.5 rounded-sm shrink-0 ${bin.spot === 'Hot'
+                                                            <span className="text-[14px] font-normal font-segoe-ui text-black truncate">{bin.bin_code}</span>
+                                                            <span className={`text-[10px] uppercase font-normal px-0.5 rounded-sm shrink-0 ${bin.spot === 'Hot'
                                                                 ? 'bg-orange-500 text-white'
                                                                 : 'bg-blue-500 text-white'
                                                                 }`}>
@@ -400,8 +400,8 @@ const OccupancyDashboard = () => {
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between items-end">
-                                                            <span className="text-[9px] font-normal font-segoe-ui leading-none text-black opacity-80">{bin.skus}sk</span>
-                                                            <span className="text-[10px] font-segoe-ui font-normal text-black">{bin.occupancy_pct}%</span>
+                                                            <span className="text-[14px] font-normal font-segoe-ui leading-none text-black opacity-80">{bin.skus} SKUs</span>
+                                                            <span className="text-[14px] font-segoe-ui font-normal text-black">{bin.occupancy_pct}%</span>
                                                         </div>
                                                     </div>
                                                 );
