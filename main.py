@@ -79,14 +79,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- Configuración de CORS [CRÍTICO PARA REACT] ---
-# Lista de orígenes permitidos
+# [SEGURIDAD] Orígenes condicionados por entorno (CS-CORS-001)
 ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://localhost:5173",
     "https://logixapp.dev",
     "https://www.logixapp.dev"
 ]
+if ENVIRONMENT != 'production':
+    ALLOWED_ORIGINS.extend(["http://localhost:3000", "http://localhost:5173", "https://localhost:5173"])
 
 # --- Middlewares [ORDEN CRÍTICO] ---
 app.add_middleware(GZipMiddleware, minimum_size=1000) # Comprime si > 1KB
@@ -107,8 +106,9 @@ app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
-    max_age=None,
-    https_only=True if ENVIRONMENT == 'production' else False # En producción forzar cookies seguras
+    max_age=28800,  # [SEGURIDAD] 8 horas de expiración (CS-SESSION-001)
+    https_only=True if ENVIRONMENT == 'production' else False,  # En producción forzar cookies seguras
+    same_site="strict",  # [SEGURIDAD] Prevención CSRF (CS-CSRF-001)
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 

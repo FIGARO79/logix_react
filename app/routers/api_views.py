@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from app.core.responses import safe_error_detail
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, distinct
 from sqlalchemy.orm import selectinload
@@ -224,7 +225,7 @@ async def get_reconciliation_data(
         import traceback
 
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 class HistoricalReconciliationRow(BaseModel):
@@ -545,7 +546,7 @@ async def archive_reconciliation_snapshot(
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/view_picking_audits", response_model=List[PickingAuditSummary])
@@ -987,7 +988,7 @@ async def get_occupancy_stats(
         import traceback
 
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 
@@ -1003,7 +1004,7 @@ async def get_occupancy_detail(
         details = await slotting_service.get_detailed_occupancy(db, zone, level)
         return details
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/valid_bins", response_model=List[str])

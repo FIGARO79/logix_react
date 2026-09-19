@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
+from app.core.responses import safe_error_detail
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.core.db import get_db
@@ -54,7 +55,7 @@ async def find_item_for_spot_check(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/list")
@@ -81,7 +82,7 @@ async def list_spot_checks(
             for c in checks
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/export")
@@ -126,7 +127,7 @@ async def export_spot_checks(
     except Exception as e:
         # Log del error para depuración
         print(f"Error en export_spot_checks: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generando Excel: {str(e)}")
+        raise HTTPException(status_code=500, detail=safe_error_detail(e, "export_excel"))
 
 
 @router.post("/clear")
@@ -150,7 +151,7 @@ async def clear_spot_checks(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/save")
@@ -176,4 +177,4 @@ async def save_spot_check(
         return {"status": "success", "id": new_entry.id}
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))

@@ -5,7 +5,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, HTTPException, Response
-from app.core.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse, safe_error_detail
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -512,7 +512,7 @@ async def update_root_cause(
         return {"status": "ok", "recording_id": recording_id, "root_cause": data.root_cause}
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.put("/counts/recordings/{recording_id}/status")
@@ -535,7 +535,7 @@ async def update_recording_status(
         return {"status": "ok", "recording_id": recording_id, "new_status": data.status}
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 
@@ -609,7 +609,7 @@ async def get_cycle_count_recordings(
 
     except Exception as e:
         print(f"Error en recordings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/counts/all", response_model=List[Dict[str, Any]])
@@ -849,7 +849,7 @@ async def export_all_counts(
         )
     except Exception as e:
         print(f"Error exportando conteos: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/counts/differences")

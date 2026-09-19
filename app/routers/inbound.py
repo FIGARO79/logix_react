@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.responses import safe_error_detail
 from sqlalchemy import and_, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
@@ -188,7 +189,7 @@ async def clear_auditor_alerts(
         res = await inbound_auditor.clear_alerts(db, target)
         return res
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 _po_lookup_cache = None

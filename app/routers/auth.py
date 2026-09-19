@@ -98,12 +98,12 @@ async def login_api(
     except Exception as e:
         import traceback
 
-        error_msg = f"Error interno en login_api: {str(e)}"
-        print(f"ERROR: {error_msg}")
+        # Loguear internamente para debug, NUNCA exponer al cliente
+        print(f"ERROR en login_api: {str(e)}")
         print(traceback.format_exc())
         return ORJSONResponse(
             status_code=500,
-            content={"error": error_msg, "traceback": traceback.format_exc()},
+            content={"error": "Error interno del servidor. Contacte al administrador."},
         )
 
 

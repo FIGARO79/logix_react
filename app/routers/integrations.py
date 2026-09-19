@@ -1,4 +1,5 @@
 import os
+from app.core.responses import safe_error_detail
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Header
 from app.core.config import DATABASE_FOLDER, INTEGRATION_API_KEY
 
@@ -28,9 +29,15 @@ async def upload_ssrs_csv(report_name: str, file: UploadFile = File(...)):
             status_code=400, detail="El archivo debe tener extensión .csv"
         )
 
-    # Limpiar el nombre ingresado para evitar bugs de ruta
-    safe_name = report_name.replace(".csv", "").strip() + ".csv"
+    # [SEGURIDAD] Sanitizar nombre para prevenir Path Traversal (CWE-22)
+    safe_name = os.path.basename(report_name.replace(".csv", "").strip()) + ".csv"
+    if not safe_name or safe_name.startswith("."):
+        raise HTTPException(status_code=400, detail="Nombre de archivo inválido")
     file_path = os.path.join(DATABASE_FOLDER, safe_name)
+    # Validar que la ruta resuelta esté dentro del directorio permitido
+    resolved_path = os.path.realpath(file_path)
+    if not resolved_path.startswith(os.path.realpath(DATABASE_FOLDER)):
+        raise HTTPException(status_code=400, detail="Nombre de archivo inválido")
 
     try:
         contents = await file.read()
@@ -48,5 +55,5 @@ async def upload_ssrs_csv(report_name: str, file: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error al guardar archivo: {str(e)}"
+            status_code=500, detail=safe_error_detail(e, "upload_csv")
         )

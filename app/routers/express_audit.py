@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.responses import safe_error_detail
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.sql_models import CycleCountRecording
@@ -51,7 +52,7 @@ async def find_item_for_audit(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/save")
@@ -87,7 +88,7 @@ async def save_express_audit(
         return {"status": "success", "id": new_recording.id}
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/recordings")
@@ -122,4 +123,4 @@ async def get_express_audit_recordings(
             for r in recordings
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))

@@ -3,7 +3,8 @@ import logging
 import numpy as np
 import cv2
 import math
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.utils.auth import login_required
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ def decode_qr_robust(img: np.ndarray) -> tuple[np.ndarray | None, float]:
 
 
 @router.post("/measure-v2", response_model=MeasureResponse)
-async def measure_box_v2(request: MeasureRequest):
+async def measure_box_v2(request: MeasureRequest, user: str = Depends(login_required)):
     try:
         image_data = base64.b64decode(request.image)
         nparr = np.frombuffer(image_data, np.uint8)

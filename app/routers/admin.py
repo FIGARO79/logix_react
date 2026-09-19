@@ -28,6 +28,7 @@ from app.utils.auth import (
 from app.models.sql_models import User, BinLocation, SlottingRule
 from sqlalchemy import update
 from app.core.config import ADMIN_PASSWORD, SLOTTING_PARAMS_PATH
+from app.core.limiter import limiter
 import orjson
 import os
 
@@ -389,7 +390,7 @@ async def upload_slotting_config(
         traceback.print_exc()  # Esto imprimirá el error real en la consola del backend
         print(f"Error uploading slotting config: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error al procesar Excel: {str(e)}"
+            status_code=500, detail=safe_error_detail(e, "slotting_upload")
         )
 
 
@@ -413,6 +414,7 @@ async def get_admin_users_api(
 
 
 @router.post("/login")
+@limiter.limit("3/minute")
 async def admin_login_api(request: Request, data: dict):
     if data.get("password") == ADMIN_PASSWORD:
         request.session["admin_logged_in"] = True

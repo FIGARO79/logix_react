@@ -1,4 +1,5 @@
 """
+from app.core.responses import safe_error_detail
 Router para la planificación de conteos de inventario.
 Genera un archivo Excel con los conteos sugeridos basado en la clasificación ABC y el historial.
 """
@@ -652,7 +653,7 @@ async def save_daily_execution(
     except Exception as e:
         await db.rollback()
         logger.error(f"Error en save_daily_execution: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/execution/stats")
@@ -778,6 +779,6 @@ async def recalculate_all_differences(
         }
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 

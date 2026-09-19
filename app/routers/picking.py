@@ -6,7 +6,7 @@ import os
 import datetime
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.responses import ORJSONResponse
+from app.core.responses import ORJSONResponse, safe_error_detail
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.models.schemas import PickingAudit
@@ -117,7 +117,7 @@ async def get_picking_order(
         return ORJSONResponse(content=order_data.to_dicts())
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/picking/tracking")
@@ -275,7 +275,7 @@ async def get_picking_tracking(
         return ORJSONResponse(content=tracking_data)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/picking/packing_list/{audit_id}")
@@ -348,7 +348,7 @@ async def get_packing_list_data(
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error obteniendo packing list: {str(e)}"
+            status_code=500, detail=safe_error_detail(e, "packing_list")
         )
 
 
