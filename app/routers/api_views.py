@@ -993,12 +993,12 @@ async def get_occupancy_stats(
 
 @router.get("/occupancy_detail", response_model=List[Dict[str, Any]])
 async def get_occupancy_detail(
-    zone: str,
+    zone: Optional[str] = None,
     level: Optional[int] = None,
     username: str = Depends(login_required),
     db: AsyncSession = Depends(get_db),
 ):
-    """Obtiene el detalle de cada bin para una zona y nivel específicos."""
+    """Obtiene el detalle de cada bin para una zona y nivel específicos (o todas si no se especifica zona o es 'ALL')."""
     try:
         details = await slotting_service.get_detailed_occupancy(db, zone, level)
         return details

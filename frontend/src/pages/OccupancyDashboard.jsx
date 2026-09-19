@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx';
+import { exportExcelFile } from '../utils/exportExcel';
 import Spinner from '../components/Spinner';
 import '../styles/FluentPages.css';
 
@@ -13,6 +15,7 @@ const OccupancyDashboard = () => {
     const [cellDetails, setCellDetails] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [sekRate, setSekRate] = useState(null); // Tasa COP → SEK (viene del backend)
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         if (setTitle) setTitle('Ocupación de Bodega');
@@ -52,6 +55,219 @@ const OccupancyDashboard = () => {
             toast.error('Error loading bin details');
         } finally {
             setLoadingDetails(false);
+        }
+    };
+
+    const handleExportExcel = async () => {
+        if (!data) return;
+        setIsExporting(true);
+        try {
+            const response = await axios.get('/api/views/occupancy_detail', {
+                params: { zone: 'ALL' }
+            });
+            const allBins = response.data || [];
+
+            if (allBins.length === 0) {
+                toast.warning('No se encontraron ubicaciones para exportar.');
+                return;
+            }
+
+            const workbook = XLSX.utils.book_new();
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const timeStr = new Date().toLocaleTimeString('es-CO', { hour12: false });
+
+            const summary = data.summary || {};
+            const zonesData = data.zones || {};
+            const analytics = data.analytics || {};
+
+            // ----------------------------------------------------
+            // HOJA 1: RESUMEN Y ESTADÍSTICAS
+            // ----------------------------------------------------
+            const statsRows = [
+                { 'CATEGORÍA': 'ENCABEZADO', 'MÉTRICA / INDICADOR': 'Fecha de Generación', 'VALOR': `${dateStr} ${timeStr}`, 'DETALLE': 'Reporte generado desde Logix WMS' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': 'Total Ubicaciones (Bins)', 'VALOR': summary.total_bins || allBins.length, 'DETALLE': 'Capacidad total de infraestructura' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': 'Ubicaciones Ocupadas', 'VALOR': summary.filled_bins || allBins.filter(b => b.status === 'OCUPADA').length, 'DETALLE': 'Bins con inventario físico activo' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': 'Ubicaciones Vacías (Libres)', 'VALOR': summary.available_bins || allBins.filter(b => b.status === 'VACÍA').length, 'DETALLE': 'Bins disponibles para recepción/almacenamiento' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': '% Ocupación Global', 'VALOR': `${summary.occupancy_pct || 0}%`, 'DETALLE': (summary.occupancy_pct || 0) >= 85 ? 'Saturación Alta' : (summary.occupancy_pct || 0) >= 30 ? 'Capacidad Activa' : 'Baja Saturación' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': 'SKUs Activos en Stock', 'VALOR': summary.total_items || 0, 'DETALLE': 'Cantidad de referencias con existencia física' },
+                { 'CATEGORÍA': 'INDICADORES GLOBALES', 'MÉTRICA / INDICADOR': 'Densidad Promedio de SKUs', 'VALOR': summary.avg_items_per_bin || 0, 'DETALLE': 'Promedio de SKUs por bin ocupado' },
+                { 'CATEGORÍA': 'VALORIZACIÓN Y ROTACIÓN', 'MÉTRICA / INDICADOR': 'SKUs Clase A (Alto Valor)', 'VALOR': summary.abc_items_by_type?.A || 0, 'DETALLE': 'Referencias de mayor valor en stock' },
+                { 'CATEGORÍA': 'VALORIZACIÓN Y ROTACIÓN', 'MÉTRICA / INDICADOR': 'SKUs Clase B (Valor Medio)', 'VALOR': summary.abc_items_by_type?.B || 0, 'DETALLE': 'Referencias de valor intermedio' },
+                { 'CATEGORÍA': 'VALORIZACIÓN Y ROTACIÓN', 'MÉTRICA / INDICADOR': 'SKUs Clase C (Bajo Valor)', 'VALOR': summary.abc_items_by_type?.C || 0, 'DETALLE': 'Referencias de menor valor en stock' },
+                { 'CATEGORÍA': 'VALORIZACIÓN Y ROTACIÓN', 'MÉTRICA / INDICADOR': 'Valor Total de Stock (COP)', 'VALOR': `$ ${Number(summary.stock_value || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 'DETALLE': sekRate ? `≈ ${(Number(summary.stock_value || 0) * sekRate).toLocaleString('sv-SE', { maximumFractionDigits: 0 })} SEK` : 'Moneda local' },
+                { 'CATEGORÍA': 'ESTADO CUARENTENA / FROZEN', 'MÉTRICA / INDICADOR': 'SKUs Frozen / Cuarentena', 'VALOR': summary.frozen_items || 0, 'DETALLE': 'Referencias bloqueadas' },
+                { 'CATEGORÍA': 'ESTADO CUARENTENA / FROZEN', 'MÉTRICA / INDICADOR': 'Unidades en Frozen', 'VALOR': summary.frozen_units || 0, 'DETALLE': 'Unidades físicas retenidas' },
+                { 'CATEGORÍA': 'ESTADO CUARENTENA / FROZEN', 'MÉTRICA / INDICADOR': 'Valor Stock Frozen (COP)', 'VALOR': `$ ${Number(summary.frozen_stock_value || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 'DETALLE': `${summary.frozen_stock_pct || 0}% del valor total en stock` },
+            ];
+
+            // Desglose por Zona
+            Object.entries(zonesData).forEach(([zoneName, zData]) => {
+                const occupied = zData.occupied || 0;
+                const total = zData.total || 0;
+                const vacios = Math.max(0, total - occupied);
+                const pct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                statsRows.push({
+                    'CATEGORÍA': 'DESGLOSE POR ZONA',
+                    'MÉTRICA / INDICADOR': `Zona: ${zoneName}`,
+                    'VALOR': `${occupied} / ${total} Bins (${pct}% Ocupación)`,
+                    'DETALLE': `${vacios} Vacíos • ${occupied} Ocupados`
+                });
+            });
+
+            // Pasillos de mayor densidad
+            if (analytics.top_aisles) {
+                Object.entries(analytics.top_aisles).forEach(([aisle, count]) => {
+                    statsRows.push({
+                        'CATEGORÍA': 'PASILLOS DE MAYOR DENSIDAD',
+                        'MÉTRICA / INDICADOR': `Pasillo ${aisle}`,
+                        'VALOR': `${count} SKUs`,
+                        'DETALLE': 'Densidad de ítems en pasillo'
+                    });
+                });
+            }
+
+            const wsResumen = XLSX.utils.json_to_sheet(statsRows);
+            wsResumen['!cols'] = [
+                { wch: 30 },
+                { wch: 35 },
+                { wch: 30 },
+                { wch: 45 },
+            ];
+            XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen y Estadísticas');
+
+            // ----------------------------------------------------
+            // HOJA 2: DETALLE DE TODAS LAS UBICACIONES
+            // ----------------------------------------------------
+            const formatSaturation = (pct, skus) => {
+                if (skus === 0) return 'Vacía';
+                if (pct < 30) return 'Baja Utilización (<30%)';
+                if (pct < 75) return 'Carga Óptima (30-75%)';
+                return 'Saturado (≥75%)';
+            };
+
+            const allBinsRows = allBins.map(bin => ({
+                'Ubicación (Bin)': bin.bin_code || '',
+                'Zona': bin.zone || '',
+                'Pasillo': bin.aisle || '',
+                'Nivel': bin.level ?? '',
+                'Rotación (Spot)': bin.spot || 'Cold',
+                'Puntuación (Score)': bin.score ?? 0,
+                'Estado': bin.status || (bin.skus > 0 ? 'OCUPADA' : 'VACÍA'),
+                'Cantidad SKUs': bin.skus ?? 0,
+                'Total Unidades Físicas': bin.units ?? 0,
+                'Capacidad Máx. (SKUs)': bin.limit ?? 4,
+                '% Ocupación': `${bin.occupancy_pct ?? 0}%`,
+                'Nivel Saturación': formatSaturation(bin.occupancy_pct ?? 0, bin.skus ?? 0),
+                'SKUs Almacenados': bin.items && bin.items.length > 0 ? bin.items.join(', ') : 'Ninguno (Vacía)'
+            }));
+
+            const wsDetalle = XLSX.utils.json_to_sheet(allBinsRows);
+            wsDetalle['!cols'] = [
+                { wch: 18 }, // Ubicación
+                { wch: 18 }, // Zona
+                { wch: 10 }, // Pasillo
+                { wch: 8 },  // Nivel
+                { wch: 16 }, // Spot
+                { wch: 18 }, // Score
+                { wch: 14 }, // Estado
+                { wch: 15 }, // Cantidad SKUs
+                { wch: 22 }, // Total Unidades Físicas
+                { wch: 22 }, // Capacidad Máx
+                { wch: 14 }, // % Ocupación
+                { wch: 24 }, // Nivel Saturación
+                { wch: 45 }, // SKUs Almacenados
+            ];
+            XLSX.utils.book_append_sheet(workbook, wsDetalle, 'Detalle Ubicaciones');
+
+            // ----------------------------------------------------
+            // HOJA 3: UBICACIONES VACÍAS (LIBRES)
+            // ----------------------------------------------------
+            const emptyBinsRows = allBins
+                .filter(b => b.status === 'VACÍA' || b.skus === 0)
+                .map(bin => ({
+                    'Ubicación (Bin)': bin.bin_code || '',
+                    'Zona': bin.zone || '',
+                    'Pasillo': bin.aisle || '',
+                    'Nivel': bin.level ?? '',
+                    'Rotación (Spot)': bin.spot || 'Cold',
+                    'Puntuación (Score)': bin.score ?? 0,
+                    'Capacidad Máx. (SKUs)': bin.limit ?? 4,
+                    'Estado': 'VACÍA',
+                    'Disponibilidad': '100% Libre para Almacenar'
+                }));
+
+            const wsVacias = XLSX.utils.json_to_sheet(emptyBinsRows);
+            wsVacias['!cols'] = [
+                { wch: 18 },
+                { wch: 18 },
+                { wch: 10 },
+                { wch: 8 },
+                { wch: 16 },
+                { wch: 18 },
+                { wch: 22 },
+                { wch: 12 },
+                { wch: 28 },
+            ];
+            XLSX.utils.book_append_sheet(workbook, wsVacias, 'Ubicaciones Vacías');
+
+            const fileName = `Reporte_Ocupacion_Bodega_${dateStr}.xlsx`;
+            const success = await exportExcelFile(workbook, fileName);
+            if (success) {
+                toast.success(`Reporte exportado exitosamente (${allBins.length} ubicaciones).`);
+            }
+        } catch (error) {
+            console.error('Error al exportar ocupación a Excel:', error);
+            toast.error('Error al generar el archivo Excel de ocupación.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportZoneExcel = async (zoneName, levelNum, bins) => {
+        if (!bins || bins.length === 0) return;
+        try {
+            const workbook = XLSX.utils.book_new();
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const levelLabel = levelNum !== null && levelNum !== undefined ? `Nivel_${levelNum}` : 'Todos_Niveles';
+
+            const formatSaturation = (pct, skus) => {
+                if (skus === 0) return 'Vacía';
+                if (pct < 30) return 'Baja Utilización (<30%)';
+                if (pct < 75) return 'Carga Óptima (30-75%)';
+                return 'Saturado (≥75%)';
+            };
+
+            const rows = bins.map(bin => ({
+                'Ubicación (Bin)': bin.bin_code || '',
+                'Zona': bin.zone || zoneName,
+                'Pasillo': bin.aisle || '',
+                'Nivel': bin.level ?? (levelNum !== null && levelNum !== undefined ? levelNum : ''),
+                'Rotación (Spot)': bin.spot || 'Cold',
+                'Puntuación (Score)': bin.score ?? 0,
+                'Estado': bin.status || (bin.skus > 0 ? 'OCUPADA' : 'VACÍA'),
+                'Cantidad SKUs': bin.skus ?? 0,
+                'Total Unidades Físicas': bin.units ?? 0,
+                'Capacidad Máx. (SKUs)': bin.limit ?? 4,
+                '% Ocupación': `${bin.occupancy_pct ?? 0}%`,
+                'Nivel Saturación': formatSaturation(bin.occupancy_pct ?? 0, bin.skus ?? 0),
+                'SKUs Almacenados': bin.items && bin.items.length > 0 ? bin.items.join(', ') : 'Ninguno (Vacía)'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [
+                { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 8 },
+                { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 15 },
+                { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 24 },
+                { wch: 45 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, ws, `Zona ${zoneName}`);
+
+            const fileName = `Ocupacion_Zona_${zoneName}_${levelLabel}_${dateStr}.xlsx`;
+            await exportExcelFile(workbook, fileName);
+            toast.success(`Zona exportada exitosamente: ${fileName}`);
+        } catch (error) {
+            console.error('Error al exportar zona:', error);
+            toast.error('Error al exportar datos de la zona seleccionada.');
         }
     };
 
@@ -97,14 +313,6 @@ const OccupancyDashboard = () => {
     const frozenStockValue = summary.frozen_stock_value || 0;
     const frozenStockPct = summary.frozen_stock_pct || 0;
 
-    const formatStockMM = (val) => {
-        if (!val || isNaN(val)) return '0 MM';
-        const num = Number(val) / 1000000;
-        if (num < 1000) {
-            return `${num.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MM`;
-        }
-        return `${Math.round(num).toLocaleString('es-CO')} MM`;
-    };
 
     const indicators = [
         {
@@ -190,6 +398,55 @@ const OccupancyDashboard = () => {
 
     return (
         <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-segoe-ui bg-[#fcfcfc] min-h-screen text-[#201f1e] text-[12px] antialiased">
+
+            {/* Header with Title and Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 bg-white p-3.5 rounded border border-[#d2d0ce] shadow-xs">
+                <div>
+                    <h2 className="text-[14px] font-normal uppercase text-[#201f1e]">
+                        Control de Ocupación y Capacidad de Almacenamiento
+                    </h2>
+                    <p className="text-[11px] text-[#605e5c] mt-0.5 font-normal">
+                        Métricas de saturación espacial, densidad de SKUs y disponibilidad de slots en tiempo real
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={fetchData}
+                        disabled={loading}
+                        className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs flex items-center gap-1.5"
+                        title="Actualizar métricas"
+                    >
+                        <svg className={`w-3.5 h-3.5 text-[#605e5c] ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Refrescar</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleExportExcel}
+                        disabled={isExporting || loading}
+                        className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs flex items-center gap-1.5"
+                        title="Exportar reporte completo de ocupación a Excel (.xlsx)"
+                    >
+                        {isExporting ? (
+                            <>
+                                <Spinner size="xs" />
+                                <span>Exportando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-3.5 h-3.5 text-[#107c10]" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1.8 14.5l-1.3-2.1-1.3 2.1h-1.6l2.1-3.2-2-3.1h1.6l1.2 2 1.2-2h1.6l-2 3.1 2.1 3.2h-1.6zM13 9V3.5L18.5 9H13z"/>
+                                </svg>
+                                <span>Exportar Excel</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
 
             {/* Global Utilization Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 mb-4">
@@ -336,14 +593,32 @@ const OccupancyDashboard = () => {
                                 {loadingDetails ? 'Cargando infraestructura...' : `${cellDetails.length} Ubicaciones encontradas`}
                             </p>
                         </div>
-                        <button
-                            onClick={() => { setSelectedCell(null); setCellDetails([]); }}
-                            className="text-black hover:text-[#605e5c] transition-colors p-1"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {cellDetails.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleExportZoneExcel(selectedCell.zone, selectedCell.level, cellDetails)}
+                                    className="h-7 px-2.5 text-[11px] text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                                    title="Exportar únicamente esta zona/nivel a Excel"
+                                >
+                                    <svg className="w-3.5 h-3.5 text-[#107c10]" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1.8 14.5l-1.3-2.1-1.3 2.1h-1.6l2.1-3.2-2-3.1h1.6l1.2 2 1.2-2h1.6l-2 3.1 2.1 3.2h-1.6zM13 9V3.5L18.5 9H13z"/>
+                                    </svg>
+                                    <span>Exportar Zona</span>
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => { setSelectedCell(null); setCellDetails([]); }}
+                                className="text-[#605e5c] hover:text-[#201f1e] hover:bg-[#f3f3f3] rounded p-1 transition-colors cursor-pointer"
+                                title="Cerrar detalle"
+                                aria-label="Cerrar detalle"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div className="p-6">

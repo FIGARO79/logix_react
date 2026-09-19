@@ -3,7 +3,6 @@
 
 .inbound-history-page,
 .inbound-audit-page,
-.ir-reconciliation-page,
 .picking-audit-page,
 .picking-audit-history-page,
 .shipments-page,
@@ -42,7 +41,6 @@
 /* Shared rules using CSS nesting */
 .inbound-history-page,
 .inbound-audit-page,
-.ir-reconciliation-page,
 .picking-audit-page,
 .picking-audit-history-page,
 .shipments-page,
@@ -324,7 +322,6 @@
 @media (max-width: 1023px) {
     .inbound-history-page,
     .inbound-audit-page,
-    .ir-reconciliation-page,
     .picking-audit-page,
     .picking-audit-history-page,
     .shipments-page,

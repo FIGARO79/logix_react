@@ -35,14 +35,12 @@ import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
 import PackingListPrint from '../pages/PackingListPrint';
 import InboundAudit from '../pages/InboundAudit';
-import IRReconciliation from '../pages/IRReconciliation';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
     { path: '/dashboard', component: Dashboard },
     { path: '/inbound', component: Inbound },
     { path: '/reconciliation', component: Reconciliation },
-    { path: '/ir-reconciliation', component: IRReconciliation },
     { path: '/stock', component: StockSearch },
     { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
@@ -473,7 +471,6 @@ const Layout = () => {
                         <MenuItem to="/reconciliation" label="Conciliación" desc="Cruce de documentos y discrepancias" categoryId="recepcion" onClick={toggleMenu} />
                         <MenuItem to="/inbound/audit" label="Auditoría Agente" desc="Control de calidad y recepción física" categoryId="recepcion" onClick={toggleMenu} />
                         <MenuItem to="/view_logs" label="Registros" desc="Consulta de registros históricos" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" desc="Estado general de Import References" categoryId="recepcion" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">Operaciones Outbound</div>

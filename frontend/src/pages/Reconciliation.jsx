@@ -680,21 +680,21 @@ const Reconciliation = () => {
                 </div>
 
                 {/* Banner de Resumen de Conciliación Seleccionada */}
-                <div className="flex flex-wrap items-center gap-4 bg-[#f9f9f9] px-3 py-1.5 mt-2 rounded border border-[#d2d0ce] text-xs">
+                <div className="flex flex-wrap items-center gap-4 bg-[#f9f9f9] px-3 py-1.5 mt-2 rounded border border-[#d2d0ce] text-[14px]">
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[#605e5c] font-normal">Líneas:</span>
+                        <span className="text-black font-normal">Líneas:</span>
                         <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalLines}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[#605e5c] font-normal">Cant. Esperada:</span>
+                        <span className="text-black font-normal">Cant. Esperada:</span>
                         <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalExp}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[#605e5c] font-normal">Cant. Recibida:</span>
+                        <span className="text-black font-normal">Cant. Recibida:</span>
                         <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalRec}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[#605e5c] font-normal">Diferencia Neta:</span>
+                        <span className="text-black font-normal">Diferencia Neta:</span>
                         <span className={`font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                             {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                         </span>
@@ -718,7 +718,7 @@ const Reconciliation = () => {
                                 className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
                             />
                             <span>Solo Diferencias</span>
-                            <span className="px-1.5 py-0.2 text-[11px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
+                            <span className="px-1.5 py-0.2 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
                                 {diffStats.withDiff}
                             </span>
                         </label>
@@ -736,7 +736,7 @@ const Reconciliation = () => {
                                 className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
                             />
                             <span>Sin Diferencias</span>
-                            <span className="px-1.5 py-0.2 text-[11px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
+                            <span className="px-1.5 py-0.2 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
                                 {diffStats.withoutDiff}
                             </span>
                         </label>

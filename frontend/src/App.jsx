@@ -37,7 +37,6 @@ import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
 import InboundAudit from './pages/InboundAudit';
-import IRReconciliation from './pages/IRReconciliation';
 import Spinner from './components/Spinner';
 
 // Componente de carga (para procesos internos)
@@ -225,11 +224,7 @@ function App() {
                                 <InboundAudit />
                             </ProtectedRoute>
                         } />
-                        <Route path="/ir-reconciliation" element={
-                            <ProtectedRoute requiredPermission="inbound">
-                                <IRReconciliation />
-                            </ProtectedRoute>
-                        } />
+                        <Route path="/ir-reconciliation" element={<Navigate to="/reconciliation" replace />} />
 
 
                         {/* Admin Routes */}

@@ -358,24 +358,26 @@ class SlottingService:
 
         return candidates[0]["bin"]
 
-    async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
-        """Calcula cuántos SKUs únicos hay en cada bin (Cruza maestro + reubicaciones activas)."""
+    async def _get_bins_occupancy_data(self, db: AsyncSession):
+        """Calcula SKUs únicos y unidades físicas presentes en cada bin."""
         bin_skus: Dict[str, set] = defaultdict(set)
+        bin_units: Dict[str, float] = defaultdict(float)
         try:
             # 1. Master Items (Stock físico actual)
             master_stmt = (
-                select(MasterItem.bin_1, MasterItem.item_code)
+                select(MasterItem.bin_1, MasterItem.item_code, MasterItem.physical_qty)
                 .where(MasterItem.physical_qty > 0)
             )
             master_res = await db.execute(master_stmt)
-            for bin_code, item_code in master_res.all():
+            for bin_code, item_code, qty in master_res.all():
                 if bin_code and item_code:
                     code = str(bin_code).strip().upper()
                     bin_skus[code].add(str(item_code).strip().upper())
+                    bin_units[code] += float(qty or 0)
 
             # 2. Logs Activos (Mercancía en camino o reubicada en tiempo real)
             logs_stmt = (
-                select(Log.relocatedBin, Log.itemCode)
+                select(Log.relocatedBin, Log.itemCode, Log.qtyReceived)
                 .where(
                     and_(
                         or_(Log.archived_at.is_(None), Log.archived_at == ""),
@@ -385,13 +387,19 @@ class SlottingService:
                 )
             )
             logs_res = await db.execute(logs_stmt)
-            for bin_code, item_code in logs_res.all():
+            for bin_code, item_code, qty in logs_res.all():
                 if bin_code and item_code:
                     code = str(bin_code).strip().upper()
                     bin_skus[code].add(str(item_code).strip().upper())
+                    bin_units[code] += float(qty or 0)
         except Exception as e:
             print(f"Error calculando ocupación: {e}")
 
+        return bin_skus, bin_units
+
+    async def _get_bins_occupancy(self, db: AsyncSession) -> Dict[str, int]:
+        """Calcula cuántos SKUs únicos hay en cada bin (Cruza maestro + reubicaciones activas)."""
+        bin_skus, _ = await self._get_bins_occupancy_data(db)
         return {code: len(skus) for code, skus in bin_skus.items()}
 
     async def get_occupancy_report(self, db: AsyncSession) -> Dict[str, Any]:
@@ -539,10 +547,10 @@ class SlottingService:
         return report
 
     async def get_detailed_occupancy(
-        self, db: AsyncSession, zone: str, level: Optional[int] = None
+        self, db: AsyncSession, zone: Optional[str] = None, level: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Obtiene el detalle de cada bin para una zona y nivel específicos."""
-        occupancy = await self._get_bins_occupancy(db)
+        """Obtiene el detalle de cada bin para una zona y nivel específicos (o todas si zone es None o 'ALL')."""
+        bin_skus, bin_units = await self._get_bins_occupancy_data(db)
         config = await self._get_layout_config(db)
         storage = config.get("storage", {})
 
@@ -554,45 +562,54 @@ class SlottingService:
 
         details = []
         # Normalizar para comparación robusta (quitar espacios, todo mayúsculas)
-        target_zone = str(zone).strip().upper()
+        target_zone = (
+            str(zone).strip().upper()
+            if zone and str(zone).strip().upper() not in ["ALL", "TODAS", "*"]
+            else None
+        )
         target_level = int(level) if level is not None else None
 
         for bin_code, info in storage.items():
             lvl = _to_int(info.get("level", 0))
-            current_zone = str(info.get("zone", "Unknown")).strip().upper()
+            raw_zone = info.get("zone", "Unknown")
+            current_zone = str(raw_zone).strip().upper()
 
             # Comparación flexible de zona y nivel
-            if current_zone == target_zone and (
+            if (target_zone is None or current_zone == target_zone) and (
                 target_level is None or lvl == target_level
             ):
-                skus = occupancy.get(bin_code.upper(), 0)
+                code_upper = bin_code.upper()
+                skus_set = bin_skus.get(code_upper, set())
+                skus = len(skus_set)
+                units = bin_units.get(code_upper, 0.0)
+                limit = 3 if current_zone == "MINUTERIA" else 4
+                occupancy_pct = min(100, round((skus / limit) * 100))
+                status = "OCUPADA" if skus > 0 else "VACÍA"
+
                 details.append(
                     {
                         "bin_code": bin_code,
+                        "zone": raw_zone,
+                        "level": lvl,
                         "aisle": info.get("aisle", "N/A"),
                         "spot": info.get("spot", "Cold"),
                         "score": info.get("score", 0),
+                        "status": status,
                         "skus": skus,
-                        "occupancy_pct": min(
-                            100,
-                            round(
-                                (skus / (3 if target_zone == "MINUTERIA" else 4)) * 100
-                            ),
-                        ),
+                        "units": round(units, 2),
+                        "limit": limit,
+                        "occupancy_pct": occupancy_pct,
+                        "items": sorted(list(skus_set)),
                     }
                 )
 
-        # DEBUG: Si no hay nada, añadir un registro falso para verificar que el frontend renderiza
-        if not details:
-            print(
-                f"DEBUG: No bins found for Zone: '{target_zone}', Level: {target_level}"
-            )
-            # Solo para pruebas, remover en prod
-            # details.append({"bin_code": "DEBUG-01", "aisle": "0", "spot": "Hot", "score": 10, "skus": 0, "occupancy_pct": 0})
-
         return sorted(
             details,
-            key=lambda x: (str(x.get("aisle", "0")), str(x.get("bin_code", ""))),
+            key=lambda x: (
+                str(x.get("zone", "")),
+                str(x.get("aisle", "0")),
+                str(x.get("bin_code", "")),
+            ),
         )
 
 
