@@ -59,7 +59,12 @@ dev.bat
 *.xlsx
 compilar_rust.md
 
+# Backups de Base de Datos (NUNCA subir volcados, archivos .sql ni logs a repositorios)
 *.sql
+*.sql.gz
+backups/*
+!backups/*.sh
+
 
 # Ignorar CSVs grandes de datos (asumido) - si quieres subirlos, quita esta línea
 databases/*.csv
