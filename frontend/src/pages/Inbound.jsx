@@ -1485,7 +1485,7 @@ const Inbound = () => {
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.itemCode}</td>
                                         <td className="px-2 py-1 truncate max-w-[180px] font-normal text-sm text-black">{log.itemDescription}</td>
-                                        <td className="px-2 py-1 font-normal text-sm text-blue-900">{log.binLocation}</td>
+                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.binLocation}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-emerald-900">{log.relocatedBin}</td>
                                         <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
                                         <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.expected_qty || 0}</td>
