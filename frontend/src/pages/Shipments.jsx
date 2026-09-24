@@ -69,7 +69,7 @@ const Shipments = () => {
                 <div className="flex items-center gap-6">
                     <button
                         onClick={fetchShipments}
-                        className="text-[9px] font-normal uppercase text-black hover:text-blue-750 transition-colors"
+                        className="text-[9px] font-normal uppercase text-black hover:opacity-70 transition-opacity"
                     >
                         Sincronizar
                     </button>
@@ -160,7 +160,7 @@ const Shipments = () => {
                                                         <>
                                                             <Link
                                                                 to={`/shipments/print/${s.id}`}
-                                                                className="text-[9px] font-normal uppercase text-black hover:text-blue-750 transition-colors leading-none"
+                                                                className="text-[9px] font-normal uppercase text-black hover:underline transition-colors leading-none"
                                                                 title="Imprimir"
                                                             >
                                                                 Print
@@ -201,8 +201,12 @@ const Shipments = () => {
                                                             {s.audits.map(a => (
                                                                 <div key={a.audit_id} className="bg-zinc-50 border border-zinc-100 p-3 hover:border-zinc-200 transition-all">
                                                                     <div className="flex justify-between items-center mb-2">
-                                                                        <span className="text-[11px] font-normal text-black">{a.order_number}</span>
-                                                                        <span className="text-[9px] font-mono text-black bg-white px-1.5 border border-zinc-100">{a.despatch_number}</span>
+                                                                        <span className="text-[11px] font-mono font-bold text-black">
+                                                                            {a.order_number}{a.despatch_number ? `/${a.despatch_number}` : ''}
+                                                                        </span>
+                                                                        <span className="text-[9px] font-mono text-zinc-500 bg-white px-1.5 py-0.5 border border-zinc-200 rounded">
+                                                                            AUD-{a.audit_id}
+                                                                        </span>
                                                                     </div>
                                                                     <div className="text-[9px] text-black uppercase font-normal truncate mb-1">
                                                                         <span className="text-black mr-2">[{a.customer_code}]</span>
@@ -254,7 +258,7 @@ const Shipments = () => {
                                     <span className="text-[8px] font-normal text-black uppercase">{s.total_orders} PEDIDOS</span>
                                     {s.status === 'active' && (
                                         <div className="flex gap-4" onClick={e => e.stopPropagation()}>
-                                            <Link to={`/shipments/print/${s.id}`} className="text-[9px] font-normal uppercase text-black hover:text-blue-700">Print</Link>
+                                            <Link to={`/shipments/print/${s.id}`} className="text-[9px] font-normal uppercase text-black hover:underline">Print</Link>
                                             <button onClick={() => handleCancel(s.id)} className="text-[9px] font-normal uppercase text-black hover:text-red-500">Anular</button>
                                         </div>
                                     )}
@@ -265,8 +269,10 @@ const Shipments = () => {
                                         {s.audits.map(a => (
                                             <div key={a.audit_id} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
                                                 <div className="flex flex-col">
-                                                    <span className="font-normal text-black">{a.order_number}</span>
-                                                    <span className="text-black text-[8px]">{a.despatch_number}</span>
+                                                    <span className="font-mono font-bold text-black text-[10px]">
+                                                        {a.order_number}{a.despatch_number ? `/${a.despatch_number}` : ''}
+                                                    </span>
+                                                    <span className="text-zinc-500 text-[8px] font-mono">AUD-{a.audit_id}</span>
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="font-normal text-black">{a.packages} BULTOS</div>
