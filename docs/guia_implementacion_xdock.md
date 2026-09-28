@@ -6,11 +6,6 @@ Este documento define la **especificación técnica, fórmulas matemáticas, con
 
 ## 1. Arquitectura de Datos y Entidades Requeridas
 
-> [!TIP]
-> **Formatos descargables listos para compartir:**
-> * 📄 [Descargar versión en PDF](file:///home/debian/logix/docs/guia_implementacion_xdock.pdf)
-> * 📝 [Descargar versión en Word (.docx)](file:///home/debian/logix/docs/guia_implementacion_xdock.docx)
-
 Para implementar Xdock en otra aplicación se requieren 3 fuentes de datos estructuradas o tablas:
 
 <p align="center">
@@ -48,15 +43,29 @@ Representa los pedidos en firme de clientes sobre mercancía en tránsito o por 
 * **Campo Formulario en `/api/update`:** `reservation_file` (`UploadFile`)
 * **Patrón de detección en Frontend:** Archivos cuyo nombre contenga `'0006'` o `'reserva'` (ej. `AURRSLAMP0006.csv`).
 
-| Campo en Archivo | Tipo Requerido | Propósito en el Motor de Xdock |
-| :--- | :--- | :--- |
-| `Item_Code` | `String` | Identificador único del SKU (normalizado a mayúsculas y sin espacios). |
-| `Action_QTY` | `Float` o `Decimal` | Cantidad solicitada/reservada por el cliente (prioridad de asignación). |
-| `Customer_Name` | `String` | Nombre o razón social del cliente final. |
-| `Customer_Code` | `String` | Código identificador del cliente en el ERP (ej. `00090`). |
-| `PO_Number` | `String` | Orden de compra que respalda la adquisición del material. |
-| `SO_Number` | `String` (opcional) | Número de la orden de venta (Sales Order). |
-| `SO_Line_Number` | `String` (opcional) | Número de ítem/línea dentro de la orden de venta (usado para desduplicar). |
+#### Explicación Detallada de Campos:
+
+| Campo en Archivo | Tipo de Dato | Ejemplo Real | Regla de Limpieza / Transformación | Propósito y Rol en la Lógica |
+| :--- | :--- | :--- | :--- | :--- |
+| `Item_Code` | `String` | `"56208577"` | `trim()`, `to_uppercase()`, descartar filas vacías o nulas. | **Clave primaria de agrupación.** Identifica el SKU específico en el inventario. |
+| `Action_QTY` | `Float` | `2.00` | Reemplazar comas de miles (`replace(",", "")`), parsear a `f64`/`float`. Si es $\le 0$, ignorar fila. | **Demanda real del cliente.** Es la cantidad solicitada prioritaria. Si no existe en el CSV, usar fallback con `Quantity_reserved`. |
+| `PO_Number` | `String` | `"E028900"` | `trim()`, `to_uppercase()`. Si falta, buscar en alias (`Order_Number`, `Customer_Reference`). | **Filtro de embarque.** Vincula la reserva a una compra puntual para no cruzarla con pedidos futuros. |
+| `SO_Number` | `String` | `"0046179"` | `trim()`. Opcional (si falta, se usa agregación simple). | **Número de Orden de Venta.** Junto a `SO_Line_Number`, forma la clave de desduplicación de líneas ERP. |
+| `SO_Line_Number`| `String` | `"1"` | `trim()`. Opcional. | **Línea de la Orden de Venta.** Evita que reintentos o avances parciales del ERP dupliquen cantidades. |
+| `Customer_Code` | `String` | `"00090"` | `trim()`. Opcional si viene el nombre. | **Código ERP del Cliente.** Identificador maestro del comprador. |
+| `Customer_Name` | `String` | `"AGREGADOS Y MEZCLAS CACHIBI SA"` | `trim()`. Opcional si viene el código. | **Razón Social.** Nombre visible para el operario en almacén. |
+
+> [!NOTE]
+> **Composición del Nombre Unificado del Cliente:**
+> En el motor de procesamiento, el nombre que se le presenta al operario se construye con la siguiente regla:
+> ```python
+> if customer_code and customer_name:
+>     customer_label = f"{customer_code} - {customer_name}"  # Ej: "00090 - AGREGADOS Y MEZCLAS CACHIBI SA"
+> elif customer_name:
+>     customer_label = customer_name
+> else:
+>     customer_label = customer_code or "Desconocido"
+> ```
 
 ---
 
@@ -69,46 +78,126 @@ Asocia qué Órdenes de Compra (POs) viajan físicamente en el embarque actual (
 * **Patrón de detección en Frontend:** Archivos cuyo nombre contenga `'extractor'` o `'purchase'`.
 * **Salida de Procesamiento:** Genera la estructura relacional en memoria / JSON (`po_lookup.json`).
 
+| Campo en Archivo | Ejemplo Real | Propósito en el Enlace |
+| :--- | :--- | :--- |
+| `Import Reference` | `"CO-2026-001"` | Código del contenedor o lote de importación activo. |
+| `Customer Reference` | `"E028900"` | Número de PO emitida al proveedor/cliente. Se cruza directamente con `PO_Number` del Xdock. |
+| `Item Code` | `"56208577"` | SKU contenido en el pedido. Permite validar que el ítem realmente viaja en esa orden. |
+| `Waybill` | `"WB-994821"` | Guía de transporte internacional (vínculo secundario). |
+
 #### 2. Reporte de Recepciones Esperadas GRN:
 * **Archivo de Origen en `/update`:** `AURRSGLBD0280.csv` (o `.xlsx`)
 * **Campo Formulario en `/api/update`:** `grn_file` (si es CSV) o `grn_excel` (si es Excel).
 * **Patrón de detección en Frontend:** Archivos cuyo nombre contenga `'280'`, `'grn'`, `'pedido'`, `'reporte'` o `'inbound'`.
 
-| Campo en Estructura Relacional | Origen | Propósito en el Motor de Xdock |
+| Campo en Archivo | Ejemplo Real | Propósito en el Enlace |
 | :--- | :--- | :--- |
-| `import_reference` / `shipment_id` | `po_lookup.json` / GRN | Identificador del embarque o contenedor activo (ej. `CO-2026-001`). |
-| `item_code` | `po_lookup.json` / GRN | SKU presente en dicho embarque. |
-| `po_number` / `customer_ref` | `po_lookup.json` / `Order_Number` | Número de PO contenido en ese embarque para filtrar el Xdock. |
-| `grn_number` | `AURRSGLBD0280.csv` | Número de remisión/GRN asociada al pedido. |
+| `Order_Number` | `"E028900"` | Número de orden de compra vinculada a la entrada física. Fallback si falta en el extractor. |
+| `GRN_Number` | `"GRN-84721"` | Número de recepción de mercancía (Goods Receipt Note). |
+| `Item_Code` | `"56208577"` | SKU esperado en la remisión. |
+| `Quantity` | `2` | Cantidad total pactada en el pedido de compra. |
 
 ---
 
 ### C. Entidad de Soporte: Maestro de Artículos (`Master_Items`)
-Proporciona la descripción, peso, dimensiones y ubicación física habitual del inventario.
+Proporciona la descripción, peso, dimensiones y ubicación física habitual del inventario para complementar la interfaz.
 
 * **Archivo de Origen en `/update`:** `AURRSGLBD0250.csv`
 * **Campo Formulario en `/api/update`:** `item_master` (`UploadFile`)
 * **Patrón de detección en Frontend:** Archivos cuyo nombre contenga `'master'`, `'item'`, `'maestro'` o `'250'`.
+
+| Campo en Archivo | Ejemplo Real | Propósito |
+| :--- | :--- | :--- |
+| `Item_Code` | `"56208577"` | Identificador maestro del SKU. |
+| `Item_Description` | `"SAFETY RELAY 24V"` | Descripción oficial del producto mostrada al operario. |
+| `Bin_Location` | `"A-02-14"` | Ubicación fija física actual en estantería (si tiene `"N/A"`, activa `"UBICACIÓN + XDOCK"`). |
+| `Weight_per_Unit` | `0.45` | Peso unitario en kg utilizado para reglas de rack o minutería. |
 
 ---
 
 ### D. Entidad Transaccional: Registro de Recepciones (`Receiving_Logs`)
 Historial de unidades efectivamente ingresadas y validadas en el almacén en tiempo real.
 
-* **Origen de Datos:** Se genera dinámicamente desde la interfaz de Inbound ([`Inbound.jsx`](file:///home/debian/logix/frontend/src/pages/Inbound.jsx)) mediante `POST /api/save_log` o `POST /api/save_multiple_logs`.
-* **Persistencia:** Tabla SQL `logs` en MySQL/SQLite ([`sql_models.py`](file:///home/debian/logix/app/models/sql_models.py#L58-L81)).
+* **Origen de Datos:** Se genera dinámicamente desde la interfaz de Inbound mediante `POST /api/save_log` o `POST /api/save_multiple_logs`.
+* **Persistencia:** Tabla SQL `logs` en base de datos.
 
 | Campo en Tabla `logs` | Tipo | Propósito en el Cálculo de Xdock |
 | :--- | :--- | :--- |
-| `importReference` | `VARCHAR(100)` | Filtra los registros que pertenecen al embarque actual. |
-| `itemCode` | `VARCHAR(100)` | Código del SKU recibido para acumular lo entregado. |
-| `qtyReceived` | `INTEGER` | Cantidad física ingresada (se acumula con `SUM(qtyReceived)`). |
+| `importReference` | `VARCHAR(100)` | Filtra los registros que pertenecen exclusivamente al embarque en proceso. |
+| `itemCode` | `VARCHAR(100)` | Código del SKU recibido para acumular las entregas ya efectuadas. |
+| `qtyReceived` | `INTEGER` | Cantidad física ingresada por el operario (se totaliza con `SUM(qtyReceived)`). |
 | `relocatedBin` | `VARCHAR(100)` | Ubicación asignada por el operario (`"XDOCK"` para despacho directo). |
-| `archived_at` | `VARCHAR(50)` | Excluye recepciones archivadas (`WHERE archived_at IS NULL`). |
+| `archived_at` | `VARCHAR(50)` | Solo se suman los registros activos (`WHERE archived_at IS NULL`). |
 
 ---
 
-## 2. Fórmulas Matemáticas y Reglas de Negocio
+## 2. Guía de Implementación Paso a Paso (Roadmap de Desarrollo)
+
+Para construir este motor en otra aplicación de manera ordenada, sigue este flujo cronológico de 5 fases, diseñando las fórmulas correspondientes en cada etapa:
+
+```mermaid
+graph TD
+    F1[Fase 1: Ingesta de Reservas AURRSLAMP0006.csv] -->|Diseñar Fórmula 1: Deduplicación| F2[Fase 2: Mapeo de Embarque PO Extractor + 280]
+    F2 -->|Construir índice relacional| F3[Fase 3: Endpoint de Consulta Inbound]
+    F3 -->|Diseñar Fórmulas 2, 3 y 4: Contexto, Saldo y FIFO| F4[Fase 4: Reactividad en Frontend UI]
+    F4 -->|Diseñar Fórmula 5: Descuento local 0ms| F5[Fase 5: Seguridad y Aislamiento de IA/Slotting]
+```
+
+---
+
+### Fase 1: Ingesta y Limpieza del Archivo de Reservas
+1. **Acción:** Crear un servicio o función que reciba el archivo `AURRSLAMP0006.csv`.
+2. **Fórmula a diseñar:** **Fórmula 1 (Deduplicación Robusta de Líneas ERP)**.
+3. **Instrucciones de desarrollo:**
+   * Recorrer las filas del CSV descartando aquellas con `action_qty <= 0` o `item_code` vacío.
+   * Si la fila contiene `so_number` y `so_line_number`, agrupar en un mapa indexado por `(item_code, po_number, so_number, so_line_number, customer)` y conservar únicamente el valor máximo (`MAX(action_qty)`).
+   * Si no tiene línea de orden de venta, acumular por suma: `(item_code, po_number, customer) += action_qty`.
+   * Estructurar el resultado en un índice en memoria RAM indexado por `item_code` que contenga el total y la lista de clientes con sus órdenes.
+
+---
+
+### Fase 2: Construcción del Enlace Relacional de Embarques
+1. **Acción:** Procesar `Purchase Order Extractor.xlsx` y `AURRSGLBD0280.csv`.
+2. **Instrucciones de desarrollo:**
+   * Del archivo extractor, generar una estructura que responda: para un embarque (`import_reference`) y un SKU (`item_code`), ¿cuáles son los números de PO (`customer_ref`) que viajan en él?
+   * De `AURRSGLBD0280.csv`, complementar o validar los números de orden (`Order_Number`) asociados a las remisiones de entrada.
+   * Almacenar este índice en un JSON (`po_lookup.json`) o en una tabla relacional en base de datos.
+
+---
+
+### Fase 3: Servicio de Consulta en Tiempo Real (`find_item`)
+1. **Acción:** Crear el endpoint o método invocado cuando el operario escanea un SKU e ingresa el embarque en Inbound.
+2. **Fórmulas a diseñar en orden secuencial:**
+   * **Paso 3.1: Diseñar Fórmula 2 (Filtrado Contextual por Embarque):** Consultar el índice de la Fase 2 para obtener las POs del embarque actual. Filtrar la lista de reservas del SKU para incluir **únicamente** los clientes cuyas órdenes correspondan a ese embarque. Sumar sus cantidades para obtener $T_{\text{reserved}}$.
+   * **Paso 3.2: Diseñar Fórmula 3 (Saldo Neto Pendiente de Xdock):** Ejecutar una consulta SQL sobre la tabla `logs` para obtener la suma de unidades ya recibidas en ese embarque e ítem ($A_{\text{received}}$). Calcular $X_{\text{pending}} = \max(0, T_{\text{reserved}} - A_{\text{received}})$.
+   * **Paso 3.3: Diseñar Fórmula 4 (Deducción Secuencial FIFO por Cliente):** Con $A_{\text{received}}$ como bolsa de deducción, recorrer la lista ordenada de clientes e ir restando secuencialmente para determinar qué cliente tiene piezas pendientes y en qué cantidad ($q'_i$).
+3. **Respuesta generada:** Enviar al cliente un objeto con `{ xdock_total, xdock_pending, xdock_customers }`.
+
+---
+
+### Fase 4: Integración y Reactividad en la Interfaz (Frontend UI)
+1. **Acción:** Diseñar el componente de recepción en la aplicación web o móvil.
+2. **Fórmula a diseñar:** **Fórmula 5 (Reactividad Local sin Latencia)**.
+3. **Instrucciones de desarrollo:**
+   * Si el operario ingresa cantidades en una tabla de trabajo antes de guardar en el servidor, restar en vivo: $X_{\text{effective}} = \max(0, \text{xdockTotal} - \sum \text{qty\_locales})$.
+   * Si $X_{\text{effective}} > 0$:
+     * Renderizar un banner destacado en color rojo alertando **"XDOCK REQUERIDO"**.
+     * Mostrar la lista detallada de clientes con la cantidad exacta que cada uno espera.
+     * Si el ítem no tiene ubicación física en almacén (`bin_location == "N/A"`), ofrecer un botón directo `"UBICACIÓN + XDOCK"` que asigne automáticamente `"XDOCK"` al campo de guardado.
+
+---
+
+### Fase 5: Reglas de Seguridad y Protección de Algoritmos
+1. **Acción:** Conectar el guardado de recepciones en base de datos.
+2. **Instrucciones de desarrollo:**
+   * Permitir que el operario guarde registros con ubicación `"XDOCK"`.
+   * **Filtro de Seguridad Obligatorio:** En los módulos de aprendizaje automático o algoritmos de Slotting, interceptar la confirmación y omitir cualquier ubicación virtual (`"XDOCK"`, `"PUTAWAY"`, `"STAGE"`).
+   * Al consultar la última ubicación histórica de un SKU para sugerir dónde guardarlo en el futuro, excluir `"XDOCK"` para que nunca se confunda una zona de despacho rápido con una estantería física permanente.
+
+---
+
+## 3. Fórmulas Matemáticas y Reglas de Negocio
+
 
 ### Fórmula 1: Deduplicación Robusta de Líneas de Pedido (ERP)
 
