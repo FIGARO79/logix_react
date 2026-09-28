@@ -108,3 +108,7 @@ rust_core/target/
 # Carpetas de extensiones y agentes
 .gemini/
 .specify/
+
+# Documentos generados (PDF y Word)
+*.pdf
+*.docx
