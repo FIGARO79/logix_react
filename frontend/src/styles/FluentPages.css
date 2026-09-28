@@ -301,6 +301,20 @@
         background-color: var(--fluent-primary-dark) !important;
     }
 
+    /* Success / Finalize buttons */
+    & .btn-success,
+    & .btn-sap.btn-success {
+        background-color: #107c41 !important;
+        border-color: #107c41 !important;
+        color: #ffffff !important;
+    }
+
+    & .btn-success:hover:not(:disabled),
+    & .btn-sap.btn-success:hover:not(:disabled) {
+        background-color: #0e6c38 !important;
+        border-color: #0e6c38 !important;
+    }
+
     /* Data field (readonly display) */
     & .data-field {
         background-color: var(--fluent-subtle);

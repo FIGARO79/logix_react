@@ -682,7 +682,13 @@ const PickingAudit = () => {
                         })}
                     </div>
 
-                    <button onClick={handleFinalize} className="btn-sap btn-primary w-full py-3 text-lg">
+                    <button 
+                        onClick={handleFinalize} 
+                        className="btn-sap btn-primary w-full h-12 text-base font-semibold uppercase tracking-wider shadow-md bg-[#0078d4] text-white hover:bg-[#106ebe] flex items-center justify-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                        </svg>
                         Finalizar Auditoría
                     </button>
                 </div>
@@ -753,12 +759,17 @@ const PickingAudit = () => {
                 {/* Confirmation Modal */}
                 {showConfirmModal && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-lg font-medium  text-yellow-600 mb-2">Diferencias Detectadas</h3>
-                            <p className="mb-4 text-gray-700">Hay ítems con diferencias. ¿Desea finalizar con errores?</p>
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-200">
+                            <h3 className="text-lg font-medium text-amber-600 mb-2 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                                </svg>
+                                Diferencias Detectadas
+                            </h3>
+                            <p className="mb-4 text-gray-700 text-sm">Hay ítems con diferencias en las cantidades. ¿Desea finalizar la auditoría con estas discrepancias?</p>
                             <div className="flex justify-end gap-2">
-                                <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => { setShowConfirmModal(false); setShowAssignmentModal(true); }} className="btn-sap btn-primary bg-yellow-500 border-yellow-600">Sí, Continuar</button>
+                                <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary h-9 px-4 text-xs font-semibold uppercase">Cancelar</button>
+                                <button onClick={() => { setShowConfirmModal(false); setShowAssignmentModal(true); }} className="btn-sap btn-primary bg-amber-600 hover:bg-amber-700 border-amber-600 text-white h-9 px-4 text-xs font-semibold uppercase shadow-sm">Sí, Continuar</button>
                             </div>
                         </div>
                     </div>
@@ -766,9 +777,25 @@ const PickingAudit = () => {
 
                 {/* Assignment Modal */}
                 {showAssignmentModal && (
-                    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-lg font-medium  mb-4">Distribuir Ítems en Bultos</h3>
+                    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-2 sm:p-4">
+                        <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200">
+                            {/* Modal Header Fijo */}
+                            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-800">Distribuir Ítems en Bultos</h3>
+                                    <p className="text-xs text-gray-500">Verifique la asignación de cantidades por bulto antes de guardar</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowAssignmentModal(false)}
+                                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded hover:bg-gray-200 text-base leading-none transition-colors"
+                                    title="Cerrar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Modal Body Scrolleable */}
+                            <div className="p-4 overflow-y-auto flex-1 min-h-0 space-y-4">
 
                             {/* Desktop View */}
                             <div className="hidden sm:block overflow-x-auto">
@@ -880,9 +907,43 @@ const PickingAudit = () => {
                                 })}
                             </div>
 
-                            <div className="flex justify-end gap-2 mt-6">
-                                <button onClick={() => setShowAssignmentModal(false)} className="btn-sap btn-secondary">Atrás</button>
-                                <button onClick={() => submitAudit()} className="btn-sap btn-success bg-green-600 border-green-700 text-white">
+                            </div>
+
+                            {/* Modal Footer Fijo (Siempre Visible) */}
+                            <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50 flex justify-end items-center gap-3 shrink-0" style={{ boxShadow: '0 -2px 8px rgba(0,0,0,0.1)' }}>
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowAssignmentModal(false)} 
+                                    className="btn-sap btn-secondary px-4 text-xs font-semibold uppercase"
+                                    style={{ height: '36px' }}
+                                >
+                                    Atrás
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => submitAudit()} 
+                                    style={{
+                                        height: '36px',
+                                        backgroundColor: '#107c41',
+                                        color: '#ffffff',
+                                        borderColor: '#107c41',
+                                        borderWidth: '1px',
+                                        borderStyle: 'solid',
+                                        borderRadius: '4px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '0 20px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
+                                    }}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
+                                        <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                                    </svg>
                                     Guardar y Finalizar
                                 </button>
                             </div>

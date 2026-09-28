@@ -27,6 +27,11 @@
     --logix-positive: #107e3e;
     --logix-informative: #0078d4;
     --logix-neutral: #595c5f;
+    --sap-success: #107e3e;
+    --sap-error: #bb0000;
+    --sap-warning: #e9730c;
+    --sap-informative: #0078d4;
+    --sap-primary: #0078d4;
 
     /* Shell / Header */
     --logix-shell-bg: #354a5f;
@@ -281,13 +286,15 @@ button {
 /* Success Button */
 .logix-button-success,
 .btn-success {
-    background-color: var(--sap-success);
-    color: white;
-    border-color: var(--sap-success);
+    background-color: var(--logix-success, #107e3e) !important;
+    color: #ffffff !important;
+    border-color: var(--logix-success, #107e3e) !important;
 }
 
-.logix-button-success:hover:not(:disabled) {
-    background-color: #0d6b34;
+.logix-button-success:hover:not(:disabled),
+.btn-success:hover:not(:disabled) {
+    background-color: #0d6b34 !important;
+    border-color: #0d6b34 !important;
 }
 
 button:disabled {
