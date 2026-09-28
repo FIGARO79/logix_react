@@ -108,14 +108,6 @@ async def get_reconciliation_data(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        def reconciliation_item_key(row):
-            return (
-                str(row.get("import_reference", "")).strip().upper(),
-                str(row.get("grn_number", "")).strip().upper(),
-                str(row.get("item_code", "")).strip().upper(),
-                str(row.get("order_line", "") or "").strip(),
-            )
-
         saved_items_result = await db.execute(
             select(SavedGRNReconciliationItem).order_by(
                 desc(SavedGRNReconciliationItem.id)
@@ -123,31 +115,59 @@ async def get_reconciliation_data(
         )
         saved_comments = {}
         for saved_item in saved_items_result.scalars().all():
+            diff_reason = (saved_item.difference_reason or "").strip()
+            op_comment = (saved_item.operator_comment or "").strip()
+            if not diff_reason and not op_comment:
+                continue
+
             comment = {
-                "Motivo_Diferencia": saved_item.difference_reason or "",
-                "Observacion_Operador": saved_item.operator_comment or "",
+                "Motivo_Diferencia": diff_reason,
+                "Observacion_Operador": op_comment,
             }
 
-            item_key = reconciliation_item_key(
-                {
-                    "import_reference": saved_item.import_reference,
-                    "grn_number": saved_item.grn_number,
-                    "item_code": saved_item.item_code,
-                    "order_line": saved_item.order_line,
-                }
-            )
-            saved_comments.setdefault(
-                item_key,
-                comment,
-            )
-            saved_comments.setdefault((*item_key[:3], ""), comment)
-            saved_comments.setdefault((item_key[1], item_key[2]), comment)
+            ir = str(saved_item.import_reference or "").strip().upper()
+            wb = str(saved_item.waybill or "").strip().upper()
+            grn = str(saved_item.grn_number or "").strip().upper()
+            it = str(saved_item.item_code or "").strip().upper()
+            ol = str(saved_item.order_line or "").strip()
+
+            # Indexación con Guía (Waybill) para evitar colisiones
+            if wb:
+                saved_comments.setdefault((ir, wb, grn, it, ol), comment)
+                saved_comments.setdefault((ir, wb, grn, it, ""), comment)
+                saved_comments.setdefault((wb, grn, it, ol), comment)
+                saved_comments.setdefault((wb, it), comment)
+
+            # Indexación sin Guía (retrocompatibilidad)
+            saved_comments.setdefault((ir, grn, it, ol), comment)
+            saved_comments.setdefault((ir, grn, it, ""), comment)
+            saved_comments.setdefault((grn, it), comment)
+            saved_comments.setdefault((ir, it), comment)
 
         def get_saved_comment(row):
-            item_key = reconciliation_item_key(row)
-            return saved_comments.get(item_key) or saved_comments.get(
-                (item_key[0], item_key[1], item_key[2], "")
-            ) or saved_comments.get((item_key[1], item_key[2]), {})
+            ir = str(row.get("import_reference") or row.get("Import_Reference") or "").strip().upper()
+            wb = str(row.get("waybill") or row.get("Waybill") or "").strip().upper()
+            grn = str(row.get("grn_number") or row.get("GRN") or "").strip().upper()
+            it = str(row.get("item_code") or row.get("Codigo_Item") or "").strip().upper()
+            ol = str(row.get("order_line") or row.get("Order_Line") or "").strip()
+
+            if wb:
+                c = (
+                    saved_comments.get((ir, wb, grn, it, ol))
+                    or saved_comments.get((ir, wb, grn, it, ""))
+                    or saved_comments.get((wb, grn, it, ol))
+                    or saved_comments.get((wb, it))
+                )
+                if c:
+                    return c
+
+            return (
+                saved_comments.get((ir, grn, it, ol))
+                or saved_comments.get((ir, grn, it, ""))
+                or saved_comments.get((grn, it))
+                or saved_comments.get((ir, it))
+                or {}
+            )
 
         # 0. Obtener lista de versiones disponibles
         archive_versions = await db_logs.get_archived_versions_db_async(db)
@@ -182,6 +202,7 @@ async def get_reconciliation_data(
                     **get_saved_comment(
                         {
                             "import_reference": r.import_reference,
+                            "waybill": r.waybill,
                             "grn_number": r.grn,
                             "item_code": r.item_code,
                             "order_line": "",
@@ -207,6 +228,7 @@ async def get_reconciliation_data(
                 get_saved_comment(
                     {
                         "import_reference": row.get("Import_Reference"),
+                        "waybill": row.get("Waybill"),
                         "grn_number": row.get("GRN"),
                         "item_code": row.get("Codigo_Item"),
                         "order_line": row.get("Order_Line"),

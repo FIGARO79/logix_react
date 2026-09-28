@@ -139,11 +139,14 @@ const Reconciliation = () => {
         }
     };
 
+    // Claves unívocas por fila incluyendo Waybill para evitar colisiones
+    const getRowKey = (row) => `${row.Import_Reference || ''}_${row.Waybill || ''}_${row.GRN || ''}_${row.Codigo_Item || ''}_${row.Order_Line || ''}`;
+    const getLegacyRowKey = (row) => `${row.Import_Reference || ''}_${row.GRN || ''}_${row.Codigo_Item || ''}_${row.Order_Line || ''}`;
+
     // Aplicar ediciones de diferencia sobre los datos antes de filtrar y ordenar
     const processedData = useMemo(() => {
         return rawData.map(row => {
-            const rowKey = `${row.Import_Reference}_${row.GRN}_${row.Codigo_Item}_${row.Order_Line || ''}`;
-            const edit = differenceEdits[rowKey];
+            const edit = differenceEdits[getRowKey(row)] || differenceEdits[getLegacyRowKey(row)];
 
             if (!edit) return row;
 
@@ -324,8 +327,7 @@ const Reconciliation = () => {
 
     // Apertura del modal de edición de diferencia
     const handleOpenEditRow = (row) => {
-        const rowKey = `${row.Import_Reference}_${row.GRN}_${row.Codigo_Item}_${row.Order_Line || ''}`;
-        const existing = differenceEdits[rowKey];
+        const existing = differenceEdits[getRowKey(row)] || differenceEdits[getLegacyRowKey(row)];
 
         setEditingRow(row);
         setEditReason(existing?.difference_reason || row.Motivo_Diferencia || '');
@@ -337,7 +339,7 @@ const Reconciliation = () => {
         e.preventDefault();
         if (!editingRow) return;
 
-        const rowKey = `${editingRow.Import_Reference}_${editingRow.GRN}_${editingRow.Codigo_Item}_${editingRow.Order_Line || ''}`;
+        const rowKey = getRowKey(editingRow);
         const rectNum = editRectifiedQty.trim() !== '' ? parseFloat(editRectifiedQty) : editingRow.Cant_Recibida;
 
         const editData = {
@@ -373,10 +375,12 @@ const Reconciliation = () => {
 
     const handleClearRowEdit = () => {
         if (!editingRow) return;
-        const rowKey = `${editingRow.Import_Reference}_${editingRow.GRN}_${editingRow.Codigo_Item}_${editingRow.Order_Line || ''}`;
+        const rowKey = getRowKey(editingRow);
+        const legacyKey = getLegacyRowKey(editingRow);
         setDifferenceEdits(prev => {
             const next = { ...prev };
             delete next[rowKey];
+            delete next[legacyKey];
             return next;
         });
         setEditingRow(null);
@@ -410,7 +414,7 @@ const Reconciliation = () => {
                 items: targetData.map(r => ({
                     grn_number: r.GRN,
                     import_reference: r.Import_Reference,
-                    waybill: r.Waybill,
+                    waybill: r.Waybill || '',
                     order_line: r.Order_Line || '',
                     item_code: r.Codigo_Item,
                     description: r.Descripcion,
@@ -1145,7 +1149,7 @@ const Reconciliation = () => {
                                                 ← Volver al listado
                                             </button>
                                             <h4 className="text-sm font-normal text-[#201f1e]">
-                                                Conciliación GRN: {viewingDetail.header.grn_number} (IR: {viewingDetail.header.import_reference})
+                                                Conciliación GRN: {viewingDetail.header.grn_number} (IR: {viewingDetail.header.import_reference}){viewingDetail.header.waybill ? ` | Guía: ${viewingDetail.header.waybill}` : ''}
                                             </h4>
                                             <p className="text-[11px] text-[#605e5c]">
                                                 Fecha: {formatDateShort(viewingDetail.header.reconciled_at)} | Operador: {viewingDetail.header.reconciled_by}
@@ -1170,19 +1174,25 @@ const Reconciliation = () => {
                                         <table className="w-full table-fixed text-left text-sm border-collapse">
                                             <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                 <tr>
-                                                    <th className="px-2 py-1.5 font-normal">Línea</th>
-                                                    <th className="px-2 py-1.5 font-normal">Ítem</th>
-                                                    <th className="px-2 py-1.5 w-[22%] font-normal">Descripción</th>
-                                                    <th className="px-2 py-1.5 font-normal">Ubicación</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Esperada</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Recibida</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Diferencia</th>
-                                                    <th className="px-2 py-1.5 font-normal">Motivo / Justificación</th>
+                                                    <th className="px-2 py-1.5 w-[8%] font-normal">I.R.</th>
+                                                    <th className="px-2 py-1.5 w-[9%] font-normal">Guía</th>
+                                                    <th className="px-2 py-1.5 w-[8%] font-normal">GRN</th>
+                                                    <th className="px-2 py-1.5 w-[5%] text-center font-normal">Línea</th>
+                                                    <th className="px-2 py-1.5 w-[10%] font-normal">Ítem</th>
+                                                    <th className="px-2 py-1.5 w-[18%] font-normal">Descripción</th>
+                                                    <th className="px-2 py-1.5 w-[7%] font-normal">Ubicación</th>
+                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Esperada</th>
+                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Recibida</th>
+                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Diferencia</th>
+                                                    <th className="px-2 py-1.5 w-[17%] font-normal">Motivo / Justificación</th>
                                                 </tr>
                                             </thead>
                                              <tbody className="divide-y divide-[#edebe9]">
                                                 {viewingDetail.items.map((it, i) => (
                                                     <tr key={i} className="hover:bg-[#f3f9fd] transition-colors">
+                                                        <td className="px-2 py-1 text-xs text-[#201f1e] truncate" title={it.import_reference}>{it.import_reference || '-'}</td>
+                                                        <td className="px-2 py-1 text-xs font-mono text-[#0078d4] truncate" title={it.waybill}>{it.waybill || '-'}</td>
+                                                        <td className="px-2 py-1 text-xs text-[#201f1e] truncate" title={it.grn_number}>{it.grn_number || '-'}</td>
                                                         <td className="px-2 py-1 text-center text-[#201f1e]">{it.order_line || '-'}</td>
                                                         <td className="px-2 py-1 font-mono text-[#0078d4]">{it.item_code}</td>
                                                         <td className="px-2 py-1 break-words text-[#201f1e]">{it.description}</td>
@@ -1214,17 +1224,18 @@ const Reconciliation = () => {
                                             <table className="w-full table-fixed text-left text-sm border-collapse">
                                                 <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                     <tr>
-                                                        <th className="px-3 py-1.5 w-[6%] font-normal">ID</th>
+                                                        <th className="px-3 py-1.5 w-[5%] font-normal">ID</th>
                                                         <th className="px-3 py-1.5 font-normal">GRN</th>
                                                         <th className="px-3 py-1.5 font-normal">I.R.</th>
-                                                        <th className="px-3 py-1.5 w-[14%] font-normal">Fecha Guardado</th>
+                                                        <th className="px-3 py-1.5 font-normal">Guía</th>
+                                                        <th className="px-3 py-1.5 w-[13%] font-normal">Fecha Guardado</th>
                                                         <th className="px-3 py-1.5 font-normal">Operador</th>
                                                         <th className="px-3 py-1.5 text-center font-normal">Líneas</th>
                                                         <th className="px-3 py-1.5 text-center font-normal">Esperada</th>
                                                         <th className="px-3 py-1.5 text-center font-normal">Recibida</th>
                                                         <th className="px-3 py-1.5 text-center font-normal">Diferencia</th>
                                                         <th className="px-3 py-1.5 text-center font-normal">Estado</th>
-                                                        <th className="px-3 py-1.5 w-[18%] text-center font-normal">Acciones</th>
+                                                        <th className="px-3 py-1.5 w-[16%] text-center font-normal">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#edebe9]">
@@ -1233,6 +1244,7 @@ const Reconciliation = () => {
                                                             <td className="px-3 py-1 font-mono text-[#605e5c]">#{rec.id}</td>
                                                             <td className="px-3 py-1 font-normal text-[#201f1e]">{rec.grn_number}</td>
                                                             <td className="px-3 py-1 text-[#201f1e]">{rec.import_reference}</td>
+                                                            <td className="px-3 py-1 font-mono text-xs text-[#0078d4]">{rec.waybill || '-'}</td>
                                                             <td className="px-3 py-1 text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
                                                             <td className="px-3 py-1 text-[#605e5c]">{rec.reconciled_by}</td>
                                                             <td className="px-3 py-1 text-center text-[#201f1e]">{rec.total_lines}</td>

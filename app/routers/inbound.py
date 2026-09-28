@@ -686,21 +686,30 @@ async def upsert_draft_comment(
     now_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Buscar si ya existe un registro con esta combinación
-    stmt = select(SavedGRNReconciliationItem).where(
-        and_(
-            SavedGRNReconciliationItem.reconciliation_id.is_(None),
-            SavedGRNReconciliationItem.import_reference == payload.import_reference.strip().upper(),
-            SavedGRNReconciliationItem.grn_number == payload.grn_number.strip().upper(),
-            SavedGRNReconciliationItem.item_code == payload.item_code.strip().upper(),
-            SavedGRNReconciliationItem.order_line == (payload.order_line or "").strip(),
+    waybill_clean = (payload.waybill or "").strip().upper()
+    conditions = [
+        SavedGRNReconciliationItem.reconciliation_id.is_(None),
+        SavedGRNReconciliationItem.import_reference == payload.import_reference.strip().upper(),
+        SavedGRNReconciliationItem.grn_number == payload.grn_number.strip().upper(),
+        SavedGRNReconciliationItem.item_code == payload.item_code.strip().upper(),
+        SavedGRNReconciliationItem.order_line == (payload.order_line or "").strip(),
+    ]
+
+    existing_item = None
+    if waybill_clean:
+        stmt = select(SavedGRNReconciliationItem).where(
+            and_(*conditions, SavedGRNReconciliationItem.waybill == waybill_clean)
         )
-    )
-    
-    result = await db.execute(stmt)
-    existing_item = result.scalars().first()
-    
+        existing_item = (await db.execute(stmt)).scalars().first()
+
+    if not existing_item:
+        stmt = select(SavedGRNReconciliationItem).where(and_(*conditions))
+        existing_item = (await db.execute(stmt)).scalars().first()
+
     if existing_item:
         # Actualizar existente
+        if waybill_clean:
+            existing_item.waybill = waybill_clean
         existing_item.difference_reason = (payload.difference_reason or "").strip()
         existing_item.operator_comment = (payload.operator_comment or "").strip()
         if payload.qty_received is not None:
@@ -713,7 +722,7 @@ async def upsert_draft_comment(
             reconciliation_id=None,  # Draft, no associated with snapshot
             grn_number=payload.grn_number.strip().upper(),
             import_reference=payload.import_reference.strip().upper(),
-            waybill=(payload.waybill or "").strip().upper(),
+            waybill=waybill_clean,
             order_line=(payload.order_line or "").strip(),
             item_code=payload.item_code.strip().upper(),
             description="",
@@ -767,31 +776,48 @@ async def save_grn_reconciliation(
     for it in payload.items:
         grn_number = it.grn_number.strip().upper()
         import_reference = it.import_reference.strip().upper()
+        waybill = (it.waybill or "").strip().upper()
         order_line = (it.order_line or "").strip()
         item_code = it.item_code.strip().upper()
 
-        # Convertir el borrador de observación en la línea archivada.
-        stmt_draft = select(SavedGRNReconciliationItem).where(
-            and_(
-                SavedGRNReconciliationItem.reconciliation_id.is_(None),
-                SavedGRNReconciliationItem.grn_number == grn_number,
-                SavedGRNReconciliationItem.import_reference == import_reference,
-                SavedGRNReconciliationItem.item_code == item_code,
-                SavedGRNReconciliationItem.order_line == order_line,
+        # Convertir el borrador de observación en la línea archivada (buscando primero con waybill si está presente)
+        draft_item = None
+        if waybill:
+            stmt_draft = select(SavedGRNReconciliationItem).where(
+                and_(
+                    SavedGRNReconciliationItem.reconciliation_id.is_(None),
+                    SavedGRNReconciliationItem.grn_number == grn_number,
+                    SavedGRNReconciliationItem.import_reference == import_reference,
+                    SavedGRNReconciliationItem.waybill == waybill,
+                    SavedGRNReconciliationItem.item_code == item_code,
+                    SavedGRNReconciliationItem.order_line == order_line,
+                )
             )
-        )
-        draft_item = (await db.execute(stmt_draft)).scalars().first()
+            draft_item = (await db.execute(stmt_draft)).scalars().first()
+
+        if not draft_item:
+            stmt_draft = select(SavedGRNReconciliationItem).where(
+                and_(
+                    SavedGRNReconciliationItem.reconciliation_id.is_(None),
+                    SavedGRNReconciliationItem.grn_number == grn_number,
+                    SavedGRNReconciliationItem.import_reference == import_reference,
+                    SavedGRNReconciliationItem.item_code == item_code,
+                    SavedGRNReconciliationItem.order_line == order_line,
+                )
+            )
+            draft_item = (await db.execute(stmt_draft)).scalars().first()
 
         if draft_item:
             item_row = draft_item
-            item_row.reconciliation_id = header.id
         else:
             item_row = SavedGRNReconciliationItem()
             db.add(item_row)
 
+        # Asignar SIEMPRE reconciliation_id para que no quede huérfano
+        item_row.reconciliation_id = header.id
         item_row.grn_number = grn_number
         item_row.import_reference = import_reference
-        item_row.waybill = (it.waybill or "").strip().upper()
+        item_row.waybill = waybill
         item_row.order_line = order_line
         item_row.item_code = item_code
         item_row.description = (it.description or "").strip()
@@ -800,8 +826,17 @@ async def save_grn_reconciliation(
         item_row.qty_expected = it.qty_expected
         item_row.qty_received = it.qty_received
         item_row.difference = it.difference
-        item_row.difference_reason = (it.difference_reason or "").strip()
-        item_row.operator_comment = (it.operator_comment or "").strip()
+
+        # Preservar motivo u observación del borrador si el payload viene en blanco
+        diff_reason = (it.difference_reason or "").strip()
+        op_comment = (it.operator_comment or "").strip()
+        if not diff_reason and draft_item and draft_item.difference_reason:
+            diff_reason = draft_item.difference_reason
+        if not op_comment and draft_item and draft_item.operator_comment:
+            op_comment = draft_item.operator_comment
+
+        item_row.difference_reason = diff_reason
+        item_row.operator_comment = op_comment
         item_row.reconciled_at = now_ts
 
     await db.commit()
