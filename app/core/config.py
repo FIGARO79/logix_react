@@ -12,14 +12,33 @@ PROJECT_ROOT = os.path.dirname(
 DATABASE_FOLDER = os.path.join(PROJECT_ROOT, "databases")
 ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0250.csv")
 RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSLAMP0006.csv")
+RESERVATION_RAW_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSLAMP0006_raw.csv")
 GRN_CSV_FILE_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0280.csv")
 PICKING_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0240.csv")
 GRN_EXCEL_PATH = os.path.join(DATABASE_FOLDER, "GRN.xlsx")
 PO_EXTRACTOR_EXCEL_PATH = os.path.join(DATABASE_FOLDER, "Purchase Order Extractor.xlsx")
+DESPATCHED_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0190.csv")
+DESPATCHED_EXCEL_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0190.xlsx")
 
-# --- Rutas de Archivos JSON (Centralizadas en static/json) ---
+def get_despatched_file_path() -> str | None:
+    """Retorna la ruta del archivo de despachos si existe (xlsx o csv), o None."""
+    candidates = [
+        os.path.join(DATABASE_FOLDER, "AURRSGLBD0190.xlsx"),
+        os.path.join(DATABASE_FOLDER, "AURRSGLBD0190.csv"),
+        os.path.join(DATABASE_FOLDER, "AURRSGLBD0190 - Despatched Lines.xlsx"),
+        os.path.join(DATABASE_FOLDER, "AURRSGLBD0190 - Despatched Lines.csv"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
+# --- Rutas de Archivos JSON y Reportes (Centralizadas en static) ---
 JSON_FOLDER = os.path.join(PROJECT_ROOT, "static", "json")
 os.makedirs(JSON_FOLDER, exist_ok=True)
+REPORTS_FOLDER = os.path.join(PROJECT_ROOT, "static", "reports")
+os.makedirs(REPORTS_FOLDER, exist_ok=True)
+RESERVATIONS_AUDIT_EXCEL_PATH = os.path.join(REPORTS_FOLDER, "Control_Saldos_Reservations.xlsx")
 
 
 GRN_JSON_DATA_PATH = os.path.join(JSON_FOLDER, "grn_master_data.json")

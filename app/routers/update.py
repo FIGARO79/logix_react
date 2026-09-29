@@ -10,6 +10,7 @@ from fastapi import (
     Response,
     BackgroundTasks,
 )
+from fastapi.responses import FileResponse
 from app.core.responses import ORJSONResponse
 import polars as pl
 import os
@@ -31,11 +32,16 @@ from app.core.config import (
     GRN_CSV_FILE_PATH,
     PICKING_CSV_PATH,
     RESERVATION_CSV_PATH,
+    RESERVATION_RAW_CSV_PATH,
+    DESPATCHED_CSV_PATH,
+    DESPATCHED_EXCEL_PATH,
+    RESERVATIONS_AUDIT_EXCEL_PATH,
     GRN_COLUMN_NAME_IN_CSV,
     ADMIN_PASSWORD,
 )
 from app.services.csv_handler import load_csv_data
 from app.services.csv_to_db import sync_master_csv_to_db
+from app.services.reservation_service import recalculate_xdock_reservations_task
 from app.utils.auth import login_required
 
 
@@ -296,6 +302,7 @@ async def update_files_post(
     grn_file: UploadFile = File(None),
     picking_file: UploadFile = File(None),
     reservation_file: UploadFile = File(None),  # Nuevo campo para Reservas (Xdock)
+    despatched_file: UploadFile = File(None),  # Nuevo campo para Despachos (AURRSGLBD0190 .xlsx o .csv)
     grn_excel: UploadFile = File(None),  # Nuevo campo para el Excel de Inbound
     po_extractor: UploadFile = File(None),  # Nuevo campo para Purchase Order Extractor
     update_option_280: str = Form(None),
@@ -309,6 +316,7 @@ async def update_files_post(
         )
 
     files_uploaded = False
+    recalculate_xdock = False
     message = ""
     error = ""
 
@@ -353,16 +361,30 @@ async def update_files_post(
 
     # Manejo del archivo de Reservas (AURRSLAMP0006)
     if reservation_file and reservation_file.filename:
-        with open(RESERVATION_CSV_PATH, "wb") as buffer:
+        with open(RESERVATION_RAW_CSV_PATH, "wb") as buffer:
             shutil.copyfileobj(reservation_file.file, buffer)
-
-        # [NUEVO] Generar caché rápido de Xdock en segundo plano
-        from app.services.csv_handler import generate_reservation_cache
-
-        background_tasks.add_task(generate_reservation_cache)
-
-        message += f'Archivo "{reservation_file.filename}" actualizado (Xdock). '
+        # Inicialmente reflejar en el CSV operativo
+        shutil.copyfile(RESERVATION_RAW_CSV_PATH, RESERVATION_CSV_PATH)
+        message += f'Archivo "{reservation_file.filename}" actualizado (Reservas Xdock). '
         files_uploaded = True
+        recalculate_xdock = True
+
+    # Manejo del archivo de Despachos (AURRSGLBD0190 - .xlsx o .csv)
+    if despatched_file and despatched_file.filename:
+        ext = os.path.splitext(despatched_file.filename)[1].lower()
+        target_path = DESPATCHED_EXCEL_PATH if ext in [".xlsx", ".xlsm", ".xls"] else DESPATCHED_CSV_PATH
+        with open(target_path, "wb") as buffer:
+            shutil.copyfileobj(despatched_file.file, buffer)
+        # Eliminar formato alternativo para evitar inconsistencias
+        alt_path = DESPATCHED_CSV_PATH if target_path == DESPATCHED_EXCEL_PATH else DESPATCHED_EXCEL_PATH
+        if os.path.exists(alt_path):
+            try:
+                os.remove(alt_path)
+            except Exception:
+                pass
+        message += f'Archivo "{despatched_file.filename}" actualizado (Líneas Despachadas 190). '
+        files_uploaded = True
+        recalculate_xdock = True
 
     # Manejo del archivo de picking (240)
     if picking_file and picking_file.filename:
@@ -424,13 +446,21 @@ async def update_files_post(
                 except Exception as e:
                     print(f"[UPDATE ERROR] Error en sync_master_csv_to_db: {e}")
 
-            # 3. Recargar datos en memoria RAM (Polars)
+            # 3. Si se subieron Reservas o Despachos, ejecutar cruce de saldos de Xdock
+            if recalculate_xdock:
+                try:
+                    res_xdock = await recalculate_xdock_reservations_task(generate_cache=True)
+                    print(f"[UPDATE] Recálculo de saldos Xdock completado: {res_xdock}")
+                except Exception as e:
+                    print(f"[UPDATE ERROR] Error recalculando Xdock: {e}")
+
+            # 4. Recargar datos en memoria RAM (Polars)
             try:
                 await load_csv_data()
             except Exception as e:
                 print(f"[UPDATE ERROR] Error en load_csv_data: {e}")
 
-            # 4. Ejecutar auditoría de recepción con datos frescos en DB y RAM
+            # 5. Ejecutar auditoría de recepción con datos frescos en DB y RAM
             try:
                 async with AsyncSessionLocal() as session:
                     res = await run_inbound_audit(session)
@@ -447,6 +477,31 @@ async def update_files_post(
     if error:
         return ORJSONResponse(status_code=400, content={"error": error})
     return ORJSONResponse(content={"message": message or "No se subieron archivos."})
+
+
+@router.post("/api/recalculate_xdock", response_class=ORJSONResponse)
+async def recalculate_xdock_manual(username: str = Depends(login_required)):
+    """Fuerza manualmente el recálculo y cruce de saldos de reservas Xdock con AURRSGLBD0190."""
+    try:
+        res = await recalculate_xdock_reservations_task(generate_cache=True)
+        return ORJSONResponse(content=res)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error recalculando saldos Xdock: {e}")
+
+
+@router.get("/api/download_reservations_audit")
+async def download_reservations_audit(username: str = Depends(login_required)):
+    """Descarga el libro Excel con la auditoría completa del cruce de saldos de Xdock."""
+    if not os.path.exists(RESERVATIONS_AUDIT_EXCEL_PATH):
+        raise HTTPException(
+            status_code=404,
+            detail="Aún no se ha generado el reporte de auditoría de reservas.",
+        )
+    return FileResponse(
+        path=RESERVATIONS_AUDIT_EXCEL_PATH,
+        filename="Control_Saldos_Reservations.xlsx",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @router.post("/api/reload_cache", response_class=ORJSONResponse)

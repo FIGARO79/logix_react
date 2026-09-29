@@ -11,6 +11,7 @@ from app.core.config import (
     PO_LOOKUP_JSON_PATH,
     PICKING_CSV_PATH,
     PO_EXTRACTOR_EXCEL_PATH,
+    get_despatched_file_path,
 )
 from app.services import csv_handler
 from app.utils.auth import login_required
@@ -37,6 +38,9 @@ async def get_sync_status(user: str = Depends(login_required)):
             status[key] = os.path.getmtime(path)
         else:
             status[key] = 0
+
+    dsp_file = get_despatched_file_path()
+    status["despatched_lines"] = os.path.getmtime(dsp_file) if (dsp_file and os.path.exists(dsp_file)) else 0
 
     return status
 

@@ -45,6 +45,38 @@ const Update = () => {
     const [isFetchingMaestro, setIsFetchingMaestro] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewedFile, setPreviewedFile] = useState(null);
+    const [isRecalculatingXdock, setIsRecalculatingXdock] = useState(false);
+
+    const handleRecalculateXdock = async () => {
+        setIsRecalculatingXdock(true);
+        setMessages({ success: '', error: '', info: 'Recalculando saldos de Xdock con líneas despachadas (0190)...' });
+        try {
+            const res = await fetch('/api/recalculate_xdock', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                if (data.cruce && data.metrics) {
+                    setMessages({
+                        success: `Cruce completado: ${data.metrics.reservations_operational} reservas vigentes de ${data.metrics.reservations_original} (${data.metrics.reservations_eliminated} saldos cero eliminados).`,
+                        error: '',
+                        info: ''
+                    });
+                } else {
+                    setMessages({ success: data.message || "Xdock recalculado exitosamente.", error: '', info: '' });
+                }
+                fetchSyncStatus();
+            } else {
+                setMessages({ success: '', error: data.detail || data.error || "Error al recalcular saldos Xdock", info: '' });
+            }
+        } catch (err) {
+            setMessages({ success: '', error: "Error de red al recalcular saldos Xdock", info: '' });
+        } finally {
+            setIsRecalculatingXdock(false);
+        }
+    };
+
+    const handleDownloadXdockAudit = () => {
+        window.open('/api/download_reservations_audit', '_blank');
+    };
 
     const fetchSyncStatus = async () => {
         try {
@@ -175,6 +207,7 @@ const Update = () => {
             const name = file.name.toLowerCase();
             if (name.includes('master') || name.includes('item') || name.includes('maestro') || name.includes('250')) formData.append('item_master', file);
             else if (name.includes('0006') || name.includes('reserva')) formData.append('reservation_file', file);
+            else if (name.includes('0190') || name.includes('despatch') || name.includes('despacho')) formData.append('despatched_file', file);
             else if (name.includes('280') || name.includes('grn') || name.includes('pedido') || name.includes('reporte') || name.includes('inbound')) {
                 if (name.endsWith('.xlsx') || name.endsWith('.xls')) formData.append('grn_excel', file);
                 else formData.append('grn_file', file);
@@ -462,7 +495,7 @@ const Update = () => {
                                             Haz clic para seleccionar o arrastra archivos aquí
                                         </p>
                                         <p className="text-[10px] text-zinc-500 font-normal">
-                                            Soporta: CSV (250, 280, 240, LAMP0006) y Excel (.xlsx)
+                                            Soporta: CSV (250, 280, 240, LAMP0006) y Excel / CSV (0190 Despachos, PO Extractor)
                                         </p>
                                     </div>
                                 </div>
@@ -608,6 +641,7 @@ const Update = () => {
                                 { label: "Entradas GRN", filename: "AURRSGLBD0280.csv", key: "grn_pending" },
                                 { label: "Salidas Picking", filename: "AURRSGLBD0240.csv", key: "picking" },
                                 { label: "Reservas Xdock", filename: "AURRSLAMP0006.csv", key: "xdock_reservations" },
+                                { label: "Despachos (190)", filename: "AURRSGLBD0190 (.xlsx / .csv)", key: "despatched_lines" },
                                 { label: "PO Extractor", filename: "Purchase Order Extractor.xlsx", key: "po_extractor" }
                             ].map((item) => {
                                 const hasData = syncStatus[item.key] && syncStatus[item.key] !== 0;
@@ -793,6 +827,42 @@ const Update = () => {
                                     ) : (
                                         messages.info && <p className="text-[10px] text-zinc-600 bg-zinc-50 p-2 rounded border border-zinc-200 font-normal">{messages.info}</p>
                                     )}
+                                </div>
+
+                                {/* Cruce y Auditoría de Saldos Xdock */}
+                                <div className="space-y-2 pt-3 border-t border-zinc-100">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-[10px] font-normal text-zinc-800 uppercase flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-600 inline-block"></span>
+                                            Cruce y Saldos de Xdock (0190)
+                                        </label>
+                                        <span className="text-[9px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded border border-zinc-200">
+                                            FIFO / Despachos
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleRecalculateXdock}
+                                            disabled={isRecalculatingXdock || isLoading}
+                                            className="h-7 border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 text-[10px] font-normal uppercase rounded transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '11px', height: '11px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            {isRecalculatingXdock ? 'Recalculando...' : 'Recalcular Saldos'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadXdockAudit}
+                                            className="h-7 border border-zinc-300 bg-white hover:bg-zinc-50 text-[#0078d4] hover:text-[#106ebe] text-[10px] font-normal uppercase rounded transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '11px', height: '11px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Auditoría Excel (.xlsx)
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
