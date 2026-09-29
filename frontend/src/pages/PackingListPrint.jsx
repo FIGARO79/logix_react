@@ -12,6 +12,18 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [qrMap, setQrMap] = useState({});
+    const [printFormat, setPrintFormat] = useState(() => {
+        return localStorage.getItem('logix_packing_print_format') || 'zebra';
+    });
+
+    const handleFormatChange = (newFormat) => {
+        setPrintFormat(newFormat);
+        try {
+            localStorage.setItem('logix_packing_print_format', newFormat);
+        } catch (e) {
+            console.warn("No se pudo guardar la preferencia de formato", e);
+        }
+    };
 
     useEffect(() => {
         if (!id || id === 'undefined') return;
@@ -52,8 +64,8 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     ];
                     try {
                         const url = await QRCode.toDataURL(qrLines.join('\n'), {
-                            width: 280,
-                            margin: 1,
+                            width: 180,
+                            margin: 0,
                             errorCorrectionLevel: 'M',
                             color: { dark: '#000000', light: '#ffffff' }
                         });
@@ -136,27 +148,28 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
         return acc + items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
     }, 0);
 
+    const isZebra = printFormat === 'zebra';
+
     return (
         <div className="packing-list-print-page bg-[#f3f2f1] min-h-screen text-black font-sans print:bg-white print:p-0 print:min-h-0">
-            {/* ESTILOS DE IMPRESIÓN PARA TRANSFERENCIA TÉRMICA ZEBRA 100x150 mm */}
+            {/* ESTILOS DE IMPRESIÓN DINÁMICOS SEGÚN IMPRESORA / FORMATO */}
             <style dangerouslySetInnerHTML={{
                 __html: `
-                /* Vista en pantalla: proporción 100x150 mm */
+                /* Vista en pantalla: según el formato seleccionado */
                 .packing-list-print-page .page-container {
                     background-color: #ffffff;
                     border: 1px solid #000000 !important;
                     border-radius: 2px;
                     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
                     width: 100%;
-                    max-width: 480px;
+                    max-width: ${isZebra ? '480px' : '850px'};
                     margin: 0 auto 1.5rem auto;
                 }
 
-                /* En vista de impresión (Ctrl + P o window.print): tamaño 100x150 mm sin márgenes sobrantes */
                 @media print {
                     @page { 
-                        size: 100mm 150mm; 
-                        margin: 2mm 3mm 2mm 3mm; 
+                        size: ${isZebra ? '100mm 150mm' : 'letter portrait'}; 
+                        margin: ${isZebra ? '2mm 3mm 2mm 3mm' : '8mm 10mm 8mm 10mm'}; 
                     }
                     body, html, #root { 
                         -webkit-print-color-adjust: exact !important; 
@@ -186,7 +199,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         border: none !important;
                         outline: none !important;
                         margin: 0 auto !important;
-                        padding: 1mm 1.5mm !important;
+                        padding: ${isZebra ? '1mm 1.5mm' : '4mm 6mm'} !important;
                         width: 100% !important;
                         max-width: 100% !important;
                         background: transparent !important;
@@ -197,7 +210,6 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         break-after: page;
                         page-break-after: always;
                     }
-                    /* Bloques de inversión para máximo contraste térmico */
                     .thermal-invert,
                     .thermal-invert * {
                         background-color: #000000 !important;
@@ -205,7 +217,6 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    /* Tablas optimizadas para cabezal de 203/300 DPI */
                     .packing-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
@@ -227,9 +238,9 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                 }
             `}} />
 
-            {/* BARRA DE COMANDOS (FIJA EN PANTALLA, OCULTA AL IMPRIMIR) */}
-            <div className="no-print sticky top-0 z-50 bg-white border-b border-[#e1dfdd] shadow-sm">
-                <div className="max-w-[480px] mx-auto px-4 py-2 flex items-center justify-between">
+            {/* BARRA DE COMANDOS CON SELECTOR DE FORMATO */}
+            <div className="no-print sticky top-0 z-50 bg-white border-b border-neutral-300 shadow-sm">
+                <div className={`mx-auto px-4 py-2 flex items-center justify-between gap-3 ${isZebra ? 'max-w-[480px]' : 'max-w-[850px]'}`}>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => navigate(-1)}
@@ -237,25 +248,54 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         >
                             &larr; Volver
                         </button>
-                        <div className="border-l border-neutral-300 pl-2">
-                            <span className="text-xs font-bold text-black">Etiqueta 100x150 mm</span>
-                        </div>
+                        <span className="text-xs font-bold text-black hidden sm:inline">
+                            Packing List #{id}
+                        </span>
                     </div>
+
+                    {/* SELECTOR SEGMENTADO DE IMPRESORA / FORMATO */}
+                    <div className="flex items-center bg-neutral-100 p-0.5 rounded border border-neutral-300 text-xs">
+                        <button
+                            type="button"
+                            onClick={() => handleFormatChange('zebra')}
+                            className={`px-2.5 py-1 rounded font-bold transition-all cursor-pointer ${
+                                isZebra
+                                    ? 'bg-black text-white shadow-xs'
+                                    : 'text-neutral-700 hover:text-black'
+                            }`}
+                            title="Rollo de 100x150 mm en impresora térmica Zebra"
+                        >
+                            Zebra (100x150)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFormatChange('letter')}
+                            className={`px-2.5 py-1 rounded font-bold transition-all cursor-pointer ${
+                                !isZebra
+                                    ? 'bg-black text-white shadow-xs'
+                                    : 'text-neutral-700 hover:text-black'
+                            }`}
+                            title="Hoja Carta o A4 estándar"
+                        >
+                            Carta / A4
+                        </button>
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrint}
-                            className="px-3 py-1.5 text-xs font-bold bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow flex items-center gap-1.5 cursor-pointer"
+                            className="px-3.5 py-1.5 text-xs font-bold bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow cursor-pointer"
                         >
-                            <span>🖨️</span> Imprimir Zebra
+                            Imprimir {isZebra ? 'Zebra' : 'Carta'}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* CONTENEDOR DE ETIQUETAS TÉRMICAS */}
-            <div className="py-4 px-2 print:p-0 print:m-0">
+            {/* CONTENEDOR DE PÁGINAS / ETIQUETAS */}
+            <div className={`mx-auto py-4 px-2 print:p-0 print:m-0 ${isZebra ? 'max-w-[480px]' : 'max-w-[850px]'}`}>
                 {sortedPackageKeys.length === 0 ? (
-                    <div className="max-w-[480px] mx-auto bg-white p-8 rounded border border-black text-center text-xs font-bold text-black">
+                    <div className="bg-white p-8 rounded border border-black text-center text-xs font-bold text-black">
                         No hay bultos registrados en esta orden.
                     </div>
                 ) : (
@@ -273,107 +313,131 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         return (
                             <div
                                 key={packageKey}
-                                className={`page-container p-3 mb-4 text-black ${
-                                    !isLastPage ? 'page-break' : ''
-                                }`}
+                                className={`page-container text-black ${
+                                    isZebra ? 'p-3 mb-4' : 'p-6 mb-6'
+                                } ${!isLastPage ? 'page-break' : ''}`}
                             >
-                                {/* 1. CABECERA: LOGO + PACKING LIST + QR */}
-                                <div className="flex items-center justify-between border-b-2 border-black pb-1.5 mb-1.5">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xl font-black tracking-tighter text-black">SANDVIK</span>
+                                {/* 1. CABECERA */}
+                                <div className={`flex items-center justify-between border-b-2 border-black ${isZebra ? 'pb-1 mb-1' : 'pb-2 mb-3'}`}>
+                                    <div className="flex-1 pr-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className={`${isZebra ? 'text-lg' : 'text-2xl'} font-black tracking-tighter text-black leading-none`}>
+                                                SANDVIK
+                                            </span>
+                                            <span className={`${isZebra ? 'text-[10px]' : 'text-sm'} font-black uppercase tracking-wider text-black leading-none`}>
+                                                PACKING LIST
+                                            </span>
                                         </div>
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-black">
-                                            PACKING LIST
-                                        </p>
-                                        <div className="text-[9px] font-mono font-bold text-black mt-0.5">
-                                            REF: AUD-{id} | {formatDate(data.timestamp)}
+                                        <div className={`${isZebra ? 'text-[8px]' : 'text-[10px]'} font-mono font-bold text-black mt-0.5 leading-tight`}>
+                                            REF: AUD-{id} | {formatDate(data.timestamp)} | Pág. {index + 1} de {sortedPackageKeys.length}
                                         </div>
                                     </div>
 
-                                    {/* CÓDIGO QR NÍTIDO CON RENDERIZADO PIXELADO */}
+                                    {/* CÓDIGO QR */}
                                     {qrMap[packageKey] && (
-                                        <div className="shrink-0 pl-2 flex flex-col items-center">
+                                        <div className="shrink-0 flex items-center">
                                             <img
                                                 src={qrMap[packageKey]}
                                                 alt={`QR Bulto ${packageKey}`}
-                                                className="w-18 h-18 object-contain"
-                                                style={{ imageRendering: 'pixelated' }}
+                                                style={{ 
+                                                    width: isZebra ? '48px' : '68px', 
+                                                    height: isZebra ? '48px' : '68px', 
+                                                    minWidth: isZebra ? '48px' : '68px', 
+                                                    imageRendering: 'pixelated' 
+                                                }}
                                             />
-                                            <span className="font-mono text-[8px] font-bold text-black">SCAN QR</span>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 2. BANNER INVERTIDO: BULTO DESTACADO (MÁXIMO CONTRASTE) */}
-                                <div className="thermal-invert bg-black text-white px-2 py-1 mb-1.5 flex items-center justify-between border border-black">
-                                    <span className="font-mono font-black text-sm tracking-wider uppercase">
+                                {/* 2. BANNER DE BULTO Y PEDIDO (FONDO BLANCO CON BORDE Y TEXTO NEGRO) */}
+                                <div className={`bg-white text-black border-2 border-black ${isZebra ? 'px-1.5 py-0.5 mb-1 text-xs' : 'px-3 py-1.5 mb-2 text-sm'} flex items-center justify-between`}>
+                                    <span className="font-mono font-black tracking-wider uppercase text-black">
                                         BULTO {packageKey} DE {totalGlobalPackages}
                                     </span>
-                                    <span className="font-mono font-bold text-xs uppercase">
+                                    <span className="font-mono font-bold uppercase text-black">
                                         ORDEN: {orderFormatted}
                                     </span>
                                 </div>
 
                                 {/* 3. DATOS DEL CLIENTE Y ENVÍO */}
-                                <div className="border-[1.5px] border-black mb-1.5 p-1.5 bg-white text-xs">
-                                    <div className="flex justify-between items-start border-b border-black pb-1 mb-1">
-                                        <div className="flex-1 pr-2">
-                                            <span className="text-[9px] font-black uppercase text-black block tracking-tight">
-                                                DESTINATARIO / CLIENTE:
-                                            </span>
-                                            <span className="text-xs font-black text-black block truncate leading-tight">
-                                                {data.customer_code ? `${data.customer_code} - ` : ''}
-                                                {data.customer_name || 'N/A'}
-                                            </span>
+                                {isZebra ? (
+                                    /* Modo Zebra: 2 líneas compactas */
+                                    <div className="border border-black mb-1 px-1.5 py-0.5 bg-white text-[10px]">
+                                        <div className="flex justify-between items-center leading-tight">
+                                            <div className="flex-1 truncate pr-2">
+                                                <span className="text-[8px] font-black uppercase mr-1">DESTINATARIO:</span>
+                                                <strong className="font-black text-[10px]">{data.customer_code ? `${data.customer_code} - ` : ''}{data.customer_name || 'N/A'}</strong>
+                                            </div>
+                                            <div className="shrink-0 font-mono font-black text-[10px]">
+                                                {boxUnits} UDS. EN BULTO
+                                            </div>
                                         </div>
-                                        <div className="text-right shrink-0 border-l border-black pl-2">
-                                            <span className="text-[8px] font-bold uppercase text-black block">
-                                                TOTAL BULTO:
-                                            </span>
-                                            <span className="font-mono text-xs font-black text-black">
-                                                {boxUnits} UDS.
-                                            </span>
+                                        <div className="flex justify-between items-center text-[8px] font-bold text-black border-t border-black mt-0.5 pt-0.5">
+                                            <span>Total Envío: {totalGlobalPackages} Cajas</span>
+                                            <span>Total Orden: {totalGlobalUnits} Uds</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between items-center text-[10px] font-bold">
-                                        <span>Total Global Envío: <strong>{totalGlobalPackages} Cajas</strong></span>
-                                        <span>Total Global Orden: <strong>{totalGlobalUnits} Uds</strong></span>
+                                ) : (
+                                    /* Modo Carta: Cuadrícula completa espaciosa */
+                                    <div className="border-2 border-black mb-3 text-xs bg-white">
+                                        <div className="flex items-center justify-between border-b-2 border-black px-3 py-2">
+                                            <div className="flex-1 pr-4">
+                                                <span className="text-[10px] font-bold uppercase text-black block">Cliente / Destinatario:</span>
+                                                <span className="text-sm font-black text-black block truncate">
+                                                    {data.customer_code ? `${data.customer_code} - ` : ''}{data.customer_name || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="text-right border-l-2 border-black pl-4 shrink-0">
+                                                <span className="text-[10px] font-bold uppercase text-black block">Total Bultos Envío:</span>
+                                                <span className="text-base font-black font-mono text-black">{totalGlobalPackages} CAJAS</span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 divide-x-2 divide-black px-3 py-2">
+                                            <div>
+                                                <span className="text-[10px] font-bold uppercase text-black block">No. Orden / Despacho:</span>
+                                                <span className="font-mono text-xs font-black text-black">{orderFormatted}</span>
+                                            </div>
+                                            <div className="pl-3 text-right">
+                                                <span className="text-[10px] font-bold uppercase text-black block">Total Unidades Orden:</span>
+                                                <span className="font-mono text-xs font-black text-black">{totalGlobalUnits} uds.</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* 4. TABLA DE ÍTEMS EMPACADOS */}
-                                <div className="mb-2">
+                                <div className={isZebra ? 'mb-1' : 'mb-3'}>
                                     <table className="packing-table w-full text-xs">
                                         <thead>
-                                            <tr className="border-y-2 border-black bg-neutral-100 print:bg-transparent text-[9px] font-black uppercase text-black">
-                                                <th className="py-1 px-1 text-center w-8">Pos.</th>
-                                                <th className="py-1 px-1 text-left w-28">Código SKU</th>
-                                                <th className="py-1 px-1 text-left">Descripción</th>
-                                                <th className="py-1 px-1 text-right w-12">Cant.</th>
+                                            <tr className={`border-y-2 border-black bg-neutral-100 print:bg-transparent ${isZebra ? 'text-[8px]' : 'text-[10px]'} font-black uppercase text-black`}>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-7' : 'py-1 px-2 w-10'} text-center`}>Pos.</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-24' : 'py-1 px-2 w-32'} text-left`}>Código SKU</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1' : 'py-1 px-2'} text-left`}>Descripción</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-10' : 'py-1 px-2 w-16'} text-right`}>Cant.</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-black font-sans">
                                             {items.length > 0 ? (
                                                 items.map((item, idx) => (
                                                     <tr key={idx} className="border-b border-black">
-                                                        <td className="py-1 px-1 text-center font-mono font-bold text-[9px] text-black">
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[8px]' : 'py-1.5 px-2 text-[10px]'} text-center font-mono font-bold text-black`}>
                                                             {item.order_line || String((idx + 1) * 10).padStart(4, '0')}
                                                         </td>
-                                                        <td className="py-1 px-1 font-mono font-black text-black text-[11px] whitespace-nowrap">
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} font-mono font-black text-black whitespace-nowrap`}>
                                                             {item.item_code}
                                                         </td>
-                                                        <td className="py-1 px-1 text-black text-[10px] font-semibold leading-tight">
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[9px] line-clamp-1' : 'py-1.5 px-2 text-[11px]'} text-black font-semibold leading-tight`}>
                                                             {item.description || '-'}
                                                         </td>
-                                                        <td className="py-1 px-1 text-right font-mono font-black text-xs text-black whitespace-nowrap">
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} text-right font-mono font-black text-black whitespace-nowrap`}>
                                                             {item.quantity}
                                                         </td>
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="4" className="py-4 text-center text-xs font-bold text-black italic">
+                                                    <td colSpan="4" className="py-2 text-center text-xs font-bold text-black italic">
                                                         Bulto sin líneas registradas.
                                                     </td>
                                                 </tr>
@@ -381,10 +445,10 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                         </tbody>
                                         <tfoot>
                                             <tr className="border-t-2 border-b-2 border-black text-xs font-black">
-                                                <td colSpan="3" className="py-1 px-1 text-right uppercase text-[9px] tracking-tight">
+                                                <td colSpan="3" className={`${isZebra ? 'py-0.5 px-1 text-[8px]' : 'py-1.5 px-2 text-[10px]'} text-right uppercase tracking-tight`}>
                                                     SUBTOTAL EN ESTE BULTO:
                                                 </td>
-                                                <td className="py-1 px-1 text-right font-mono font-black text-xs">
+                                                <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-sm'} text-right font-mono font-black`}>
                                                     {boxUnits}
                                                 </td>
                                             </tr>
@@ -392,28 +456,28 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                     </table>
                                 </div>
 
-                                {/* 5. SECCIÓN DE FIRMAS Y CONFORMIDAD (COMPACTA PARA 150 mm) */}
-                                <div className="mt-2 pt-1 border-t-2 border-black">
-                                    <div className="grid grid-cols-3 gap-2 text-center text-[9px] font-bold mb-1">
+                                {/* 5. SECCIÓN DE FIRMAS */}
+                                <div className={`${isZebra ? 'mt-1 pt-1 border-t-2' : 'mt-4 pt-3 border-t-2'} border-black`}>
+                                    <div className={`grid grid-cols-3 ${isZebra ? 'gap-1.5 mb-0.5 text-[8px]' : 'gap-4 mb-2 text-[10px]'} text-center font-bold`}>
                                         <div>
-                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Preparado</span>
-                                            <span className="text-[8px] font-normal block leading-tight">Operaciones</span>
+                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Operaciones SANDVIK</span>}
                                         </div>
                                         <div>
-                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Transportador</span>
-                                            <span className="text-[8px] font-normal block leading-tight">Placa / C.C.</span>
+                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Placa / C.C.</span>}
                                         </div>
                                         <div>
-                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Recibido</span>
-                                            <span className="text-[8px] font-normal block leading-tight">Firma / Sello</span>
+                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Firma / Sello</span>}
                                         </div>
                                     </div>
 
-                                    {/* 6. PIE DE ETIQUETA */}
-                                    <div className="flex justify-between items-center text-[8px] font-mono font-bold text-black pt-1 border-t border-black">
+                                    {/* 6. PIE DE ETIQUETA / DOCUMENTO */}
+                                    <div className={`flex justify-between items-center ${isZebra ? 'text-[7px] pt-0.5' : 'text-[9px] pt-1.5'} font-mono font-bold text-black border-t border-black`}>
                                         <span>SANDVIK &bull; LOGIX WMS</span>
                                         <span>AUD-{id} &bull; BULTO {packageKey}/{totalGlobalPackages}</span>
                                     </div>
