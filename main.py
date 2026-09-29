@@ -106,9 +106,9 @@ app.add_middleware(HSTSMiddleware)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY, 
-    max_age=28800,  # [SEGURIDAD] 8 horas de expiración (CS-SESSION-001)
+    max_age=604800,  # [PERSISTENCIA] 7 días de expiración para terminales móviles y web
     https_only=True if ENVIRONMENT == 'production' else False,  # En producción forzar cookies seguras
-    same_site="strict",  # [SEGURIDAD] Prevención CSRF (CS-CSRF-001)
+    same_site="lax",  # [COMPATIBILIDAD PWA/MÓVIL] Permite persistencia de sesión al abrir desde icono/acceso directo
 )
 app.add_middleware(CSVCacheReloadMiddleware)
 
