@@ -33,9 +33,6 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                 const packagesObj = json.packages || {};
                 const keys = Object.keys(packagesObj).sort((a, b) => parseInt(a) - parseInt(b));
                 const totalPkgs = json.total_packages || keys.length;
-                const clientStr = json.customer_code
-                    ? `${json.customer_code} - ${json.customer_name || 'N/A'}`
-                    : (json.customer_name || 'N/A');
 
                 const orderFormatted = json.order_number 
                     ? (json.despatch_number && !String(json.order_number).includes('/') 

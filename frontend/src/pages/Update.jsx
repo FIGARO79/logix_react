@@ -202,7 +202,9 @@ const Update = () => {
                             const bcDelayed = new BroadcastChannel('logix_events');
                             bcDelayed.postMessage({ type: 'INBOUND_MUTATED' });
                             bcDelayed.close();
-                        } catch (err) {}
+                        } catch (_err) {
+                            // Ignorar error si BroadcastChannel ya no está disponible
+                        }
                     }, 1200);
                     bc.close();
                 }
