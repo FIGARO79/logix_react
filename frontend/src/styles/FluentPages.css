@@ -157,19 +157,36 @@
     }
 
     /* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
-    & table thead,
-    & table thead tr,
-    & table thead th,
-    & table th,
-    & thead,
-    & thead tr,
-    & thead th {
+    & table:not(.packing-table) thead,
+    & table:not(.packing-table) thead tr,
+    & table:not(.packing-table) thead th,
+    & table:not(.packing-table) th,
+    & thead:not(.packing-table thead),
+    & thead:not(.packing-table thead) tr,
+    & thead:not(.packing-table thead) th {
         background: #f3f3f3 !important;
         background-color: #f3f3f3 !important;
         color: var(--fluent-text) !important;
         border-color: var(--fluent-border) !important;
         font-weight: 600;
         letter-spacing: 0;
+    }
+
+    /* Anulación específica para documentos y etiquetas de impresión de empaque */
+    & .packing-table,
+    & .packing-table thead,
+    & .packing-table thead tr,
+    & .packing-table thead th,
+    & .packing-table th,
+    & .packing-table tbody,
+    & .packing-table tbody tr,
+    & .packing-table tbody td,
+    & .packing-table tfoot,
+    & .packing-table tfoot tr,
+    & .packing-table tfoot td {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
     }
 
     /* Force all header variants (Tailwind classes, inline styles, dark gradients) to light */

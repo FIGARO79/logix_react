@@ -99,7 +99,7 @@ const ConsolidatedPackingList = () => {
                     <p className="text-xs text-[#605e5c]">{error}</p>
                     <button
                         onClick={() => navigate(-1)}
-                        className="mt-4 px-3 py-1.5 text-xs bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] rounded transition-colors"
+                        className="mt-4 px-3 py-1.5 text-xs font-semibold text-[#201f1e] bg-transparent border border-[#8a8886] hover:bg-[#f3f2f1] hover:border-[#323130] rounded transition-colors cursor-pointer"
                     >
                         Volver
                     </button>
@@ -147,6 +147,27 @@ const ConsolidatedPackingList = () => {
                     box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108);
                 }
 
+                /* Anulación absoluta de sombreados en pantalla */
+                .consolidated-packing-list-page .packing-table,
+                .consolidated-packing-list-page .packing-table thead,
+                .consolidated-packing-list-page .packing-table thead tr,
+                .consolidated-packing-list-page .packing-table thead th,
+                .consolidated-packing-list-page .packing-table th,
+                .consolidated-packing-list-page .packing-table tbody,
+                .consolidated-packing-list-page .packing-table tbody tr,
+                .consolidated-packing-list-page .packing-table tbody td,
+                .consolidated-packing-list-page .packing-table tfoot,
+                .consolidated-packing-list-page .packing-table tfoot tr,
+                .consolidated-packing-list-page .packing-table tfoot td,
+                .packing-table thead,
+                .packing-table thead tr,
+                .packing-table thead th,
+                .packing-table th {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                }
+
                 @media print {
                     @page { 
                         size: A4 portrait; 
@@ -182,17 +203,37 @@ const ConsolidatedPackingList = () => {
                     .packing-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
+                        background: transparent !important;
+                    }
+                    .packing-table thead,
+                    .packing-table thead tr,
+                    .packing-table thead th,
+                    .packing-table th {
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        background-image: none !important;
                     }
                     .packing-table thead tr {
                         border-top: 1.5px solid #201f1e !important;
                         border-bottom: 1.5px solid #201f1e !important;
+                        background: transparent !important;
                     }
                     .packing-table tbody tr {
                         border-bottom: 1px solid #e1dfdd !important;
+                        background: transparent !important;
+                    }
+                    .packing-table tbody td {
+                        background: transparent !important;
+                        background-color: transparent !important;
                     }
                     .packing-table tfoot tr {
                         border-top: 1.5px solid #201f1e !important;
                         border-bottom: 1.5px solid #201f1e !important;
+                        background: transparent !important;
+                    }
+                    .packing-table tfoot td {
+                        background: transparent !important;
+                        background-color: transparent !important;
                     }
                     tr { 
                         break-inside: avoid; 
@@ -200,17 +241,17 @@ const ConsolidatedPackingList = () => {
                 }
             `}} />
 
-            {/* BARRA DE COMANDOS FLUENT */}
-            <div className="no-print sticky top-0 z-50 bg-white border-b border-[#e1dfdd] shadow-sm">
-                <div className="max-w-[850px] mx-auto px-4 py-2.5 flex items-center justify-between">
+            {/* BARRA DE COMANDOS FLUENT UI SIN RELLENO */}
+            <div className="no-print sticky top-0 z-50 bg-white border-b border-[#edebe9] shadow-xs">
+                <div className="max-w-[850px] mx-auto px-4 py-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(-1)}
-                            className="px-3 py-1 text-xs font-medium text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] rounded transition-colors"
+                            className="px-2.5 py-1 text-xs font-semibold text-[#201f1e] bg-transparent border border-[#8a8886] hover:bg-[#f3f2f1] hover:border-[#323130] rounded transition-colors cursor-pointer"
                         >
                             &larr; Volver
                         </button>
-                        <div className="border-l border-[#e1dfdd] pl-3">
+                        <div className="border-l border-[#edebe9] pl-3">
                             <span className="text-xs font-semibold text-[#201f1e]">Envío Consolidado #{data.shipment_id || id}</span>
                             <span className="text-[11px] text-[#605e5c] ml-2">
                                 ({totalOrders} pedidos | {totalGlobalPackages} bultos | {totalGlobalUnits} unidades)
@@ -220,9 +261,12 @@ const ConsolidatedPackingList = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrint}
-                            className="px-4 py-1.5 text-xs font-medium bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow-sm flex items-center gap-1.5"
+                            className="px-3.5 py-1.5 text-xs font-semibold bg-transparent text-[#0078d4] border border-[#0078d4] hover:bg-[#eff6fc] hover:text-[#106ebe] hover:border-[#106ebe] rounded transition-colors cursor-pointer flex items-center gap-1.5"
                         >
-                            <span>🖨️</span> Imprimir Documento
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Imprimir Documento
                         </button>
                     </div>
                 </div>
@@ -235,7 +279,7 @@ const ConsolidatedPackingList = () => {
                     <div className="flex items-start justify-between border-b border-[#201f1e] pb-1.5 mb-2">
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="text-2xl font-bold tracking-tight text-[#201f1e]">SANDVIK</span>
+                                <span className="text-2xl font-semibold tracking-tight text-[#201f1e]">SANDVIK</span>
                             </div>
                             <p className="text-[10px] uppercase tracking-wider text-[#605e5c] mt-0.5 font-medium">
                                 Despacho y Logística
@@ -243,7 +287,7 @@ const ConsolidatedPackingList = () => {
                         </div>
 
                         <div className="text-center pt-1">
-                            <h1 className="text-lg font-bold uppercase tracking-wider text-[#201f1e]">
+                            <h1 className="text-lg font-semibold uppercase tracking-wider text-[#201f1e]">
                                 Packing List Consolidado
                             </h1>
                             <span className="text-[10px] font-medium text-[#605e5c] uppercase tracking-wide">
@@ -253,7 +297,7 @@ const ConsolidatedPackingList = () => {
 
                         <div className="flex items-center gap-4 text-right">
                             <div className="text-[10px] text-[#605e5c] flex flex-col items-end justify-center">
-                                <span className="font-bold text-[#201f1e] text-xs">
+                                <span className="font-semibold text-[#201f1e] text-xs">
                                     Envío #{data.shipment_id || id}
                                 </span>
                                 <span className="mt-0.5">{formatDate(data.created_at)}</span>
@@ -272,13 +316,13 @@ const ConsolidatedPackingList = () => {
                     </div>
 
                     {/* MATRIZ DE METADATOS DEL ENVÍO CONSOLIDADO */}
-                    <div className="border border-[#c8c6c4] print:border-[#605e5c] mb-3 text-xs bg-[#faf9f8] print:bg-white print:rounded-none rounded overflow-hidden">
+                    <div className="border border-[#c8c6c4] print:border-[#605e5c] mb-3 text-xs bg-white print:bg-white print:rounded-none rounded overflow-hidden">
                         <div className="flex items-center justify-between border-b border-[#c8c6c4] print:border-[#605e5c] px-3 py-2">
                             <div className="flex-1 pr-4">
                                 <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
                                     Cliente(s) / Destinatario(s):
                                 </span>
-                                <span className="text-xs font-bold text-[#201f1e] block truncate">
+                                <span className="text-xs font-semibold text-[#201f1e] block truncate">
                                     {commonCustomerHeader || 'Varios Clientes'}
                                 </span>
                             </div>
@@ -286,7 +330,7 @@ const ConsolidatedPackingList = () => {
                                 <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
                                     Total Bultos Consolidados:
                                 </span>
-                                <span className="text-sm font-bold font-mono text-[#201f1e]">
+                                <span className="text-sm font-semibold font-mono text-[#201f1e]">
                                     {totalGlobalPackages} BULTOS
                                 </span>
                             </div>
@@ -297,7 +341,7 @@ const ConsolidatedPackingList = () => {
                                 <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
                                     Transportadora / Vehículo:
                                 </span>
-                                <span className="font-mono text-xs font-bold text-[#201f1e]">
+                                <span className="font-mono text-xs font-semibold text-[#201f1e]">
                                     {data.carrier || 'No asignada'}
                                 </span>
                             </div>
@@ -313,7 +357,7 @@ const ConsolidatedPackingList = () => {
                                 <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
                                     Total Pedidos:
                                 </span>
-                                <span className="font-mono text-xs font-bold text-[#201f1e]">
+                                <span className="font-mono text-xs font-semibold text-[#201f1e]">
                                     {totalOrders} pedidos ({totalGlobalUnits} uds.)
                                 </span>
                             </div>
@@ -348,10 +392,10 @@ const ConsolidatedPackingList = () => {
                                     {/* CABECERA DEL PEDIDO AGRUPADO */}
                                     <div className="flex items-center justify-between border-b-2 border-[#201f1e] pb-1 mb-1.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold uppercase tracking-wider text-[#201f1e]">
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-[#201f1e]">
                                                 Orden:
                                             </span>
-                                            <span className="font-mono text-xs font-bold text-[#201f1e]">
+                                            <span className="font-mono text-xs font-semibold text-[#201f1e]">
                                                 {orderSeq}
                                             </span>
                                             {order.customer_name && (
@@ -373,25 +417,25 @@ const ConsolidatedPackingList = () => {
 
                                             return (
                                                 <div key={key} className="mb-2 last:mb-0">
-                                                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#201f1e] bg-[#f3f2f1] px-2.5 py-0.5 border-t border-x border-[#d2d0ce] print:bg-transparent print:border-black">
+                                                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#201f1e] bg-white px-2.5 py-0.5 border-t border-x border-[#d2d0ce] print:bg-transparent print:border-black">
                                                         <span>Bulto {key}</span>
                                                         <span className="font-normal text-[10px] text-[#605e5c] print:text-black">
                                                             {pkgItems.length} ítems &bull; {pkgUnits} unidades
                                                         </span>
                                                     </div>
                                                     <table className="packing-table w-full text-xs border border-[#d2d0ce] print:border-black">
-                                                        <thead>
-                                                            <tr className="border-b border-[#d2d0ce] bg-white print:border-black text-[10px]">
-                                                                <th className="px-2.5 py-1 text-center font-bold uppercase w-12 text-[#201f1e]">
+                                                        <thead className="bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                                            <tr className="border-b border-[#d2d0ce] bg-transparent print:border-black text-[10px]" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                                                <th className="px-2.5 py-1 text-center font-semibold uppercase w-12 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
                                                                     Pos.
                                                                 </th>
-                                                                <th className="px-2.5 py-1 text-left font-bold uppercase w-28 text-[#201f1e]">
+                                                                <th className="px-2.5 py-1 text-left font-semibold uppercase w-28 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
                                                                     Código SKU
                                                                 </th>
-                                                                <th className="px-2.5 py-1 text-left font-bold uppercase text-[#201f1e]">
+                                                                <th className="px-2.5 py-1 text-left font-semibold uppercase text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
                                                                     Descripción del Artículo
                                                                 </th>
-                                                                <th className="px-2.5 py-1 text-right font-bold uppercase w-20 text-[#201f1e]">
+                                                                <th className="px-2.5 py-1 text-right font-semibold uppercase w-20 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
                                                                     Cant.
                                                                 </th>
                                                             </tr>
@@ -402,13 +446,13 @@ const ConsolidatedPackingList = () => {
                                                                     <td className="px-2.5 py-1 text-center font-mono text-[10px] text-[#605e5c] print:text-black">
                                                                         {item.order_line || String((idx + 1) * 10).padStart(4, '0')}
                                                                     </td>
-                                                                    <td className="px-2.5 py-1 font-mono font-bold text-[#201f1e] text-[11px] whitespace-nowrap">
+                                                                    <td className="px-2.5 py-1 font-mono font-semibold text-[#201f1e] text-[11px] whitespace-nowrap">
                                                                         {item.item_code}
                                                                     </td>
                                                                     <td className="px-2.5 py-1 text-[#201f1e] text-[11px] leading-snug">
                                                                         {item.description || '-'}
                                                                     </td>
-                                                                    <td className="px-2.5 py-1 text-right font-mono font-bold text-xs text-[#201f1e] whitespace-nowrap">
+                                                                    <td className="px-2.5 py-1 text-right font-mono font-semibold text-xs text-[#201f1e] whitespace-nowrap">
                                                                         {item.quantity}
                                                                     </td>
                                                                 </tr>
@@ -427,25 +471,25 @@ const ConsolidatedPackingList = () => {
                                     {/* LÍNEAS DE ARTÍCULOS ADICIONALES DEL PEDIDO (SI APLICAN) */}
                                     {order.items && order.items.length > 0 && (
                                         <div className="mt-2">
-                                            <div className="text-[10px] font-bold uppercase text-[#605e5c] mb-1">
+                                            <div className="text-[10px] font-semibold uppercase text-[#605e5c] mb-1">
                                                 Resumen de Ítems de la Orden #{order.order_number}:
                                             </div>
                                             <table className="packing-table w-full text-xs border border-[#d2d0ce] print:border-black">
-                                                <thead>
-                                                    <tr className="border-b border-[#d2d0ce] bg-[#f3f2f1] print:bg-transparent text-[10px]">
-                                                        <th className="px-2.5 py-1 text-center font-bold uppercase w-12 text-[#201f1e]">Línea</th>
-                                                        <th className="px-2.5 py-1 text-left font-bold uppercase w-28 text-[#201f1e]">Código</th>
-                                                        <th className="px-2.5 py-1 text-left font-bold uppercase text-[#201f1e]">Descripción</th>
-                                                        <th className="px-2.5 py-1 text-right font-bold uppercase w-20 text-[#201f1e]">Cant.</th>
+                                                <thead className="bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                                    <tr className="border-b border-[#d2d0ce] bg-transparent print:bg-transparent text-[10px]" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                                        <th className="px-2.5 py-1 text-center font-semibold uppercase w-12 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>Línea</th>
+                                                        <th className="px-2.5 py-1 text-left font-semibold uppercase w-28 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>Código</th>
+                                                        <th className="px-2.5 py-1 text-left font-semibold uppercase text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>Descripción</th>
+                                                        <th className="px-2.5 py-1 text-right font-semibold uppercase w-20 text-[#201f1e] bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>Cant.</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#e1dfdd] print:divide-[#d2d0ce]">
                                                     {order.items.map((item, idx) => (
                                                         <tr key={idx} className="hover:bg-[#faf9f8] print:hover:bg-transparent">
                                                             <td className="px-2.5 py-1 text-center font-mono text-[10px] text-[#605e5c] print:text-black">{item.order_line}</td>
-                                                            <td className="px-2.5 py-1 font-mono font-bold text-[#201f1e] text-[11px]">{item.item_code}</td>
+                                                            <td className="px-2.5 py-1 font-mono font-semibold text-[#201f1e] text-[11px]">{item.item_code}</td>
                                                             <td className="px-2.5 py-1 text-[#201f1e] text-[11px]">{item.description}</td>
-                                                            <td className="px-2.5 py-1 text-right font-mono font-bold text-xs text-[#201f1e]">{item.quantity}</td>
+                                                            <td className="px-2.5 py-1 text-right font-mono font-semibold text-xs text-[#201f1e]">{item.quantity}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

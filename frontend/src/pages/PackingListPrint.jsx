@@ -128,7 +128,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     <p className="text-xs text-[#605e5c]">{error}</p>
                     <button
                         onClick={() => navigate(-1)}
-                        className="mt-4 px-3 py-1.5 text-xs bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] rounded transition-colors"
+                        className="mt-4 px-3 py-1.5 text-xs font-semibold text-[#201f1e] bg-transparent border border-[#8a8886] hover:bg-[#f3f2f1] hover:border-[#323130] rounded transition-colors cursor-pointer"
                     >
                         Volver
                     </button>
@@ -164,6 +164,27 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     width: 100%;
                     max-width: ${isZebra ? '480px' : '850px'};
                     margin: 0 auto 1.5rem auto;
+                }
+
+                /* Anulación absoluta de sombreados en pantalla */
+                .packing-list-print-page .packing-table,
+                .packing-list-print-page .packing-table thead,
+                .packing-list-print-page .packing-table thead tr,
+                .packing-list-print-page .packing-table thead th,
+                .packing-list-print-page .packing-table th,
+                .packing-list-print-page .packing-table tbody,
+                .packing-list-print-page .packing-table tbody tr,
+                .packing-list-print-page .packing-table tbody td,
+                .packing-list-print-page .packing-table tfoot,
+                .packing-list-print-page .packing-table tfoot tr,
+                .packing-list-print-page .packing-table tfoot td,
+                .packing-table thead,
+                .packing-table thead tr,
+                .packing-table thead th,
+                .packing-table th {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
                 }
 
                 @media print {
@@ -220,17 +241,37 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     .packing-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
+                        background: transparent !important;
+                    }
+                    .packing-table thead,
+                    .packing-table thead tr,
+                    .packing-table thead th,
+                    .packing-table th {
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        background-image: none !important;
                     }
                     .packing-table thead tr {
                         border-top: 2px solid #000000 !important;
                         border-bottom: 2px solid #000000 !important;
+                        background: transparent !important;
                     }
                     .packing-table tbody tr {
                         border-bottom: 1px solid #000000 !important;
+                        background: transparent !important;
+                    }
+                    .packing-table tbody td {
+                        background: transparent !important;
+                        background-color: transparent !important;
                     }
                     .packing-table tfoot tr {
                         border-top: 2px solid #000000 !important;
                         border-bottom: 2px solid #000000 !important;
+                        background: transparent !important;
+                    }
+                    .packing-table tfoot td {
+                        background: transparent !important;
+                        background-color: transparent !important;
                     }
                     tr { 
                         break-inside: avoid; 
@@ -238,30 +279,30 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                 }
             `}} />
 
-            {/* BARRA DE COMANDOS CON SELECTOR DE FORMATO */}
-            <div className="no-print sticky top-0 z-50 bg-white border-b border-neutral-300 shadow-sm">
+            {/* BARRA DE COMANDOS FLUENT UI CON SELECTOR DE FORMATO */}
+            <div className="no-print sticky top-0 z-50 bg-white border-b border-[#edebe9] shadow-xs">
                 <div className={`mx-auto px-4 py-2 flex items-center justify-between gap-3 ${isZebra ? 'max-w-[480px]' : 'max-w-[850px]'}`}>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => navigate(-1)}
-                            className="px-2.5 py-1 text-xs font-semibold text-black bg-white border border-black hover:bg-neutral-100 rounded transition-colors"
+                            className="px-2.5 py-1 text-xs font-semibold text-[#201f1e] bg-transparent border border-[#8a8886] hover:bg-[#f3f2f1] hover:border-[#323130] rounded transition-colors cursor-pointer"
                         >
                             &larr; Volver
                         </button>
-                        <span className="text-xs font-bold text-black hidden sm:inline">
+                        <span className="text-xs font-semibold text-[#201f1e] hidden sm:inline">
                             Packing List #{id}
                         </span>
                     </div>
 
-                    {/* SELECTOR SEGMENTADO DE IMPRESORA / FORMATO */}
-                    <div className="flex items-center bg-neutral-100 p-0.5 rounded border border-neutral-300 text-xs">
+                    {/* SELECTOR SEGMENTADO SIN RELLENO ESTILO FLUENT UI */}
+                    <div className="flex items-center border border-[#d2d0ce] bg-transparent p-0.5 rounded text-xs">
                         <button
                             type="button"
                             onClick={() => handleFormatChange('zebra')}
-                            className={`px-2.5 py-1 rounded font-bold transition-all cursor-pointer ${
+                            className={`px-2.5 py-1 rounded text-xs transition-all cursor-pointer ${
                                 isZebra
-                                    ? 'bg-black text-white shadow-xs'
-                                    : 'text-neutral-700 hover:text-black'
+                                    ? 'border border-[#0078d4] text-[#0078d4] font-semibold bg-transparent'
+                                    : 'border border-transparent text-[#605e5c] hover:text-[#201f1e] hover:bg-[#f3f2f1] font-normal'
                             }`}
                             title="Rollo de 100x150 mm en impresora térmica Zebra"
                         >
@@ -270,10 +311,10 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         <button
                             type="button"
                             onClick={() => handleFormatChange('letter')}
-                            className={`px-2.5 py-1 rounded font-bold transition-all cursor-pointer ${
+                            className={`px-2.5 py-1 rounded text-xs transition-all cursor-pointer ${
                                 !isZebra
-                                    ? 'bg-black text-white shadow-xs'
-                                    : 'text-neutral-700 hover:text-black'
+                                    ? 'border border-[#0078d4] text-[#0078d4] font-semibold bg-transparent'
+                                    : 'border border-transparent text-[#605e5c] hover:text-[#201f1e] hover:bg-[#f3f2f1] font-normal'
                             }`}
                             title="Hoja Carta o A4 estándar"
                         >
@@ -284,8 +325,8 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrint}
-                            className="px-3.5 py-1.5 text-xs font-bold bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow cursor-pointer"
-                        >
+                            className="px-3.5 py-1.5 text-xs font-semibold bg-transparent text-[#0078d4] border border-[#0078d4] hover:bg-[#eff6fc] hover:text-[#106ebe] hover:border-[#106ebe] rounded transition-colors cursor-pointer flex items-center gap-1.5"
+                        >                           
                             Imprimir {isZebra ? 'Zebra' : 'Carta'}
                         </button>
                     </div>
@@ -295,7 +336,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
             {/* CONTENEDOR DE PÁGINAS / ETIQUETAS */}
             <div className={`mx-auto py-4 px-2 print:p-0 print:m-0 ${isZebra ? 'max-w-[480px]' : 'max-w-[850px]'}`}>
                 {sortedPackageKeys.length === 0 ? (
-                    <div className="bg-white p-8 rounded border border-black text-center text-xs font-bold text-black">
+                    <div className="bg-white p-8 rounded border border-black text-center text-xs font-semibold text-black">
                         No hay bultos registrados en esta orden.
                     </div>
                 ) : (
@@ -321,14 +362,14 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                 <div className={`flex items-center justify-between border-b-2 border-black ${isZebra ? 'pb-1 mb-1' : 'pb-2 mb-3'}`}>
                                     <div className="flex-1 pr-2">
                                         <div className="flex items-baseline gap-2">
-                                            <span className={`${isZebra ? 'text-lg' : 'text-2xl'} font-black tracking-tighter text-black leading-none`}>
+                                            <span className={`${isZebra ? 'text-lg' : 'text-2xl'} font-semibold tracking-normal text-black leading-none`}>
                                                 SANDVIK
                                             </span>
-                                            <span className={`${isZebra ? 'text-[10px]' : 'text-sm'} font-black uppercase tracking-wider text-black leading-none`}>
+                                            <span className={`${isZebra ? 'text-[10px]' : 'text-sm'} font-semibold uppercase tracking-normal text-black leading-none`}>
                                                 PACKING LIST
                                             </span>
                                         </div>
-                                        <div className={`${isZebra ? 'text-[8px]' : 'text-[10px]'} font-mono font-bold text-black mt-0.5 leading-tight`}>
+                                        <div className={`${isZebra ? 'text-[8px]' : 'text-[10px]'} font-mono font-semibold text-black mt-0.5 leading-tight`}>
                                             REF: AUD-{id} | {formatDate(data.timestamp)} | Pág. {index + 1} de {sortedPackageKeys.length}
                                         </div>
                                     </div>
@@ -352,10 +393,10 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
                                 {/* 2. BANNER DE BULTO Y PEDIDO (FONDO BLANCO CON BORDE Y TEXTO NEGRO) */}
                                 <div className={`bg-white text-black border-2 border-black ${isZebra ? 'px-1.5 py-0.5 mb-1 text-xs' : 'px-3 py-1.5 mb-2 text-sm'} flex items-center justify-between`}>
-                                    <span className="font-mono font-black tracking-wider uppercase text-black">
+                                    <span className="font-mono font-semibold tracking-normal uppercase text-black">
                                         BULTO {packageKey} DE {totalGlobalPackages}
                                     </span>
-                                    <span className="font-mono font-bold uppercase text-black">
+                                    <span className="font-mono font-semibold uppercase text-black">
                                         ORDEN: {orderFormatted}
                                     </span>
                                 </div>
@@ -366,14 +407,14 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                     <div className="border border-black mb-1 px-1.5 py-0.5 bg-white text-[10px]">
                                         <div className="flex justify-between items-center leading-tight">
                                             <div className="flex-1 truncate pr-2">
-                                                <span className="text-[8px] font-black uppercase mr-1">DESTINATARIO:</span>
-                                                <strong className="font-black text-[10px]">{data.customer_code ? `${data.customer_code} - ` : ''}{data.customer_name || 'N/A'}</strong>
+                                                <span className="text-[8px] font-semibold uppercase mr-1">DESTINATARIO:</span>
+                                                <span className="font-semibold text-[10px]">{data.customer_code ? `${data.customer_code} - ` : ''}{data.customer_name || 'N/A'}</span>
                                             </div>
-                                            <div className="shrink-0 font-mono font-black text-[10px]">
+                                            <div className="shrink-0 font-mono font-semibold text-[10px]">
                                                 {boxUnits} UDS. EN BULTO
                                             </div>
                                         </div>
-                                        <div className="flex justify-between items-center text-[8px] font-bold text-black border-t border-black mt-0.5 pt-0.5">
+                                        <div className="flex justify-between items-center text-[8px] font-semibold text-black border-t border-black mt-0.5 pt-0.5">
                                             <span>Total Envío: {totalGlobalPackages} Cajas</span>
                                             <span>Total Orden: {totalGlobalUnits} Uds</span>
                                         </div>
@@ -383,24 +424,24 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                     <div className="border-2 border-black mb-3 text-xs bg-white">
                                         <div className="flex items-center justify-between border-b-2 border-black px-3 py-2">
                                             <div className="flex-1 pr-4">
-                                                <span className="text-[10px] font-bold uppercase text-black block">Cliente / Destinatario:</span>
-                                                <span className="text-sm font-black text-black block truncate">
+                                                <span className="text-[10px] font-semibold uppercase text-black block">Cliente / Destinatario:</span>
+                                                <span className="text-sm font-semibold text-black block truncate">
                                                     {data.customer_code ? `${data.customer_code} - ` : ''}{data.customer_name || 'N/A'}
                                                 </span>
                                             </div>
                                             <div className="text-right border-l-2 border-black pl-4 shrink-0">
-                                                <span className="text-[10px] font-bold uppercase text-black block">Total Bultos Envío:</span>
-                                                <span className="text-base font-black font-mono text-black">{totalGlobalPackages} CAJAS</span>
+                                                <span className="text-[10px] font-semibold uppercase text-black block">Total Bultos Envío:</span>
+                                                <span className="text-base font-semibold font-mono text-black">{totalGlobalPackages} CAJAS</span>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 divide-x-2 divide-black px-3 py-2">
                                             <div>
-                                                <span className="text-[10px] font-bold uppercase text-black block">No. Orden / Despacho:</span>
-                                                <span className="font-mono text-xs font-black text-black">{orderFormatted}</span>
+                                                <span className="text-[10px] font-semibold uppercase text-black block">No. Orden / Despacho:</span>
+                                                <span className="font-mono text-xs font-semibold text-black">{orderFormatted}</span>
                                             </div>
                                             <div className="pl-3 text-right">
-                                                <span className="text-[10px] font-bold uppercase text-black block">Total Unidades Orden:</span>
-                                                <span className="font-mono text-xs font-black text-black">{totalGlobalUnits} uds.</span>
+                                                <span className="text-[10px] font-semibold uppercase text-black block">Total Unidades Orden:</span>
+                                                <span className="font-mono text-xs font-semibold text-black">{totalGlobalUnits} uds.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -409,46 +450,46 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                 {/* 4. TABLA DE ÍTEMS EMPACADOS */}
                                 <div className={isZebra ? 'mb-1' : 'mb-3'}>
                                     <table className="packing-table w-full text-xs">
-                                        <thead>
-                                            <tr className={`border-y-2 border-black bg-neutral-100 print:bg-transparent ${isZebra ? 'text-[8px]' : 'text-[10px]'} font-black uppercase text-black`}>
-                                                <th className={`${isZebra ? 'py-0.5 px-1 w-7' : 'py-1 px-2 w-10'} text-center`}>Pos.</th>
-                                                <th className={`${isZebra ? 'py-0.5 px-1 w-24' : 'py-1 px-2 w-32'} text-left`}>Código SKU</th>
-                                                <th className={`${isZebra ? 'py-0.5 px-1' : 'py-1 px-2'} text-left`}>Descripción</th>
-                                                <th className={`${isZebra ? 'py-0.5 px-1 w-10' : 'py-1 px-2 w-16'} text-right`}>Cant.</th>
+                                        <thead className="bg-transparent" style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                            <tr className={`border-y-2 border-black bg-transparent ${isZebra ? 'text-[8px]' : 'text-[10px]'} font-semibold uppercase text-black`} style={{ backgroundColor: 'transparent', background: 'transparent' }}>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-7' : 'py-1 px-2 w-10'} text-center bg-transparent`} style={{ backgroundColor: 'transparent', background: 'transparent' }}>Pos.</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-24' : 'py-1 px-2 w-32'} text-left bg-transparent`} style={{ backgroundColor: 'transparent', background: 'transparent' }}>Código SKU</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1' : 'py-1 px-2'} text-left bg-transparent`} style={{ backgroundColor: 'transparent', background: 'transparent' }}>Descripción</th>
+                                                <th className={`${isZebra ? 'py-0.5 px-1 w-10' : 'py-1 px-2 w-16'} text-right bg-transparent`} style={{ backgroundColor: 'transparent', background: 'transparent' }}>Cant.</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-black font-sans">
                                             {items.length > 0 ? (
                                                 items.map((item, idx) => (
                                                     <tr key={idx} className="border-b border-black">
-                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[8px]' : 'py-1.5 px-2 text-[10px]'} text-center font-mono font-bold text-black`}>
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[8px]' : 'py-1.5 px-2 text-[10px]'} text-center font-mono font-semibold text-black`}>
                                                             {item.order_line || String((idx + 1) * 10).padStart(4, '0')}
                                                         </td>
-                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} font-mono font-black text-black whitespace-nowrap`}>
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} font-mono font-semibold text-black whitespace-nowrap`}>
                                                             {item.item_code}
                                                         </td>
                                                         <td className={`${isZebra ? 'py-0.5 px-1 text-[9px] line-clamp-1' : 'py-1.5 px-2 text-[11px]'} text-black font-semibold leading-tight`}>
                                                             {item.description || '-'}
                                                         </td>
-                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} text-right font-mono font-black text-black whitespace-nowrap`}>
+                                                        <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-xs'} text-right font-mono font-semibold text-black whitespace-nowrap`}>
                                                             {item.quantity}
                                                         </td>
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="4" className="py-2 text-center text-xs font-bold text-black italic">
+                                                    <td colSpan="4" className="py-2 text-center text-xs font-semibold text-black italic">
                                                         Bulto sin líneas registradas.
                                                     </td>
                                                 </tr>
                                             )}
                                         </tbody>
                                         <tfoot>
-                                            <tr className="border-t-2 border-b-2 border-black text-xs font-black">
+                                            <tr className="border-t-2 border-b-2 border-black text-xs font-semibold">
                                                 <td colSpan="3" className={`${isZebra ? 'py-0.5 px-1 text-[8px]' : 'py-1.5 px-2 text-[10px]'} text-right uppercase tracking-tight`}>
                                                     SUBTOTAL EN ESTE BULTO:
                                                 </td>
-                                                <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-sm'} text-right font-mono font-black`}>
+                                                <td className={`${isZebra ? 'py-0.5 px-1 text-[10px]' : 'py-1.5 px-2 text-sm'} text-right font-mono font-semibold`}>
                                                     {boxUnits}
                                                 </td>
                                             </tr>
@@ -458,26 +499,26 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
                                 {/* 5. SECCIÓN DE FIRMAS */}
                                 <div className={`${isZebra ? 'mt-1 pt-1 border-t-2' : 'mt-4 pt-3 border-t-2'} border-black`}>
-                                    <div className={`grid grid-cols-3 ${isZebra ? 'gap-1.5 mb-0.5 text-[8px]' : 'gap-4 mb-2 text-[10px]'} text-center font-bold`}>
+                                    <div className={`grid grid-cols-3 ${isZebra ? 'gap-1.5 mb-0.5 text-[8px]' : 'gap-4 mb-2 text-[10px]'} text-center font-semibold`}>
                                         <div>
                                             <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Preparado</span>
-                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Operaciones SANDVIK</span>}
+                                            {!isZebra && <span className="text-[8px] font-normal block text-black mt-0.5">Operaciones SANDVIK</span>}
                                         </div>
                                         <div>
                                             <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Transportador</span>
-                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Placa / C.C.</span>}
+                                            {!isZebra && <span className="text-[8px] font-normal block text-black mt-0.5">Placa / C.C.</span>}
                                         </div>
                                         <div>
                                             <div className={`border-b border-black ${isZebra ? 'h-3.5 mb-0.5' : 'h-8 mb-1'}`}></div>
                                             <span className="block uppercase leading-none">Recibido</span>
-                                            {!isZebra && <span className="text-[8px] font-normal block text-neutral-600 mt-0.5">Firma / Sello</span>}
+                                            {!isZebra && <span className="text-[8px] font-normal block text-black mt-0.5">Firma / Sello</span>}
                                         </div>
                                     </div>
 
                                     {/* 6. PIE DE ETIQUETA / DOCUMENTO */}
-                                    <div className={`flex justify-between items-center ${isZebra ? 'text-[7px] pt-0.5' : 'text-[9px] pt-1.5'} font-mono font-bold text-black border-t border-black`}>
+                                    <div className={`flex justify-between items-center ${isZebra ? 'text-[7px] pt-0.5' : 'text-[9px] pt-1.5'} font-mono font-semibold text-black border-t border-black`}>
                                         <span>SANDVIK &bull; LOGIX WMS</span>
                                         <span>AUD-{id} &bull; BULTO {packageKey}/{totalGlobalPackages}</span>
                                     </div>
