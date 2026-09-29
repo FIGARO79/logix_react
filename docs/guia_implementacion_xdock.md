@@ -4,36 +4,49 @@ Este documento define la **especificación técnica, fórmulas matemáticas, con
 
 ---
 
+## Tabla de Contenidos
+1. [Arquitectura de Datos y Entidades Requeridas](#1-arquitectura-de-datos-y-entidades-requeridas)
+2. [Guía de Implementación Paso a Paso (Roadmap de Desarrollo)](#2-guía-de-implementación-paso-a-paso-roadmap-de-desarrollo)
+3. [Fórmulas Matemáticas y Reglas de Negocio](#3-fórmulas-matemáticas-y-reglas-de-negocio)
+4. [Pseudocódigo Completo de Implementación](#4-pseudocódigo-completo-de-implementación)
+5. [Reglas Críticas de Exclusión (Aislamiento de Slotting e IA)](#5-reglas-críticas-de-exclusión-aislamiento-de-slotting-e-ia)
+6. [Ejemplo Práctico Numérico de Validación](#6-ejemplo-práctico-numérico-de-validación)
+7. [Esquema Relacional de Base de Datos (DDL SQL e Índices)](#7-esquema-relacional-de-base-de-datos-ddl-sql-e-índices)
+8. [Especificación Formal de Endpoints (API REST / OpenAPI)](#8-especificación-formal-de-endpoints-api-rest--openapi)
+9. [Matriz de Casos Borde (Edge Cases) y Reglas de Excepción](#9-matriz-de-casos-borde-edge-cases-y-reglas-de-excepción)
+10. [Concurrencia, Transacciones e Idempotencia](#10-concurrencia-transacciones-e-idempotencia)
+
+---
+
 ## 1. Arquitectura de Datos y Entidades Requeridas
 
 Para implementar Xdock en otra aplicación se requieren 3 fuentes de datos estructuradas o tablas:
 
-<p align="center">
-  <img src="diagrama_xdock.png" alt="Arquitectura de Datos y Entidades Requeridas para Xdock" width="700" />
-</p>
-
-<details>
-<summary><b>Ver código fuente Mermaid del diagrama</b></summary>
-
-```mermaid
-graph LR
-    subgraph Fuentes de Entrada
-        A[1. Archivo/Tabla de Reservas ERP]
-        B[2. Archivo/Tabla de Enlace Embarque/PO]
-    end
-    subgraph Motor de Cálculo
-        C[Xdock Engine: Deduplicación + Contexto + Deducción]
-    end
-    subgraph Estado Transaccional
-        D[(3. Tabla de Recepciones Inbound)]
-    end
-    A --> C
-    B --> C
-    D --> C
-    C --> E[Respuesta al Operario: Cantidad y Cliente]
+```text
+┌───────────────────────────────────────┐      ┌───────────────────────────────────────┐
+│ 1. Reservas ERP (AURRSLAMP0006.csv)   │      │ 2. Enlace Embarque / PO (Extractor)   │
+│    - Item_Code, Action_QTY            │      │    - Import Reference (IR / Contenedor)│
+│    - PO_Number, SO_Number, SO_Line    │      │    - POs asociadas (Customer Ref / 280)│
+│    - Customer_Code, Customer_Name     │      │                                       │
+└───────────────────┬───────────────────┘      └───────────────────┬───────────────────┘
+                    │                                              │
+                    ▼                                              ▼
+            ┌──────────────────────────────────────────────────────────────┐
+            │                  MOTOR DE CROSS-DOCKING (XDOCK)              │
+            │  1. Deduplicación por línea SO (Fórmula 1)                   │
+            │  2. Filtro Contextual de POs por Embarque (Fórmula 2)        │
+            │  3. Cálculo de Saldo Neto = Reservas - Recibido (Fórmula 3)  │
+            │  4. Deducción Secuencial FIFO por Cliente (Fórmula 4)        │
+            └───────────────▲──────────────────────────────┬───────────────┘
+                            │                              │
+            ┌───────────────┴──────────────┐               ▼
+            │ 3. Historial Recepciones DB  │   ┌───────────────────────────────────────┐
+            │    Tabla `logs`              │   │     Respuesta Operario / Pantalla     │
+            │    SUM(qtyReceived) activas  │   │  - xdockTotal: Total para el embarque │
+            │    WHERE archived_at IS NULL │   │  - xdockPending: Saldo por ingresar   │
+            └──────────────────────────────┘   │  - xdockCustomers: Clientes con saldo │
+                                               └───────────────────────────────────────┘
 ```
-
-</details>
 
 
 ### A. Entidad de Entrada: Reservas de Venta (`Reservations`)
@@ -133,15 +146,23 @@ Historial de unidades efectivamente ingresadas y validadas en el almacén en tie
 
 ## 2. Guía de Implementación Paso a Paso (Roadmap de Desarrollo)
 
-Para construir este motor en otra aplicación de manera ordenada, sigue este flujo cronológico de 5 fases, diseñando las fórmulas correspondientes en cada etapa:
+Para construir este motor en otra aplicación de manera ordenada, sigue este flujo cronológico de 5 fases conectadas:
 
-```mermaid
-graph TD
-    F1[Fase 1: Ingesta de Reservas AURRSLAMP0006.csv] -->|Diseñar Fórmula 1: Deduplicación| F2[Fase 2: Mapeo de Embarque PO Extractor + 280]
-    F2 -->|Construir índice relacional| F3[Fase 3: Endpoint de Consulta Inbound]
-    F3 -->|Diseñar Fórmulas 2, 3 y 4: Contexto, Saldo y FIFO| F4[Fase 4: Reactividad en Frontend UI]
-    F4 -->|Diseñar Fórmula 5: Descuento local 0ms| F5[Fase 5: Seguridad y Aislamiento de IA/Slotting]
+```text
+[ Fase 1: Ingesta ] ──► [ Fase 2: Enlace ] ──► [ Fase 3: Consulta API ] ──► [ Fase 4: Reactividad ] ──► [ Fase 5: Seguridad ]
+ Deduplicación ERP       Mapeo Embarque/PO      Filtro, Saldo & FIFO         Frontend UI (0 ms)      Exclusión IA/Slotting
+ (Fórmula 1)             (Índice RAM)           (Fórmulas 2, 3 y 4)          (Fórmula 5)             (Bines virtuales)
 ```
+
+#### Matriz de Pipeline de Transformación de Datos
+
+| Fase | Componente / Función | Entrada (Input) | Lógica Aplicada | Salida (Output) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Ingesta** | Parser de Reservas | Archivo `AURRSLAMP0006.csv` | **Fórmula 1:** Agrupa por `(Item, PO, SO, Line)` tomando `MAX(qty)`. | Diccionario en RAM: `{ item_code: { total, customers } }` |
+| **2. Enlace** | Generador de Enlace | Extractor PO + Reporte 280 | Vincula `import_reference` con las POs que viajan físicamente. | Índice: `import_ref + item_code -> Set(PO_Numbers)` |
+| **3. Consulta** | Endpoint `find_item` | `item_code` + `import_reference` | **Fórmulas 2, 3 y 4:** Filtra por PO del embarque, resta acumulado SQL y deduce FIFO por cliente. | Contrato JSON: `{ xdockTotal, xdockPending, xdockCustomers }` |
+| **4. Interfaz** | Vista UI Inbound | Entrada del operario en tabla local | **Fórmula 5:** Deducción local reactiva en tiempo real sin latencia de red. | Alerta visual roja XDOCK + desglose de piezas por cliente |
+| **5. Seguridad**| Persistencia & Slotting| Guardado en tabla `logs` | Aísla bines virtuales (`XDOCK`, `PUTAWAY`, `STAGE`) de históricos e IA. | Inventario limpio; algoritmos de ubicación protegidos |
 
 ---
 
@@ -414,7 +435,7 @@ const effectiveXdockPending = Math.max(0, (itemData?.xdockTotal || 0) - cumulati
 
 ---
 
-## 3. Pseudocódigo Completo de Implementación
+## 4. Pseudocódigo Completo de Implementación
 
 ### Módulo 1: Procesamiento y Caché del Archivo de Reservas (Backend)
 
@@ -524,6 +545,11 @@ async def find_item_xdock(item_code, shipment_id, db, cache):
             })
 
     return {
+        # Formato estándar camelCase (usado en Logix FastAPI / React UI):
+        "xdockTotal": total_reserved,
+        "xdockPending": xdock_pending,
+        "xdockCustomers": xdock_customers,
+        # Equivalente snake_case para APIs genéricas:
         "xdock_total": total_reserved,
         "xdock_pending": xdock_pending,
         "xdock_customers": xdock_customers,
@@ -533,7 +559,7 @@ async def find_item_xdock(item_code, shipment_id, db, cache):
 
 ---
 
-## 4. Reglas Críticas de Exclusión (Aislamiento de Slotting e IA)
+## 5. Reglas Críticas de Exclusión (Aislamiento de Slotting e IA)
 
 Al incorporar Xdock en una solución WMS que incluya algoritmos de Slotting o Inteligencia Artificial para sugerir pasillos y cajones de almacén:
 
@@ -551,7 +577,7 @@ def on_item_relocated_or_received(item_code, chosen_bin):
 
 ---
 
-## 5. Ejemplo Práctico Numérico de Validación
+## 6. Ejemplo Práctico Numérico de Validación
 
 Supongamos el siguiente caso de prueba para validar que su implementación funcione correctamente:
 
@@ -592,3 +618,215 @@ Supongamos el siguiente caso de prueba para validar que su implementación funci
      * El banner rojo de XDOCK se apaga.
      * Se habilita la sugerencia habitual de slotting en estantería para las 3 unidades sobrantes (excedente).
      * La lista `xdock_customers` se retorna vacía `[]`.
+
+---
+
+## 7. Esquema Relacional de Base de Datos (DDL SQL e Índices)
+
+Si se implementa el motor de Xdock en una nueva base de datos relacional (PostgreSQL, MySQL o SQLite) sin depender de archivos de texto ni hojas de cálculo, se deben crear las siguientes 3 tablas estructuradas:
+
+```sql
+-- 1. Tabla de Reservas de Clientes (Demanda en firme)
+CREATE TABLE reservations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(100) NOT NULL,
+    po_number VARCHAR(100) NOT NULL,
+    so_number VARCHAR(100),
+    so_line_number VARCHAR(50),
+    customer_code VARCHAR(100),
+    customer_name VARCHAR(255),
+    action_qty DECIMAL(12, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices de consulta rápida y deduplicación
+CREATE INDEX idx_reservations_item_po ON reservations (item_code, po_number);
+CREATE INDEX idx_reservations_dedup ON reservations (item_code, po_number, so_number, so_line_number);
+
+
+-- 2. Tabla de Enlace Embarque a Órdenes de Compra (Asociación Física)
+CREATE TABLE shipment_orders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    shipment_id VARCHAR(100) NOT NULL,    -- Código de contenedor o Import Reference
+    po_number VARCHAR(100) NOT NULL,      -- Número de Orden de Compra (PO)
+    item_code VARCHAR(100) NOT NULL,      -- SKU que viaja en la orden
+    waybill VARCHAR(100),                 -- Guía aérea / marítima (opcional)
+    expected_qty DECIMAL(12, 2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índice para recuperar en O(1) las POs de un SKU en el embarque activo
+CREATE INDEX idx_shipment_lookup ON shipment_orders (shipment_id, item_code);
+
+
+-- 3. Tabla Transaccional de Recepciones (Historial Inbound)
+CREATE TABLE receiving_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    client_transaction_id VARCHAR(100) UNIQUE, -- UUID v4 para IDEMPOTENCIA
+    shipment_id VARCHAR(100) NOT NULL,
+    item_code VARCHAR(100) NOT NULL,
+    qty_received INT NOT NULL,
+    destination_bin VARCHAR(100) NOT NULL,    -- 'XDOCK' o bin de estantería
+    operator_username VARCHAR(100) NOT NULL,
+    archived_at TIMESTAMP NULL DEFAULT NULL,  -- NULL = Activo, Fecha = Archivado
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ÍNDICE CRÍTICO DE RENDIMIENTO:
+-- Permite que SUM(qty_received) responda en < 1ms incluso con millones de logs
+CREATE INDEX idx_logs_shipment_item_active ON receiving_logs (shipment_id, item_code, archived_at);
+```
+
+---
+
+## 8. Especificación Formal de Endpoints (API REST / OpenAPI)
+
+Para construir la interfaz de programación de aplicaciones (API), se definen formalmente dos contratos HTTP:
+
+### Endpoint 1: Consulta de Estado y Saldo Xdock
+Invocado en cada escaneo de código de barras o búsqueda de SKU en la estación de recepción.
+
+* **Método:** `GET`
+* **Ruta:** `/api/v1/xdock/pending/{item_code}`
+* **Parámetros de Ruta:**
+  * `item_code` (`string`, requerido): Código del SKU (debe enviarse codificado en URL: `encodeURIComponent`).
+* **Parámetros de Consulta (Query Params):**
+  * `shipment_id` (`string`, requerido): Identificador del contenedor o embarque en proceso.
+* **Códigos de Respuesta HTTP:**
+  * `200 OK`: Consulta exitosa (incluso si no requiere Xdock).
+  * `400 Bad Request`: Falta el parámetro `shipment_id`.
+  * `422 Unprocessable Entity`: Código de ítem vacío o malformado.
+
+#### Ejemplo de Respuesta `200 OK` (JSON):
+```json
+{
+  "item_code": "56208577",
+  "shipment_id": "CO-2026-001",
+  "is_xdock_required": true,
+  "xdock_total": 15.0,
+  "already_received": 3.0,
+  "xdock_pending": 12.0,
+  "xdock_customers": [
+    {
+      "customer_name": "00090 - AGREGADOS Y MEZCLAS CACHIBI SA",
+      "po_number": "E028900",
+      "label": "00090 - AGREGADOS Y MEZCLAS CACHIBI SA (PO: E028900)",
+      "qty": 2.0,
+      "original_qty": 5.0
+    },
+    {
+      "customer_name": "00145 - CONCRETOS DEL VALLE",
+      "po_number": "E028900",
+      "label": "00145 - CONCRETOS DEL VALLE (PO: E028900)",
+      "qty": 10.0,
+      "original_qty": 10.0
+    }
+  ]
+}
+```
+
+---
+
+### Endpoint 2: Confirmación y Guardado de Recepción
+Invocado cuando el operario confirma el ingreso físico de piezas y las destina a `"XDOCK"` o a una estantería física.
+
+* **Método:** `POST`
+* **Ruta:** `/api/v1/xdock/receive`
+* **Headers:** `Content-Type: application/json`
+* **Cuerpo de la Petición (Request Body):**
+
+```json
+{
+  "client_transaction_id": "c7a8b301-38fe-4e55-9011-85d76d49f012",
+  "shipment_id": "CO-2026-001",
+  "item_code": "56208577",
+  "qty_received": 3,
+  "destination_bin": "XDOCK",
+  "operator_username": "carlos_almacen"
+}
+```
+
+* **Códigos de Respuesta HTTP:**
+  * `201 Created`: Registro insertado y saldo actualizado.
+  * `200 OK`: Petición duplicada idempotente ya procesada con anterioridad.
+  * `422 Unprocessable Entity`: `qty_received <= 0` o campos obligatorios vacíos.
+
+#### Ejemplo de Respuesta `201 Created` (JSON):
+```json
+{
+  "status": "success",
+  "log_id": 98452,
+  "client_transaction_id": "c7a8b301-38fe-4e55-9011-85d76d49f012",
+  "item_code": "56208577",
+  "qty_received": 3,
+  "destination_bin": "XDOCK",
+  "remaining_xdock_pending": 9.0
+}
+```
+
+---
+
+## 9. Matriz de Casos Borde (Edge Cases) y Reglas de Excepción
+
+En operaciones de almacén reales suelen ocurrir discrepancias físicas y operativas. La API debe responder de acuerdo con las siguientes reglas estandarizadas:
+
+| Caso Borde / Escenario | Causa Operativa | Regla de Negocio y Respuesta de la API |
+| :--- | :--- | :--- |
+| **Sobre-recepción ($A_{\text{received}} + q > T_{\text{reserved}}$)** | El proveedor envió más unidades de las pactadas en la orden de compra. | **Regla de Partición de Inventario:**<br>1. La API satisface exactamente el saldo $X_{\text{pending}}$ hacia `"XDOCK"`.<br>2. La UI debe instruir al operario a ingresar el excedente en un segundo registro dirigido a la estantería física fija (Rack permanente). |
+| **SKU sin Reservas Activas** | El artículo no tiene clientes esperando entrega inmediata. | Retornar respuesta limpia sin errores (`xdock_total: 0`, `xdock_pending: 0`, `xdock_customers: []`, `is_xdock_required: false`). El sistema habilita la sugerencia normal de slotting. |
+| **Consulta sin `shipment_id`** | El operario no seleccionó el contenedor de importación en la pantalla. | **Modo Estricto (Recomendado):** Responder `400 Bad Request` solicitando el identificador del embarque para evitar cruces indebidos de POs futuras. |
+| **Caracteres especiales y espacios en SKU** | Errores en códigos de barras o escaneos con saltos de línea. | **Normalización Obligatoria:** Limpiar la cadena con `item_code.trim().toUpperCase()`. Reemplazar comas por puntos en cantidades (`parse_float`). |
+| **Cancelación de Reserva en el ERP en Vivo** | Un cliente cancela el pedido mientras el lote se está descargando. | Al no persistir saldos estáticos en caché y consultar en vivo la base de datos relacional, la cancelación surte efecto inmediato en el siguiente escaneo (0 segundos de desfasaje). |
+| **Bines Virtuales en Almacenamiento Permanente** | Operario intenta asignar `"XDOCK"` a un ítem que no lo requiere. | La API debe permitir el guardado si el operario lo fuerza, pero el algoritmo de sugerencia futura de ubicaciones **nunca** debe sugerir `"XDOCK"` como bin por defecto. |
+
+---
+
+## 10. Concurrencia, Transacciones e Idempotencia
+
+En centros de distribución de alta densidad, varios operarios pueden escanear el mismo contenedor simultáneamente bajo condiciones de red inalámbrica inestable:
+
+```text
+┌───────────────────────────────┐      ┌───────────────────────────────┐
+│ Operario 1 (Terminal RF A)    │      │ Operario 2 (Terminal RF B)    │
+│ Escanea SKU-100 para Embarque │      │ Escanea SKU-100 para Embarque │
+└───────────────┬───────────────┘      └───────────────┬───────────────┘
+                │                                      │
+                ▼                                      ▼
+    ┌──────────────────────────────────────────────────────────────┐
+    │     CONTROL DE CONCURRENCIA E IDEMPOTENCIA EN API / DB       │
+    │  1. UUID v4 por escaneo (`client_transaction_id`)            │
+    │  2. Bloqueo transaccional de saldo (SELECT ... FOR UPDATE)   │
+    │  3. Evitar sobre-asignación de cupos de despacho a clientes  │
+    └──────────────────────────────────────────────────────────────┘
+```
+
+### 1. Garantía de Idempotencia contra Pérdidas de Señal Wi-Fi:
+Cuando una terminal móvil de almacén pierde conexión durante el envío del paquete HTTP:
+1. El cliente genera un identificador único `client_transaction_id` (UUID v4) en memoria local antes de enviar la petición.
+2. Si la petición sufre un *timeout* pero alcanzó a guardarse en el servidor, el reintento automático del cliente enviará el mismo UUID.
+3. La base de datos, gracias a la restricción `UNIQUE (client_transaction_id)`, detecta la colisión y la API responde `200 OK` con los datos ya registrados sin duplicar la cantidad recibida.
+
+### 2. Bloqueo Transaccional Atómico (Evitar Saldo Negativo):
+Si dos operarios procesan el mismo SKU en paralelo cuando solo queda 1 unidad de Xdock pendiente:
+
+```sql
+-- Ejecución dentro de una transacción con aislamiento READ COMMITTED
+BEGIN TRANSACTION;
+
+-- Bloquear temporalmente el cálculo de saldo para el par (shipment_id, item_code)
+SELECT COALESCE(SUM(qty_received), 0) 
+FROM receiving_logs 
+WHERE shipment_id = :shipment_id 
+  AND item_code = :item_code 
+  AND archived_at IS NULL 
+FOR UPDATE;
+
+-- Validar si la nueva cantidad excede el saldo pendiente restante
+-- Si es válida, realizar el INSERT:
+INSERT INTO receiving_logs (client_transaction_id, shipment_id, item_code, qty_received, destination_bin, operator_username)
+VALUES (:uuid, :shipment_id, :item_code, :qty, 'XDOCK', :operator);
+
+COMMIT;
+```
+Esto asegura que el saldo neto pendiente sea matemáticamente exacto en todo momento, eliminando cualquier condición de carrera (*race condition*).
+
