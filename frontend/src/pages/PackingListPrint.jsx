@@ -52,9 +52,9 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                     ];
                     try {
                         const url = await QRCode.toDataURL(qrLines.join('\n'), {
-                            width: 360,
-                            margin: 4,
-                            errorCorrectionLevel: 'L',
+                            width: 280,
+                            margin: 1,
+                            errorCorrectionLevel: 'M',
                             color: { dark: '#000000', light: '#ffffff' }
                         });
                         newQrMap[pkgKey] = url;
@@ -137,35 +137,40 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
     }, 0);
 
     return (
-        <div className="packing-list-print-page bg-[#f3f2f1] min-h-screen text-[#201f1e] font-segoe-ui print:bg-white print:p-0 print:min-h-0">
-            {/* ESTILOS DE IMPRESIÓN LIMPIOS Y NEUTRALIZACIÓN DE BORDES AZULES */}
+        <div className="packing-list-print-page bg-[#f3f2f1] min-h-screen text-black font-sans print:bg-white print:p-0 print:min-h-0">
+            {/* ESTILOS DE IMPRESIÓN PARA TRANSFERENCIA TÉRMICA ZEBRA 100x150 mm */}
             <style dangerouslySetInnerHTML={{
                 __html: `
-                /* En pantalla: borde gris neutro sutil para simular la hoja (anula el forzado global #1679E0) */
+                /* Vista en pantalla: proporción 100x150 mm */
                 .packing-list-print-page .page-container {
                     background-color: #ffffff;
-                    border: 1px solid #d2d0ce !important;
-                    border-radius: 4px;
-                    box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108);
+                    border: 1px solid #000000 !important;
+                    border-radius: 2px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                    width: 100%;
+                    max-width: 480px;
+                    margin: 0 auto 1.5rem auto;
                 }
 
-                .packing-list-print-page div.bg-white.border,
-                .packing-list-print-page div.bg-white.border-2,
-                .packing-list-print-page div[class*="bg-white"][class*="border-"] {
-                    border-color: #d2d0ce !important;
-                }
-
-                /* En vista de impresión (Ctrl + P o window.print): cero bordes en el contenedor */
+                /* En vista de impresión (Ctrl + P o window.print): tamaño 100x150 mm sin márgenes sobrantes */
                 @media print {
                     @page { 
-                        size: A4 portrait; 
-                        margin: 10mm 12mm 10mm 12mm; 
+                        size: 100mm 150mm; 
+                        margin: 2mm 3mm 2mm 3mm; 
                     }
                     body, html, #root { 
                         -webkit-print-color-adjust: exact !important; 
                         print-color-adjust: exact !important;
                         background: #ffffff !important; 
                         color: #000000 !important; 
+                        font-family: Arial, Helvetica, sans-serif !important;
+                        -webkit-font-smoothing: none !important;
+                        text-rendering: geometricPrecision !important;
+                    }
+                    * {
+                        color: #000000 !important;
+                        border-color: #000000 !important;
+                        text-shadow: none !important;
                     }
                     .no-print { 
                         display: none !important; 
@@ -175,41 +180,46 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         padding: 0 !important;
                         margin: 0 !important;
                     }
-                    /* ELIMINAR COMPLETAMENTE EL RECUADRO EXTERIOR EN LA IMPRESIÓN */
                     .packing-list-print-page .page-container,
                     .page-container {
                         box-shadow: none !important;
                         border: none !important;
-                        border-width: 0 !important;
-                        border-style: none !important;
-                        border-color: transparent !important;
                         outline: none !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        max-width: 100% !important;
+                        margin: 0 auto !important;
+                        padding: 1mm 1.5mm !important;
                         width: 100% !important;
+                        max-width: 100% !important;
                         background: transparent !important;
                         border-radius: 0 !important;
+                        box-sizing: border-box !important;
                     }
                     .page-break {
                         break-after: page;
                         page-break-after: always;
                     }
-                    /* ESTILOS REFINADOS PARA TABLAS Y LÍNEAS DE IMPRESIÓN */
+                    /* Bloques de inversión para máximo contraste térmico */
+                    .thermal-invert,
+                    .thermal-invert * {
+                        background-color: #000000 !important;
+                        color: #ffffff !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    /* Tablas optimizadas para cabezal de 203/300 DPI */
                     .packing-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
                     }
                     .packing-table thead tr {
-                        border-top: 1.5px solid #201f1e !important;
-                        border-bottom: 1.5px solid #201f1e !important;
+                        border-top: 2px solid #000000 !important;
+                        border-bottom: 2px solid #000000 !important;
                     }
                     .packing-table tbody tr {
-                        border-bottom: 1px solid #e1dfdd !important;
+                        border-bottom: 1px solid #000000 !important;
                     }
                     .packing-table tfoot tr {
-                        border-top: 1.5px solid #201f1e !important;
-                        border-bottom: 1.5px solid #201f1e !important;
+                        border-top: 2px solid #000000 !important;
+                        border-bottom: 2px solid #000000 !important;
                     }
                     tr { 
                         break-inside: avoid; 
@@ -217,38 +227,35 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                 }
             `}} />
 
-            {/* BARRA DE COMANDOS FLUENT (FIJA EN PANTALLA, OCULTA AL IMPRIMIR) */}
+            {/* BARRA DE COMANDOS (FIJA EN PANTALLA, OCULTA AL IMPRIMIR) */}
             <div className="no-print sticky top-0 z-50 bg-white border-b border-[#e1dfdd] shadow-sm">
-                <div className="max-w-[850px] mx-auto px-4 py-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="max-w-[480px] mx-auto px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => navigate(-1)}
-                            className="px-3 py-1 text-xs font-medium text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] rounded transition-colors"
+                            className="px-2.5 py-1 text-xs font-semibold text-black bg-white border border-black hover:bg-neutral-100 rounded transition-colors"
                         >
                             &larr; Volver
                         </button>
-                        <div className="border-l border-[#e1dfdd] pl-3">
-                            <span className="text-xs font-semibold text-[#201f1e]">Packing List #{id}</span>
-                            <span className="text-[11px] text-[#605e5c] ml-2">
-                                ({totalGlobalPackages} bultos | {totalGlobalUnits} unidades)
-                            </span>
+                        <div className="border-l border-neutral-300 pl-2">
+                            <span className="text-xs font-bold text-black">Etiqueta 100x150 mm</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrint}
-                            className="px-4 py-1.5 text-xs font-medium bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow-sm flex items-center gap-1.5"
+                            className="px-3 py-1.5 text-xs font-bold bg-black hover:bg-neutral-800 text-white rounded transition-colors shadow flex items-center gap-1.5 cursor-pointer"
                         >
-                            <span>🖨️</span> Imprimir Documento
+                            <span>🖨️</span> Imprimir Zebra
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* CONTENEDOR TIPO HOJA A4 */}
-            <div className="max-w-[850px] mx-auto py-6 px-4 print:p-0 print:m-0 print:max-w-none">
+            {/* CONTENEDOR DE ETIQUETAS TÉRMICAS */}
+            <div className="py-4 px-2 print:p-0 print:m-0">
                 {sortedPackageKeys.length === 0 ? (
-                    <div className="bg-white p-12 rounded border border-[#d2d0ce] text-center text-xs text-[#605e5c]">
+                    <div className="max-w-[480px] mx-auto bg-white p-8 rounded border border-black text-center text-xs font-bold text-black">
                         No hay bultos registrados en esta orden.
                     </div>
                 ) : (
@@ -257,158 +264,127 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                         const boxUnits = items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
                         const isLastPage = index === sortedPackageKeys.length - 1;
 
+                        const orderFormatted = data.order_number 
+                            ? (data.despatch_number && !String(data.order_number).includes('/') 
+                                ? `${data.order_number}/${data.despatch_number}` 
+                                : data.order_number)
+                            : (data.despatch_number ? `/${data.despatch_number}` : 'N/A');
+
                         return (
                             <div
                                 key={packageKey}
-                                className={`page-container p-8 mb-6 text-[#201f1e] ${
+                                className={`page-container p-3 mb-4 text-black ${
                                     !isLastPage ? 'page-break' : ''
                                 }`}
                             >
-                                {/* CABECERA INSTITUCIONAL */}
-                                <div className="flex items-start justify-between border-b border-[#201f1e] pb-1.5 mb-2">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl font-bold tracking-tight text-[#201f1e]">SANDVIK</span>
+                                {/* 1. CABECERA: LOGO + PACKING LIST + QR */}
+                                <div className="flex items-center justify-between border-b-2 border-black pb-1.5 mb-1.5">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xl font-black tracking-tighter text-black">SANDVIK</span>
                                         </div>
-                                        <p className="text-[10px] uppercase tracking-wider text-[#605e5c] mt-0.5 font-medium">
-                                            Despacho y Logística
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-black">
+                                            PACKING LIST
                                         </p>
-                                    </div>
-                                    <div className="text-center pt-1">
-                                        <h1 className="text-lg font-bold uppercase tracking-wider text-[#201f1e]">
-                                            Packing List
-                                        </h1>
-                                        <span className="text-[10px] font-medium text-[#605e5c] uppercase tracking-wide">
-                                            Lista de Empaque y Despacho
-                                        </span>
+                                        <div className="text-[9px] font-mono font-bold text-black mt-0.5">
+                                            REF: AUD-{id} | {formatDate(data.timestamp)}
+                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 text-right">
-                                        <div className="text-[10px] text-[#605e5c] flex flex-col items-end justify-center">
-                                            <span className="font-bold text-[#201f1e] text-xs">
-                                                Pág. {index + 1} de {sortedPackageKeys.length}
-                                            </span>
-                                            <span className="mt-0.5">{formatDate(data.timestamp)}</span>
-                                            <span className="font-mono text-[9px] text-[#605e5c] mt-0.5">REF: AUD-{id}</span>
+                                    {/* CÓDIGO QR NÍTIDO CON RENDERIZADO PIXELADO */}
+                                    {qrMap[packageKey] && (
+                                        <div className="shrink-0 pl-2 flex flex-col items-center">
+                                            <img
+                                                src={qrMap[packageKey]}
+                                                alt={`QR Bulto ${packageKey}`}
+                                                className="w-18 h-18 object-contain"
+                                                style={{ imageRendering: 'pixelated' }}
+                                            />
+                                            <span className="font-mono text-[8px] font-bold text-black">SCAN QR</span>
                                         </div>
-                                        {qrMap[packageKey] && (
-                                            <div className="bg-white p-0.5 shrink-0 flex flex-col items-center">
-                                                <img
-                                                    src={qrMap[packageKey]}
-                                                    alt={`QR Bulto ${packageKey}`}
-                                                    className="w-24 h-24 object-contain"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
 
-                                {/* MATRIZ DE METADATOS DEL PEDIDO */}
-                                <div className="border border-[#c8c6c4] print:border-[#605e5c] mb-3 text-xs bg-[#faf9f8] print:bg-white print:rounded-none rounded overflow-hidden">
-                                    <div className="flex items-center justify-between border-b border-[#c8c6c4] print:border-[#605e5c] px-3 py-2">
-                                        <div className="flex-1 pr-4">
-                                            <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
-                                                Cliente / Destinatario:
+                                {/* 2. BANNER INVERTIDO: BULTO DESTACADO (MÁXIMO CONTRASTE) */}
+                                <div className="thermal-invert bg-black text-white px-2 py-1 mb-1.5 flex items-center justify-between border border-black">
+                                    <span className="font-mono font-black text-sm tracking-wider uppercase">
+                                        BULTO {packageKey} DE {totalGlobalPackages}
+                                    </span>
+                                    <span className="font-mono font-bold text-xs uppercase">
+                                        ORDEN: {orderFormatted}
+                                    </span>
+                                </div>
+
+                                {/* 3. DATOS DEL CLIENTE Y ENVÍO */}
+                                <div className="border-[1.5px] border-black mb-1.5 p-1.5 bg-white text-xs">
+                                    <div className="flex justify-between items-start border-b border-black pb-1 mb-1">
+                                        <div className="flex-1 pr-2">
+                                            <span className="text-[9px] font-black uppercase text-black block tracking-tight">
+                                                DESTINATARIO / CLIENTE:
                                             </span>
-                                            <span className="text-xs font-bold text-[#201f1e] block truncate">
+                                            <span className="text-xs font-black text-black block truncate leading-tight">
                                                 {data.customer_code ? `${data.customer_code} - ` : ''}
                                                 {data.customer_name || 'N/A'}
                                             </span>
                                         </div>
-                                        <div className="text-right border-l border-[#c8c6c4] print:border-[#605e5c] pl-4 shrink-0">
-                                            <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
-                                                Total Bultos Envío:
+                                        <div className="text-right shrink-0 border-l border-black pl-2">
+                                            <span className="text-[8px] font-bold uppercase text-black block">
+                                                TOTAL BULTO:
                                             </span>
-                                            <span className="text-sm font-bold font-mono text-[#201f1e]">
-                                                {totalGlobalPackages} CAJAS
+                                            <span className="font-mono text-xs font-black text-black">
+                                                {boxUnits} UDS.
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 divide-x divide-[#c8c6c4] print:divide-[#605e5c] px-3 py-1.5 bg-white">
-                                        <div className="pr-2">
-                                            <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
-                                                No. Orden (Pedido / Despacho):
-                                            </span>
-                                            <span className="font-mono text-xs font-bold text-[#201f1e]">
-                                                {data.order_number 
-                                                    ? (data.despatch_number && !String(data.order_number).includes('/') 
-                                                        ? `${data.order_number}/${data.despatch_number}` 
-                                                        : data.order_number)
-                                                    : (data.despatch_number ? `/${data.despatch_number}` : 'N/A')}
-                                            </span>
-                                        </div>
-                                        <div className="pl-3 text-right">
-                                            <span className="text-[9px] font-semibold uppercase text-[#605e5c] block tracking-wider">
-                                                Total Unidades Orden:
-                                            </span>
-                                            <span className="font-mono text-xs font-bold text-[#201f1e]">
-                                                {totalGlobalUnits} uds.
-                                            </span>
-                                        </div>
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Total Global Envío: <strong>{totalGlobalPackages} Cajas</strong></span>
+                                        <span>Total Global Orden: <strong>{totalGlobalUnits} Uds</strong></span>
                                     </div>
                                 </div>
 
-                                {/* SECCIÓN DEL BULTO ESPECÍFICO */}
-                                <div className="mb-4">
-                                    <div className="flex items-center justify-between border-b-2 border-[#201f1e] pb-1 mb-1.5">
-                                        <span className="font-bold uppercase tracking-wider text-xs text-[#201f1e]">
-                                            Bulto {packageKey} de {totalGlobalPackages}
-                                        </span>
-                                        <span className="text-[11px] text-[#605e5c] font-medium">
-                                            Contenido: {items.length} {items.length === 1 ? 'ítem' : 'ítems'} &bull; {boxUnits} {boxUnits === 1 ? 'unidad' : 'unidades'}
-                                        </span>
-                                    </div>
-
-                                    {/* TABLA DE PRODUCTOS REFINADA */}
+                                {/* 4. TABLA DE ÍTEMS EMPACADOS */}
+                                <div className="mb-2">
                                     <table className="packing-table w-full text-xs">
                                         <thead>
-                                            <tr className="border-y border-[#323130] bg-[#f3f2f1] print:bg-transparent text-[10px]">
-                                                <th className="px-3 py-1.5 text-center font-bold uppercase w-12 text-[#201f1e]">
-                                                    Pos.
-                                                </th>
-                                                <th className="px-3 py-1.5 text-left font-bold uppercase w-32 text-[#201f1e]">
-                                                    Código SKU
-                                                </th>
-                                                <th className="px-3 py-1.5 text-left font-bold uppercase text-[#201f1e]">
-                                                    Descripción del Artículo
-                                                </th>
-                                                <th className="px-3 py-1.5 text-right font-bold uppercase w-20 text-[#201f1e]">
-                                                    Cant.
-                                                </th>
+                                            <tr className="border-y-2 border-black bg-neutral-100 print:bg-transparent text-[9px] font-black uppercase text-black">
+                                                <th className="py-1 px-1 text-center w-8">Pos.</th>
+                                                <th className="py-1 px-1 text-left w-28">Código SKU</th>
+                                                <th className="py-1 px-1 text-left">Descripción</th>
+                                                <th className="py-1 px-1 text-right w-12">Cant.</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-[#e1dfdd] print:divide-[#d2d0ce]">
+                                        <tbody className="divide-y divide-black font-sans">
                                             {items.length > 0 ? (
                                                 items.map((item, idx) => (
-                                                    <tr key={idx} className="hover:bg-[#faf9f8] print:hover:bg-transparent">
-                                                        <td className="px-3 py-1.5 text-center font-mono text-[10px] text-[#605e5c] print:text-black">
+                                                    <tr key={idx} className="border-b border-black">
+                                                        <td className="py-1 px-1 text-center font-mono font-bold text-[9px] text-black">
                                                             {item.order_line || String((idx + 1) * 10).padStart(4, '0')}
                                                         </td>
-                                                        <td className="px-3 py-1.5 font-mono font-bold text-[#201f1e] text-[11px] whitespace-nowrap">
+                                                        <td className="py-1 px-1 font-mono font-black text-black text-[11px] whitespace-nowrap">
                                                             {item.item_code}
                                                         </td>
-                                                        <td className="px-3 py-1.5 text-[#201f1e] text-[11px] leading-snug">
+                                                        <td className="py-1 px-1 text-black text-[10px] font-semibold leading-tight">
                                                             {item.description || '-'}
                                                         </td>
-                                                        <td className="px-3 py-1.5 text-right font-mono font-bold text-xs text-[#201f1e] whitespace-nowrap">
+                                                        <td className="py-1 px-1 text-right font-mono font-black text-xs text-black whitespace-nowrap">
                                                             {item.quantity}
                                                         </td>
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="4" className="py-6 text-center text-xs text-[#605e5c] italic">
+                                                    <td colSpan="4" className="py-4 text-center text-xs font-bold text-black italic">
                                                         Bulto sin líneas registradas.
                                                     </td>
                                                 </tr>
                                             )}
                                         </tbody>
                                         <tfoot>
-                                            <tr className="border-t-2 border-[#201f1e] border-b border-[#201f1e] text-xs font-semibold bg-[#faf9f8] print:bg-transparent">
-                                                <td colSpan="3" className="px-3 py-1.5 text-right uppercase text-[10px] tracking-wider text-[#605e5c] print:text-black">
-                                                    Subtotal Unidades en este Bulto:
+                                            <tr className="border-t-2 border-b-2 border-black text-xs font-black">
+                                                <td colSpan="3" className="py-1 px-1 text-right uppercase text-[9px] tracking-tight">
+                                                    SUBTOTAL EN ESTE BULTO:
                                                 </td>
-                                                <td className="px-3 py-1.5 text-right font-mono font-bold text-sm text-[#201f1e]">
+                                                <td className="py-1 px-1 text-right font-mono font-black text-xs">
                                                     {boxUnits}
                                                 </td>
                                             </tr>
@@ -416,38 +392,30 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                     </table>
                                 </div>
 
-                                {/* SECCIÓN DE CONFORMIDAD Y FIRMAS */}
-                                <div className="mt-8 pt-4 border-t border-[#c8c6c4] print:border-[#605e5c]">
-                                    <p className="text-[9px] text-[#605e5c] uppercase text-center mb-6 tracking-wide">
-                                        Verifique el estado físico y los sellos de seguridad antes de firmar el documento de transporte.
-                                    </p>
-                                    <div className="grid grid-cols-3 gap-8 text-center text-xs">
+                                {/* 5. SECCIÓN DE FIRMAS Y CONFORMIDAD (COMPACTA PARA 150 mm) */}
+                                <div className="mt-2 pt-1 border-t-2 border-black">
+                                    <div className="grid grid-cols-3 gap-2 text-center text-[9px] font-bold mb-1">
                                         <div>
-                                            <div className="border-b border-[#605e5c] mb-1 h-8"></div>
-                                            <span className="text-[10px] font-semibold text-[#201f1e] block uppercase">
-                                                Preparado / Auditado
-                                            </span>
-                                            <span className="text-[9px] text-[#605e5c] block">Operaciones SANDVIK</span>
+                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <span className="block uppercase leading-none">Preparado</span>
+                                            <span className="text-[8px] font-normal block leading-tight">Operaciones</span>
                                         </div>
                                         <div>
-                                            <div className="border-b border-[#605e5c] mb-1 h-8"></div>
-                                            <span className="text-[10px] font-semibold text-[#201f1e] block uppercase">
-                                                Transportador / Conductor
-                                            </span>
-                                            <span className="text-[9px] text-[#605e5c] block">C.C. / Placa</span>
+                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <span className="block uppercase leading-none">Transportador</span>
+                                            <span className="text-[8px] font-normal block leading-tight">Placa / C.C.</span>
                                         </div>
                                         <div>
-                                            <div className="border-b border-[#605e5c] mb-1 h-8"></div>
-                                            <span className="text-[10px] font-semibold text-[#201f1e] block uppercase">
-                                                Recibido Conforme (Cliente)
-                                            </span>
-                                            <span className="text-[9px] text-[#605e5c] block">Firma, Nombre y Sello</span>
+                                            <div className="border-b border-black h-5 mb-0.5"></div>
+                                            <span className="block uppercase leading-none">Recibido</span>
+                                            <span className="text-[8px] font-normal block leading-tight">Firma / Sello</span>
                                         </div>
                                     </div>
 
-                                    <div className="mt-6 flex justify-between items-center text-[9px] text-[#605e5c] pt-2 border-t border-[#edebe9] print:border-gray-300">
-                                        <span>Documento generado para SANDVIK &bull; LOGIX WMS</span>
-                                        <span className="font-mono">ID: {id} &bull; Bulto {packageKey} de {totalGlobalPackages}</span>
+                                    {/* 6. PIE DE ETIQUETA */}
+                                    <div className="flex justify-between items-center text-[8px] font-mono font-bold text-black pt-1 border-t border-black">
+                                        <span>SANDVIK &bull; LOGIX WMS</span>
+                                        <span>AUD-{id} &bull; BULTO {packageKey}/{totalGlobalPackages}</span>
                                     </div>
                                 </div>
                             </div>
@@ -460,3 +428,4 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 };
 
 export default PackingListPrint;
+
