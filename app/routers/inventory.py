@@ -535,6 +535,7 @@ async def finalize_inventory(
 
 
 @router.get("/admin/inventory/report", name="generate_inventory_report")
+@router.get("/api/admin/inventory/report", name="generate_inventory_report_api")
 async def generate_inventory_report(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -556,6 +557,11 @@ async def generate_inventory_report(
         )
         rows = result.fetchall()
         if not rows:
+            if request.url.path.startswith("/api/"):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No hay datos de conteo para generar un informe.",
+                )
             query_params = urlencode(
                 {"error": "No hay datos de conteo para generar un informe."}
             )
@@ -584,8 +590,14 @@ async def generate_inventory_report(
                 item_stage_counts[code] = {}
             item_stage_counts[code][stg] = item_stage_counts[code].get(stg, 0.0) + qty
 
-        # Todos los ítems involucrados
-        all_item_codes = sorted(list(set(csv_handler.master_qty_map.keys()) | set(item_stage_counts.keys())))
+        # Todos los ítems involucrados con existencia > 0 o con tomas físicas registradas
+        all_item_codes = sorted(
+            [
+                code
+                for code in (set(csv_handler.master_qty_map.keys()) | set(item_stage_counts.keys()))
+                if float(csv_handler.master_qty_map.get(code, 0.0)) > 0 or code in item_stage_counts
+            ]
+        )
 
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -595,7 +607,8 @@ async def generate_inventory_report(
         headers = [
             "Ítem",
             "Descripción",
-            "Ubicación",
+            "Ubic. Sistema",
+            "Ubic. Escaneada",
             "Costo",
             "Sist",
             "Etapa 1",
@@ -649,10 +662,13 @@ async def generate_inventory_report(
             diff_qty = final_counted - sys_qty
             diff_val = diff_qty * cost
 
+            scanned_loc_str = ", ".join(sorted(item_locations.get(code, []))) if item_locations.get(code) else "—"
+
             row_data = [
                 code,
                 desc,
                 bin_sys,
+                scanned_loc_str,
                 cost,
                 sys_qty,
                 c1 if c1 is not None else "-",
@@ -666,7 +682,7 @@ async def generate_inventory_report(
             ws.append(row_data)
 
             # Alineaciones y formatos
-            for c_idx in range(1, 13):
+            for c_idx in range(1, 14):
                 cell = ws.cell(row=row_idx, column=c_idx)
                 cell.font = cell_font
                 cell.border = thin_border
@@ -674,19 +690,19 @@ async def generate_inventory_report(
             ws.cell(row=row_idx, column=1).alignment = Alignment(horizontal="left")
             ws.cell(row=row_idx, column=2).alignment = Alignment(horizontal="left")
             ws.cell(row=row_idx, column=3).alignment = Alignment(horizontal="left")
-            ws.cell(row=row_idx, column=4).alignment = Alignment(horizontal="right")
-            ws.cell(row=row_idx, column=4).number_format = "$#,##0.00"
-            ws.cell(row=row_idx, column=5).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=4).alignment = Alignment(horizontal="left")
+            ws.cell(row=row_idx, column=5).alignment = Alignment(horizontal="right")
+            ws.cell(row=row_idx, column=5).number_format = "$#,##0.00"
             ws.cell(row=row_idx, column=6).alignment = Alignment(horizontal="center")
             ws.cell(row=row_idx, column=7).alignment = Alignment(horizontal="center")
             ws.cell(row=row_idx, column=8).alignment = Alignment(horizontal="center")
             ws.cell(row=row_idx, column=9).alignment = Alignment(horizontal="center")
             ws.cell(row=row_idx, column=10).alignment = Alignment(horizontal="center")
             ws.cell(row=row_idx, column=11).alignment = Alignment(horizontal="center")
-            ws.cell(row=row_idx, column=12).alignment = Alignment(horizontal="right")
-            ws.cell(row=row_idx, column=12).number_format = "$#,##0.00"
+            ws.cell(row=row_idx, column=12).alignment = Alignment(horizontal="center")
+            ws.cell(row=row_idx, column=13).alignment = Alignment(horizontal="right")
+            ws.cell(row=row_idx, column=13).number_format = "$#,##0.00"
 
-            row_idx += 1
             total_diff_val += diff_val
             row_idx += 1
 
@@ -694,7 +710,7 @@ async def generate_inventory_report(
         totals_row = [
             "TOTALES CONSOLIDADOS", "", "", "", "",
             "", "", "", "", "",
-            "", total_diff_val
+            "", "", total_diff_val
         ]
         ws.append(totals_row)
         tot_row_idx = row_idx
@@ -704,7 +720,7 @@ async def generate_inventory_report(
             cell.fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
             cell.border = thin_border
 
-        ws.cell(row=tot_row_idx, column=12).number_format = "$#,##0.00"
+        ws.cell(row=tot_row_idx, column=13).number_format = "$#,##0.00"
 
         # Ajuste dinámico de columnas
         for i, col_name in enumerate(headers, start=1):
@@ -725,6 +741,13 @@ async def generate_inventory_report(
 
     except Exception as e:
         print(f"Error generando el informe de inventario W2W: {e}")
+        if isinstance(e, HTTPException):
+            raise e
+        if request.url.path.startswith("/api/"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"No se pudo generar el informe: {str(e)}",
+            )
         query_params = urlencode({"error": f"No se pudo generar el informe: {str(e)}"})
         return RedirectResponse(
             url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
@@ -1290,6 +1313,7 @@ async def get_inventory_reconciliation_api(
         select(
             StockCount.item_code,
             StockCount.counted_qty,
+            StockCount.counted_location,
             CountSession.inventory_stage
         )
         .join(CountSession, StockCount.session_id == CountSession.id)
@@ -1297,11 +1321,15 @@ async def get_inventory_reconciliation_api(
     res_counts = await db.execute(stmt_counts)
     counts_rows = res_counts.fetchall()
 
-    # Agrupar conteos físicos por item_code y stage
+    # Agrupar conteos físicos por item_code y stage, y recopilar ubicaciones escaneadas
     counts_by_item = defaultdict(lambda: defaultdict(float))
+    scanned_locations_by_item = defaultdict(list)
     for r in counts_rows:
         code = str(r.item_code).upper().strip()
         counts_by_item[code][int(r.inventory_stage)] += float(r.counted_qty or 0.0)
+        loc = str(r.counted_location or "").upper().strip()
+        if loc and loc not in scanned_locations_by_item[code]:
+            scanned_locations_by_item[code].append(loc)
 
     # 3. Cargar RecountList para ver el estado de aprobaciones manuales/pendientes
     stmt_recount = select(RecountList).where(RecountList.stage_to_count == current_stage)
@@ -1365,6 +1393,12 @@ async def get_inventory_reconciliation_api(
             qty_tolerance=qty_tolerance,
             val_tolerance=val_tolerance,
         )
+        for item in reconciliation_list:
+            code = str(item.get("item_code", "")).upper().strip()
+            locs = scanned_locations_by_item.get(code, [])
+            item["scanned_location"] = ", ".join(locs) if locs else "—"
+            item["counted_location"] = item["scanned_location"]
+            item["system_location"] = item.get("bin_location") or "N/A"
     except Exception as e:
         print(f"[RUST RECONCILIATION FALLBACK] Error executing Rust reconciliation: {e}")
         master_keys = set(csv_handler.master_qty_map.keys())
@@ -1420,11 +1454,16 @@ async def get_inventory_reconciliation_api(
 
             description = csv_handler.master_desc_map.get(code, "ITEM NO CATALOGADO")
             bin_location = csv_handler.master_bin_map.get(code, "N/A")
+            locs = scanned_locations_by_item.get(code, [])
+            scanned_loc_str = ", ".join(locs) if locs else "—"
 
             reconciliation_list.append({
                 "item_code": code,
                 "description": description,
                 "bin_location": bin_location,
+                "system_location": bin_location,
+                "scanned_location": scanned_loc_str,
+                "counted_location": scanned_loc_str,
                 "system_qty": sys_qty,
                 "cost": cost,
                 "c1": c1,

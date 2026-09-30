@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import * as XLSX from 'xlsx';
+import { exportExcelFile } from '../utils/exportExcel';
 import '../styles/FluentPages.css';
 
 const AdminInventory = () => {
@@ -16,8 +18,115 @@ const AdminInventory = () => {
     // --- Reconciliation State ---
     const [reconItems, setReconItems] = useState([]);
     const [reconLoading, setReconLoading] = useState(false);
-    const [reconFilter, setReconFilter] = useState('counted'); // 'counted' | 'all' | 'pending'
+    const [reconFilter, setReconFilter] = useState('counted'); // 'uncounted' | 'counted' | 'pending' | 'all'
     const [searchQuery, setSearchQuery] = useState('');
+    const [reconPage, setReconPage] = useState(1);
+    const [reconPageSize, setReconPageSize] = useState(100);
+
+    const reconCounts = useMemo(() => {
+        let counted = 0;
+        let pending = 0;
+        let uncounted = 0;
+        let total = 0;
+        for (let i = 0; i < reconItems.length; i++) {
+            const item = reconItems[i];
+            const hasStock = Number(item.system_qty || 0) > 0;
+            const isCounted = item.is_counted || item.c1 !== null || item.c2 !== null || item.c3 !== null || item.c4 !== null;
+
+            if (isCounted) {
+                counted++;
+                if (item.status === 'PENDING' || item.status === 'PENDING_RECOUNT') {
+                    pending++;
+                }
+            } else if (hasStock) {
+                uncounted++;
+            }
+
+            if (hasStock || isCounted) {
+                total++;
+            }
+        }
+        return {
+            total,
+            counted,
+            pending,
+            uncounted
+        };
+    }, [reconItems]);
+
+    useEffect(() => {
+        setReconPage(1);
+    }, [reconFilter, searchQuery]);
+
+    const filteredReconItems = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        return reconItems.filter((item) => {
+            const hasStock = Number(item.system_qty || 0) > 0;
+            const isCounted = item.is_counted || item.c1 !== null || item.c2 !== null || item.c3 !== null || item.c4 !== null;
+
+            if (q) {
+                const match =
+                    (item.item_code && item.item_code.toLowerCase().includes(q)) ||
+                    (item.description && item.description.toLowerCase().includes(q)) ||
+                    (item.bin_location && item.bin_location.toLowerCase().includes(q)) ||
+                    (item.system_location && item.system_location.toLowerCase().includes(q)) ||
+                    (item.scanned_location && item.scanned_location.toLowerCase().includes(q));
+                if (!match) return false;
+            }
+
+            if (reconFilter === 'uncounted') {
+                return hasStock && !isCounted;
+            }
+            if (reconFilter === 'counted') {
+                return isCounted;
+            }
+            if (reconFilter === 'pending') {
+                return isCounted && (item.status === 'PENDING' || item.status === 'PENDING_RECOUNT');
+            }
+            return hasStock || isCounted; // 'all': solo items con existencia > 0 o contados
+        });
+    }, [reconItems, searchQuery, reconFilter]);
+
+    const totalReconPages = Math.ceil(filteredReconItems.length / reconPageSize) || 1;
+    const paginatedReconItems = useMemo(() => {
+        const start = (reconPage - 1) * reconPageSize;
+        return filteredReconItems.slice(start, start + reconPageSize);
+    }, [filteredReconItems, reconPage, reconPageSize]);
+
+    const handleExportFilteredExcel = async () => {
+        if (!filteredReconItems.length) {
+            alert('No hay registros para exportar con los filtros actuales.');
+            return;
+        }
+        const formattedData = filteredReconItems.map(item => ({
+            'Ítem': item.item_code,
+            'Descripción': item.description,
+            'Ubicación Sistema': item.system_location || item.bin_location || '—',
+            'Ubicación Escaneada': item.scanned_location || item.counted_location || '—',
+            'Costo': item.cost,
+            'Cant. Sistema': item.system_qty,
+            'Etapa 1': item.c1 !== null ? item.c1 : '',
+            'Etapa 2': item.c2 !== null ? item.c2 : '',
+            'Etapa 3': item.c3 !== null ? item.c3 : '',
+            'Etapa 4': item.c4 !== null ? item.c4 : '',
+            'Contado': item.is_counted ? item.final_counted : 'Sin Contar',
+            'Diferencia': item.is_counted ? item.diff_qty : '',
+            'Valor Diferencia': item.is_counted ? item.diff_val : '',
+            'Estado': item.is_counted ? (item.status === 'OK' ? 'Cuadrado' : item.status) : 'PENDIENTE CONTEO'
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
+        const filterNames = {
+            uncounted: 'Faltan_Por_Contar',
+            counted: 'Solo_Contados',
+            pending: 'Con_Diferencia',
+            all: 'Todos_Los_Items'
+        };
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileName = `Inventario_${filterNames[reconFilter] || 'Conciliacion'}_${dateStr}.xlsx`;
+        await exportExcelFile(workbook, fileName);
+    };
 
     const fetchReconciliation = useCallback(async () => {
         setReconLoading(true);
@@ -191,50 +300,58 @@ const AdminInventory = () => {
     }, [error]);
 
     return (
-        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-black text-[12px]">
+        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-4 pb-6 bg-[#fcfcfc] min-h-screen text-[#201f1e] text-[12px]">
 
-            {/* Barra de Acciones */}
-            <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => window.location.href = `/admin/inventory/report`}
-                        className="bg-white border border-black text-black text-[12px] px-2 py-1 rounded hover:bg-zinc-50 transition-colors font-normal shadow-sm cursor-pointer"
-                    >
-                        Exportar Conciliación
-                    </button>
+            {/* Header de la página */}
+            <div className="flex justify-between items-center mb-4">
+                <div>
+                    <h1 className="text-xl font-semibold text-[#201f1e] tracking-tight">Administración de Inventario</h1>
+                    <p className="text-xs text-[#605e5c]">Control de fases, conciliación de existencias y asignación de zonas</p>
                 </div>
             </div>
 
             {message && (
-                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase flex justify-between items-center">
+                <div className="bg-[#dff6dd] border-l-4 border-[#107c10] text-[#107c10] px-4 py-2.5 mb-4 rounded-r shadow-xs text-xs flex justify-between items-center">
                     <span>{message}</span>
-                    <button onClick={() => setMessage(null)} className="ml-4 font-bold text-green-800 hover:text-green-950 cursor-pointer">✕</button>
+                    <button onClick={() => setMessage(null)} className="ml-4 font-bold text-[#107c10] hover:opacity-80 cursor-pointer">✕</button>
                 </div>
             )}
             {error && (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm text-[12px] font-normal uppercase flex justify-between items-center">
+                <div className="bg-[#fde7e9] border-l-4 border-[#a4262c] text-[#a4262c] px-4 py-2.5 mb-4 rounded-r shadow-xs text-xs flex justify-between items-center">
                     <span>{error}</span>
-                    <button onClick={() => setError(null)} className="ml-4 font-bold text-red-800 hover:text-red-950 cursor-pointer">✕</button>
+                    <button onClick={() => setError(null)} className="ml-4 font-bold text-[#a4262c] hover:opacity-80 cursor-pointer">✕</button>
                 </div>
             )}
 
-            {/* Tab Navigation */}
-            <div className="flex border-b border-zinc-200 mb-6">
+            {/* Tab Navigation (Fluent Pivot) */}
+            <div className="flex border-b border-[#d2d0ce] mb-6 gap-1">
                 <button
                     onClick={() => setActiveTab('cycle')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'cycle' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                    className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
+                        activeTab === 'cycle'
+                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
+                    }`}
                 >
                     Fases del Inventario
                 </button>
                 <button
                     onClick={() => setActiveTab('reconciliation')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'reconciliation' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                    className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
+                        activeTab === 'reconciliation'
+                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
+                    }`}
                 >
                     Estado de Inventario y Conciliación
                 </button>
                 <button
                     onClick={() => setActiveTab('zones')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'zones' ? 'border-black text-black' : 'border-transparent text-black hover:text-black hover:border-zinc-300'}`}
+                    className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
+                        activeTab === 'zones'
+                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
+                    }`}
                 >
                     Asignación de Zonas por Auditor
                 </button>
@@ -281,7 +398,7 @@ const AdminInventory = () => {
                                     s: 4,
                                     t: 'FASE 4: AUDITORÍA FINAL',
                                     d: 'Validación técnica final e informe consolidado previa al cierre del ejercicio.',
-                                    actionUrl: '/admin/inventory/report',
+                                    actionUrl: '/api/admin/inventory/report',
                                     isDownload: true,
                                     title: '¿Generar Informe de Cierre (Fase 4)?',
                                     message: 'Se consolidará y descargará el informe final maestro W2W en Excel con los conteos y diferencias de todas las etapas.',
@@ -313,10 +430,10 @@ const AdminInventory = () => {
                                                 }
                                             }}
                                             disabled={loading || !item.enabled}
-                                            className={`flex-1 h-8 text-[11px] font-normal uppercase rounded transition-colors cursor-pointer ${
+                                            className={`flex-1 h-8 text-xs font-normal uppercase rounded transition-colors cursor-pointer ${
                                                 stage === item.s
-                                                    ? 'bg-black text-white hover:bg-zinc-900 shadow-xs'
-                                                    : 'bg-zinc-100 text-zinc-400 border border-zinc-200 disabled:opacity-50 cursor-not-allowed'
+                                                    ? 'bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white shadow-xs'
+                                                    : 'bg-[#f3f2f1] text-[#a19f9d] border border-[#d2d0ce] disabled:opacity-50 cursor-not-allowed'
                                             }`}
                                         >
                                             {item.label}
@@ -331,9 +448,9 @@ const AdminInventory = () => {
                                                     }
                                                 }}
                                                 title={`Descargar Listado / Registro de Fase ${item.s}`}
-                                                className="px-3 border border-zinc-300 rounded bg-white hover:bg-zinc-100 text-black font-normal text-[11px] flex items-center gap-1 shadow-2xs cursor-pointer"
+                                                className="px-3 border border-[#d2d0ce] rounded bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-normal text-xs flex items-center justify-center shadow-2xs cursor-pointer"
                                             >
-                                                ↓ Excel
+                                                Excel
                                             </button>
                                         )}
                                     </div>
@@ -341,15 +458,15 @@ const AdminInventory = () => {
                             ))}
                         </div>
 
-                        <div className={`p-8 border-2 border-dashed transition-all ${stage === 4 ? 'border-black bg-zinc-50/50' : 'border-zinc-100 bg-transparent opacity-40'}`}>
+                        <div className={`p-8 border-2 border-dashed transition-all rounded ${stage === 4 ? 'border-[#0078d4] bg-[#eff6fc]/30' : 'border-[#d2d0ce] bg-transparent opacity-50'}`}>
                              <div className="flex flex-col items-center text-center">
-                                <h3 className="text-[12px] font-normal text-black mb-2 uppercase">Finalización y Cierre del Ejercicio</h3>
-                                <p className="text-[12px] text-black uppercase font-normal mb-6">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
+                                <h3 className="text-xs font-semibold text-[#201f1e] mb-1 uppercase">Finalización y Cierre del Ejercicio</h3>
+                                <p className="text-xs text-[#605e5c] mb-6">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
                                 <div className="flex gap-4 w-full max-w-md">
                                     <button
-                                        onClick={() => window.location.href = `/admin/inventory/report`}
+                                        onClick={() => window.location.href = `/api/admin/inventory/report`}
                                         disabled={stage !== 4}
-                                        className="flex-1 h-10 bg-white border border-zinc-300 text-black text-[11px] font-normal uppercase rounded hover:bg-zinc-50 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                                        className="flex-1 h-9 bg-white border border-[#d2d0ce] text-[#201f1e] text-xs font-normal uppercase rounded hover:bg-[#f3f2f1] disabled:opacity-50 transition-all shadow-xs cursor-pointer flex items-center justify-center"
                                     >
                                         Reporte Excel
                                     </button>
@@ -360,7 +477,7 @@ const AdminInventory = () => {
                                             '⚠️ ATENCIÓN: Esta acción finalizará el ejercicio activo, congelará la base de datos actual y reiniciará el sistema a estado inicial (Fase 0) para un nuevo inventario. ¿Desea proceder?'
                                         )}
                                         disabled={loading || stage !== 4}
-                                        className="flex-1 h-10 bg-black text-white text-[11px] font-normal uppercase rounded hover:bg-zinc-900 disabled:opacity-50 transition-all shadow-md cursor-pointer"
+                                        className="flex-1 h-9 bg-[#a4262c] hover:bg-[#8e1922] text-white text-xs font-normal uppercase rounded disabled:opacity-50 transition-all shadow-xs cursor-pointer"
                                     >
                                         Cerrar Ciclo
                                     </button>
@@ -416,56 +533,118 @@ const AdminInventory = () => {
                     <div>
                         {/* Panel de Conciliación Principal */}
                         <div className="w-full">
-                            <div className="bg-white shadow-sm rounded border border-zinc-200 overflow-hidden">
-                                <div className="bg-[#f2f2f2] px-4 py-3 border-b border-zinc-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                                    <div className="flex gap-4 flex-1 items-center">
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar SKU, descripción o ubicación..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="h-8 flex-1 max-w-[400px] border border-zinc-300 rounded px-3 text-[12px] bg-white outline-none focus:ring-1 focus:ring-black placeholder-zinc-400"
-                                        />
-                                        <div className="flex gap-2">
+                            <div className="bg-white shadow-sm rounded border border-[#d2d0ce] overflow-hidden">
+                                <div className="bg-[#f9f9f9] px-4 py-2.5 border-b border-[#d2d0ce] flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
+                                    <div className="flex gap-3 flex-1 items-center flex-wrap">
+                                        <div className="relative flex-1 min-w-[240px] max-w-[360px]">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar SKU, descripción o ubicación..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                className="h-8 w-full px-3 pr-7 text-xs bg-white border border-[#d2d0ce] rounded focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] outline-none text-[#201f1e] placeholder-[#8a8886] transition-colors"
+                                            />
+                                            {searchQuery && (
+                                                <button
+                                                    onClick={() => setSearchQuery('')}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8a8886] hover:text-[#201f1e] text-xs font-bold cursor-pointer"
+                                                    title="Limpiar búsqueda"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-1.5 flex-wrap items-center">
                                             <button
-                                                onClick={() => setReconFilter('counted')}
-                                                className={`px-3 py-1 text-[10px] font-normal uppercase rounded border transition-colors ${
-                                                    reconFilter === 'counted'
-                                                        ? 'bg-zinc-800 border-zinc-800 text-white'
-                                                        : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                                                onClick={() => setReconFilter('uncounted')}
+                                                className={`px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer flex items-center ${
+                                                    reconFilter === 'uncounted'
+                                                        ? 'bg-[#0078d4] border-[#0078d4] text-white font-medium shadow-xs'
+                                                        : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
                                                 }`}
                                             >
-                                                Solo Contados ({reconItems.filter(i => i.is_counted || i.c1 !== null || i.c2 !== null || i.c3 !== null || i.c4 !== null).length})
+                                                <span>Faltan por Contar</span>
+                                                <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+                                                    reconFilter === 'uncounted' ? 'bg-white/20 text-white' : 'bg-[#fff4ce] text-[#ca5010] border border-[#fed9cc]'
+                                                }`}>
+                                                    {reconCounts.uncounted}
+                                                </span>
+                                            </button>
+                                            <button
+                                                onClick={() => setReconFilter('counted')}
+                                                className={`px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer flex items-center ${
+                                                    reconFilter === 'counted'
+                                                        ? 'bg-[#0078d4] border-[#0078d4] text-white font-medium shadow-xs'
+                                                        : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
+                                                }`}
+                                            >
+                                                <span>Solo Contados</span>
+                                                <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+                                                    reconFilter === 'counted' ? 'bg-white/20 text-white' : 'bg-[#edebe9] text-[#605e5c]'
+                                                }`}>
+                                                    {reconCounts.counted}
+                                                </span>
                                             </button>
                                             <button
                                                 onClick={() => setReconFilter('pending')}
-                                                className={`px-3 py-1 text-[10px] font-normal uppercase rounded border transition-colors ${
+                                                className={`px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer flex items-center ${
                                                     reconFilter === 'pending'
-                                                        ? 'bg-zinc-800 border-zinc-800 text-white'
-                                                        : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                                                        ? 'bg-[#0078d4] border-[#0078d4] text-white font-medium shadow-xs'
+                                                        : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
                                                 }`}
                                             >
-                                                Con Diferencia ({reconItems.filter(i => i.status === 'PENDING' || i.status === 'PENDING_RECOUNT').length})
+                                                <span>Con Diferencia</span>
+                                                <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+                                                    reconFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-[#fde7e9] text-[#a4262c] border border-[#f8b6be]'
+                                                }`}>
+                                                    {reconCounts.pending}
+                                                </span>
+                                            </button>
+                                            <button
+                                                onClick={() => setReconFilter('all')}
+                                                className={`px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer flex items-center ${
+                                                    reconFilter === 'all'
+                                                        ? 'bg-[#0078d4] border-[#0078d4] text-white font-medium shadow-xs'
+                                                        : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
+                                                }`}
+                                            >
+                                                <span>Todos</span>
+                                                <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-medium ${
+                                                    reconFilter === 'all' ? 'bg-white/20 text-white' : 'bg-[#edebe9] text-[#605e5c]'
+                                                }`}>
+                                                    {reconCounts.total}
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={fetchReconciliation}
-                                        disabled={reconLoading}
-                                        className="h-8 px-4 border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 text-[10px] uppercase font-normal rounded transition-colors disabled:opacity-50"
-                                    >
-                                        {reconLoading ? 'ACTUALIZANDO...' : 'REFRESCAR'}
-                                    </button>
+                                    <div className="flex gap-2 items-center shrink-0">
+                                        <button
+                                            onClick={fetchReconciliation}
+                                            disabled={reconLoading}
+                                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] active:bg-[#edebe9] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                                            title="Actualizar datos de conciliación"
+                                        >
+                                            {reconLoading ? 'Actualizando...' : 'Refrescar'}
+                                        </button>
+                                        <button
+                                            onClick={handleExportFilteredExcel}
+                                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f2f1] active:bg-[#edebe9] rounded font-normal transition-colors cursor-pointer shadow-xs"
+                                            title="Exportar vista actual filtrada a Excel (.xlsx)"
+                                        >
+                                            Exportar Excel
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
+                                <div className="overflow-x-auto max-h-[calc(100vh-360px)]">
                                     <table className="w-full text-left border-collapse">
                                         <thead className="bg-zinc-100 text-zinc-800 border-b border-zinc-300 sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 {[
                                                     'Ítem',
                                                     'Descripción',
-                                                    'Ubicación',
+                                                    'Ubic. Sistema',
+                                                    'Ubic. Escaneada',
                                                     'Costo',
                                                     'Sist',
                                                     'Etapa 1',
@@ -478,7 +657,7 @@ const AdminInventory = () => {
                                                 ].map((h, i) => (
                                                     <th
                                                         key={i}
-                                                        className={`px-2 py-1 text-[10px] font-normal uppercase ${['Ítem', 'Descripción', 'Ubicación'].includes(h) ? 'text-left' : 'text-center'}`}
+                                                        className={`px-2 py-1 text-[10px] font-normal uppercase ${['Ítem', 'Descripción', 'Ubic. Sistema', 'Ubic. Escaneada'].includes(h) ? 'text-left' : 'text-center'}`}
                                                     >
                                                         {h}
                                                     </th>
@@ -486,92 +665,154 @@ const AdminInventory = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
-                                            {reconItems
-                                                .filter((item) => {
-                                                    const matchQuery =
-                                                        item.item_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                        item.bin_location.toLowerCase().includes(searchQuery.toLowerCase());
-
-                                                    if (!matchQuery) return false;
-
-                                                    if (reconFilter === 'pending') {
-                                                        return item.status === 'PENDING' || item.status === 'PENDING_RECOUNT';
-                                                    }
-                                                    if (reconFilter === 'counted') {
-                                                        return item.is_counted || item.c1 !== null || item.c2 !== null || item.c3 !== null || item.c4 !== null;
-                                                    }
-                                                    return true;
-                                                })
-                                                .map((item) => (
-                                                    <tr
-                                                        key={item.item_code}
-                                                        className="hover:bg-[#f5f8fc] transition-colors leading-none h-6"
+                                            {paginatedReconItems.map((item) => (
+                                                <tr
+                                                    key={item.item_code}
+                                                    className="hover:bg-[#f5f8fc] transition-colors leading-none h-6"
+                                                >
+                                                    <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-900 uppercase whitespace-nowrap">
+                                                        {item.item_code}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-600 truncate max-w-[200px]" title={item.description}>
+                                                        {item.description}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-700 uppercase whitespace-nowrap">
+                                                        {item.system_location || item.bin_location || '—'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-700 uppercase whitespace-nowrap">
+                                                        {item.scanned_location || item.counted_location || '—'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm">
+                                                        ${item.cost.toFixed(2)}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-600 bg-zinc-50/50">
+                                                        {item.system_qty}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
+                                                        {item.c1 !== null ? item.c1 : '-'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
+                                                        {item.c2 !== null ? item.c2 : '-'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
+                                                        {item.c3 !== null ? item.c3 : '-'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
+                                                        {item.c4 !== null ? item.c4 : '-'}
+                                                    </td>
+                                                    <td className="px-2 py-0.5 text-center font-normal text-sm bg-zinc-50/50">
+                                                        {item.is_counted ? item.final_counted : (
+                                                            <span className="text-amber-800 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded text-[10px] font-normal uppercase">
+                                                                Sin Contar
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td
+                                                        className={`px-2 py-0.5 text-center font-normal text-sm ${
+                                                            !item.is_counted
+                                                                ? 'text-zinc-400'
+                                                                : item.diff_qty > 0
+                                                                ? 'text-green-600'
+                                                                : item.diff_qty < 0
+                                                                ? 'text-red-600'
+                                                                : 'text-zinc-400'
+                                                        }`}
                                                     >
-                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-900 uppercase whitespace-nowrap">
-                                                            {item.item_code}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-600 truncate max-w-[200px]" title={item.description}>
-                                                            {item.description}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-left text-sm font-normal text-zinc-700 uppercase whitespace-nowrap">
-                                                            {item.bin_location}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm">
-                                                            ${item.cost.toFixed(2)}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-600 bg-zinc-50/50">
-                                                            {item.system_qty}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
-                                                            {item.c1 !== null ? item.c1 : '-'}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
-                                                            {item.c2 !== null ? item.c2 : '-'}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
-                                                            {item.c3 !== null ? item.c3 : '-'}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm text-zinc-500">
-                                                            {item.c4 !== null ? item.c4 : '-'}
-                                                        </td>
-                                                        <td className="px-2 py-0.5 text-center font-normal text-sm bg-zinc-50/50">
-                                                            {item.final_counted}
-                                                        </td>
-                                                        <td
-                                                            className={`px-2 py-0.5 text-center font-normal text-sm ${
-                                                                item.diff_qty > 0
-                                                                    ? 'text-green-600'
-                                                                    : item.diff_qty < 0
-                                                                    ? 'text-red-600'
-                                                                    : 'text-zinc-400'
-                                                            }`}
-                                                        >
-                                                            {item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
-                                                        </td>
-                                                        <td
-                                                            className={`px-2 py-0.5 text-center font-normal text-sm ${
-                                                                item.diff_val > 0
-                                                                    ? 'text-green-600'
-                                                                    : item.diff_val < 0
-                                                                    ? 'text-red-600'
-                                                                    : 'text-zinc-400'
-                                                            }`}
-                                                        >
-                                                            {item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            {reconItems.length === 0 && (
+                                                        {!item.is_counted ? '-' : item.diff_qty > 0 ? `+${item.diff_qty}` : item.diff_qty}
+                                                    </td>
+                                                    <td
+                                                        className={`px-2 py-0.5 text-center font-normal text-sm ${
+                                                            !item.is_counted
+                                                                ? 'text-zinc-400'
+                                                                : item.diff_val > 0
+                                                                ? 'text-green-600'
+                                                                : item.diff_val < 0
+                                                                ? 'text-red-600'
+                                                                : 'text-zinc-400'
+                                                        }`}
+                                                    >
+                                                        {!item.is_counted ? '-' : item.diff_val > 0 ? `+$${item.diff_val.toFixed(2)}` : `$${item.diff_val.toFixed(2)}`}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredReconItems.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={12} className="text-center py-8 text-zinc-400 italic">
-                                                        No hay datos para mostrar en la etapa actual.
+                                                    <td colSpan={13} className="text-center py-8 text-zinc-400 italic">
+                                                        No hay datos para mostrar con los filtros seleccionados.
                                                     </td>
                                                 </tr>
                                             )}
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {filteredReconItems.length > 0 && (
+                                    <div className="bg-[#f9f9f9] px-4 py-2 border-t border-[#d2d0ce] flex flex-wrap items-center justify-between gap-y-2 gap-x-4 text-xs text-[#605e5c] w-full box-border min-h-[40px]">
+                                        {/* Selector de cantidad y resumen de registros */}
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                <span>Mostrar:</span>
+                                                <select
+                                                    value={reconPageSize}
+                                                    onChange={(e) => {
+                                                        setReconPageSize(Number(e.target.value));
+                                                        setReconPage(1);
+                                                    }}
+                                                    className="h-7 border border-[#d2d0ce] rounded px-1.5 bg-white text-xs text-[#201f1e] outline-none cursor-pointer focus:border-[#0078d4] shadow-2xs"
+                                                >
+                                                    <option value={50}>50</option>
+                                                    <option value={100}>100</option>
+                                                    <option value={250}>250</option>
+                                                    <option value={500}>500</option>
+                                                </select>
+                                                <span>por página</span>
+                                            </div>
+                                            <span className="text-[#d2d0ce] hidden sm:inline">|</span>
+                                            <div className="whitespace-nowrap">
+                                                Mostrando <span className="font-semibold text-[#201f1e]">{((reconPage - 1) * reconPageSize) + 1}</span> - <span className="font-semibold text-[#201f1e]">{Math.min(reconPage * reconPageSize, filteredReconItems.length)}</span> de <span className="font-semibold text-[#201f1e]">{filteredReconItems.length}</span> ítems
+                                            </div>
+                                        </div>
+
+                                        {/* Botones de paginación con margen seguro respecto al borde derecho */}
+                                        <div className="flex items-center gap-1 shrink-0 ml-auto pr-3">
+                                            <button
+                                                onClick={() => setReconPage(1)}
+                                                disabled={reconPage === 1}
+                                                className="h-7 w-7 flex items-center justify-center border border-[#d2d0ce] rounded bg-white hover:bg-[#f3f2f1] text-[#201f1e] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors text-xs select-none shadow-2xs"
+                                                title="Primera página"
+                                            >
+                                                «
+                                            </button>
+                                            <button
+                                                onClick={() => setReconPage(p => Math.max(1, p - 1))}
+                                                disabled={reconPage === 1}
+                                                className="h-7 px-2.5 flex items-center justify-center border border-[#d2d0ce] rounded bg-white hover:bg-[#f3f2f1] text-[#201f1e] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors whitespace-nowrap text-xs select-none shadow-2xs"
+                                                title="Página anterior"
+                                            >
+                                                ‹ Ant
+                                            </button>
+                                            <span className="h-7 px-2 flex items-center justify-center font-medium text-[#201f1e] whitespace-nowrap text-xs select-none">
+                                                {reconPage} / {totalReconPages}
+                                            </span>
+                                            <button
+                                                onClick={() => setReconPage(p => Math.min(totalReconPages, p + 1))}
+                                                disabled={reconPage === totalReconPages}
+                                                className="h-7 px-2.5 flex items-center justify-center border border-[#d2d0ce] rounded bg-white hover:bg-[#f3f2f1] text-[#201f1e] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors whitespace-nowrap text-xs select-none shadow-2xs"
+                                                title="Página siguiente"
+                                            >
+                                                Sig ›
+                                            </button>
+                                            <button
+                                                onClick={() => setReconPage(totalReconPages)}
+                                                disabled={reconPage === totalReconPages}
+                                                className="h-7 w-7 flex items-center justify-center border border-[#d2d0ce] rounded bg-white hover:bg-[#f3f2f1] text-[#201f1e] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors text-xs select-none shadow-2xs"
+                                                title="Última página"
+                                            >
+                                                »
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -589,8 +830,8 @@ const AdminInventory = () => {
                             <p className="text-[11px] text-zinc-500 font-normal">
                                 Seleccione los pasillos autorizados para cada auditor en la matriz inferior.
                             </p>
-                            <div className="mt-2 p-2 bg-amber-50/80 border border-amber-200 rounded text-[11px] text-amber-900 font-normal">
-                                📌 <strong>Nota:</strong> Si no se marca ningún pasillo, el auditor mantiene acceso a todos los pasillos.
+                            <div className="mt-2 p-2 bg-[#fff4ce] border border-[#fed9cc] rounded text-xs text-[#7a4100] font-normal">
+                                <strong>Nota:</strong> Si no se marca ningún pasillo, el auditor mantiene acceso a todos los pasillos.
                             </div>
                         </div>
                     </div>
@@ -632,17 +873,17 @@ const AdminInventory = () => {
                                                         return (
                                                             <label
                                                                 key={aisle}
-                                                                className={`flex items-center gap-1 px-2 py-1 rounded border transition-colors cursor-pointer text-[10px] font-mono select-none ${
+                                                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded border transition-colors cursor-pointer text-xs font-mono select-none ${
                                                                     isChecked
-                                                                        ? 'border-black bg-black text-white font-normal shadow-2xs'
-                                                                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 font-normal'
+                                                                        ? 'border-[#0078d4] bg-[#eff6fc] text-[#0078d4] font-medium shadow-2xs'
+                                                                        : 'border-[#d2d0ce] bg-white text-[#605e5c] hover:bg-[#f3f2f1] font-normal'
                                                                 }`}
                                                             >
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={isChecked}
                                                                     onChange={toggleAisle}
-                                                                    className="w-3 h-3 rounded border-zinc-300 text-black focus:ring-black cursor-pointer accent-black shrink-0"
+                                                                    className="w-3.5 h-3.5 rounded border-[#8a8886] text-[#0078d4] focus:ring-[#0078d4] cursor-pointer accent-[#0078d4] shrink-0"
                                                                 />
                                                                 <span className="whitespace-nowrap">{aisle}</span>
                                                             </label>
@@ -653,7 +894,7 @@ const AdminInventory = () => {
                                             <td className="px-3 py-1 text-right">
                                                 <button
                                                     onClick={() => handleSaveZones(userItem.id)}
-                                                    className="px-4 py-1.5 bg-black hover:bg-zinc-800 text-white text-[11px] font-normal uppercase rounded shadow-2xs transition-all cursor-pointer"
+                                                    className="px-3.5 py-1 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-xs font-normal rounded transition-colors shadow-xs cursor-pointer"
                                                 >
                                                     Guardar Pasillos
                                                 </button>
