@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -54,6 +54,7 @@ const CycleCounts = () => {
     const [countedQty, setCountedQty] = useState('');
     const [loadingItem, setLoadingItem] = useState(false);
     const [validBins, setValidBins] = useState(new Set());
+    const countedQtyInputRef = useRef(null);
 
     // Sidebar Data
     const [locationCounts, setLocationCounts] = useState([]);
@@ -312,6 +313,8 @@ const CycleCounts = () => {
         setDescription('');
         setBinSys('');
 
+        let success = false;
+
         try {
             if (isOnline) {
                 const res = await fetch(`/api/get_item_for_counting/${encodeURIComponent(code)}`);
@@ -323,7 +326,7 @@ const CycleCounts = () => {
                     if (!data.in_master) {
                         toast.info("Ítem no registrado en maestro (admitido para conteo W2W)");
                     }
-                    document.getElementById('counted_qty')?.focus();
+                    success = true;
                 } else {
                     toast.error("Error consultando ítem");
                 }
@@ -341,12 +344,24 @@ const CycleCounts = () => {
                     setBinSys('N/A');
                     toast.info("Ítem no encontrado en maestro local (admitido para conteo W2W)");
                 }
-                document.getElementById('counted_qty')?.focus();
+                success = true;
             }
         } catch (e) {
             toast.error("Error buscando item");
         } finally {
             setLoadingItem(false);
+            if (success) {
+                setTimeout(() => {
+                    if (countedQtyInputRef.current) {
+                        countedQtyInputRef.current.focus();
+                        countedQtyInputRef.current.select?.();
+                    } else {
+                        const el = document.getElementById('counted_qty');
+                        el?.focus();
+                        el?.select?.();
+                    }
+                }, 80);
+            }
         }
     };
 
@@ -779,7 +794,12 @@ const CycleCounts = () => {
                                         type="text"
                                         value={itemCode}
                                         onChange={e => setItemCode(e.target.value.toUpperCase())}
-                                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), fetchItemData(itemCode))}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                fetchItemData(e.target.value || itemCode);
+                                            }
+                                        }}
                                         className="flex-grow h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-medium text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
                                         placeholder="Escanear o ingresar SKU..."
                                         required
@@ -838,6 +858,7 @@ const CycleCounts = () => {
                                             -
                                         </button>
                                         <input
+                                            ref={countedQtyInputRef}
                                             id="counted_qty"
                                             type="number"
                                             value={countedQty}
