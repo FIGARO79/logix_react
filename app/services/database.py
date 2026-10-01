@@ -24,6 +24,8 @@ async def ensure_cycle_count_columns():
         ("cycle_count_recordings", "stockroom", "VARCHAR(50)"),
         ("cycle_count_recordings", "criticality", "VARCHAR(50) DEFAULT 'Standard'"),
         ("users", "assigned_zones", "VARCHAR(500) DEFAULT ''"),
+        ("logs", "username", "VARCHAR(100) DEFAULT ''"),
+        ("logs", "client_id", "VARCHAR(100) DEFAULT ''"),
     ]
     try:
         async with engine.begin() as conn:
@@ -35,6 +37,31 @@ async def ensure_cycle_count_columns():
                     pass  # La columna ya existe
     except Exception as e:
         print(f"Aviso actualizando esquema de BD: {e}")
+
+
+async def ensure_default_admin():
+    """Garantiza la existencia de al menos un usuario administrador inicial si la tabla está vacía."""
+    from app.core.config import ENVIRONMENT, ADMIN_PASSWORD
+    from app.core.db import AsyncSessionLocal
+    from app.models.sql_models import User
+    from sqlalchemy import select
+    from werkzeug.security import generate_password_hash
+    try:
+        async with AsyncSessionLocal() as session:
+            res = await session.execute(select(User))
+            users = res.scalars().all()
+            if not users and ADMIN_PASSWORD:
+                admin_user = User(
+                    username="admin",
+                    password_hash=generate_password_hash(ADMIN_PASSWORD),
+                    is_approved=1,
+                    permissions="all",
+                )
+                session.add(admin_user)
+                await session.commit()
+                print(f"[INIT] Usuario 'admin' inicial creado dinámicamente con ADMIN_PASSWORD ({ENVIRONMENT}).")
+    except Exception as e:
+        print(f"[INIT WARNING] No se pudo verificar/crear usuario admin por defecto: {e}")
 
 
 async def run_migrations():
@@ -52,4 +79,5 @@ async def run_migrations():
         print(f"Error crítico ejecutando migraciones: {e}")
     
     await ensure_cycle_count_columns()
+    await ensure_default_admin()
 

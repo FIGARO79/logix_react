@@ -53,3 +53,21 @@ shell commands, and other important information, read the current plan
 - **`pydantic`:** Validación de esquemas con Pydantic v2.
 - **`frontend-design`:** Componentes de interfaz, diseño dinámico y estética para React + Vite.
 - **`sqlalchemy-orm` / `sqlalchemy-alembic-expert-best-practices-code-review`:** Consultas eficientes a la base de datos SQL y migraciones de Alembic.
+
+---
+
+## 🔍 Protocolo de Grafo de Conocimiento y Navegación (codebase-memory-mcp)
+
+1. **SessionStart (Inicio de Sesión):**
+   - Al iniciar la sesión o tras compresión de contexto, verificar el proyecto del grafo activo mediante `list_projects` e `index_status`.
+   - Determinar el nivel de evidencia adecuado (**Scout (Tier 1)**, **Verify (Tier 2)** o **Auditor (Tier 3)**) antes de emitir diagnósticos sobre la base de código.
+
+2. **Tres Subagentes / Niveles Explícitos de Investigación:**
+   - **Scout (Tier 1):** Subagente de exploración rápida. Realiza búsquedas puntuales (`search_graph`). Hallazgos marcados como provisionales.
+   - **Verify (Tier 2 - Predeterminado):** Subagente de verificación basada en tareas. Valida cadenas de llamadas (`trace_path`) y fragmentos de código exactos (`get_code_snippet`).
+   - **Auditor (Tier 3):** Subagente de auditoría integral y exhaustiva con límites explícitos. Recorre paginación completa, ambas direcciones de llamadas y reporta limitaciones de cobertura.
+
+3. **Cobertura de Código y Fallback (BeforeTool / AfterTool & read_file):**
+   - **BeforeTool (Validación Previa):** Ejecutar `check_index_coverage` sobre las rutas candidatas identificadas antes de efectuar afirmaciones de exhaustividad o no existencia.
+   - **AfterTool (Verificación Posterior y Lectura Directa):** Ante rangos de líneas incompletos, omitidos, fallidos o no indexados devueltos por la herramienta de grafo, recurrir de inmediato a `view_file` / `read_file` o `grep_search` para auditar los rangos exactos.
+   - **Transferencia de Contexto a Subagentes:** Al invocar subagentes de lectura/investigación, suministrar explícitamente el Tier seleccionado, estado del grafo, rutas revisadas, evidencias de cobertura y preguntas abiertas para evitar re-trabajo o asunciones infundadas.

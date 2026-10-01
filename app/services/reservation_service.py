@@ -157,6 +157,9 @@ def calculate_pending_reservations(
     so_res_col = find_column(res_cols, ["SO_Number", "SO Number", "SO_Num", "SO", "Order_Number", "Order Number"])
     item_res_col = find_column(res_cols, ["Item_Code", "Item Code", "Item", "Codigo"])
     qty_res_col = find_column(res_cols, ["Action_QTY", "Action Qty", "Action_Qty", "Quantity_reserved", "Qty"])
+    line_res_col = find_column(res_cols, ["SO_Line_Number", "SO Line Number", "SO_Line", "SO Line", "Line_Number", "Line Number", "Line"])
+    po_res_col = find_column(res_cols, ["PO_Number", "PO Number", "PO_Num", "PO", "Customer_Reference", "Customer Reference"])
+    cust_res_col = find_column(res_cols, ["Customer_Name", "Customer Name", "Customer_Code", "Customer Code", "Customer"])
 
     if not so_res_col or not item_res_col or not qty_res_col:
         raise KeyError(
@@ -164,13 +167,51 @@ def calculate_pending_reservations(
             f"Detectadas: SO={so_res_col}, Item={item_res_col}, Qty={qty_res_col}"
         )
 
+    # Desduplicación preventiva de líneas de reserva (idéntico a Rust Core)
+    so_line_map: Dict[Tuple[str, str, str, str, str], Dict[str, Any]] = {}
+    for row in df_res.iter_rows(named=True):
+        ord_key = normalize_identifier(row[so_res_col])
+        line_key = normalize_identifier(row[line_res_col]) if line_res_col else ""
+        itm_key = normalize_identifier(row[item_res_col])
+        po_key = normalize_identifier(row[po_res_col]) if po_res_col else ""
+        cust_key = normalize_identifier(row[cust_res_col]) if cust_res_col else ""
+        qty_val = parse_quantity(row[qty_res_col])
+
+        if ord_key and line_key and itm_key:
+            dedup_key = (ord_key, line_key, itm_key, po_key, cust_key)
+            if dedup_key not in so_line_map:
+                so_line_map[dedup_key] = row
+            else:
+                existing_qty = parse_quantity(so_line_map[dedup_key][qty_res_col])
+                if qty_val > existing_qty:
+                    so_line_map[dedup_key] = row
+
+    # Mantener el orden original de primera aparición al reconstruir la lista desduplicada
+    final_input_rows: List[Dict[str, Any]] = []
+    seen_keys = set()
+    for row in df_res.iter_rows(named=True):
+        ord_key = normalize_identifier(row[so_res_col])
+        line_key = normalize_identifier(row[line_res_col]) if line_res_col else ""
+        itm_key = normalize_identifier(row[item_res_col])
+        po_key = normalize_identifier(row[po_res_col]) if po_res_col else ""
+        cust_key = normalize_identifier(row[cust_res_col]) if cust_res_col else ""
+
+        if ord_key and line_key and itm_key:
+            dedup_key = (ord_key, line_key, itm_key, po_key, cust_key)
+            if dedup_key not in seen_keys:
+                seen_keys.add(dedup_key)
+                final_input_rows.append(so_line_map[dedup_key])
+        else:
+            final_input_rows.append(row)
+
+    dedup_eliminated = df_res.height - len(final_input_rows)
     remaining_dispatch = dispatched_totals.copy()
 
     operational_rows: List[Dict[str, Any]] = []
     audit_rows: List[Dict[str, Any]] = []
     eliminated_count = 0
 
-    for row in df_res.iter_rows(named=True):
+    for row in final_input_rows:
         ord_key = normalize_identifier(row[so_res_col])
         itm_key = normalize_identifier(row[item_res_col])
         orig_qty = parse_quantity(row[qty_res_col])
@@ -230,6 +271,8 @@ def calculate_pending_reservations(
     elapsed = round(time.time() - t0, 3)
     metrics = {
         "reservations_original": df_res.height,
+        "reservations_deduplicated": len(final_input_rows),
+        "reservations_duplicates_removed": dedup_eliminated,
         "reservations_operational": df_operational.height,
         "reservations_eliminated": eliminated_count,
         "dispatch_keys_total": len(dispatched_totals),
@@ -240,10 +283,11 @@ def calculate_pending_reservations(
     }
 
     print(
-        f"[XDOCK CRUCE] Procesado en {elapsed}s: {df_res.height} reservas brutas -> "
+        f"[XDOCK CRUCE] Procesado en {elapsed}s: {df_res.height} reservas brutas ({dedup_eliminated} duplicados eliminados) -> "
         f"{df_operational.height} con saldo pendiente, {eliminated_count} eliminadas (saldo 0).",
         flush=True,
     )
+    return df_operational, metrics
     return df_operational, metrics
 
 
