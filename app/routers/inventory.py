@@ -1101,10 +1101,25 @@ async def save_w2w_count_api(
     session_row = (await db.execute(stmt)).scalar_one_or_none()
 
     if not session_row or session_row.status != "in_progress":
-        raise HTTPException(
-            status_code=400,
-            detail="La sesión de inventario W2W especificada no existe o ya está cerrada.",
+        # Fallback: si el session_id enviado no existe o ya está cerrado, buscar si el usuario tiene una sesión activa 'in_progress'
+        stmt_user_session = (
+            select(CountSession)
+            .where(
+                CountSession.user_username == user,
+                CountSession.status == "in_progress",
+            )
+            .order_by(CountSession.start_time.desc())
+            .limit(1)
         )
+        active_user_session = (await db.execute(stmt_user_session)).scalar_one_or_none()
+        if active_user_session:
+            session_row = active_user_session
+            payload.session_id = active_user_session.id
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="La sesión de inventario W2W especificada no existe o ya está cerrada.",
+            )
 
     # 1.5 Verificar que la ubicación exista en el maestro de slotting
     clean_location = payload.counted_location.upper().strip()
