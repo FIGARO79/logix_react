@@ -1408,7 +1408,7 @@ const Inbound = () => {
                                 <input
                                     type="text"
                                     placeholder="BUSCAR..."
-                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase focus:border-zinc-400 transition-all"
+                                    className="w-full !h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase focus:border-zinc-400 transition-all"
                                     style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
