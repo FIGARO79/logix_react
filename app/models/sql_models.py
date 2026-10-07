@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, ForeignKey, Text, Numeric
+from sqlalchemy import Integer, String, ForeignKey, Text, Numeric, Float
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db import Base
 from typing import Optional
@@ -12,6 +12,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_approved: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     permissions: Mapped[Optional[str]] = mapped_column(String(500), default="")
+    assigned_zones: Mapped[Optional[str]] = mapped_column(String(500), default="")
 
     reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
 
@@ -20,7 +21,8 @@ class User(Base):
             "id": self.id,
             "username": self.username,
             "is_approved": self.is_approved,
-            "permissions": self.permissions
+            "permissions": self.permissions,
+            "assigned_zones": self.assigned_zones or "",
         }
 
 class PasswordResetToken(Base):
@@ -110,6 +112,20 @@ class StockCount(Base):
     username: Mapped[Optional[str]] = mapped_column(String(100))
 
     session = relationship("CountSession", back_populates="counts")
+
+class W2WInventorySnapshot(Base):
+    __tablename__ = "w2w_inventory_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("count_sessions.id", ondelete="CASCADE"), nullable=False, default=0, index=True
+    )
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    bin_location: Mapped[Optional[str]] = mapped_column(String(100))
+    system_qty: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    unit_cost: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    created_at: Mapped[str] = mapped_column(String(50), nullable=False)
 
 class CycleCount(Base):
     __tablename__ = "cycle_counts"

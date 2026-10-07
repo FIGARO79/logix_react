@@ -1,9 +1,13 @@
 /* src/styles/Label.css */
 
 /* ===== Label Container (Screen View) ===== */
-.label-container {
+.label-container,
+.label-container * {
     font-family: "Arial", "Helvetica", sans-serif !important;
     /* Force legacy font for labels */
+}
+
+.label-container {
     border: 1px solid #d1d5db;
     padding: 0.75rem;
     background-color: white;
@@ -100,6 +104,10 @@
 
 /* ===== PRINT STYLES (CRITICAL) ===== */
 @media print {
+    .label-container,
+    .label-container * {
+        font-family: "Arial", "Helvetica", sans-serif !important;
+    }
     .label-container {
         border: none !important;
         box-shadow: none !important;

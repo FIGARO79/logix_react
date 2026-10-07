@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
 const ViewCounts = () => {
-    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const [counts, setCounts] = useState([]);
     const [filteredCounts, setFilteredCounts] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [stats, setStats] = useState({
         total_items_to_count: 0,
         total_items_counted: 0,
@@ -18,7 +18,7 @@ const ViewCounts = () => {
     const [selectedUser, setSelectedUser] = useState("");
     const [usernames, setUsernames] = useState([]);
 
-    useEffect(() => { setTitle("Control de Conteos Físicos"); }, [setTitle]);
+    useEffect(() => { setTitle("Conteos W2W"); }, [setTitle]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -41,7 +41,7 @@ const ViewCounts = () => {
                 setStats(dataStats);
             }
         } catch (err) {
-            console.error("Error al cargar conteos:", err);
+            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -60,63 +60,50 @@ const ViewCounts = () => {
         }
     }, [selectedUser, counts]);
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("¿Eliminar este registro de conteo permanentemente?")) return;
-        try {
-            const res = await fetch(`/api/counts/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Error al eliminar");
-            fetchData(); // Reload all
-        } catch (e) { alert(e.message); }
-    };
-
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-6 font-sans text-sm text-[#32363a]">
+        <div className="view-counts-page max-w-[1920px] mx-auto px-4 py-2 text-xs">
 
             {/* Page Header */}
-            <div className="mb-6 flex justify-between items-end border-b border-gray-100 pb-4">
-                <div>
-                    <h1 className="text-base font-normal tracking-tight">Auditoría de Campo</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Monitoreo de avance de conteo físico general</p>
-                </div>
+            <div className="mb-2 flex justify-end items-center border-b border-[#e1dfdd] pb-1.5">
                 <div className="text-right">
-                    <p className="text-[8px] text-gray-400 uppercase font-bold">Estado del Proceso</p>
-                    <p className="text-base font-light text-green-600">{stats.progress_percentage}% Completado</p>
+                    <p className="text-[10px] text-[#605e5c] uppercase font-normal">Estado del Proceso</p>
+                    <p className="text-sm font-normal text-[#107c10]">{stats.progress_percentage}% Completado</p>
                 </div>
             </div>
 
             {/* Stats Cards Compact */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
                 {[
-                    { title: 'Items con Stock', val: stats.total_items_to_count, color: 'text-gray-500' },
-                    { title: 'Items Contados', val: stats.total_items_counted, color: 'text-[#285f94]' },
-                    { title: 'Progreso', val: `${stats.progress_percentage}%`, color: 'text-green-700' },
-                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-gray-600' },
-                    { title: 'Total Unidades', val: stats.total_units_counted, color: 'text-[#285f94]' }
+                    { title: 'Items con Stock', val: stats.total_items_to_count, color: 'text-[#605e5c]' },
+                    { title: 'Items Contados', val: stats.total_items_counted, color: 'text-[#201f1e]' },
+                    { title: 'Progreso', val: `${stats.progress_percentage}%`, color: 'text-[#107c10]' },
+                    { title: 'Ubic. Contadas', val: stats.counted_locations, color: 'text-[#201f1e]' },
+                    { title: 'Total Unidades', val: stats.total_units_counted, color: 'text-[#201f1e]' }
                 ].map((s, idx) => (
-                    <div key={idx} className="bg-white border border-gray-200 rounded p-4 shadow-sm">
-                        <h3 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${s.color}`}>{s.title}</h3>
-                        <p className={`text-xl font-light ${s.color}`}>{s.val}</p>
+                    <div key={idx} className="bg-white border border-[#d2d0ce] rounded p-2 shadow-sm">
+                        <h3 className={`text-[10px] font-normal uppercase mb-0.5 ${s.color}`}>{s.title}</h3>
+                        <p className={`text-lg font-normal ${s.color}`}>{s.val}</p>
                     </div>
                 ))}
             </div>
 
             {/* Toolbar */}
-            <div className="flex justify-between items-center mb-6 p-3 bg-white rounded border border-gray-200 shadow-sm">
+            <div className="flex justify-between items-center mb-4 p-2.5 bg-white rounded border border-[#d2d0ce] shadow-sm">
                 <div className="flex items-center gap-3">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-tight">Filtrar Auditor:</label>
+                    <label className="text-xs font-normal text-[#605e5c] uppercase">Filtrar Auditor:</label>
                     <select
                         value={selectedUser}
                         onChange={(e) => setSelectedUser(e.target.value)}
-                        className="h-8 border border-gray-300 rounded px-3 bg-gray-50 text-sm outline-none focus:border-blue-500 transition-colors"
+                        className="h-7 border border-[#8a8886] rounded px-2.5 bg-white text-xs outline-none focus:border-[#0078d4] text-[#201f1e] transition-colors"
                     >
                         <option value="">Todos los auditores</option>
                         {usernames.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-2">
                     <a
                         href="/api/export_counts?tz=America/Bogota"
-                        className="inline-flex items-center px-4 py-1.5 border border-gray-300 text-gray-600 bg-white text-xs font-bold uppercase tracking-tighter rounded hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center px-3 py-1 border border-[#d2d0ce] text-[#201f1e] bg-white text-xs font-normal uppercase rounded hover:bg-[#f3f3f3] hover:border-[#8a8886] transition-colors"
                     >
                         Exportar Reporte
                     </a>
@@ -124,50 +111,51 @@ const ViewCounts = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white shadow-sm rounded border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto max-h-[65vh]">
+            <div className="bg-white shadow-sm rounded border border-[#d2d0ce] overflow-hidden">
+                <div className="overflow-x-auto max-h-[calc(100vh-220px)]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10 bg-gray-50">
+                        <thead className="sticky top-0 z-10 bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce]">
                             <tr>
-                                {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Acciones'].map((h, i) => (
-                                    <th key={i} className="px-4 py-3 border-b border-gray-200 text-[10px] font-bold uppercase tracking-widest text-white-500">
+                                {['Etapa', 'Sesión', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia'].map((h, i) => (
+                                    <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : 'text-left'}`}>
                                         {h}
                                     </th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#e1dfdd]">
                             {loading ? (
-                                <tr><td colSpan="9" className="p-8 text-center text-gray-400 italic">Cargando registros...</td></tr>
+                                <tr><td colSpan="10" className="py-2 px-2 text-center text-[#605e5c] font-normal text-xs">Cargando registros...</td></tr>
                             ) : filteredCounts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="p-12 text-center text-gray-400 uppercase text-xs tracking-widest">
+                                    <td colSpan="10" className="py-4 px-2 text-center text-[#605e5c] uppercase text-xs font-normal">
                                         No hay registros de conteo físico
                                     </td>
                                 </tr>
                             ) : (
-                                filteredCounts.map((c) => (
-                                    <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="px-4 py-2 text-xs text-gray-400">{c.inventory_stage || '1'}</td>
-                                        <td className="px-4 py-2 text-xs text-gray-400">{c.session_id}</td>
-                                        <td className="px-4 py-2 text-xs font-semibold text-gray-700">{c.username || 'N/A'}</td>
-                                        <td className="px-4 py-2 text-[10px] text-gray-500 whitespace-nowrap">
-                                            {c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-xs font-bold text-slate-800">{c.item_code}</td>
-                                        <td className="px-4 py-2 text-[11px] text-gray-500 truncate max-w-[300px]" title={c.item_description}>{c.item_description}</td>
-                                        <td className="px-4 py-2 text-xs font-mono text-gray-600">{c.counted_location}</td>
-                                        <td className="px-4 py-2 text-sm font-bold text-[#285f94]">{c.counted_qty}</td>
-                                        <td className="px-4 py-2 text-right flex justify-end gap-2">
-                                            <button onClick={() => navigate(`/counts/edit/${c.id}`)} className="text-gray-400 hover:text-blue-600 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            </button>
-                                            <button onClick={() => handleDelete(c.id)} className="text-gray-400 hover:text-red-600 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredCounts.map((c) => {
+                                    const diff = c.difference ?? ((c.counted_qty ?? 0) - (c.system_qty ?? 0));
+                                    return (
+                                        <tr key={c.id} className="hover:bg-[#f3f9fd] transition-colors leading-none border-b border-[#e1dfdd] h-6">
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#0078d4]">E{c.inventory_stage || '1'}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#605e5c]">#{c.session_id}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e]">{c.username || 'N/A'}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#605e5c] whitespace-nowrap">
+                                                {c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            </td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] uppercase">{c.item_code}</td>
+                                            <td className="px-2 py-0.5 text-sm text-[#605e5c] font-normal truncate max-w-[300px]" title={c.item_description}>{c.item_description}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] uppercase">{c.counted_location}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#0078d4] text-right">{c.counted_qty}</td>
+                                            <td className="px-2 py-0.5 text-sm font-normal text-[#201f1e] text-right">{c.system_qty ?? 0}</td>
+                                            <td className={`px-2 py-0.5 text-sm font-normal text-right ${
+                                                diff < 0 ? 'text-[#a4262c]' : diff > 0 ? 'text-[#107c10]' : 'text-[#605e5c]'
+                                            }`}>
+                                                {diff > 0 ? `+${diff}` : diff}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

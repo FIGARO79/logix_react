@@ -25,7 +25,6 @@ import ViewCounts from './pages/ViewCounts';
 import EditCount from './pages/EditCount';
 import InboundHistory from './pages/InboundHistory';
 import Update from './pages/Update';
-import IRReconciliation from './pages/IRReconciliation';
 import Register from './pages/Register';
 import SetPassword from './pages/SetPassword';
 import PackingListPrint from './pages/PackingListPrint';
@@ -37,19 +36,12 @@ import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
 import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
+import InboundAudit from './pages/InboundAudit';
+import Spinner from './components/Spinner';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
-    <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#0070f3'
-    }}>
-        Cargando...
-    </div>
+    <Spinner size="xl" label="Cargando módulo..." fullPage />
 );
 
 // Protected Route Component
@@ -227,11 +219,12 @@ function App() {
                                 <InboundHistory />
                             </ProtectedRoute>
                         } />
-                        <Route path="/ir-reconciliation" element={
+                        <Route path="/inbound/audit" element={
                             <ProtectedRoute requiredPermission="inbound">
-                                <IRReconciliation />
+                                <InboundAudit />
                             </ProtectedRoute>
                         } />
+                        <Route path="/ir-reconciliation" element={<Navigate to="/reconciliation" replace />} />
 
 
                         {/* Admin Routes */}
@@ -256,14 +249,14 @@ function App() {
                                 <Shipments />
                             </ProtectedRoute>
                         } />
+                        <Route path="/packing_list/print/:id" element={
+                            <ProtectedRoute>
+                                <PackingListPrint />
+                            </ProtectedRoute>
+                        } />
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}
-                    <Route path="/packing_list/print/:id" element={
-                        <ProtectedRoute>
-                            <PackingListPrint />
-                        </ProtectedRoute>
-                    } />
                     <Route path="/shipments/print/:id" element={
                         <ProtectedRoute>
                             <ConsolidatedPackingList />

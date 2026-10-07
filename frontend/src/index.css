@@ -1,37 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --sap-font-family: 'Inter', 'Roboto', sans-serif;
-    --sap-font-heading: 'Inter', sans-serif;
+    --logix-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --sap-font-family: var(--logix-font-family);
+    --sap-font-heading: var(--logix-font-family);
     --sap-primary: #354a5f;
     --sap-shell-bg: #354a5f;
     --sap-bg: #f5f7fa;
-    --sap-text: #111827; /* Gray-900 para contraste máximo */
-    --sap-text-header: #030712; /* Gray-950 para títulos */
+    --sap-text: #000000;
+    --sap-text-header: #000000;
+}
+
+html, body {
+    font-family: var(--logix-font-family);
+}
+
+body, button, input, select, textarea, table, h1, h2, h3, h4, h5, h6, div, p, span, a, label {
+    font-family: var(--logix-font-family);
+}
+
+/* Soporte normalizado para clases monospace (SKUs, ubicaciones, códigos de barra) */
+.font-mono, [class*="font-mono"] {
+    font-family: Consolas, 'Segoe UI Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace !important;
+}
+
+/* Preservar tipografía de etiquetas térmicas de impresión */
+.label-container, .label-container * {
+    font-family: Arial, Helvetica, sans-serif !important;
 }
 
 body {
-    font-family: var(--sap-font-family);
     color: var(--sap-text);
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-family: var(--sap-font-heading);
-    color: var(--sap-text-header);
-    font-weight: 700; /* Incrementado de 500 a 700 para mayor jerarquía */
-    letter-spacing: -0.02em; /* Ajuste tipográfico profesional */
 }
 
 .header-title {
@@ -60,12 +65,144 @@ h6 {
 }
 
 .animate-spin {
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
-/* 
-  Reset de impresión global para evitar hojas en blanco en React/Vite/PWA.
-  Fuerza a que el contenedor raíz sea visible y tenga altura automática.
-*/
+
+/* Fluent UI Progress Spinner Ring (compatibilidad previa) */
+.fluent-spinner {
+    border-radius: 9999px !important;
+    border-style: solid;
+    border-color: #edebe9;
+    border-top-color: #0078d4;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ==========================================================================
+   Logix 3-Ring Orbital Loader (Estilo loader.png)
+   Tres anillos concéntricos orbitando en direcciones opuestas en color cyan
+   (#2cb8ff) con mensaje centrado (#customMessage) y contenedor (#loader-wrapper)
+   ========================================================================== */
+@keyframes logix-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes logix-spin-reverse {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+.loader-wrapper, #loader-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.loader-wrapper.is-fullscreen, #loader-wrapper.is-fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background-color: #171717;
+    background-color: rgba(23, 23, 23, 0.96);
+    backdrop-filter: blur(4px);
+}
+
+.logix-loader, #loader {
+    display: block;
+    position: relative;
+    width: var(--loader-size, 80px);
+    height: var(--loader-size, 80px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin 2s linear infinite;
+    box-sizing: border-box;
+}
+
+.logix-loader::before, #loader::before {
+    content: "";
+    position: absolute;
+    top: var(--loader-gap1, 5px);
+    left: var(--loader-gap1, 5px);
+    right: var(--loader-gap1, 5px);
+    bottom: var(--loader-gap1, 5px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin-reverse 3s linear infinite;
+    box-sizing: border-box;
+}
+
+.logix-loader::after, #loader::after {
+    content: "";
+    position: absolute;
+    top: var(--loader-gap2, 13px);
+    left: var(--loader-gap2, 13px);
+    right: var(--loader-gap2, 13px);
+    bottom: var(--loader-gap2, 13px);
+    border-radius: 50%;
+    border: var(--loader-border, 3px) solid transparent;
+    border-top-color: var(--loader-color, #2cb8ff);
+    animation: logix-spin 1.5s linear infinite;
+    box-sizing: border-box;
+}
+
+/* Escalas dimensionales para los 3 anillos concéntricos */
+.logix-loader-xs {
+    --loader-size: 18px;
+    --loader-border: 1.5px;
+    --loader-gap1: 2px;
+    --loader-gap2: 4px;
+}
+
+.logix-loader-sm {
+    --loader-size: 30px;
+    --loader-border: 2px;
+    --loader-gap1: 3px;
+    --loader-gap2: 7px;
+}
+
+.logix-loader-md {
+    --loader-size: 52px;
+    --loader-border: 2.5px;
+    --loader-gap1: 4px;
+    --loader-gap2: 10px;
+}
+
+.logix-loader-lg {
+    --loader-size: 80px;
+    --loader-border: 3px;
+    --loader-gap1: 5px;
+    --loader-gap2: 13px;
+}
+
+.logix-loader-xl {
+    --loader-size: 120px;
+    --loader-border: 3px;
+    --loader-gap1: 6px;
+    --loader-gap2: 16px;
+}
+
+/* Mensaje inferior centrado (#customMessage en loader.png) */
+.loader-message, #customMessage {
+    display: inline-block;
+    font-family: var(--logix-font-family, 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif);
+    font-weight: 400;
+    letter-spacing: 0.025em;
+    text-align: center;
+    color: #dedede !important;
+}
+
+.loader-wrapper.is-light .loader-message,
+.loader-wrapper.is-light #customMessage {
+    color: #334155 !important;
+}
+
+/* Reset de impresión global */
 @media print {
     html, body, #root {
         height: auto !important;
@@ -89,6 +226,71 @@ h6 {
     display: none;
 }
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Force white text on table headers with dark backgrounds */
+thead.bg-slate-700 th,
+thead.bg-slate-800 th,
+thead.bg-slate-900 th,
+thead.bg-zinc-800 th,
+thead.bg-zinc-900 th,
+thead.bg-black th,
+thead[class*="bg-sap-primary"] th,
+tr[style*="background: #111827"] th,
+tr[style*="background: #354a5f"] th,
+tr.text-white th,
+thead.text-white th {
+    color: #ffffff !important;
+}
+
+/* Force all dark/medium/light gray/zinc/slate/neutral/stone text colors to black globally */
+.text-gray-300, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, .text-gray-850, .text-gray-900, .text-gray-950,
+.text-zinc-300, .text-zinc-400, .text-zinc-500, .text-zinc-600, .text-zinc-700, .text-zinc-800, .text-zinc-900, .text-zinc-950,
+.text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900, .text-slate-950,
+.text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-neutral-700, .text-neutral-800, .text-neutral-900, .text-neutral-950,
+.text-stone-300, .text-stone-400, .text-stone-500, .text-stone-600, .text-stone-700, .text-stone-800, .text-stone-900, .text-stone-950,
+.text-zinc-500\/60, .text-gray-500\/60, .text-black\/60 {
+    color: #000000 !important;
+}
+
+/* Exclude the sidebar section titles from the global black color rule and set them to white */
+.fixed.left-0.w-64 nav > div > div {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Ensure all elements in the sidebar menu use normal weight */
+.fixed.left-0.w-64,
+.fixed.left-0.w-64 * {
+    font-weight: 400 !important;
+}
+.fixed.left-0.w-64 nav > div > div,
+.fixed.left-0.w-64 .font-medium,
+.fixed.left-0.w-64 [class*="font-semibold"],
+.fixed.left-0.w-64 [class*="font-bold"] {
+    font-weight: 500 !important;
+}
+
+/* Ensure the logout button in the sidebar is colored in warning red */
+.fixed.left-0.w-64 button.text-red-500,
+.fixed.left-0.w-64 button.text-red-400 {
+    color: #ef4444 !important;
+}
+
+/* Table body font size normalization and compact vertical padding */
+table:not(.print-table):not([class*="print:"]) tbody td,
+.sap-table tbody td,
+.logix-table tbody td {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+table:not(.print-table):not([class*="print:"]) thead th,
+.sap-table thead th,
+.logix-table thead th {
+    padding-top: 0.3125rem;
+    padding-bottom: 0.3125rem;
 }

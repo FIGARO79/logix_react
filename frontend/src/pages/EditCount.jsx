@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTabContext } from '../hooks/useTabContext';
+import '../styles/FluentPages.css';
 
-const EditCount = () => {
-    const { id } = useParams();
+const EditCount = ({ id: propId }) => {
+    const { id: paramId } = useParams();
     const navigate = useNavigate();
+    const id = propId || paramId;
+    const { setTitle } = useTabContext() || {};
+
     const [count, setCount] = useState(null);
     const [countedQty, setCountedQty] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!id || id === 'undefined') return;
         const fetchCount = async () => {
             try {
                 const res = await fetch(`/api/counts/${id}`);
-                if (!res.ok) throw new Error("Count not found");
+                if (!res.ok) throw new Error("Conteo no encontrado");
                 const data = await res.json();
                 setCount(data);
                 setCountedQty(data.counted_qty);
@@ -25,7 +30,8 @@ const EditCount = () => {
             }
         };
         fetchCount();
-    }, [id]);
+        if (setTitle) setTitle(`Editar Conteo #${id}`);
+    }, [id, setTitle]);
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -33,9 +39,9 @@ const EditCount = () => {
             const res = await fetch(`/api/counts/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ counted_qty: countedQty })
+                body: JSON.stringify({ counted_qty: parseFloat(countedQty) })
             });
-            if (!res.ok) throw new Error("Error updating count");
+            if (!res.ok) throw new Error("Error al actualizar el conteo");
 
             navigate('/counts/manage');
         } catch (err) {
@@ -43,62 +49,61 @@ const EditCount = () => {
         }
     };
 
-    if (loading) return <Layout><div className="p-8">Cargando...</div></Layout>;
-    if (error) return <Layout><div className="p-8 text-red-600">{error}</div></Layout>;
-    if (!count) return <Layout><div className="p-8">No encontrado</div></Layout>;
+    if (loading) return <div className="p-8 text-[#605e5c] font-normal text-sm">Cargando datos del conteo...</div>;
+    if (error) return <div className="p-8 text-[#a4262c] font-normal text-sm">Error: {error}</div>;
+    if (!count) return <div className="p-8 text-[#605e5c] font-normal text-sm">Registro de conteo no encontrado.</div>;
 
     return (
-        <Layout title={`Editar Conteo #${id}`}>
-            <div className="max-w-2xl mx-auto px-4 py-8">
-                <div className="bg-white shadow rounded-lg p-6">
-                    <h1 className="text-2xl font-bold mb-6">Editar Conteo #{id}</h1>
+        <div className="edit-count-page max-w-2xl mx-auto px-4 py-8">
+            <div className="bg-white shadow-sm rounded p-6 border border-[#d2d0ce]">
+                <h1 className="text-xl font-normal text-[#201f1e] mb-6">Editar Conteo #{id}</h1>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-600">
-                        <div>
-                            <span className="font-bold">Item:</span> {count.item_code}
-                        </div>
-                        <div>
-                            <span className="font-bold">Sesión:</span> {count.session_id}
-                        </div>
-                        <div className="col-span-2">
-                            <span className="font-bold">Descripción:</span> {count.item_description}
-                        </div>
-                        <div>
-                            <span className="font-bold">Ubicación:</span> {count.counted_location}
-                        </div>
+                <div className="grid grid-cols-2 gap-4 mb-6 text-xs text-[#605e5c] bg-[#f9f9f9] p-4 rounded border border-[#e1dfdd]">
+                    <div>
+                        <span className="font-normal text-[#201f1e]">Item:</span> {count.item_code}
+                    </div>
+                    <div>
+                        <span className="font-normal text-[#201f1e]">Sesión:</span> {count.session_id}
+                    </div>
+                    <div className="col-span-2">
+                        <span className="font-normal text-[#201f1e]">Descripción:</span> {count.item_description || 'N/A'}
+                    </div>
+                    <div>
+                        <span className="font-normal text-[#201f1e]">Ubicación:</span> {count.counted_location}
+                    </div>
+                </div>
+
+                <form onSubmit={handleSave}>
+                    <div className="mb-6">
+                        <label className="block text-[#201f1e] text-xs font-normal mb-1.5">Cantidad Contada</label>
+                        <input
+                            type="number"
+                            step="any"
+                            value={countedQty}
+                            onChange={(e) => setCountedQty(e.target.value)}
+                            className="w-full border border-[#8a8886] p-2 rounded text-sm focus:border-[#0078d4] focus:outline-none text-[#201f1e]"
+                            required
+                        />
                     </div>
 
-                    <form onSubmit={handleSave}>
-                        <div className="mb-6">
-                            <label className="block text-gray-700 font-bold mb-2">Cantidad Contada</label>
-                            <input
-                                type="number"
-                                value={countedQty}
-                                onChange={(e) => setCountedQty(e.target.value)}
-                                className="w-full border p-2 rounded text-lg"
-                                required
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-4">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/counts/manage')} // Go back to manage list
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="bg-[#285f94] text-white px-6 py-2 rounded hover:bg-[#1e4a74] font-bold"
-                            >
-                                Guardar Cambios
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/counts/manage')}
+                            className="bg-[#f3f3f3] text-[#201f1e] border border-[#d2d0ce] px-4 py-1.5 rounded hover:bg-[#edebe9] text-xs font-normal transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="bg-[#0078d4] text-white px-5 py-1.5 rounded hover:bg-[#106ebe] text-xs font-normal transition-colors"
+                        >
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </form>
             </div>
-        </Layout>
+        </div>
     );
 };
 
