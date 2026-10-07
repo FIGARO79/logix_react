@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from app.core.config import ASYNC_DB_URL
 from app.core.db import Base
+import app.models.sql_models  # noqa: F401
 
 # --- Custom Config End ---
 
