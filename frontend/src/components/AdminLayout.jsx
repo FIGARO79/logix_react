@@ -10,37 +10,37 @@ const AdminLayout = ({ children }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#f7f7f7] font-sans text-[#32363a]">
-            {/* Shell Bar (Header) - SAP Fiori Style */}
-            <header className="fixed top-0 w-full z-50 bg-[#354a5f] text-white h-12 flex items-center px-4 shadow-sm">
+        <div className="min-h-screen bg-[#f3f2f1] font-sans text-[#201f1e]">
+            {/* Shell Bar (Header) - Fluent Style */}
+            <header className="fixed top-0 w-full z-50 bg-[#0078d4] text-white h-12 flex items-center px-4 shadow-xs">
                 <div className="flex items-center gap-4 w-full max-w-7xl mx-auto">
                     {/* Logo/Icon */}
-                    <img src="/static/images/gear-wide-connected.svg" alt="Logo" className="h-6 w-6 opacity-80" />
+                    <img src="/static/images/gear-wide-connected.svg" alt="Logo" className="h-6 w-6 brightness-0 invert opacity-90" />
 
                     {/* Title */}
-                    <h1 className="text-lg font-bold tracking-wide">Panel de Administración</h1>
+                    <h1 className="text-base font-normal tracking-normal text-white">Panel de Administración</h1>
 
                     {/* Actions */}
-                    <div className="ml-auto flex gap-4 text-sm">
+                    <div className="ml-auto flex gap-2 text-xs">
                         <button
                             onClick={(e) => { e.preventDefault(); /* Global reload logic if needed or pass prop */ }}
-                            className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center gap-2"
+                            className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer font-normal"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Recargar CSVs
                         </button>
 
-                        <Link to="/admin/inventory" className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
+                        <Link to="/admin/inventory" className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-[2px] transition-colors flex items-center font-normal">
                             Gestionar Inventario
                         </Link>
 
-                        <Link to="/admin/slotting" className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
+                        <Link to="/admin/slotting" className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-[2px] transition-colors flex items-center font-normal">
                             Configuración Slotting
                         </Link>
 
-                        <button onClick={handleLogout} className="bg-transparent hover:bg-white/10 text-white px-3 py-1 rounded transition-colors flex items-center">
+                        <button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-[2px] transition-colors flex items-center font-normal cursor-pointer">
                             Cerrar Sesión
                         </button>
                     </div>
@@ -48,7 +48,7 @@ const AdminLayout = ({ children }) => {
             </header>
 
             {/* Main Content */}
-            <main className="pt-20 px-4 md:px-8 pb-8 max-w-[1400px] mx-auto">
+            <main className="pt-16 px-4 md:px-8 pb-8 max-w-[1400px] mx-auto">
                 {children}
             </main>
         </div>

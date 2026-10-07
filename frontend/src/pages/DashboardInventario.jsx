@@ -56,41 +56,41 @@ const DashboardInventario = () => {
     );
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-slate-800">
+        <div className="dashboard-inventario-page max-w-[1400px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-[#323130]">
 
             {/* Header Section Compact */}
-            <div className="mb-6 border-b border-slate-200 pb-4 flex justify-between items-center">
+            <div className="mb-6 border-b border-[#e1dfdd] pb-4 flex justify-between items-center">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-[14px] font-normal text-slate-900 tracking-tight leading-none">Métricas de exactitud de Inventario</h1>
-                    <p className="text-zinc-900 text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5">Información de Rendimiento Operativo</p>
+                    <h1 className="text-[18px] font-normal text-[#201f1e] leading-tight">Métricas de exactitud de Inventario</h1>
+                    <p className="text-[#605e5c] text-xs font-normal leading-normal mt-0.5">Información de Rendimiento Operativo</p>
                 </div>
-                    <div className="text-right">
-                        <span className="text-[9px] uppercase font-bold tracking-widest block">Muestra de Auditoría</span>
-                        <span className="text-xl font-light text-slate-700">{stats.total_items} <span className="text-[10px] text-zinc-900 ml-0.5">Items</span></span>
-                    </div>
+                <div className="text-right">
+                    <span className="text-xs uppercase font-normal text-[#605e5c] block">Muestra de Auditoría</span>
+                    <span className="text-xl font-normal text-[#201f1e]">{stats.total_items} <span className="text-xs text-[#605e5c] ml-0.5">Items</span></span>
+                </div>
             </div>
 
             {/* ERI Section Compact */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white p-4 border border-slate-200 shadow-sm">
-                    <label className="text-[9px] uppercase text-zinc-900 font-bold tracking-widest block mb-2">ERI Global</label>
+                <div className="bg-white p-4 border border-[#e1dfdd] rounded shadow-sm">
+                    <label className="text-xs uppercase text-[#605e5c] font-normal block mb-2">ERI Global</label>
                     <div className="flex items-baseline gap-0.5">
-                        <span className="text-3xl font-light text-slate-900">{stats.eri.Global}</span>
-                        <span className="text-sm text-zinc-900">%</span>
+                        <span className="text-3xl font-normal text-[#201f1e]">{stats.eri.Global}</span>
+                        <span className="text-sm text-[#605e5c]">%</span>
                     </div>
-                    <div className="mt-2 h-0.5 w-full bg-slate-100">
-                        <div className="bg-slate-900 h-full" style={{ width: `${stats.eri.Global}%` }}></div>
+                    <div className="mt-2 h-1 w-full bg-[#f3f3f3] rounded-full overflow-hidden">
+                        <div className="bg-[#0078d4] h-full" style={{ width: `${stats.eri.Global}%` }}></div>
                     </div>
                 </div>
                 {['A', 'B', 'C'].map(clase => (
-                    <div key={clase} className="bg-white p-4 border border-slate-200 shadow-sm">
-                        <label className="text-[9px] uppercase text-zinc-900 font-bold tracking-widest block mb-2">Clase {clase} Exactitud</label>
+                    <div key={clase} className="bg-white p-4 border border-[#e1dfdd] rounded shadow-sm">
+                        <label className="text-xs uppercase text-[#605e5c] font-normal block mb-2">Clase {clase} Exactitud</label>
                         <div className="flex items-baseline gap-0.5">
-                            <span className="text-2xl font-light text-slate-800">{stats.eri[clase]}</span>
-                            <span className="text-xs text-zinc-900">%</span>
+                            <span className="text-2xl font-normal text-[#201f1e]">{stats.eri[clase]}</span>
+                            <span className="text-xs text-[#605e5c]">%</span>
                         </div>
-                        <div className="mt-2 h-0.5 w-full bg-slate-100">
-                            <div className={`h-full ${clase === 'A' ? 'bg-slate-700' : clase === 'B' ? 'bg-slate-500' : 'bg-slate-300'}`}
+                        <div className="mt-2 h-1 w-full bg-[#f3f3f3] rounded-full overflow-hidden">
+                            <div className={`h-full ${clase === 'A' ? 'bg-[#0078d4]' : clase === 'B' ? 'bg-[#106ebe]' : 'bg-[#8a8886]'}`}
                                 style={{ width: `${stats.eri[clase]}%` }}></div>
                         </div>
                     </div>
@@ -102,34 +102,34 @@ const DashboardInventario = () => {
 
                 {/* Adjustments Column Compact */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white p-6 border border-slate-200 shadow-sm h-full">
-                        <h3 className="text-[9px] font-bold text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                    <div className="bg-white p-6 border border-[#e1dfdd] rounded shadow-sm h-full">
+                        <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-6 border-b border-[#e1dfdd] pb-2">
                             Impacto Financiero
                         </h3>
 
                         <div className="space-y-6">
                             <div>
-                                <label className="text-[9px] uppercase font-bold text-zinc-900 tracking-widest block mb-1">Conciliación Neta</label>
-                                <div className={`text-2xl font-light ${stats.adjustments.value.net >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                                <label className="text-xs uppercase font-normal text-[#605e5c] block mb-1">Conciliación Neta</label>
+                                <div className={`text-2xl font-normal ${stats.adjustments.value.net >= 0 ? 'text-[#201f1e]' : 'text-red-600'}`}>
                                     {formatMoney(stats.adjustments.value.net)}
                                 </div>
-                                <div className="text-[10px] text-zinc-900 font-medium">
+                                <div className="text-xs text-[#605e5c] font-normal">
                                     {stats.adjustments.units.net > 0 ? '+' : ''}{stats.adjustments.units.net} Unidades Netas
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-[9px] uppercase font-bold text-zinc-900 tracking-widest block mb-1">Desviación Bruta</label>
-                                <div className="text-2xl font-light text-slate-900">
+                                <label className="text-xs uppercase font-normal text-[#605e5c] block mb-1">Desviación Bruta</label>
+                                <div className="text-2xl font-normal text-[#201f1e]">
                                     {formatMoney(stats.adjustments.value.gross)}
                                 </div>
-                                <div className="text-[10px] text-zinc-900 font-medium">
+                                <div className="text-xs text-[#605e5c] font-normal">
                                     {stats.adjustments.units.gross} Unidades Totales
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-50">
-                                <p className="text-[9px] text-zinc  -900 leading-tight uppercase font-medium">
+                            <div className="pt-4 border-t border-[#e1dfdd]">
+                                <p className="text-xs text-[#8a8886] leading-tight">
                                     * Suma absoluta de discrepancias.
                                 </p>
                             </div>
@@ -138,32 +138,32 @@ const DashboardInventario = () => {
                 </div>
 
                 {/* Top Discrepancies Table Compact */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center">
-                        <h3 className="text-[9px] font-normal text-black uppercase tracking-widest">
+                <div className="lg:col-span-2 bg-white border border-[#e1dfdd] rounded shadow-sm overflow-hidden">
+                    <div className="px-6 py-3 border-b border-[#e1dfdd] flex justify-between items-center bg-[#f9f9f9]">
+                        <h3 className="text-xs font-normal text-[#201f1e] uppercase">
                             Top 10 Discrepancias de Valor
                         </h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-50/50">
+                            <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#e1dfdd]">
                                 <tr>
-                                    <th className="px-6 py-2 text-[9px] font-bold text-white uppercase tracking-widest">Item</th>
-                                    <th className="px-6 py-2 text-[9px] font-bold text-white uppercase tracking-widest text-center">Qty Diff</th>
-                                    <th className="px-6 py-2 text-[9px] font-bold text-white uppercase tracking-widest text-right">Valor Absoluto</th>
+                                    <th className="px-6 py-2.5 text-xs font-normal text-[#605e5c] uppercase">Item</th>
+                                    <th className="px-6 py-2.5 text-xs font-normal text-[#605e5c] uppercase text-center">Qty Diff</th>
+                                    <th className="px-6 py-2.5 text-xs font-normal text-[#605e5c] uppercase text-right">Valor Absoluto</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-[#e1dfdd]">
                                 {stats.top_losses.map((item, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-1.5">
-                                            <div className="text-xs font-semibold text-zinc-900">{item.code}</div>
-                                            <div className="text-[9px] font-normal text-zinc-900 truncate max-w-[200px]">{item.desc}</div>
+                                    <tr key={i} className="hover:bg-[#f9f9f9] transition-colors">
+                                        <td className="px-6 py-2">
+                                            <div className="text-xs font-normal text-[#0078d4]">{item.code}</div>
+                                            <div className="text-xs font-normal text-[#605e5c] truncate max-w-[200px]">{item.desc}</div>
                                         </td>
-                                        <td className={`px-6 py-1.5 text-center font-mono text-[11px] ${item.diff > 0 ? 'text-slate-600' : 'text-red-500'}`}>
+                                        <td className={`px-6 py-2 text-center font-mono text-xs ${item.diff > 0 ? 'text-[#323130]' : 'text-red-600'}`}>
                                             {item.diff > 0 ? '+' : ''}{item.diff}
                                         </td>
-                                        <td className="px-6 py-1.5 text-right font-mono text-[11px] text-slate-900 font-medium">
+                                        <td className="px-6 py-2 text-right font-mono text-xs text-[#201f1e] font-normal">
                                             {formatMoney(item.abs_val_diff)}
                                         </td>
                                     </tr>
@@ -178,8 +178,8 @@ const DashboardInventario = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* User Performance Compact */}
-                <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-bold text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                <div className="bg-white p-6 border border-[#e1dfdd] rounded shadow-sm">
+                    <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-6 border-b border-[#e1dfdd] pb-2">
                         Calidad de Auditoría del Personal
                     </h3>
                     <div className="space-y-6">
@@ -187,15 +187,15 @@ const DashboardInventario = () => {
                             <div key={i}>
                                 <div className="flex justify-between items-end mb-1.5">
                                     <div>
-                                        <span className="text-xs font-semibold text-slate-700 block leading-tight">{u.user}</span>
-                                        <span className="text-[9px] text-zinc-900 uppercase font-normal">{u.items} conteos</span>
+                                        <span className="text-xs font-normal text-[#201f1e] block leading-tight">{u.user}</span>
+                                        <span className="text-xs text-[#605e5c] font-normal">{u.items} conteos</span>
                                     </div>
                                     <div className="text-right">
-                                        <span className={`text-xs font-mono font-normal ${u.error_rate > 10 ? 'text-red-500' : 'text-slate-900'}`}>{u.error_rate}% <span className="text-[9px] text-zinc-900 ml-0.5">Error</span></span>
+                                        <span className={`text-xs font-mono font-normal ${u.error_rate > 10 ? 'text-red-600' : 'text-[#201f1e]'}`}>{u.error_rate}% <span className="text-xs text-[#605e5c] ml-0.5">Error</span></span>
                                     </div>
                                 </div>
-                                <div className="w-full bg-slate-100 h-0.5">
-                                    <div className="bg-slate-900 h-full opacity-60" style={{ width: `${(u.items / stats.total_items) * 100}%` }}></div>
+                                <div className="w-full bg-[#f3f3f3] h-1 rounded-full overflow-hidden">
+                                    <div className="bg-[#0078d4] h-full" style={{ width: `${(u.items / stats.total_items) * 100}%` }}></div>
                                 </div>
                             </div>
                         ))}
@@ -203,25 +203,25 @@ const DashboardInventario = () => {
                 </div>
 
                 {/* Location Risk Zones Compact */}
-                <div className="bg-white p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-[9px] font-bold text-zinc-900 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
+                <div className="bg-white p-6 border border-[#e1dfdd] rounded shadow-sm">
+                    <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-6 border-b border-[#e1dfdd] pb-2">
                         Densidad de Discrepancias por Zona
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                         {stats.zones.map((z, i) => (
-                            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-[#f3f3f3] last:border-0">
                                 <div className="flex items-center gap-4">
-                                    <div className="text-lg font-light text-zinc-900 w-6">
+                                    <div className="text-lg font-normal text-[#201f1e] w-6">
                                         {z.zone}
                                     </div>
                                     <div>
-                                        <p className="text-[9px] uppercase font-bold text-slate-500 tracking-widest">Zone {z.zone}</p>
-                                        <p className="text-[10px] text-zinc-900">{z.total} Muestras</p>
+                                        <p className="text-xs uppercase font-normal text-[#605e5c]">Zone {z.zone}</p>
+                                        <p className="text-xs text-[#8a8886]">{z.total} Muestras</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-lg font-mono font-bold ${z.error_rate > 15 ? 'text-red-600' : 'text-slate-800'}`}>{z.error_rate}%</p>
-                                    <p className="text-[8px] uppercase text-zinc-900 font-normal tracking-tighter">Densidad</p>
+                                    <p className={`text-lg font-mono font-normal ${z.error_rate > 15 ? 'text-red-600' : 'text-[#201f1e]'}`}>{z.error_rate}%</p>
+                                    <p className="text-xs text-[#8a8886] font-normal">Densidad</p>
                                 </div>
                             </div>
                         ))}

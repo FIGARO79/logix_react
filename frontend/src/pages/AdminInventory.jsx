@@ -305,7 +305,7 @@ const AdminInventory = () => {
             {/* Header de la página */}
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h1 className="text-xl font-semibold text-[#201f1e] tracking-tight">Administración de Inventario</h1>
+                    <h1 className="text-xl font-normal text-[#201f1e]">Administración de Inventario</h1>
                     <p className="text-xs text-[#605e5c]">Control de fases, conciliación de existencias y asignación de zonas</p>
                 </div>
             </div>
@@ -313,13 +313,13 @@ const AdminInventory = () => {
             {message && (
                 <div className="bg-[#dff6dd] border-l-4 border-[#107c10] text-[#107c10] px-4 py-2.5 mb-4 rounded-r shadow-xs text-xs flex justify-between items-center">
                     <span>{message}</span>
-                    <button onClick={() => setMessage(null)} className="ml-4 font-bold text-[#107c10] hover:opacity-80 cursor-pointer">✕</button>
+                    <button onClick={() => setMessage(null)} className="ml-4 font-normal text-[#107c10] hover:opacity-80 cursor-pointer">✕</button>
                 </div>
             )}
             {error && (
                 <div className="bg-[#fde7e9] border-l-4 border-[#a4262c] text-[#a4262c] px-4 py-2.5 mb-4 rounded-r shadow-xs text-xs flex justify-between items-center">
                     <span>{error}</span>
-                    <button onClick={() => setError(null)} className="ml-4 font-bold text-[#a4262c] hover:opacity-80 cursor-pointer">✕</button>
+                    <button onClick={() => setError(null)} className="ml-4 font-normal text-[#a4262c] hover:opacity-80 cursor-pointer">✕</button>
                 </div>
             )}
 
@@ -329,7 +329,7 @@ const AdminInventory = () => {
                     onClick={() => setActiveTab('cycle')}
                     className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
                         activeTab === 'cycle'
-                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            ? 'border-[#0078d4] text-[#0078d4] font-normal'
                             : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
                     }`}
                 >
@@ -339,7 +339,7 @@ const AdminInventory = () => {
                     onClick={() => setActiveTab('reconciliation')}
                     className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
                         activeTab === 'reconciliation'
-                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            ? 'border-[#0078d4] text-[#0078d4] font-normal'
                             : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
                     }`}
                 >
@@ -349,7 +349,7 @@ const AdminInventory = () => {
                     onClick={() => setActiveTab('zones')}
                     className={`px-5 py-2.5 text-xs transition-colors cursor-pointer border-b-2 ${
                         activeTab === 'zones'
-                            ? 'border-[#0078d4] text-[#0078d4] font-semibold'
+                            ? 'border-[#0078d4] text-[#0078d4] font-normal'
                             : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#c7e0f4] font-normal'
                     }`}
                 >
@@ -460,7 +460,7 @@ const AdminInventory = () => {
 
                         <div className={`p-8 border-2 border-dashed transition-all rounded ${stage === 4 ? 'border-[#0078d4] bg-[#eff6fc]/30' : 'border-[#d2d0ce] bg-transparent opacity-50'}`}>
                              <div className="flex flex-col items-center text-center">
-                                <h3 className="text-xs font-semibold text-[#201f1e] mb-1 uppercase">Finalización y Cierre del Ejercicio</h3>
+                                <h3 className="text-xs font-normal text-[#201f1e] mb-1 uppercase">Finalización y Cierre del Ejercicio</h3>
                                 <p className="text-xs text-[#605e5c] mb-6">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
                                 <div className="flex gap-4 w-full max-w-md">
                                     <button
@@ -547,7 +547,7 @@ const AdminInventory = () => {
                                             {searchQuery && (
                                                 <button
                                                     onClick={() => setSearchQuery('')}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8a8886] hover:text-[#201f1e] text-xs font-bold cursor-pointer"
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8a8886] hover:text-[#201f1e] text-xs font-normal cursor-pointer"
                                                     title="Limpiar búsqueda"
                                                 >
                                                     ✕
@@ -769,7 +769,7 @@ const AdminInventory = () => {
                                             </div>
                                             <span className="text-[#d2d0ce] hidden sm:inline">|</span>
                                             <div className="whitespace-nowrap">
-                                                Mostrando <span className="font-semibold text-[#201f1e]">{((reconPage - 1) * reconPageSize) + 1}</span> - <span className="font-semibold text-[#201f1e]">{Math.min(reconPage * reconPageSize, filteredReconItems.length)}</span> de <span className="font-semibold text-[#201f1e]">{filteredReconItems.length}</span> ítems
+                                                Mostrando <span className="font-normal text-[#201f1e]">{((reconPage - 1) * reconPageSize) + 1}</span> - <span className="font-normal text-[#201f1e]">{Math.min(reconPage * reconPageSize, filteredReconItems.length)}</span> de <span className="font-normal text-[#201f1e]">{filteredReconItems.length}</span> ítems
                                             </div>
                                         </div>
 

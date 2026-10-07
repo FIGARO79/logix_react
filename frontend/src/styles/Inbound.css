@@ -71,13 +71,15 @@
     background: var(--inbound-primary-dark) !important;
 }
 
-.inbound-page table thead tr[style*="#111827"] {
+.inbound-page table thead,
+.inbound-page table thead tr,
+.inbound-page table thead th,
+.inbound-page table th,
+.inbound-page table thead th * {
     background: #f3f3f3 !important;
-    color: var(--inbound-text) !important;
+    background-color: #f3f3f3 !important;
+    color: #000000 !important;
     border-bottom: 1px solid var(--inbound-border);
-}
-
-.inbound-page table th {
     font-weight: 400;
     letter-spacing: 0;
 }

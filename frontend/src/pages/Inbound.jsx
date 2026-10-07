@@ -10,6 +10,7 @@ import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
+import '../styles/Inbound.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -1162,7 +1163,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-2 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
+            <div className="inbound-page container-wrapper px-2 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-1">
@@ -1506,20 +1507,20 @@ const Inbound = () => {
                     </div>
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-xs border-collapse">
-                            <thead className="sticky top-0 z-20">
-                                <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium uppercase tracking-wider">Acc</th>
+                            <thead className="sticky top-0 z-20 bg-[#f3f3f3] text-black border-b border-[#d2d0ce]" style={{ backgroundColor: '#f3f3f3', color: '#000000' }}>
+                                <tr className="bg-[#f3f3f3] text-black" style={{ backgroundColor: '#f3f3f3', color: '#000000' }}>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Ref</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Waybill</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Item</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Desc</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Orig</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>New</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Qty</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Esp.</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Dif.</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Fecha</th>
+                                    <th className="px-2 py-2 text-left text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>User</th>
+                                    <th className="px-2 py-2 text-center text-[12px] font-normal uppercase tracking-normal text-black" style={{ color: '#000000' }}>Acc</th>
                                 </tr>
                             </thead>
 

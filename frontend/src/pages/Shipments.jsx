@@ -59,23 +59,23 @@ const Shipments = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="shipments-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Header Profesional */}
             <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-base font-normal tracking-tight">Gestión de Envíos</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-zinc-400">Seguimiento de Despacho y Consolidación de Carga</p>
+                    <h1 className="text-base font-normal tracking-tight text-[#201f1e]">Gestión de Envíos</h1>
+                    <p className="text-[10px] uppercase font-normal leading-none mt-1 text-[#605e5c]">Seguimiento de Despacho y Consolidación de Carga</p>
                 </div>
                 <div className="flex items-center gap-6">
                     <button
                         onClick={fetchShipments}
-                        className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors"
+                        className="text-[11px] font-normal uppercase text-[#605e5c] hover:text-[#201f1e] transition-colors"
                     >
                         Sincronizar
                     </button>
-                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest border-l border-zinc-200 pl-6">
+                    <div className="text-[11px] font-normal text-[#605e5c] uppercase border-l border-zinc-200 pl-6">
                         {shipments.length} Envíos
                     </div>
                 </div>

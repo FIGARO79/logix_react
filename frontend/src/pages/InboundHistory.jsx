@@ -174,16 +174,16 @@ const InboundHistory = () => {
     }, [filteredLogs, currentPage]);
 
     return (
-        <div className="w-full px-4 py-6">
+        <div className="inbound-history-page w-full px-4 py-6">
             {/* Header con Buscador y Selector de Versiones */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h1 className="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
+                <h1 className="text-lg font-normal text-gray-800 mb-4 md:mb-0">Registros de Entrada (Inbound)</h1>
                 <div className="flex gap-2 items-center">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
                             type="text"
                             placeholder="Buscar..."
-                            className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                            className="h-8 px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] focus:outline-none w-full transition-all duration-150"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />

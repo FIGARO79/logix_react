@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync, cacheData, getCachedData } from '../utils/offlineDb';
+import '../styles/SpotCheck.css';
 
 const SpotCheck = () => {
     const context = useTabContext();
@@ -260,20 +261,20 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={2000} />
 
             <div className="mb-8 border-b-2 border-zinc-200 pb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-[18px] font-bold text-black uppercase tracking-tight">Conteo por Ubicación</h1>
+                    <h1 className="text-[18px] font-normal text-black uppercase">Conteo por Ubicación</h1>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-zinc-900">Hallazgos registrados</p>
-                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-bold animate-pulse">MODO OFFLINE</span>}
+                        <p className="text-[11px] uppercase font-normal text-[#605e5c]">Hallazgos registrados</p>
+                        {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-normal animate-pulse">MODO OFFLINE</span>}
                     </div>
                 </div>
                 <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-bold uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
+                    className="btn-sap btn-secondary text-[11px] font-normal uppercase px-4 h-9 flex items-center"
                 >
                     Stock
                 </button>
@@ -374,7 +375,7 @@ const SpotCheck = () => {
                                 onClick={handleSave}
                                 disabled={isSaving || !itemData}
                                 style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-bold uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
+                                className="w-full bg-[#0078d4] text-white rounded font-normal uppercase text-[11px] hover:bg-[#106ebe] disabled:bg-zinc-200 disabled:text-zinc-400 transition-colors shadow-sm active:scale-95"
                             >
                                 {isSaving ? '...' : 'REGISTRAR'}
                             </button>
@@ -383,19 +384,19 @@ const SpotCheck = () => {
                 </div>
 
                 <div className="lg:col-span-2">
-                    <div className="bg-white border border-zinc-300 shadow-md overflow-hidden rounded-lg">
-                        <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-bold text-black uppercase tracking-widest">Hallazgos Recientes</h2>
+                    <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden rounded">
+                        <div className="bg-zinc-50 px-4 py-3 border-b border-zinc-200 flex justify-between items-center">
+                            <h2 className="text-[11px] font-normal text-black uppercase">Hallazgos Recientes</h2>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-bold uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
+                                    className="text-[10px] font-normal uppercase text-[#0078d4] hover:text-[#106ebe] flex items-center gap-1 border border-[#0078d4]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
                                 >
                                     Excel
                                 </button>
                                 <button
                                     onClick={handleClearTable}
-                                    className="text-[10px] font-bold uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
+                                    className="text-[10px] font-normal uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
                                 >
                                     Limpiar
                                 </button>
@@ -403,7 +404,7 @@ const SpotCheck = () => {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-zinc-900 text-white text-[9px] uppercase tracking-widest">
+                                <thead className="bg-[#f3f3f3] text-[#201f1e] text-[11px] uppercase font-normal">
                                     <tr>
                                         <th className="px-4 py-3">Hora</th>
                                         <th className="px-4 py-3">Bin</th>

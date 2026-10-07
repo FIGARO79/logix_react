@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
+import '../styles/StockSearch.css';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
@@ -107,13 +108,13 @@ const StockSearch = () => {
     };
 
     return (
-        <div className="container-wrapper max-w-4xl mx-auto px-4 py-8">
+        <div className="stock-search-page container-wrapper max-w-4xl mx-auto px-4 py-8">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Search Card */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
                 <div className="bg-gray-50 text-gray-900 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <h2 className="text-lg font-normal flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -121,7 +122,7 @@ const StockSearch = () => {
                     </h2>
                     <button
                         onClick={() => navigate('/spot-check')}
-                        className="btn-sap btn-secondary text-[9px] uppercase font-normal tracking-wider px-4 flex items-center"
+                        className="btn-sap btn-secondary text-[9px] uppercase font-normal px-4 flex items-center"
                     >
                         Verificar Saldo
                     </button>

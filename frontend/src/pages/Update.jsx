@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import '../styles/Update.css';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
@@ -235,7 +236,7 @@ const Update = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
+        <div className="update-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
             
             {/* Header Profesional */}
             <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">

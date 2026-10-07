@@ -274,31 +274,31 @@ const PlannerExecution = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="planner-execution-page max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
             <ToastContainer position="top-center" autoClose={3000} containerId="planner-execution" />
 
             {/* Date Selection - Mobile Optimized */}
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow mb-4 sm:mb-6">
+            <div className="bg-white p-3 sm:p-4 rounded border border-[#e1dfdd] shadow-sm mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex items-center gap-2 flex-1">
-                        <label className="font-semibold text-gray-700 text-sm whitespace-nowrap">Fecha:</label>
+                        <label className="font-normal text-[#323130] text-sm whitespace-nowrap">Fecha:</label>
                         <input
                             type="date"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            className="flex-1 rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                            className="flex-1 rounded border-[#d2d0ce] shadow-sm focus:border-[#0078d4] focus:ring-[#0078d4] text-sm"
                         />
                     </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => fetchDailyItems(selectedDate)}
-                            className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded text-sm font-medium transition-colors"
+                            className="flex-1 sm:flex-none bg-[#0078d4] hover:bg-[#106ebe] text-white px-4 py-2.5 rounded text-sm font-normal transition-colors"
                         >
                             Actualizar
                         </button>
                         <button
                             onClick={() => setScannerOpen(true)}
-                            className="flex-1 sm:flex-none bg-gray-700 hover:bg-gray-800 text-white px-4 py-2.5 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 sm:flex-none bg-[#323130] hover:bg-[#201f1e] text-white px-4 py-2.5 rounded text-sm font-normal transition-colors flex items-center justify-center gap-2"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
@@ -362,48 +362,48 @@ const PlannerExecution = () => {
 
             {loading ? (
                 <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0078d4]"></div>
                 </div>
             ) : error ? (
                 <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded">{error}</div>
             ) : items.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 bg-white rounded shadow">
+                <div className="text-center py-12 text-[#605e5c] bg-white rounded border border-[#e1dfdd] shadow-sm">
                     No hay ítems planificados para esta fecha.
                 </div>
             ) : (
-                <div className="bg-white shadow overflow-hidden rounded-lg">
+                <div className="bg-white shadow-sm border border-[#e1dfdd] overflow-hidden rounded">
                     {/* Desktop Table View */}
                     <div className="hidden sm:block overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-[#34495e] text-white">
+                        <table className="min-w-full divide-y divide-[#e1dfdd]">
+                            <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#e1dfdd]">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-auto">Item</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-24">Ubicación</th>
-                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">ABC</th>
-                                    <th className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wider w-16">Físico</th>
+                                    <th className="px-4 py-3 text-left text-xs font-normal uppercase text-[#605e5c] tracking-normal w-auto">Item</th>
+                                    <th className="px-2 py-3 text-center text-xs font-normal uppercase text-[#605e5c] tracking-normal w-24">Ubicación</th>
+                                    <th className="px-2 py-3 text-center text-xs font-normal uppercase text-[#605e5c] tracking-normal w-16">ABC</th>
+                                    <th className="px-1 py-3 text-center text-xs font-normal uppercase text-[#605e5c] tracking-normal w-16">Físico</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-[#e1dfdd]">
                                 {items.map((item, index) => (
-                                    <tr key={index} className={item.saved ? "bg-green-50" : ""}>
+                                    <tr key={index} className={item.saved ? "bg-green-50" : "hover:bg-[#f9f9f9]"}>
                                         <td className="px-2 py-2">
-                                            <div className="text-sm font-medium text-indigo-600">{item.item_code}</div>
-                                            <div className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
+                                            <div className="text-sm font-normal text-[#0078d4]">{item.item_code}</div>
+                                            <div className="text-xs text-[#605e5c] truncate max-w-[150px] sm:max-w-xs">{item.description}</div>
                                         </td>
-                                        <td className="px-1 py-2 text-sm text-gray-500 font-mono text-center">
+                                        <td className="px-1 py-2 text-sm text-[#323130] font-mono text-center">
                                             <div>{item.bin_location || 'N/A'}</div>
                                             {item.additional_locations && (
-                                                <div className="text-[10px] text-gray-400 mt-0.5" title="Ubicaciones Adicionales">
+                                                <div className="text-[10px] text-[#8a8886] mt-0.5" title="Ubicaciones Adicionales">
                                                     {item.additional_locations}
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-1 py-2 text-sm text-gray-500 text-center">{item.abc_code}</td>
+                                        <td className="px-1 py-2 text-sm text-[#323130] text-center">{item.abc_code}</td>
                                         <td className="px-0 py-2 text-center">
                                             <input
                                                 id={`qty-${index}`}
                                                 type="number"
-                                                className="w-16 text-center p-1 border rounded border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm no-spinner"
+                                                className="w-16 text-center p-1 border rounded border-[#d2d0ce] focus:ring-[#0078d4] focus:border-[#0078d4] text-sm no-spinner"
                                                 value={item.physical_qty}
                                                 onChange={(e) => handleCountChange(index, e.target.value)}
                                                 onBlur={() => calculateDifference(index)}
@@ -420,13 +420,13 @@ const PlannerExecution = () => {
                     {/* Mobile Card View */}
                     <div className="block sm:hidden bg-gray-50 p-2 space-y-3">
                         {items.map((item, index) => (
-                            <div key={index} className={`bg-white rounded-lg shadow-sm p-3 border ${item.saved ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                            <div key={index} className={`bg-white rounded p-3 border ${item.saved ? 'border-green-200 bg-green-50' : 'border-[#e1dfdd] shadow-sm'}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <span className="text-lg font-bold text-indigo-700 block">{item.item_code}</span>
-                                        <span className="text-xs text-gray-500">{item.description}</span>
+                                        <span className="text-lg font-normal text-[#0078d4] block">{item.item_code}</span>
+                                        <span className="text-xs text-[#605e5c]">{item.description}</span>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
+                                    <span className={`px-2 py-1 rounded text-xs font-normal ${item.abc_code === 'A' ? 'bg-red-100 text-red-800' :
                                         item.abc_code === 'B' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-blue-100 text-[#1e4a74]'
                                         }`}>
@@ -436,23 +436,23 @@ const PlannerExecution = () => {
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Ubicación</span>
-                                        <span className="text-sm font-mono font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded self-start">
+                                        <span className="text-[10px] uppercase text-[#8a8886] font-normal tracking-normal">Ubicación</span>
+                                        <span className="text-sm font-mono font-normal text-[#323130] bg-[#f3f3f3] px-2 py-0.5 rounded self-start">
                                             {item.bin_location || 'N/A'}
                                         </span>
                                         {item.additional_locations && (
-                                            <span className="text-[10px] text-gray-500 mt-1 pl-1">
-                                                <span className="font-bold">Adic:</span> {item.additional_locations}
+                                            <span className="text-[10px] text-[#605e5c] mt-1 pl-1">
+                                                <span className="font-normal">Adic:</span> {item.additional_locations}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-1">Cant. Física</span>
+                                        <span className="text-[10px] uppercase text-[#8a8886] font-normal tracking-normal mb-1">Cant. Física</span>
                                         <input
                                             id={`qty-mobile-${index}`}
                                             type="number"
-                                            className="w-24 text-center p-2 border rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-bold shadow-sm"
+                                            className="w-24 text-center p-2 border rounded border-[#d2d0ce] focus:ring-[#0078d4] focus:border-[#0078d4] text-lg font-normal shadow-sm"
                                             value={item.physical_qty}
                                             onChange={(e) => handleCountChange(index, e.target.value)}
                                             onBlur={() => calculateDifference(index)}
@@ -464,7 +464,7 @@ const PlannerExecution = () => {
                                 </div>
                                 {item.saved && (
                                     <div className="mt-2 text-right">
-                                        <span className="text-xs font-bold text-green-600 flex items-center justify-end gap-1">
+                                        <span className="text-xs font-normal text-green-600 flex items-center justify-end gap-1">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                             Guardado
                                         </span>
@@ -475,16 +475,16 @@ const PlannerExecution = () => {
                     </div>
 
                     {/* Bulk Save Footer */}
-                    <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-700">
-                            Items contados: <span className="font-bold">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
+                    <div className="bg-[#f9f9f9] px-4 py-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#e1dfdd]">
+                        <div className="text-sm text-[#323130]">
+                            Items contados: <span className="font-normal">{items.filter(i => i.status === 'counted').length}</span> / {items.length}
                         </div>
                         <button
                             onClick={handleBulkSave}
                             disabled={submitting || items.filter(i => i.status === 'counted').length === 0}
-                            className={`w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-bold text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded text-sm font-normal text-white shadow-sm transition-colors ${submitting || items.filter(i => i.status === 'counted').length === 0
                                 ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                                : 'bg-[#0078d4] hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0078d4]'
                                 }`}
                         >
                             {submitting ? 'Guardando...' : 'Guardar y Finalizar'}

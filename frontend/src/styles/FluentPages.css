@@ -26,7 +26,8 @@
 .register-page,
 .set-password-page,
 .error-page,
-.label-printing-page {
+.label-printing-page,
+.ir-reconciliation-page {
     --fluent-primary: #0078d4;
     --fluent-primary-dark: #106ebe;
     --fluent-text: #201f1e;
@@ -64,7 +65,8 @@
 .register-page,
 .set-password-page,
 .error-page,
-.label-printing-page {
+.label-printing-page,
+.ir-reconciliation-page {
 
     font-family: var(--logix-font-family, 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif);
 
@@ -369,7 +371,8 @@
     .slotting-config-page,
     .admin-inventory-page,
     .admin-users-page,
-    .label-printing-page {
+    .label-printing-page,
+    .ir-reconciliation-page {
         padding-left: 0.75rem;
         padding-right: 0.75rem;
     }

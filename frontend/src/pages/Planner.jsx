@@ -198,38 +198,38 @@ const Planner = () => {
     );
 
     return (
-        <div className="container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
+        <div className="planner-page container-wrapper max-w-[1600px] mx-auto p-4 font-sans text-sm text-[#32383e]">
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-base font-bold text-gray-800 mb-2 border-l-4 border-[#285f94] pl-2">Parámetros Generales</h2>
+                <h2 className="text-base font-normal text-gray-800 mb-2 border-l-4 border-[#0078d4] pl-2">Parámetros Generales</h2>
                 <div className="flex flex-wrap items-end gap-6">
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Inicial</label>
+                        <label className="block text-xs font-normal text-gray-700 mb-1">Fecha Inicial</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#0078d4] outline-none"
                             value={config.start_date}
                             onChange={e => setConfig({ ...config, start_date: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Fecha Final</label>
+                        <label className="block text-xs font-normal text-gray-700 mb-1">Fecha Final</label>
                         <input
                             type="date"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#285f94] outline-none"
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[#0078d4] outline-none"
                             value={config.end_date}
                             onChange={e => setConfig({ ...config, end_date: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Festivos (Calc)</label>
+                        <label className="block text-xs font-normal text-gray-700 mb-1">Festivos (Calc)</label>
                         <input readOnly className="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 w-20 text-center"
                             value={config.holidays ? config.holidays.length : 0} />
                     </div>
                     <div className="ml-auto flex gap-2">
-                        <button onClick={handleSaveConfig} className="bg-green-600 text-white px-4 py-1.5 rounded text-sm hover:bg-green-700">Guardar Fechas</button>
-                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74] border border-[#1e4a74]">
+                        <button onClick={handleSaveConfig} className="bg-[#107c41] text-white px-4 py-1.5 rounded text-sm hover:bg-[#0e6c38] font-normal">Guardar Fechas</button>
+                        <button onClick={handleUpdatePlan} disabled={loading} className="bg-[#0078d4] text-white px-4 py-1.5 rounded text-sm hover:bg-[#106ebe] border border-[#0078d4] font-normal">
                             {loading ? 'Calculando...' : 'Actualizar Planificación'}
                         </button>
                         <button
@@ -240,7 +240,7 @@ const Planner = () => {
                                 });
                                 window.location.href = `/api/planner/generate_plan?${params.toString()}`;
                             }}
-                            className="bg-[#285f94] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1e4a74]"
+                            className="bg-[#0078d4] text-white px-4 py-1.5 rounded text-sm hover:bg-[#106ebe] font-normal"
                         >
                             Generar Excel
                         </button>

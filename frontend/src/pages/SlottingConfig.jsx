@@ -167,50 +167,50 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black antialiased">
+        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-[#323130] antialiased">
 
-            <div className="flex justify-between items-center mb-6 border-b border-zinc-200 pb-4 text-black">
+            <div className="flex justify-between items-center mb-6 border-b border-[#e1dfdd] pb-4">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-lg font-normal tracking-tight text-black uppercase leading-tight">Estrategia y Reglas de Slotting</h1>
-                    <p className="text-[10px] uppercase tracking-widest font-normal leading-none mt-0.5 text-zinc-400">Configuración del Motor de Optimización y Parámetros de Negocio</p>
+                    <h1 className="text-lg font-normal tracking-tight text-[#201f1e] uppercase leading-tight">Estrategia y Reglas de Slotting</h1>
+                    <p className="text-xs font-normal text-[#605e5c] mt-0.5">Configuración del Motor de Optimización y Parámetros de Negocio</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowUpload(!showUpload)}
-                        className="h-8 px-3 bg-white border border-zinc-300 text-black hover:bg-zinc-50 transition-colors rounded text-[12px] uppercase font-normal shadow-sm"
+                        className="h-8 px-3 bg-white border border-[#d2d0ce] text-[#323130] hover:bg-[#f3f3f3] transition-colors rounded text-xs font-normal shadow-sm"
                     >
                         Cargar Layout
                     </button>
                     <button
                         onClick={fetchConfig}
-                        className="h-8 px-3 bg-white border border-zinc-300 text-black hover:bg-zinc-50 transition-colors rounded text-[12px] uppercase font-normal shadow-sm"
+                        className="h-8 px-3 bg-white border border-[#d2d0ce] text-[#323130] hover:bg-[#f3f3f3] transition-colors rounded text-xs font-normal shadow-sm"
                     >
                         Refrescar
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="h-8 px-4 bg-black text-white hover:bg-zinc-800 transition-colors rounded text-[12px] uppercase font-normal shadow-sm disabled:opacity-50"
+                        className="h-8 px-4 bg-[#0078d4] text-white hover:bg-[#106ebe] transition-colors rounded text-xs font-normal shadow-sm disabled:opacity-50"
                     >
                         {saving ? 'GUARDANDO...' : 'PUBLICAR CAMBIOS'}
                     </button>
                 </div>
             </div>
 
-            {success && <div className="bg-zinc-50 border border-zinc-200 text-black p-4 mb-6 rounded shadow-sm text-xs font-normal uppercase tracking-tight">{success}</div>}
-            {error && <div className="bg-red-50 border border-red-100 text-red-700 p-4 mb-6 rounded shadow-sm text-xs font-medium uppercase tracking-tight">{error}</div>}
+            {success && <div className="bg-[#f3f3f3] border border-[#e1dfdd] text-[#201f1e] p-4 mb-6 rounded shadow-sm text-xs font-normal">{success}</div>}
+            {error && <div className="bg-red-50 border border-red-100 text-red-700 p-4 mb-6 rounded shadow-sm text-xs font-normal">{error}</div>}
 
-            <div className="flex border-b border-zinc-200 mb-6">
+            <div className="flex border-b border-[#e1dfdd] mb-6">
                 <button
                     onClick={() => setActiveTab('storage')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'storage' ? 'border-black text-black' : 'border-transparent text-zinc-400 hover:text-black hover:border-zinc-300'}`}
+                    className={`px-6 py-3 text-xs font-normal border-b-2 transition-colors ${activeTab === 'storage' ? 'border-[#0078d4] text-[#0078d4]' : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#d2d0ce]'}`}
                 >
                     Mapa de Ubicaciones
                 </button>
                 <button
                     onClick={() => setActiveTab('turnover')}
-                    className={`px-6 py-3 text-[12px] font-normal border-b-2 transition-colors ${activeTab === 'turnover' ? 'border-black text-black' : 'border-transparent text-zinc-400 hover:text-black hover:border-zinc-300'}`}
+                    className={`px-6 py-3 text-xs font-normal border-b-2 transition-colors ${activeTab === 'turnover' ? 'border-[#0078d4] text-[#0078d4]' : 'border-transparent text-[#605e5c] hover:text-[#201f1e] hover:border-[#d2d0ce]'}`}
                 >
                     Parametros slotting
                 </button>
@@ -602,91 +602,91 @@ const SlottingConfig = () => {
                             </div>
                         </div>
                     )}
-                    <div className="mt-4 text-[11px] text-zinc-400 font-normal uppercase tracking-[0.2em] text-center italic">
+                    <div className="mt-4 text-[11px] text-[#8a8886] font-normal uppercase tracking-[0.2em] text-center italic">
                         {activeTab === 'storage' ? `Visualización del Layout Maestro` : 'Configuración de Reglas Operativas y Parámetros de Optimización'}
                     </div>
                 </div>
 
                 {/* Right Panel: Summary Dashboard (ORIGINAL STATS RESTORED) */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white p-6 rounded shadow-sm border border-black sticky top-20 overflow-y-auto h-[calc(100vh-240px)] custom-scrollbar text-black">
-                        <h2 className="text-lg font-normal mb-4 border-b border-black pb-2 uppercase tracking-tight leading-tight text-black">
+                    <div className="bg-white p-6 rounded shadow-sm border border-[#e1dfdd] sticky top-20 overflow-y-auto h-[calc(100vh-240px)] custom-scrollbar text-[#323130]">
+                        <h2 className="text-lg font-normal mb-4 border-b border-[#e1dfdd] pb-2 uppercase tracking-tight leading-tight text-[#201f1e]">
                             Estado del Almacén
                         </h2>
                         {!summary ? (
-                            <div className="text-[12px] uppercase text-zinc-400 italic font-normal text-center py-8">Calculando estadísticas...</div>
+                            <div className="text-xs uppercase text-[#8a8886] italic font-normal text-center py-8">Calculando estadísticas...</div>
                         ) : (
-                            <div className="space-y-6 text-black">
+                            <div className="space-y-6 text-[#323130]">
                                 <div>
-                                    <h3 className="text-xs font-normal text-black uppercase tracking-widest mb-3 tracking-tighter">Capacidad Física</h3>
+                                    <h3 className="text-xs font-normal text-[#201f1e] uppercase tracking-normal mb-3">Capacidad Física</h3>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center text-sm border-b border-black pb-1">
-                                            <span className="uppercase text-[10px] font-normal text-black">Total Bins</span>
-                                            <span className="font-mono font-medium text-black text-right min-w-[60px]">{summary.total}</span>
+                                        <div className="flex justify-between items-center text-sm border-b border-[#f3f3f3] pb-1">
+                                            <span className="uppercase text-xs font-normal text-[#605e5c]">Total Bins</span>
+                                            <span className="font-mono font-normal text-[#201f1e] text-right min-w-[60px]">{summary.total}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm border-b border-black pb-1">
-                                            <span className="uppercase text-[10px] font-normal text-black">Bins en Uso</span>
-                                            <span className="font-mono font-medium text-[#285f94] text-right min-w-[60px]">{summary.in_use}</span>
+                                        <div className="flex justify-between items-center text-sm border-b border-[#f3f3f3] pb-1">
+                                            <span className="uppercase text-xs font-normal text-[#605e5c]">Bins en Uso</span>
+                                            <span className="font-mono font-normal text-[#0078d4] text-right min-w-[60px]">{summary.in_use}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="uppercase text-[10px] font-normal text-black">Disponibles</span>
-                                            <span className="font-mono font-medium text-emerald-600 text-right min-w-[60px]">{summary.free}</span>
+                                            <span className="uppercase text-xs font-normal text-[#605e5c]">Disponibles</span>
+                                            <span className="font-mono font-normal text-emerald-600 text-right min-w-[60px]">{summary.free}</span>
                                         </div>
                                         <div className="pt-2">
-                                            <div className="flex justify-between text-[10px] font-normal text-black mb-1 uppercase tracking-tight">
+                                            <div className="flex justify-between text-xs font-normal text-[#323130] mb-1">
                                                 <span>Índice de Ocupación</span>
-                                                <span className={summary.occupancy_pct > 90 ? 'text-red-600 font-black' : 'text-[#285f94]'}>{summary.occupancy_pct}%</span>
+                                                <span className={summary.occupancy_pct > 90 ? 'text-red-600 font-normal' : 'text-[#0078d4]'}>{summary.occupancy_pct}%</span>
                                             </div>
-                                            <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden shadow-inner">
-                                                <div className={`h-full transition-all duration-1000 ${summary.occupancy_pct > 90 ? 'bg-red-500' : 'bg-[#285f94]'}`} style={{ width: `${summary.occupancy_pct}%` }}></div>
+                                            <div className="w-full bg-[#f3f3f3] rounded-full h-1.5 overflow-hidden">
+                                                <div className={`h-full transition-all duration-1000 ${summary.occupancy_pct > 90 ? 'bg-red-500' : 'bg-[#0078d4]'}`} style={{ width: `${summary.occupancy_pct}%` }}></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h3 className="text-xs font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Carga por Zona</h3>
+                                    <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-3 border-t border-[#e1dfdd] pt-4">Carga por Zona</h3>
                                     <div className="space-y-2">
                                         {Object.entries(summary.zones_by_items || {}).map(([zone, count]) => (
-                                            <div key={zone} className="flex justify-between items-center text-[11px] group py-0.5 border-b border-transparent hover:border-black">
-                                                <div className="flex items-center gap-2 text-black">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:bg-[#285f94] transition-colors"></span>
-                                                    <span className="group-hover:text-black transition-colors uppercase font-normal text-[9px] text-black">{zone}</span>
+                                            <div key={zone} className="flex justify-between items-center text-xs group py-0.5 border-b border-transparent hover:border-[#e1dfdd]">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#0078d4]"></span>
+                                                    <span className="uppercase font-normal text-xs text-[#323130]">{zone}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-black">{count} <span className="text-[8px] text-zinc-400">PZS</span></span>
+                                                <span className="font-mono font-normal text-[#201f1e]">{count} <span className="text-xs text-[#8a8886]">PZS</span></span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h3 className="text-xs font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Pasillos Críticos</h3>
+                                    <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-3 border-t border-[#e1dfdd] pt-4">Pasillos Críticos</h3>
                                     <div className="space-y-2">
                                         {Object.entries(summary.top_aisles || {}).map(([aisle, count]) => (
-                                            <div key={aisle} className="flex justify-between items-center text-[11px] group py-0.5 border-b border-transparent hover:border-black">
-                                                <div className="flex items-center gap-2 text-black">
-                                                    <span className="text-black group-hover:text-black transition-colors uppercase font-normal text-[9px] text-black">Pasillo {aisle}</span>
+                                            <div key={aisle} className="flex justify-between items-center text-xs group py-0.5 border-b border-transparent hover:border-[#e1dfdd]">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="uppercase font-normal text-xs text-[#323130]">Pasillo {aisle}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-black">{count} <span className="text-[8px] text-zinc-400">PZS</span></span>
+                                                <span className="font-mono font-normal text-[#201f1e]">{count} <span className="text-xs text-[#8a8886]">PZS</span></span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h3 className="text-xs font-normal text-black uppercase tracking-widest mb-3 border-t border-black pt-4 text-black">Saturación</h3>
+                                    <h3 className="text-xs font-normal text-[#201f1e] uppercase mb-3 border-t border-[#e1dfdd] pt-4">Saturación</h3>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center text-[11px] border-b border-black pb-1 text-black">
-                                            <span className="text-black uppercase font-normal text-[9px]">Ítems Totales</span>
-                                            <span className="font-mono font-medium text-black">{summary.total_items_in_bins ?? '—'}</span>
+                                        <div className="flex justify-between items-center text-xs border-b border-[#f3f3f3] pb-1">
+                                            <span className="uppercase font-normal text-xs text-[#605e5c]">Ítems Totales</span>
+                                            <span className="font-mono font-normal text-[#201f1e]">{summary.total_items_in_bins ?? '—'}</span>
                                         </div>
                                         <div className="pt-1">
-                                            <div className="flex justify-between text-[9px] font-normal text-black mb-1 uppercase text-black">
+                                            <div className="flex justify-between text-xs font-normal text-[#323130] mb-1">
                                                 <span>Promedio ítems / bin</span>
-                                                <span className={(summary.avg_items_per_bin ?? 0) > 5 ? 'text-red-600' : 'text-[#285f94]'}>{summary.avg_items_per_bin ?? '—'}</span>
+                                                <span className={(summary.avg_items_per_bin ?? 0) > 5 ? 'text-red-600' : 'text-[#0078d4]'}>{summary.avg_items_per_bin ?? '—'}</span>
                                             </div>
-                                            <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
-                                                <div className="h-full bg-[#285f94]" style={{ width: `${Math.min(((summary.avg_items_per_bin ?? 0) / 8) * 100, 100)}%` }}></div>
+                                            <div className="w-full bg-[#f3f3f3] rounded-full h-1.5 overflow-hidden">
+                                                <div className="h-full bg-[#0078d4]" style={{ width: `${Math.min(((summary.avg_items_per_bin ?? 0) / 8) * 100, 100)}%` }}></div>
                                             </div>
                                         </div>
                                     </div>

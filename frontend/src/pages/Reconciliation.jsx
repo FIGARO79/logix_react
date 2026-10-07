@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
+import '../styles/Reconciliation.css';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -197,16 +198,16 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
+        <div className="reconciliation-page flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
             <div className="px-4 pt-2 pb-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-30">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                     <div className="space-y-0.5">
-                        <h1 className="text-lg tracking-tight text-zinc-900 font-semibold">Conciliación de Inventario</h1>
+                        <h1 className="text-lg tracking-tight text-zinc-900 font-normal">Conciliación de Inventario</h1>
                         <div className="flex items-center gap-2">
-                            <p className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-medium">Auditoría de Diferencias</p>
+                            <p className="text-[10px] uppercase text-[#605e5c] font-normal">Auditoría de Diferencias</p>
                             <span className="text-zinc-200"></span>
                             {isOfflineData ? (
-                                <span className="text-[8px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                                <span className="text-[10px] text-zinc-500 uppercase flex items-center gap-1">
                                     Offline
                                 </span>
                             ) : (

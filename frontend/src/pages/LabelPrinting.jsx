@@ -78,7 +78,7 @@ const LabelPrinting = () => {
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
     return (
-        <div className="container-wrapper px-4 py-4">
+        <div className="label-printing-page container-wrapper px-4 py-4">
             <ToastContainer position="top-right" autoClose={3000} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -86,7 +86,7 @@ const LabelPrinting = () => {
                 {/* Form Column */}
                 <div className="lg:col-span-2 space-y-5 bg-white p-6 rounded-md shadow-md border border-gray-200">
                     <div className="bg-gray-50 text-gray-900 px-4 py-3 -mx-6 -mt-6 rounded-t-md mb-6 border-b border-gray-200">
-                        <h1 className="text-base font-normal tracking-tight">Imprimir Etiqueta</h1>
+                        <h1 className="text-base font-normal tracking-tight text-[#201f1e]">Imprimir Etiqueta</h1>
                     </div>
 
                     <div>

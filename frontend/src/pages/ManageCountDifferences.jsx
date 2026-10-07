@@ -120,17 +120,17 @@ const ManageCountDifferences = () => {
 
     return (
         <Layout title="Gestión de Diferencias de Conteo">
-            <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="manage-count-diff-page max-w-7xl mx-auto px-4 py-6">
 
                 {/* Header Page */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-xl font-normal text-gray-800">Gestión de Diferencias</h1>
-                        <p className="text-sm text-gray-500">Verifica y edita las cantidades contadas vs. sistema</p>
+                        <h1 className="text-xl font-normal text-[#201f1e]">Gestión de Diferencias</h1>
+                        <p className="text-sm text-[#605e5c]">Verifica y edita las cantidades contadas vs. sistema</p>
                     </div>
                     <div className="flex gap-2">
                         <button onClick={handleExport} className="btn-sap btn-secondary flex items-center gap-2">
-                            <span className="text-green-600 font-bold">⬇</span> Exportar Excel
+                            <span className="text-green-600 font-normal">⬇</span> Exportar Excel
                         </button>
                         <button onClick={loadData} className="btn-sap btn-secondary flex items-center gap-2">
                             <span>↻</span> Actualizar
@@ -142,21 +142,21 @@ const ManageCountDifferences = () => {
                 {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4 border border-red-200">{error}</div>}
 
                 {/* Filtros */}
-                <div className="bg-white p-4 rounded shadow border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
+                <div className="bg-white p-4 rounded border border-[#e1dfdd] shadow-sm mb-6 flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Filtrar por Item Code</label>
+                        <label className="block text-xs font-normal uppercase text-[#605e5c] mb-1">Filtrar por Item Code</label>
                         <input
                             type="text"
-                            className="w-full border p-2 rounded text-sm uppercase"
+                            className="w-full border border-[#d2d0ce] p-2 rounded text-sm uppercase focus:border-[#0078d4] focus:ring-[#0078d4]"
                             placeholder="EJ: ABC123..."
                             value={filterItemCode}
                             onChange={(e) => setFilterItemCode(e.target.value)}
                         />
                     </div>
                     <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Mostrar</label>
+                        <label className="block text-xs font-normal uppercase text-[#605e5c] mb-1">Mostrar</label>
                         <select
-                            className="w-full border p-2 rounded text-sm"
+                            className="w-full border border-[#d2d0ce] p-2 rounded text-sm focus:border-[#0078d4] focus:ring-[#0078d4]"
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
                         >
@@ -174,34 +174,34 @@ const ManageCountDifferences = () => {
                 </div>
 
                 {/* Tabla */}
-                <div className="bg-white rounded shadow overflow-hidden border border-gray-200">
+                <div className="bg-white rounded border border-[#e1dfdd] shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="uppercase font-semibold border-b">
+                            <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#e1dfdd]">
                                 <tr>
-                                    <th className="p-3 w-20">Acciones</th>
-                                    <th className="p-3">Item Code</th>
-                                    <th className="p-3">Descripción</th>
-                                    <th className="p-3">Ubicación</th>
-                                    <th className="p-3 text-right">Qty Sistema</th>
-                                    <th className="p-3 text-right">Qty Contada</th>
-                                    <th className="p-3 text-right">Diferencia</th>
-                                    <th className="p-3 text-right">% Var</th>
-                                    <th className="p-3">Fecha</th>
-                                    <th className="p-3">Usuario</th>
+                                    <th className="p-3 w-20 text-xs font-normal text-[#605e5c] uppercase">Acciones</th>
+                                    <th className="p-3 text-xs font-normal text-[#605e5c] uppercase">Item Code</th>
+                                    <th className="p-3 text-xs font-normal text-[#605e5c] uppercase">Descripción</th>
+                                    <th className="p-3 text-xs font-normal text-[#605e5c] uppercase">Ubicación</th>
+                                    <th className="p-3 text-right text-xs font-normal text-[#605e5c] uppercase">Qty Sistema</th>
+                                    <th className="p-3 text-right text-xs font-normal text-[#605e5c] uppercase">Qty Contada</th>
+                                    <th className="p-3 text-right text-xs font-normal text-[#605e5c] uppercase">Diferencia</th>
+                                    <th className="p-3 text-right text-xs font-normal text-[#605e5c] uppercase">% Var</th>
+                                    <th className="p-3 text-xs font-normal text-[#605e5c] uppercase">Fecha</th>
+                                    <th className="p-3 text-xs font-normal text-[#605e5c] uppercase">Usuario</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y divide-[#e1dfdd]">
                                 {loading && (
-                                    <tr><td colSpan="10" className="p-6 text-center text-gray-500">Cargando datos...</td></tr>
+                                    <tr><td colSpan="10" className="p-6 text-center text-[#605e5c]">Cargando datos...</td></tr>
                                 )}
                                 {!loading && filteredData.length === 0 && (
-                                    <tr><td colSpan="10" className="p-6 text-center text-gray-500">No hay registros para mostrar.</td></tr>
+                                    <tr><td colSpan="10" className="p-6 text-center text-[#605e5c]">No hay registros para mostrar.</td></tr>
                                 )}
                                 {filteredData.map((item) => (
-                                    <tr key={item.count_id} className={`hover:bg-gray-50 ${item.difference !== 0 ? 'bg-orange-50/30' : ''}`}>
+                                    <tr key={item.count_id} className={`hover:bg-[#f9f9f9] ${item.difference !== 0 ? 'bg-orange-50/30' : ''}`}>
                                         <td className="p-3 flex gap-2">
-                                            <button onClick={() => handleEditClick(item)} className="p-1 text-[#285f94] hover:bg-blue-50 rounded transition-colors" title="Editar">
+                                            <button onClick={() => handleEditClick(item)} className="p-1 text-[#0078d4] hover:bg-blue-50 rounded transition-colors" title="Editar">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                                 </svg>
@@ -212,19 +212,19 @@ const ManageCountDifferences = () => {
                                                 </svg>
                                             </button>
                                         </td>
-                                        <td className="p-3 font-semibold text-[#1e4a74]">{item.item_code}</td>
-                                        <td className="p-3 truncate max-w-xs" title={item.description}>{item.description}</td>
-                                        <td className="p-3">{item.location}</td>
-                                        <td className="p-3 text-right">{item.system_qty}</td>
-                                        <td className="p-3 text-right font-bold">{item.counted_qty}</td>
-                                        <td className={`p-3 text-right font-bold ${item.difference > 0 ? 'text-[#285f94]' : item.difference < 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                        <td className="p-3 font-normal text-[#0078d4]">{item.item_code}</td>
+                                        <td className="p-3 truncate max-w-xs text-[#605e5c]" title={item.description}>{item.description}</td>
+                                        <td className="p-3 text-[#323130]">{item.location}</td>
+                                        <td className="p-3 text-right text-[#323130]">{item.system_qty}</td>
+                                        <td className="p-3 text-right font-normal text-[#201f1e]">{item.counted_qty}</td>
+                                        <td className={`p-3 text-right font-normal ${item.difference > 0 ? 'text-[#0078d4]' : item.difference < 0 ? 'text-red-600' : 'text-[#8a8886]'}`}>
                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                         </td>
-                                        <td className="p-3 text-right">{item.percentage_variance}%</td>
-                                        <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
+                                        <td className="p-3 text-right text-[#323130]">{item.percentage_variance}%</td>
+                                        <td className="p-3 text-xs text-[#8a8886] whitespace-nowrap">
                                             {item.date ? new Date(item.date).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                                         </td>
-                                        <td className="p-3 text-xs text-gray-500">{item.username}</td>
+                                        <td className="p-3 text-xs text-[#605e5c]">{item.username}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -236,19 +236,19 @@ const ManageCountDifferences = () => {
             {/* Modal Editar */}
             {editModal.open && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                        <h2 className="text-lg font-bold mb-4">Editar Cantidad Contada</h2>
+                    <div className="bg-white rounded border border-[#e1dfdd] shadow-lg w-full max-w-md p-6">
+                        <h2 className="text-lg font-normal text-[#201f1e] mb-4">Editar Cantidad Contada</h2>
                         <div className="space-y-3 mb-6">
-                            <div><span className="font-semibold text-xs text-gray-500 uppercase">Item Code:</span> <div className="font-mono">{editModal.itemCode}</div></div>
-                            <div><span className="font-semibold text-xs text-gray-500 uppercase">Descripción:</span> <div className="text-sm">{editModal.desc}</div></div>
-                            <div><span className="font-semibold text-xs text-gray-500 uppercase">Ubicación:</span> <div>{editModal.loc}</div></div>
-                            <div><span className="font-semibold text-xs text-gray-500 uppercase">Qty Sistema:</span> <div>{editModal.system}</div></div>
+                            <div><span className="font-normal text-xs text-[#605e5c] uppercase">Item Code:</span> <div className="font-mono text-[#0078d4]">{editModal.itemCode}</div></div>
+                            <div><span className="font-normal text-xs text-[#605e5c] uppercase">Descripción:</span> <div className="text-sm text-[#323130]">{editModal.desc}</div></div>
+                            <div><span className="font-normal text-xs text-[#605e5c] uppercase">Ubicación:</span> <div className="text-[#323130]">{editModal.loc}</div></div>
+                            <div><span className="font-normal text-xs text-[#605e5c] uppercase">Qty Sistema:</span> <div className="text-[#323130]">{editModal.system}</div></div>
 
                             <div>
-                                <label className="block font-bold mb-1">Nueva Cantidad Contada</label>
+                                <label className="block font-normal text-sm text-[#323130] mb-1">Nueva Cantidad Contada</label>
                                 <input
                                     type="number"
-                                    className="w-full border-2 border-[#285f94] rounded p-2 text-xl font-bold"
+                                    className="w-full border border-[#0078d4] rounded p-2 text-xl font-normal text-[#201f1e] focus:ring-1 focus:ring-[#0078d4]"
                                     value={editModal.counted}
                                     onChange={(e) => setEditModal({ ...editModal, counted: e.target.value })}
                                     autoFocus
@@ -257,8 +257,8 @@ const ManageCountDifferences = () => {
                             </div>
                         </div>
                         <div className="flex justify-end gap-2">
-                            <button onClick={() => setEditModal({ ...editModal, open: false })} className="px-4 py-2 border rounded hover:bg-gray-100">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="px-4 py-2 bg-[#285f94] text-white rounded hover:bg-[#1e4a74] font-bold">Guardar Cambios</button>
+                            <button onClick={() => setEditModal({ ...editModal, open: false })} className="px-4 py-2 border border-[#d2d0ce] rounded text-sm text-[#323130] hover:bg-[#f3f3f3]">Cancelar</button>
+                            <button onClick={handleSaveEdit} className="px-4 py-2 bg-[#0078d4] text-white rounded hover:bg-[#106ebe] text-sm font-normal">Guardar Cambios</button>
                         </div>
                     </div>
                 </div>
@@ -267,14 +267,14 @@ const ManageCountDifferences = () => {
             {/* Modal Eliminar */}
             {deleteModal.open && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 border-t-4 border-red-600">
-                        <h2 className="text-lg font-bold mb-2 text-red-700">Confirmar Eliminación</h2>
-                        <p className="mb-4 text-gray-700">
+                    <div className="bg-white rounded border border-[#e1dfdd] shadow-lg w-full max-w-sm p-6 border-t-4 border-red-600">
+                        <h2 className="text-lg font-normal mb-2 text-red-700">Confirmar Eliminación</h2>
+                        <p className="mb-4 text-sm text-[#323130]">
                             ¿Estás seguro de que deseas eliminar el registro del item <strong>{deleteModal.itemCode}</strong>?
                         </p>
                         <div className="flex justify-end gap-2">
-                            <button onClick={() => setDeleteModal({ ...deleteModal, open: false })} className="px-4 py-2 border rounded hover:bg-gray-100">Cancelar</button>
-                            <button onClick={handleConfirmDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold">Eliminar</button>
+                            <button onClick={() => setDeleteModal({ ...deleteModal, open: false })} className="px-4 py-2 border border-[#d2d0ce] rounded text-sm text-[#323130] hover:bg-[#f3f3f3]">Cancelar</button>
+                            <button onClick={handleConfirmDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-normal">Eliminar</button>
                         </div>
                     </div>
                 </div>

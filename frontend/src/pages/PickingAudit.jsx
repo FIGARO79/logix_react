@@ -347,12 +347,12 @@ const PickingAudit = () => {
     // -- Render --
     if (auditActive) {
         return (
-            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
+            <div className="picking-audit-page container-wrapper max-w-5xl mx-auto px-4 py-4">
 
                 <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-start mb-6 border-b pb-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Auditoría en Curso</h1>
+                            <h1 className="text-xl font-normal text-[#201f1e]">Auditoría en Curso</h1>
                             <p className="text-gray-600">Orden: <span className="font-mono font-bold text-black">{orderNumber} / {despatchNumber}</span></p>
                             <p className="text-gray-600">Cliente: <span className="font-bold text-black">{customerCode} - {customerName}</span></p>
                         </div>
@@ -791,7 +791,7 @@ const PickingAudit = () => {
     }
 
     return (
-        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
+        <div className="picking-audit-page container-wrapper max-w-3xl mx-auto px-2 py-2">
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex justify-between items-center mb-6">

@@ -116,7 +116,8 @@ const AdminUsers = () => {
     };
 
     return (
-        <AdminLayout title="Gestión de Usuarios">
+        <div className="admin-users-page">
+            <AdminLayout title="Gestión de Usuarios">
             {message && (
                 <div className="mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -183,7 +184,7 @@ const AdminUsers = () => {
                                                     type="checkbox"
                                                     checked={hasPerm}
                                                     onChange={() => handlePermissionChange(u.id, m)}
-                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                    className="rounded border-gray-300 text-[#0078d4] shadow-sm focus:border-[#0078d4] focus:ring focus:ring-[#0078d4]/30"
                                                 />
                                             </td>
                                         );
@@ -191,7 +192,7 @@ const AdminUsers = () => {
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             <button
-                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
+                                                className="px-3 py-1 border border-[#0078d4] text-[#0078d4] rounded text-xs hover:bg-blue-50 transition-colors"
                                                 onClick={() => { alert('Verificar contraseña (no implementado en React aún)'); }}
                                             >
                                                 Verificar
@@ -200,7 +201,7 @@ const AdminUsers = () => {
                                             {!u.is_approved && (
                                                 <button
                                                     onClick={() => handleApprove(u.id)}
-                                                    className="px-3 py-1 bg-[#285f94] text-white rounded text-xs hover:bg-[#1e4a74] transition-colors border border-[#285f94]"
+                                                    className="px-3 py-1 bg-[#0078d4] text-white rounded text-xs hover:bg-[#106ebe] transition-colors border border-[#0078d4]"
                                                 >
                                                     Aprobar
                                                 </button>
@@ -250,7 +251,8 @@ const AdminUsers = () => {
                 </button>
             </div>
         </AdminLayout>
-    );
+    </div>
+);
 };
 
 export default AdminUsers;

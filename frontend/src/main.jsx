@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import './styles/Global.css'
 import './styles/FluentPages.css'
+import './styles/CycleCounts.css'
 
 // Polyfill para crypto.randomUUID en entornos no seguros (HTTP)
 if (typeof window !== 'undefined' && !window.crypto.randomUUID) {

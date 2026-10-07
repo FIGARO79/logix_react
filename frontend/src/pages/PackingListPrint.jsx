@@ -88,7 +88,7 @@ const PackingListPrint = () => {
 
 
     return (
-        <div className="bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="packing-list-print-page bg-white min-h-screen text-black p-8 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
@@ -106,17 +106,17 @@ const PackingListPrint = () => {
             {/* Control Bar - Hidden when printing */}
             <div className="no-print mb-4 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
                 <div className="max-w-3xl mx-auto flex justify-between items-center p-4">
-                    <h1 className="text-lg text-[#285f94]">Vista Previa Packing List</h1>
+                    <h1 className="text-lg font-normal text-[#201f1e]">Vista Previa Packing List</h1>
                     <div className="flex gap-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+                            className="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200 transition-colors font-normal text-sm"
                         >
                             Cerrar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
+                            className="bg-[#0078d4] text-white px-4 py-2 rounded hover:bg-[#106ebe] shadow-sm transition-all active:scale-95 font-normal text-sm"
                         >
                             Imprimir
                         </button>

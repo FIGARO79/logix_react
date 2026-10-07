@@ -212,16 +212,16 @@ const PickingAuditHistory = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="picking-audit-history-page max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Header Profesional */}
             <div className="mb-8 border-b border-zinc-200 pb-6 flex justify-between items-end">
                 <div className="flex flex-col gap-0">
-                    <h1 className="text-base font-normal tracking-tight">Pickings Empacados</h1>
-                    <p className="text-[8px] uppercase tracking-widest font-normal leading-none mt-0.5 text-black">Historial de Auditorías y Consolidación de Envíos</p>
+                    <h1 className="text-base font-normal tracking-tight text-[#201f1e]">Pickings Empacados</h1>
+                    <p className="text-[10px] uppercase font-normal leading-none mt-1 text-[#605e5c]">Historial de Auditorías y Consolidación de Envíos</p>
                 </div>
-                <div className="text-[9px] font-semibold text-black uppercase tracking-widest">
+                <div className="text-[11px] font-normal text-[#605e5c] uppercase">
                     {audits.length} Registros Encontrados
                 </div>
             </div>

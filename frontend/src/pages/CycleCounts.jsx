@@ -538,22 +538,22 @@ const CycleCounts = () => {
     if (!activeSession) {
         return (
             <div className="cycle-counts-page max-w-md mx-auto my-12 p-6 bg-white rounded-[4px] shadow-xs border border-[#d2d0ce] text-center text-[#201f1e]">
-                <div className="inline-block px-3 py-1 bg-[#f3f2f1] text-[#0078d4] font-semibold text-xs rounded-[2px] mb-4 border border-[#d2d0ce] uppercase">
+                <div className="inline-block px-3 py-1 bg-[#f3f2f1] text-[#0078d4] font-normal text-xs rounded-[2px] mb-4 border border-[#d2d0ce] uppercase">
                     Wall-to-Wall
                 </div>
-                <h2 className="text-lg font-semibold text-[#201f1e] mb-2">Inventario General (W2W)</h2>
+                <h2 className="text-lg font-normal text-[#201f1e] mb-2">Inventario General (W2W)</h2>
                 <p className="text-sm text-[#605e5c] mb-6 leading-relaxed">
                     No hay ninguna sesión activa. Inicie una nueva sesión para comenzar la captura física en almacén.
                 </p>
                 <button
                     onClick={startSession}
                     disabled={!isOnline}
-                    className="w-full h-10 py-2 px-4 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-sm font-semibold rounded-[2px] shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full h-10 py-2 px-4 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-sm font-normal rounded-[2px] shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                     Iniciar Sesión de Inventario
                 </button>
                 {!isOnline && (
-                    <div className="mt-4 p-2.5 bg-[#fde7e9] border border-[#f8b6be] text-[#a4262c] text-xs font-medium rounded-[2px]">
+                    <div className="mt-4 p-2.5 bg-[#fde7e9] border border-[#f8b6be] text-[#a4262c] text-xs font-normal rounded-[2px]">
                         Se requiere conexión a la red para iniciar sesión
                     </div>
                 )}
@@ -569,32 +569,32 @@ const CycleCounts = () => {
                 <div className="bg-white rounded-[4px] shadow-xs border border-[#d2d0ce] p-6 mb-6">
                     <div className="flex justify-between items-center pb-4 border-b border-[#d2d0ce] mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-[2px] bg-[#0078d4] text-white flex items-center justify-center font-semibold text-xs shadow-xs">
+                            <div className="w-10 h-10 rounded-[2px] bg-[#0078d4] text-white flex items-center justify-center font-normal text-xs shadow-xs">
                                 W2W
                             </div>
                             <div>
-                                <h1 className="text-base font-semibold text-[#201f1e]">
+                                <h1 className="text-base font-normal text-[#201f1e]">
                                     Sesión de Inventario #{activeSession.id || activeSession.session_id}
                                 </h1>
                                 <p className="text-xs text-[#605e5c] font-normal">
-                                    Auditor: <span className="text-[#201f1e] font-medium">{activeSession.user_username || activeSession.username}</span>
+                                    Auditor: <span className="text-[#201f1e] font-normal">{activeSession.user_username || activeSession.username}</span>
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={endSession}
-                            className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                            className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-normal transition-colors cursor-pointer shadow-2xs"
                         >
                             Finalizar Sesión
                         </button>
                     </div>
 
                     <div className="text-center mb-8">
-                        <h2 className="text-base font-semibold text-[#201f1e] mb-1">
+                        <h2 className="text-base font-normal text-[#201f1e] mb-1">
                             Seleccione la Fase de Conteo a Ejecutar
                         </h2>
                         <p className="text-xs text-[#605e5c] font-normal">
-                            Fase Activa en Sistema: <span className="font-semibold bg-[#dff6dd] text-[#107c10] px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9]">Fase 0{recountData?.stage || 1}</span>
+                            Fase Activa en Sistema: <span className="font-normal bg-[#dff6dd] text-[#107c10] px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9]">Fase 0{recountData?.stage || 1}</span>
                         </p>
                     </div>
 
@@ -651,19 +651,19 @@ const CycleCounts = () => {
                                 >
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-sm font-semibold text-[#201f1e]">
+                                            <h3 className="text-sm font-normal text-[#201f1e]">
                                                 {f.title}
                                             </h3>
                                             {isSystemActive ? (
-                                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[2px] bg-[#dff6dd] text-[#107c10] border border-[#c8e6c9] uppercase shrink-0">
+                                                <span className="text-[11px] font-normal px-2 py-0.5 rounded-[2px] bg-[#dff6dd] text-[#107c10] border border-[#c8e6c9] uppercase shrink-0">
                                                     Activa en Sistema
                                                 </span>
                                             ) : isPassed ? (
-                                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#605e5c] border border-[#d2d0ce] uppercase shrink-0">
+                                                <span className="text-[11px] font-normal px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#605e5c] border border-[#d2d0ce] uppercase shrink-0">
                                                     Finalizada
                                                 </span>
                                             ) : (
-                                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#a19f9d] border border-[#edebe9] uppercase shrink-0">
+                                                <span className="text-[11px] font-normal px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#a19f9d] border border-[#edebe9] uppercase shrink-0">
                                                     En Espera
                                                 </span>
                                             )}
@@ -675,7 +675,7 @@ const CycleCounts = () => {
                                     <button
                                         type="button"
                                         disabled={!isSystemActive}
-                                        className={`sm:w-48 py-2 px-4 text-xs font-semibold rounded-[2px] transition-colors shrink-0 ${
+                                        className={`sm:w-48 py-2 px-4 text-xs font-normal rounded-[2px] transition-colors shrink-0 ${
                                             isSystemActive
                                                 ? 'bg-[#0078d4] text-white hover:bg-[#106ebe] shadow-xs cursor-pointer'
                                                 : isPassed
@@ -703,14 +703,14 @@ const CycleCounts = () => {
                 <button
                     type="button"
                     onClick={() => setSelectedPhase(null)}
-                    className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                    className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-normal transition-colors cursor-pointer shadow-2xs"
                 >
                     Cambiar de Fase
                 </button>
-                <div className="text-xs font-medium text-[#201f1e] flex items-center gap-2">
-                    <span>Fase Actual: <strong className="font-bold text-[#0078d4]">0{selectedPhase}</strong></span>
+                <div className="text-xs font-normal text-[#201f1e] flex items-center gap-2">
+                    <span>Fase Actual: <strong className="font-normal text-[#0078d4]">0{selectedPhase}</strong></span>
                     {recountData?.stage === selectedPhase && (
-                        <span className="bg-[#dff6dd] text-[#107c10] text-[11px] px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9] font-semibold">
+                        <span className="bg-[#dff6dd] text-[#107c10] text-[11px] px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9] font-normal">
                             ACTIVA EN SISTEMA
                         </span>
                     )}
@@ -724,28 +724,28 @@ const CycleCounts = () => {
                     {/* Header */}
                     <div className="flex justify-between items-center pb-2.5 mb-3 border-b border-[#d2d0ce]">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-[2px] bg-[#0078d4] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                            <div className="w-8 h-8 rounded-[2px] bg-[#0078d4] text-white flex items-center justify-center font-normal text-xs shadow-xs">
                                 W2W
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h1 className="text-base font-semibold text-[#201f1e]">
+                                    <h1 className="text-base font-normal text-[#201f1e]">
                                         Sesión #{activeSession.id || activeSession.session_id}
                                     </h1>
                                     {!isOnline && (
-                                        <span className="text-[11px] bg-[#fde7e9] text-[#a4262c] px-2 py-0.5 rounded-[2px] border border-[#f8b6be] font-semibold uppercase">
+                                        <span className="text-[11px] bg-[#fde7e9] text-[#a4262c] px-2 py-0.5 rounded-[2px] border border-[#f8b6be] font-normal uppercase">
                                             OFFLINE
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-xs text-[#605e5c] font-normal mt-0.5">
-                                    Auditor: <span className="text-[#201f1e] font-semibold">{activeSession.user_username || activeSession.username}</span>
+                                    Auditor: <span className="text-[#201f1e] font-normal">{activeSession.user_username || activeSession.username}</span>
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={endSession}
-                            className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                            className="px-3.5 py-1.5 bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce] rounded-[2px] text-xs font-normal transition-colors cursor-pointer shadow-2xs"
                         >
                             Finalizar Sesión
                         </button>
@@ -756,7 +756,7 @@ const CycleCounts = () => {
                         <form onSubmit={handleSaveCount} className="space-y-3.5">
                             {/* Location Input Group */}
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Ubicación Física <span className="text-red-600">*</span>
                                 </label>
                                 <div className="flex items-center gap-1.5">
@@ -765,7 +765,7 @@ const CycleCounts = () => {
                                             type="text"
                                             value={countedLocation}
                                             onChange={e => setCountedLocation(e.target.value.toUpperCase())}
-                                            className="w-full h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-medium text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
+                                            className="w-full h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-normal text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
                                             placeholder="Escanear o ingresar ubicación..."
                                             required
                                         />
@@ -785,7 +785,7 @@ const CycleCounts = () => {
 
                             {/* Item Code Input Group */}
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Código de Artículo / SKU <span className="text-red-600">*</span>
                                 </label>
                                 <div className="flex items-center gap-1.5">
@@ -800,7 +800,7 @@ const CycleCounts = () => {
                                                 fetchItemData(e.target.value || itemCode);
                                             }
                                         }}
-                                        className="flex-grow h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-medium text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
+                                        className="flex-grow h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-normal text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
                                         placeholder="Escanear o ingresar SKU..."
                                         required
                                     />
@@ -818,7 +818,7 @@ const CycleCounts = () => {
                                         type="button"
                                         onClick={() => fetchItemData(itemCode)}
                                         disabled={loadingItem}
-                                        className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-xs font-semibold rounded-[2px] transition-colors shrink-0 cursor-pointer shadow-xs disabled:opacity-50"
+                                        className="h-9 px-4 bg-[#0078d4] hover:bg-[#106ebe] text-white text-xs font-normal rounded-[2px] transition-colors shrink-0 cursor-pointer shadow-xs disabled:opacity-50"
                                     >
                                         {loadingItem ? '...' : 'Buscar'}
                                     </button>
@@ -827,10 +827,10 @@ const CycleCounts = () => {
 
                             {/* Description Display Card */}
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Descripción del Artículo
                                 </label>
-                                <div className="min-h-[36px] h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-medium text-[#201f1e] flex items-center uppercase truncate">
+                                <div className="min-h-[36px] h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-normal text-[#201f1e] flex items-center uppercase truncate">
                                     {description || <span className="text-[#a19f9d] italic normal-case font-normal">Sin consulta previa</span>}
                                 </div>
                             </div>
@@ -838,22 +838,22 @@ const CycleCounts = () => {
                             {/* Master Bin & Counted Qty */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                    <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                         Ubicación Maestro
                                     </label>
-                                    <div className="h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-semibold text-[#201f1e] flex items-center uppercase">
+                                    <div className="h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-normal text-[#201f1e] flex items-center uppercase">
                                         {binSys || '—'}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                    <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                         Cantidad Observada <span className="text-red-600">*</span>
                                     </label>
                                     <div className="flex items-center">
                                         <button
                                             type="button"
                                             onClick={() => setCountedQty(prev => Math.max(0, (parseInt(prev) || 0) - 1))}
-                                            className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-semibold text-lg rounded-l-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
+                                            className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-normal text-lg rounded-l-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
                                         >
                                             -
                                         </button>
@@ -863,7 +863,7 @@ const CycleCounts = () => {
                                             type="number"
                                             value={countedQty}
                                             onChange={e => setCountedQty(e.target.value)}
-                                            className="h-9 flex-grow border-y border-[#d2d0ce] text-center text-sm font-semibold text-[#201f1e] bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] px-2"
+                                            className="h-9 flex-grow border-y border-[#d2d0ce] text-center text-sm font-normal text-[#201f1e] bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] px-2"
                                             min="0"
                                             step="1"
                                             required
@@ -871,7 +871,7 @@ const CycleCounts = () => {
                                         <button
                                             type="button"
                                             onClick={() => setCountedQty(prev => (parseInt(prev) || 0) + 1)}
-                                            className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-semibold text-lg rounded-r-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
+                                            className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-normal text-lg rounded-r-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
                                         >
                                             +
                                         </button>
@@ -884,13 +884,13 @@ const CycleCounts = () => {
                                 <button
                                     type="button"
                                     onClick={clearForm}
-                                    className="h-9 px-4 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] text-xs font-semibold rounded-[2px] transition-colors cursor-pointer shadow-2xs"
+                                    className="h-9 px-4 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] text-xs font-normal rounded-[2px] transition-colors cursor-pointer shadow-2xs"
                                 >
                                     Limpiar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="h-9 px-5 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-xs font-semibold rounded-[2px] shadow-xs transition-colors cursor-pointer"
+                                    className="h-9 px-5 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-xs font-normal rounded-[2px] shadow-xs transition-colors cursor-pointer"
                                 >
                                     Guardar Conteo
                                 </button>
@@ -904,7 +904,7 @@ const CycleCounts = () => {
                             <div className="bg-white border border-[#d2d0ce] rounded-[4px] p-3 text-[#201f1e] shadow-xs">
                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-2.5 mb-2.5 border-b border-[#d2d0ce]">
                                     <div>
-                                        <h2 className="text-sm font-semibold text-[#201f1e]">
+                                        <h2 className="text-sm font-normal text-[#201f1e]">
                                             Lista de Ítems a Recontar — Fase 0{selectedPhase}
                                         </h2>
                                         <p className="text-xs text-[#605e5c] font-normal mt-0.5">
@@ -924,7 +924,7 @@ const CycleCounts = () => {
                                             onClick={() => setRecountFilter('pending')}
                                             className={`h-8 px-3 text-xs rounded-[2px] border transition-colors cursor-pointer ${
                                                 recountFilter === 'pending'
-                                                    ? 'bg-[#0078d4] border-[#0078d4] text-white font-semibold shadow-xs'
+                                                    ? 'bg-[#0078d4] border-[#0078d4] text-white font-normal shadow-xs'
                                                     : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
                                             }`}
                                         >
@@ -935,7 +935,7 @@ const CycleCounts = () => {
                                             onClick={() => setRecountFilter('all')}
                                             className={`h-8 px-3 text-xs rounded-[2px] border transition-colors cursor-pointer ${
                                                 recountFilter === 'all'
-                                                    ? 'bg-[#0078d4] border-[#0078d4] text-white font-semibold shadow-xs'
+                                                    ? 'bg-[#0078d4] border-[#0078d4] text-white font-normal shadow-xs'
                                                     : 'bg-white border-[#d2d0ce] text-[#201f1e] hover:bg-[#f3f2f1]'
                                             }`}
                                         >
@@ -975,7 +975,7 @@ const CycleCounts = () => {
                                                 >
                                                     <div className="flex justify-between items-start gap-2">
                                                         <div>
-                                                            <span className="text-sm text-[#201f1e] font-semibold block">
+                                                            <span className="text-sm text-[#201f1e] font-normal block">
                                                                 {item.item_code}
                                                             </span>
                                                             <p className="text-xs text-[#605e5c] font-normal line-clamp-2 mt-0.5">
@@ -983,11 +983,11 @@ const CycleCounts = () => {
                                                             </p>
                                                         </div>
                                                         {item.is_recounted ? (
-                                                            <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border border-[#c8e6c9] shrink-0">
+                                                            <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-normal px-2 py-0.5 rounded-[2px] border border-[#c8e6c9] shrink-0">
                                                                 RECONTADO ({item.counted_qty_in_stage})
                                                             </span>
                                                         ) : (
-                                                            <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border border-[#fde398] shrink-0">
+                                                            <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-normal px-2 py-0.5 rounded-[2px] border border-[#fde398] shrink-0">
                                                                 PENDIENTE
                                                             </span>
                                                         )}
@@ -995,13 +995,13 @@ const CycleCounts = () => {
 
                                                     <div className="flex justify-between items-center pt-2 border-t border-[#d2d0ce] gap-2">
                                                         <div className="bg-[#f3f2f1] border border-[#d2d0ce] px-2.5 py-1 rounded-[2px] text-center shrink-0">
-                                                            <span className="text-[11px] uppercase text-[#605e5c] block font-semibold">UBICACIÓN</span>
-                                                            <span className="text-xs font-semibold text-[#201f1e] uppercase">{item.bin_location || '—'}</span>
+                                                            <span className="text-[11px] uppercase text-[#605e5c] block font-normal">UBICACIÓN</span>
+                                                            <span className="text-xs font-normal text-[#201f1e] uppercase">{item.bin_location || '—'}</span>
                                                         </div>
                                                         <button
                                                             type="button"
                                                             onClick={() => selectItemForRecount(item)}
-                                                            className={`px-3.5 py-1.5 rounded-[2px] text-xs font-semibold uppercase transition-colors shadow-2xs cursor-pointer ${
+                                                            className={`px-3.5 py-1.5 rounded-[2px] text-xs font-normal uppercase transition-colors shadow-2xs cursor-pointer ${
                                                                 item.is_recounted
                                                                     ? 'bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce]'
                                                                     : 'bg-[#0078d4] hover:bg-[#106ebe] text-white shadow-xs'
@@ -1019,13 +1019,13 @@ const CycleCounts = () => {
                                 <div className="hidden sm:block bg-white shadow-xs rounded-[4px] overflow-hidden border border-[#d2d0ce]">
                                     <div className="overflow-x-auto max-h-[500px]">
                                         <table className="w-full text-xs border-collapse min-w-[600px]">
-                                            <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce] sticky top-0 z-10 font-semibold text-xs">
+                                            <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce] sticky top-0 z-10 font-normal text-xs">
                                                 <tr>
-                                                    <th className="px-3 py-2 text-left font-semibold">ITEM CODE</th>
-                                                    <th className="px-3 py-2 text-left font-semibold">DESCRIPCIÓN</th>
-                                                    <th className="px-3 py-2 text-center font-semibold">UBICACIÓN SISTEMA</th>
-                                                    <th className="px-3 py-2 text-center font-semibold">ESTADO</th>
-                                                    <th className="px-3 py-2 text-center font-semibold">ACCIÓN</th>
+                                                    <th className="px-3 py-2 text-left font-normal">ITEM CODE</th>
+                                                    <th className="px-3 py-2 text-left font-normal">DESCRIPCIÓN</th>
+                                                    <th className="px-3 py-2 text-center font-normal">UBICACIÓN SISTEMA</th>
+                                                    <th className="px-3 py-2 text-center font-normal">ESTADO</th>
+                                                    <th className="px-3 py-2 text-center font-normal">ACCIÓN</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-[#d2d0ce]">
@@ -1052,24 +1052,24 @@ const CycleCounts = () => {
                                                                 key={item.item_code || `main-recount-${idx}`}
                                                                 className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#f9f9f9]'} hover:bg-[#f3f9fd] transition-colors`}
                                                             >
-                                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-[#201f1e] font-semibold">
+                                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-[#201f1e] font-normal">
                                                                     {item.item_code}
                                                                 </td>
                                                                 <td className="px-3 py-2 text-xs text-[#201f1e] font-normal truncate max-w-md" title={item.description}>
                                                                     {item.description}
                                                                 </td>
                                                                 <td className="px-3 py-2 text-center whitespace-nowrap">
-                                                                    <span className="inline-block bg-[#f3f2f1] border border-[#d2d0ce] px-2.5 py-0.5 rounded-[2px] text-xs font-semibold text-[#201f1e] uppercase">
+                                                                    <span className="inline-block bg-[#f3f2f1] border border-[#d2d0ce] px-2.5 py-0.5 rounded-[2px] text-xs font-normal text-[#201f1e] uppercase">
                                                                         {item.bin_location || '—'}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-3 py-2 text-center whitespace-nowrap">
                                                                     {item.is_recounted ? (
-                                                                        <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-semibold px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9]">
+                                                                        <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-normal px-2.5 py-0.5 rounded-[2px] border border-[#c8e6c9]">
                                                                             RECONTADO ({item.counted_qty_in_stage})
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-semibold px-2.5 py-0.5 rounded-[2px] border border-[#fde398]">
+                                                                        <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-normal px-2.5 py-0.5 rounded-[2px] border border-[#fde398]">
                                                                             PENDIENTE
                                                                         </span>
                                                                     )}
@@ -1078,7 +1078,7 @@ const CycleCounts = () => {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => selectItemForRecount(item)}
-                                                                        className={`px-3 py-1 rounded-[2px] text-xs font-semibold uppercase transition-colors shadow-2xs cursor-pointer ${
+                                                                        className={`px-3 py-1 rounded-[2px] text-xs font-normal uppercase transition-colors shadow-2xs cursor-pointer ${
                                                                             item.is_recounted
                                                                                 ? 'bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce]'
                                                                                 : 'bg-[#0078d4] hover:bg-[#106ebe] text-white shadow-xs'
@@ -1106,14 +1106,14 @@ const CycleCounts = () => {
                         <div className="bg-white rounded-[4px] shadow-xs border border-[#d2d0ce] p-3 text-[#201f1e]">
                             <div className="flex justify-between items-center mb-2">
                                 <div>
-                                    <h3 className="text-xs font-semibold uppercase text-[#201f1e]">
+                                    <h3 className="text-xs font-normal uppercase text-[#201f1e]">
                                         Avance de Reconteo por Zona
                                     </h3>
                                     <p className="text-xs text-[#605e5c] font-normal mt-0.5">
-                                        Auditor: <span className="text-[#201f1e] font-medium uppercase">{activeSession?.user_username || activeSession?.username || 'AUDITOR'}</span>
+                                        Auditor: <span className="text-[#201f1e] font-normal uppercase">{activeSession?.user_username || activeSession?.username || 'AUDITOR'}</span>
                                     </p>
                                 </div>
-                                <span className="text-xs font-semibold px-2 py-0.5 bg-[#0078d4] text-white rounded-[2px] shadow-2xs">
+                                <span className="text-xs font-normal px-2 py-0.5 bg-[#0078d4] text-white rounded-[2px] shadow-2xs">
                                     {(recountData.total || 0) > 0 ? Math.round(((recountData.recounted_count || 0) / recountData.total) * 100) : 0}%
                                 </span>
                             </div>
@@ -1128,16 +1128,16 @@ const CycleCounts = () => {
 
                             <div className="grid grid-cols-3 gap-1.5 text-center text-xs pt-2 border-t border-[#d2d0ce]">
                                 <div className="bg-[#f9f9f9] p-1.5 rounded-[2px] border border-[#d2d0ce]">
-                                    <span className="text-[#605e5c] font-semibold block text-[11px] uppercase">Recontados</span>
-                                    <span className="text-[#107c10] text-sm font-semibold">{recountData.recounted_count || 0}</span>
+                                    <span className="text-[#605e5c] font-normal block text-[11px] uppercase">Recontados</span>
+                                    <span className="text-[#107c10] text-sm font-normal">{recountData.recounted_count || 0}</span>
                                 </div>
                                 <div className="bg-[#f9f9f9] p-1.5 rounded-[2px] border border-[#d2d0ce]">
-                                    <span className="text-[#605e5c] font-semibold block text-[11px] uppercase">Pendientes</span>
-                                    <span className="text-[#8a3707] text-sm font-semibold">{recountData.pending_count || 0}</span>
+                                    <span className="text-[#605e5c] font-normal block text-[11px] uppercase">Pendientes</span>
+                                    <span className="text-[#8a3707] text-sm font-normal">{recountData.pending_count || 0}</span>
                                 </div>
                                 <div className="bg-[#f9f9f9] p-1.5 rounded-[2px] border border-[#d2d0ce]">
-                                    <span className="text-[#605e5c] font-semibold block text-[11px] uppercase">Total Zona</span>
-                                    <span className="text-[#201f1e] text-sm font-semibold">{recountData.total || 0}</span>
+                                    <span className="text-[#605e5c] font-normal block text-[11px] uppercase">Total Zona</span>
+                                    <span className="text-[#201f1e] text-sm font-normal">{recountData.total || 0}</span>
                                 </div>
                             </div>
                         </div>
@@ -1146,10 +1146,10 @@ const CycleCounts = () => {
                     {/* Counts in Current Location */}
                     <div className="bg-white rounded-[4px] shadow-xs border border-[#d2d0ce] p-3 text-[#201f1e]">
                         <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-[#d2d0ce]">
-                            <h3 className="text-xs font-semibold uppercase text-[#201f1e]">
-                                Ítems en <span className="font-semibold text-[#0078d4]">{countedLocation || '...'}</span>
+                            <h3 className="text-xs font-normal uppercase text-[#201f1e]">
+                                Ítems en <span className="font-normal text-[#0078d4]">{countedLocation || '...'}</span>
                             </h3>
-                            <span className="text-xs px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#201f1e] font-semibold border border-[#d2d0ce]">
+                            <span className="text-xs px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#201f1e] font-normal border border-[#d2d0ce]">
                                 {locationCounts.length}
                             </span>
                         </div>
@@ -1166,9 +1166,9 @@ const CycleCounts = () => {
                                             c.is_pending ? 'border-l-2 border-[#ffaa44] pl-2' : ''
                                         }`}
                                     >
-                                        <span className="font-medium text-[#201f1e]">{c.item_code}</span>
+                                        <span className="font-normal text-[#201f1e]">{c.item_code}</span>
                                         <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-[#201f1e]">{c.counted_qty}</span>
+                                            <span className="font-normal text-[#201f1e]">{c.counted_qty}</span>
                                             <button
                                                 onClick={() => deleteCount(c.id)}
                                                 title="Eliminar registro"
@@ -1186,10 +1186,10 @@ const CycleCounts = () => {
                     {/* Session Locations History */}
                     <div className="bg-white rounded-[4px] shadow-xs border border-[#d2d0ce] p-3 text-[#201f1e]">
                         <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-[#d2d0ce]">
-                            <h3 className="text-xs font-semibold uppercase text-[#201f1e]">
+                            <h3 className="text-xs font-normal uppercase text-[#201f1e]">
                                 Historial de Ubicaciones
                             </h3>
-                            <span className="text-xs px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#201f1e] font-semibold border border-[#d2d0ce]">
+                            <span className="text-xs px-2 py-0.5 rounded-[2px] bg-[#f3f2f1] text-[#201f1e] font-normal border border-[#d2d0ce]">
                                 {sessionLocations.length}
                             </span>
                         </div>
@@ -1204,9 +1204,9 @@ const CycleCounts = () => {
                                         key={l.id || l.location_code || `sess-loc-${idx}`}
                                         className="flex justify-between items-center text-xs py-2 px-1.5 hover:bg-[#f3f9fd] rounded-[2px] transition-colors"
                                     >
-                                        <span className="font-semibold uppercase text-[#201f1e]">{l.location_code}</span>
+                                        <span className="font-normal uppercase text-[#201f1e]">{l.location_code}</span>
                                         <span
-                                            className={`text-[11px] font-semibold uppercase px-2 py-0.5 rounded-[2px] border ${
+                                            className={`text-[11px] font-normal uppercase px-2 py-0.5 rounded-[2px] border ${
                                                 l.status === 'open'
                                                     ? 'bg-[#dff6dd] text-[#107c10] border-[#c8e6c9]'
                                                     : 'bg-[#f3f2f1] text-[#605e5c] border-[#d2d0ce]'
@@ -1222,7 +1222,7 @@ const CycleCounts = () => {
                             <button
                                 onClick={closeLocation}
                                 disabled={!isOnline}
-                                className={`w-full py-2 text-xs font-semibold uppercase rounded-[2px] border transition-colors shadow-2xs cursor-pointer ${
+                                className={`w-full py-2 text-xs font-normal uppercase rounded-[2px] border transition-colors shadow-2xs cursor-pointer ${
                                     isOnline
                                         ? 'bg-[#fde7e9] hover:bg-[#fcd0d5] text-[#a4262c] border-[#f8b6be]'
                                         : 'bg-[#f3f2f1] text-[#a19f9d] border-[#d2d0ce] cursor-not-allowed'
@@ -1251,7 +1251,7 @@ const CycleCounts = () => {
                         {/* Modal Header */}
                         <div className="bg-[#0078d4] text-white px-4 py-2.5 flex justify-between items-center">
                             <div>
-                                <h3 className="font-semibold text-sm uppercase">
+                                <h3 className="font-normal text-sm uppercase">
                                     Ítems a Recontar — Etapa {recountData.stage} (R{recountData.stage - 1})
                                 </h3>
                                 <p className="text-xs text-white/90 font-normal">
@@ -1260,7 +1260,7 @@ const CycleCounts = () => {
                             </div>
                             <button
                                 onClick={() => setShowRecountModal(false)}
-                                className="text-white/80 hover:text-white text-base font-semibold px-2 cursor-pointer"
+                                className="text-white/80 hover:text-white text-base font-normal px-2 cursor-pointer"
                             >
                                 ✕
                             </button>
@@ -1270,7 +1270,7 @@ const CycleCounts = () => {
                         <div className="flex border-b border-[#d2d0ce] bg-[#f9f9f9] px-4 pt-2 gap-2 text-xs">
                             <button
                                 onClick={() => setRecountFilter('pending')}
-                                className={`px-3 py-1.5 border-b-2 font-semibold uppercase text-xs transition-colors cursor-pointer ${
+                                className={`px-3 py-1.5 border-b-2 font-normal uppercase text-xs transition-colors cursor-pointer ${
                                     recountFilter === 'pending'
                                         ? 'border-[#0078d4] text-[#0078d4] bg-white rounded-t-[2px]'
                                         : 'border-transparent text-[#605e5c] hover:text-[#201f1e]'
@@ -1280,7 +1280,7 @@ const CycleCounts = () => {
                             </button>
                             <button
                                 onClick={() => setRecountFilter('all')}
-                                className={`px-3 py-1.5 border-b-2 font-semibold uppercase text-xs transition-colors cursor-pointer ${
+                                className={`px-3 py-1.5 border-b-2 font-normal uppercase text-xs transition-colors cursor-pointer ${
                                     recountFilter === 'all'
                                         ? 'border-[#0078d4] text-[#0078d4] bg-white rounded-t-[2px]'
                                         : 'border-transparent text-[#605e5c] hover:text-[#201f1e]'
@@ -1305,15 +1305,15 @@ const CycleCounts = () => {
                                     >
                                         <div className="flex-1 pr-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-semibold text-sm text-[#201f1e]">
+                                                <span className="font-normal text-sm text-[#201f1e]">
                                                     {item.item_code}
                                                 </span>
                                                 {item.is_recounted ? (
-                                                    <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border border-[#c8e6c9]">
+                                                    <span className="bg-[#dff6dd] text-[#107c10] text-[11px] font-normal px-2 py-0.5 rounded-[2px] border border-[#c8e6c9]">
                                                         RECONTADO ({item.counted_qty_in_stage})
                                                     </span>
                                                 ) : (
-                                                    <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border border-[#fde398]">
+                                                    <span className="bg-[#fff4ce] text-[#8a3707] text-[11px] font-normal px-2 py-0.5 rounded-[2px] border border-[#fde398]">
                                                         PENDIENTE
                                                     </span>
                                                 )}
@@ -1322,12 +1322,12 @@ const CycleCounts = () => {
                                                 {item.description}
                                             </p>
                                             <p className="text-xs text-[#605e5c] uppercase mt-0.5 font-normal">
-                                                Ubic. Sistema: <span className="font-semibold text-[#201f1e]">{item.bin_location}</span>
+                                                Ubic. Sistema: <span className="font-normal text-[#201f1e]">{item.bin_location}</span>
                                             </p>
                                         </div>
                                         <button
                                             onClick={() => selectItemForRecount(item)}
-                                            className={`px-3.5 py-1.5 rounded-[2px] text-xs font-semibold uppercase transition-colors shadow-2xs cursor-pointer ${
+                                            className={`px-3.5 py-1.5 rounded-[2px] text-xs font-normal uppercase transition-colors shadow-2xs cursor-pointer ${
                                                 item.is_recounted
                                                     ? 'bg-white hover:bg-[#f3f2f1] text-[#201f1e] border border-[#d2d0ce]'
                                                     : 'bg-[#0078d4] hover:bg-[#106ebe] text-white shadow-xs'
@@ -1348,7 +1348,7 @@ const CycleCounts = () => {
                     <div className="bg-white max-w-md w-full rounded-[4px] shadow-xl border border-[#d2d0ce] p-5 text-[#201f1e]">
                         <div className="flex justify-between items-start mb-3 pb-2 border-b border-[#d2d0ce]">
                             <div>
-                                <h3 className="text-sm font-semibold text-[#201f1e]">
+                                <h3 className="text-sm font-normal text-[#201f1e]">
                                     Capturar Reconteo — {recountItemModal.item_code}
                                 </h3>
                                 <p className="text-xs text-[#605e5c] font-normal truncate max-w-[280px]">
@@ -1358,7 +1358,7 @@ const CycleCounts = () => {
                             <button
                                 type="button"
                                 onClick={() => setRecountItemModal(null)}
-                                className="text-[#605e5c] hover:text-[#201f1e] text-base font-semibold cursor-pointer px-1"
+                                className="text-[#605e5c] hover:text-[#201f1e] text-base font-normal cursor-pointer px-1"
                             >
                                 ✕
                             </button>
@@ -1366,16 +1366,16 @@ const CycleCounts = () => {
 
                         <form onSubmit={handleSaveRecountItem} className="space-y-3.5">
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Ubicación Sistema / Referencia
                                 </label>
-                                <div className="h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-semibold text-[#201f1e] flex items-center uppercase">
+                                <div className="h-9 px-3 bg-[#f9f9f9] border border-[#d2d0ce] rounded-[2px] text-xs font-normal text-[#201f1e] flex items-center uppercase">
                                     {recountItemModal.bin_location}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Ubicación Física Real <span className="text-red-600">*</span>
                                 </label>
                                 <div className="flex items-center gap-1.5">
@@ -1383,7 +1383,7 @@ const CycleCounts = () => {
                                         type="text"
                                         value={recountItemModal.counted_location}
                                         onChange={e => setRecountItemModal({ ...recountItemModal, counted_location: e.target.value.toUpperCase() })}
-                                        className="flex-grow h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-medium text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
+                                        className="flex-grow h-9 border border-[#d2d0ce] rounded-[2px] px-3 text-sm font-normal text-[#201f1e] uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] focus:border-[#0078d4] placeholder:normal-case placeholder:text-[#a19f9d]"
                                         placeholder="Escanear o ingresar ubicación..."
                                         required
                                     />
@@ -1401,7 +1401,7 @@ const CycleCounts = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-[#201f1e] mb-1.5">
+                                <label className="block text-xs font-normal text-[#201f1e] mb-1.5">
                                     Cantidad Observada / Recontada <span className="text-red-600">*</span>
                                 </label>
                                 <div className="flex items-center">
@@ -1411,7 +1411,7 @@ const CycleCounts = () => {
                                             ...prev,
                                             counted_qty: String(Math.max(0, (parseInt(prev.counted_qty) || 0) - 1))
                                         }))}
-                                        className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-semibold text-lg rounded-l-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
+                                        className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-normal text-lg rounded-l-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
                                     >
                                         -
                                     </button>
@@ -1419,7 +1419,7 @@ const CycleCounts = () => {
                                         type="number"
                                         value={recountItemModal.counted_qty}
                                         onChange={e => setRecountItemModal({ ...recountItemModal, counted_qty: e.target.value })}
-                                        className="h-9 flex-grow border-y border-[#d2d0ce] text-center text-sm font-semibold text-[#201f1e] bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] px-1"
+                                        className="h-9 flex-grow border-y border-[#d2d0ce] text-center text-sm font-normal text-[#201f1e] bg-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] px-1"
                                         min="0"
                                         autoFocus
                                         required
@@ -1430,7 +1430,7 @@ const CycleCounts = () => {
                                             ...prev,
                                             counted_qty: String((parseInt(prev.counted_qty) || 0) + 1)
                                         }))}
-                                        className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-semibold text-lg rounded-r-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
+                                        className="h-9 w-10 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] font-normal text-lg rounded-r-[2px] flex items-center justify-center cursor-pointer select-none p-0 shadow-2xs"
                                     >
                                         +
                                     </button>
@@ -1441,13 +1441,13 @@ const CycleCounts = () => {
                                 <button
                                     type="button"
                                     onClick={() => setRecountItemModal(null)}
-                                    className="h-9 px-4 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] text-xs font-semibold rounded-[2px] transition-colors cursor-pointer shadow-2xs"
+                                    className="h-9 px-4 border border-[#d2d0ce] bg-white hover:bg-[#f3f2f1] text-[#201f1e] text-xs font-normal rounded-[2px] transition-colors cursor-pointer shadow-2xs"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="h-9 px-5 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-xs font-semibold rounded-[2px] shadow-xs transition-colors cursor-pointer"
+                                    className="h-9 px-5 bg-[#0078d4] hover:bg-[#106ebe] active:bg-[#005a9e] text-white text-xs font-normal rounded-[2px] shadow-xs transition-colors cursor-pointer"
                                 >
                                     Guardar Reconteo
                                 </button>

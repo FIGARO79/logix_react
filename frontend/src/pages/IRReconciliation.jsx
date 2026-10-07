@@ -78,12 +78,12 @@ const IRReconciliation = () => {
     );
 
     return (
-        <div className="container-wrapper px-4 pt-4 pb-4">
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
-                <div className="bg-zinc-50/50 p-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3">
+        <div className="ir-reconciliation-page container-wrapper px-4 pt-4 pb-4">
+            <div className="bg-white border border-zinc-200 rounded shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-zinc-50 p-4 border-b border-zinc-200 flex flex-col md:flex-row justify-between items-center gap-3">
                     <div>
-                        <h1 className="text-base font-semibold text-black uppercase tracking-wider">Historial de Conciliaciones de Contenedores (IR)</h1>
-                        <p className="text-xs text-zinc-500 mt-0.5">Avance general de las Import References conciliadas en el sistema</p>
+                        <h1 className="text-base font-normal text-[#201f1e] uppercase">Historial de Conciliaciones de Contenedores (IR)</h1>
+                        <p className="text-xs text-[#605e5c] mt-0.5">Avance general de las Import References conciliadas en el sistema</p>
                     </div>
                     
                     <div className="flex gap-2 items-center justify-end w-full md:w-auto">
@@ -115,7 +115,7 @@ const IRReconciliation = () => {
 
                         <button
                             onClick={loadReconciliations}
-                            className="h-9 px-4 text-[11px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                            className="h-9 px-4 text-[11px] text-[#201f1e] bg-white border border-zinc-200 rounded shadow-sm flex items-center gap-1.5 uppercase font-normal active:scale-95 transition-all hover:bg-zinc-50"
                             title="Recargar datos"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
