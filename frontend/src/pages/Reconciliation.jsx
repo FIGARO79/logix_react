@@ -569,8 +569,8 @@ const Reconciliation = () => {
                 <div className="flex flex-wrap items-center gap-2.5">
                     
                     {/* Selector de I.R. */}
-                    <div className="w-44 flex flex-col">
-                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Import Ref (I.R.)</label>
+                    <div className="w-48 flex flex-col">
+                        <label className="text-xs font-medium text-[#605e5c] mb-1">Import Ref (I.R.)</label>
                         <div className="relative">
                             <input
                                 list="ir-list"
@@ -581,7 +581,7 @@ const Reconciliation = () => {
                                     setSelectedIR(e.target.value.trim().toUpperCase());
                                     setSelectedGRN(''); // Reset GRN al cambiar IR
                                 }}
-                                className="w-full h-8 px-2 text-xs text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="ir-list">
                                 {availableIRs.map(ir => (
@@ -592,8 +592,8 @@ const Reconciliation = () => {
                     </div>
 
                     {/* Selector de GRN */}
-                    <div className="w-40 flex flex-col">
-                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Número de GRN</label>
+                    <div className="w-44 flex flex-col">
+                        <label className="text-xs font-medium text-[#605e5c] mb-1">Número de GRN</label>
                         <div className="relative">
                             <input
                                 list="grn-list"
@@ -601,7 +601,7 @@ const Reconciliation = () => {
                                 placeholder="TODAS LAS GRN"
                                 value={selectedGRN}
                                 onChange={(e) => setSelectedGRN(e.target.value.trim().toUpperCase())}
-                                className="w-full h-8 px-2 text-xs text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="grn-list">
                                 {availableGRNs.map(g => (
@@ -612,13 +612,13 @@ const Reconciliation = () => {
                     </div>
 
                     {/* Búsqueda General */}
-                    <div className="flex-1 min-w-[200px] flex flex-col">
-                        <label className="text-normal font-normal text-[#605e5c] mb-0.5">Búsqueda Rápida</label>
+                    <div className="flex-1 min-w-[220px] flex flex-col">
+                        <label className="text-xs font-medium text-[#605e5c] mb-1">Búsqueda Rápida</label>
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Buscar ítem, descripción, ubicación..."
-                                className="w-full h-8 px-2.5 text-xs bg-white border border-[#8a8886] rounded outline-none text-[#201f1e] font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full h-9 px-3 text-sm bg-white border border-[#8a8886] rounded outline-none text-[#201f1e] font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                 style={{ paddingRight: filterText ? '28px' : '10px' }}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
@@ -626,7 +626,7 @@ const Reconciliation = () => {
                             {filterText && (
                                 <button
                                     onClick={() => setFilterText('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#edebe9] hover:bg-[#d2d0ce] text-[#605e5c] flex items-center justify-center text-[10px]"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#edebe9] hover:bg-[#d2d0ce] text-[#605e5c] flex items-center justify-center text-xs"
                                     aria-label="Borrar búsqueda"
                                 >
                                     ✕
@@ -646,7 +646,7 @@ const Reconciliation = () => {
                                     setFilterOnlyDiff(false);
                                     setFilterNoDiff(false);
                                 }}
-                                className="h-8 px-3 text-xs text-[#201f1e] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] rounded transition-colors font-normal cursor-pointer"
+                                className="h-9 px-3.5 text-sm text-[#201f1e] bg-white hover:bg-[#f3f3f3] border border-[#d2d0ce] rounded transition-colors font-normal cursor-pointer"
                             >
                                 Limpiar
                             </button>
@@ -658,7 +658,7 @@ const Reconciliation = () => {
                         {/* Botón Historial Guardado */}
                         <button
                             onClick={handleOpenHistory}
-                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors cursor-pointer shadow-xs"
+                            className="h-9 px-3.5 text-sm text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors cursor-pointer shadow-xs"
                         >
                             Historial Guardado
                         </button>
@@ -667,7 +667,7 @@ const Reconciliation = () => {
                         <button
                             onClick={() => setShowSaveModal(true)}
                             disabled={filteredBySelectors.length === 0}
-                            className="h-8 px-3.5 text-xs text-white bg-[#0078d4] hover:bg-[#106ebe] border border-transparent rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                            className="h-9 px-4 text-sm text-white bg-[#0078d4] hover:bg-[#106ebe] border border-transparent rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                         >
                             Guardar Conciliación
                         </button>
@@ -676,7 +676,7 @@ const Reconciliation = () => {
                         <button
                             onClick={handleExport}
                             disabled={loading || rawData.length === 0}
-                            className="h-8 px-3 text-xs text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs whitespace-nowrap"
+                            className="h-9 px-3.5 text-sm text-[#201f1e] bg-white border border-[#d2d0ce] hover:bg-[#f3f3f3] rounded font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs whitespace-nowrap"
                         >
                             Exportar Excel
                         </button>
@@ -684,31 +684,31 @@ const Reconciliation = () => {
                 </div>
 
                 {/* Banner de Resumen de Conciliación Seleccionada */}
-                <div className="flex flex-wrap items-center gap-4 bg-[#f9f9f9] px-3 py-1.5 mt-2 rounded border border-[#d2d0ce] text-[14px]">
+                <div className="flex flex-wrap items-center gap-4 bg-[#f9f9f9] px-3.5 py-2 mt-2 rounded border border-[#d2d0ce] text-[14px]">
                     <div className="flex items-center gap-1.5">
                         <span className="text-black font-normal">Líneas:</span>
-                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalLines}</span>
+                        <span className="font-semibold text-[#201f1e]">{reconciliationSummary.totalLines}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <span className="text-black font-normal">Cant. Esperada:</span>
-                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalExp}</span>
+                        <span className="font-semibold text-[#201f1e]">{reconciliationSummary.totalExp}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <span className="text-black font-normal">Cant. Recibida:</span>
-                        <span className="font-normal text-[#201f1e]">{reconciliationSummary.totalRec}</span>
+                        <span className="font-semibold text-[#201f1e]">{reconciliationSummary.totalRec}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <span className="text-black font-normal">Diferencia Neta:</span>
-                        <span className={`font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                        <span className={`font-semibold ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                             {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                         </span>
                     </div>
 
                     {/* Separador */}
-                    <div className="h-3.5 w-px bg-[#d2d0ce] hidden sm:block"></div>
+                    <div className="h-4 w-px bg-[#d2d0ce] hidden sm:block"></div>
 
                     {/* Filtros de Diferencia */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3.5">
                         <label htmlFor="filter-only-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-[#201f1e] font-normal">
                             <input
                                 id="filter-only-diff"
@@ -719,10 +719,10 @@ const Reconciliation = () => {
                                     setFilterOnlyDiff(checked);
                                     if (checked) setFilterNoDiff(false);
                                 }}
-                                className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
+                                className="w-4 h-4 rounded border-[#8a8886] cursor-pointer"
                             />
                             <span>Solo Diferencias</span>
-                            <span className="px-1.5 py-0.2 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
+                            <span className="px-2 py-0.5 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-medium">
                                 {diffStats.withDiff}
                             </span>
                         </label>
@@ -737,10 +737,10 @@ const Reconciliation = () => {
                                     setFilterNoDiff(checked);
                                     if (checked) setFilterOnlyDiff(false);
                                 }}
-                                className="w-3.5 h-3.5 rounded border-[#8a8886] cursor-pointer"
+                                className="w-4 h-4 rounded border-[#8a8886] cursor-pointer"
                             />
                             <span>Sin Diferencias</span>
-                            <span className="px-1.5 py-0.2 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-normal">
+                            <span className="px-2 py-0.5 text-[14px] rounded border border-[#d2d0ce] bg-white text-[#201f1e] font-medium">
                                 {diffStats.withoutDiff}
                             </span>
                         </label>
@@ -748,7 +748,7 @@ const Reconciliation = () => {
 
                     {reconciliationSummary.diffLines > 0 && (
                         <div className="flex items-center gap-1.5 ml-auto">
-                            <span className="px-2 py-0.5 rounded text-[11px] font-normal bg-[#fff4ce] text-[#797673] border border-[#d2d0ce]">
+                            <span className="px-2.5 py-1 rounded text-xs font-medium bg-[#fff4ce] text-[#797673] border border-[#d2d0ce]">
                                 {reconciliationSummary.diffLines} línea(s) con discrepancia ({reconciliationSummary.justifiedLines} justificadas)
                             </span>
                         </div>
@@ -760,7 +760,7 @@ const Reconciliation = () => {
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
                 <div className="bg-white border border-[#d2d0ce] shadow-xs overflow-hidden flex flex-col flex-1 rounded">
                     {loading ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-[#605e5c] text-xs font-normal">
+                        <div className="flex-1 flex flex-col items-center justify-center py-32 text-[#605e5c] text-sm font-normal">
                             Cargando datos de conciliación...
                         </div>
                     ) : (
@@ -788,7 +788,7 @@ const Reconciliation = () => {
                                                 <th
                                                     key={head.id}
                                                     onClick={() => !['Acciones', 'Motivo'].includes(head.id) && requestSort(head.id)}
-                                                    className={`px-3 py-1.5 text-xs font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
+                                                    className={`px-3 py-2 text-[13px] font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
                                                     style={{ borderRight: '1px solid #edebe9' }}
                                                 >
                                                     <div className="flex items-center gap-1">
@@ -801,7 +801,7 @@ const Reconciliation = () => {
                                     </thead>
                                     <tbody className="font-normal divide-y divide-[#edebe9]">
                                         {finalDisplayData.length > 0 ? (
-                                            finalDisplayData.map((row, idx) => {
+                                             finalDisplayData.map((row, idx) => {
                                                 const hasDiff = Math.abs(row.Diferencia || 0) > 0.0001;
                                                 const hasEdit = !!(row.Motivo_Diferencia || row.Observacion_Operador || row.hasCustomEdit);
 
@@ -810,35 +810,35 @@ const Reconciliation = () => {
                                                         key={idx}
                                                         className="hover:bg-[#f3f9fd] transition-colors"
                                                     >
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Import_Reference}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Waybill}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.GRN}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e] text-center">{row.Order_Line || '-'}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap font-mono text-[#0078d4]">{row.Codigo_Item}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm truncate max-w-[260px] text-[#201f1e]">{row.Descripcion}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Ubicacion || '-'}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Reubicado || '-'}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Esperada}</td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Recibida}</td>
-                                                        <td className={`px-3 py-1 font-normal text-sm whitespace-nowrap text-center font-mono ${row.Diferencia < 0 ? 'text-[#a4262c]' : row.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Import_Reference}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Waybill}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.GRN}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e] text-center">{row.Order_Line || '-'}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#0078d4]">{row.Codigo_Item}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm truncate max-w-[280px] text-[#201f1e]" title={row.Descripcion}>{row.Descripcion}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Ubicacion || '-'}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#201f1e]">{row.Reubicado || '-'}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Esperada}</td>
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-center text-[#201f1e]">{row.Cant_Recibida}</td>
+                                                        <td className={`px-3 py-2 font-normal text-sm whitespace-nowrap text-center ${row.Diferencia < 0 ? 'text-[#a4262c]' : row.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {row.Diferencia > 0 ? `+${row.Diferencia}` : row.Diferencia}
                                                         </td>
-                                                        <td className="px-3 py-1 font-normal text-sm max-w-[200px] truncate text-[#605e5c]">
+                                                        <td className="px-3 py-2 font-normal text-sm max-w-[220px] truncate text-[#605e5c]">
                                                             {row.Motivo_Diferencia ? (
-                                                                <span className="inline-block text-[11px] bg-[#f3f3f3] text-[#201f1e] px-2 py-0.5 rounded border border-[#d2d0ce] font-normal">
+                                                                <span className="inline-block text-xs bg-[#f3f3f3] text-[#201f1e] px-2.5 py-0.5 rounded border border-[#d2d0ce] font-normal">
                                                                     <span className="truncate">{row.Motivo_Diferencia}</span>
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-[#605e5c]">-</span>
                                                             )}
                                                         </td>
-                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#605e5c]">
+                                                        <td className="px-3 py-2 font-normal text-sm whitespace-nowrap text-[#605e5c]">
                                                             {formatDateShort(row.Timestamp)}
                                                         </td>
-                                                        <td className="px-2 py-1 font-normal text-sm whitespace-nowrap text-center">
+                                                        <td className="px-2 py-2 font-normal text-sm whitespace-nowrap text-center">
                                                             <button
                                                                 onClick={() => handleOpenEditRow(row)}
-                                                                className={`h-6 px-2.5 text-xs rounded font-normal transition-colors cursor-pointer border ${hasEdit ? 'bg-[#eff6fc] text-[#0078d4] border-[#c7e0f4] hover:bg-[#deecf9]' : hasDiff ? 'bg-white text-[#0078d4] border-[#d2d0ce] hover:bg-[#f3f3f3]' : 'bg-white text-[#201f1e] border-[#d2d0ce] hover:bg-[#f3f3f3]'}`}
+                                                                className={`h-7 px-3 text-xs rounded font-medium transition-colors cursor-pointer border ${hasEdit ? 'bg-[#eff6fc] text-[#0078d4] border-[#c7e0f4] hover:bg-[#deecf9]' : hasDiff ? 'bg-white text-[#0078d4] border-[#d2d0ce] hover:bg-[#f3f3f3]' : 'bg-white text-[#201f1e] border-[#d2d0ce] hover:bg-[#f3f3f3]'}`}
                                                             >
                                                                 <span>{hasEdit ? 'Justificado' : 'Editar'}</span>
                                                             </button>
@@ -848,7 +848,7 @@ const Reconciliation = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan={14} className="px-4 py-20 text-center text-[#605e5c] text-xs font-normal">
+                                                <td colSpan={14} className="px-4 py-20 text-center text-[#605e5c] text-sm font-normal">
                                                     No se encontraron registros para los filtros seleccionados
                                                 </td>
                                             </tr>
@@ -858,11 +858,11 @@ const Reconciliation = () => {
                             </div>
 
                             {/* Footer de estado */}
-                            <div className="flex items-center gap-3 px-4 py-2 border-t border-[#edebe9] bg-[#f9f9f9] text-xs text-[#605e5c]">
-                                <span>Mostrando <span className="font-normal text-[#201f1e]">{finalDisplayData.length}</span> de <span className="font-normal text-[#201f1e]">{rawData.length}</span> registros totales</span>
+                            <div className="flex items-center gap-3 px-4 py-2.5 border-t border-[#edebe9] bg-[#f9f9f9] text-[13px] text-[#605e5c]">
+                                <span>Mostrando <span className="font-semibold text-[#201f1e]">{finalDisplayData.length}</span> de <span className="font-semibold text-[#201f1e]">{rawData.length}</span> registros totales</span>
                                 {!isOfflineData ? (
                                     <span className="flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#107c10] inline-block"></span>
+                                        <span className="w-2 h-2 rounded-full bg-[#107c10] inline-block"></span>
                                         Datos en tiempo real
                                     </span>
                                 ) : (
@@ -899,7 +899,7 @@ const Reconciliation = () => {
                             <div className="bg-[#f9f9f9] p-3 rounded border border-[#d2d0ce] grid grid-cols-2 gap-2">
                                 <div>
                                     <span className="text-[#605e5c] block text-[11px] font-normal">Ítem:</span>
-                                    <span className="font-mono text-[#0078d4] text-xs">{editingRow.Codigo_Item}</span>
+                                    <span className="text-[#0078d4] text-xs font-normal">{editingRow.Codigo_Item}</span>
                                 </div>
                                 <div>
                                     <span className="text-[#605e5c] block text-[11px] font-normal">Línea PO:</span>
@@ -931,7 +931,7 @@ const Reconciliation = () => {
                                 </div>
                                 <div>
                                     <span className="text-[#605e5c] block text-[11px] font-normal">Diferencia</span>
-                                    <span className={`text-sm font-mono font-normal ${editingRow.Diferencia < 0 ? 'text-[#a4262c]' : editingRow.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                    <span className={`text-sm font-normal ${editingRow.Diferencia < 0 ? 'text-[#a4262c]' : editingRow.Diferencia > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                         {editingRow.Diferencia > 0 ? `+${editingRow.Diferencia}` : editingRow.Diferencia}
                                     </span>
                                 </div>
@@ -1072,7 +1072,7 @@ const Reconciliation = () => {
                                         </div>
                                         <div className="flex justify-between border-t border-[#edebe9] pt-1">
                                             <span className="text-[#605e5c] font-normal text-[11px]">Diferencia Neta:</span>
-                                            <span className={`font-mono font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                            <span className={`font-normal ${reconciliationSummary.totalDiff < 0 ? 'text-[#a4262c]' : reconciliationSummary.totalDiff > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                 {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                                             </span>
                                         </div>
@@ -1174,35 +1174,35 @@ const Reconciliation = () => {
                                         <table className="w-full table-fixed text-left text-sm border-collapse">
                                             <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                 <tr>
-                                                    <th className="px-2 py-1.5 w-[8%] font-normal">I.R.</th>
-                                                    <th className="px-2 py-1.5 w-[9%] font-normal">Guía</th>
-                                                    <th className="px-2 py-1.5 w-[8%] font-normal">GRN</th>
-                                                    <th className="px-2 py-1.5 w-[5%] text-center font-normal">Línea</th>
-                                                    <th className="px-2 py-1.5 w-[10%] font-normal">Ítem</th>
-                                                    <th className="px-2 py-1.5 w-[18%] font-normal">Descripción</th>
-                                                    <th className="px-2 py-1.5 w-[7%] font-normal">Ubicación</th>
-                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Esperada</th>
-                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Recibida</th>
-                                                    <th className="px-2 py-1.5 w-[6%] text-center font-normal">Diferencia</th>
-                                                    <th className="px-2 py-1.5 w-[17%] font-normal">Motivo / Justificación</th>
+                                                    <th className="px-2.5 py-2 w-[8%] text-xs font-semibold">I.R.</th>
+                                                    <th className="px-2.5 py-2 w-[9%] text-xs font-semibold">Guía</th>
+                                                    <th className="px-2.5 py-2 w-[8%] text-xs font-semibold">GRN</th>
+                                                    <th className="px-2.5 py-2 w-[5%] text-center text-xs font-semibold">Línea</th>
+                                                    <th className="px-2.5 py-2 w-[10%] text-xs font-semibold">Ítem</th>
+                                                    <th className="px-2.5 py-2 w-[18%] text-xs font-semibold">Descripción</th>
+                                                    <th className="px-2.5 py-2 w-[7%] text-xs font-semibold">Ubicación</th>
+                                                    <th className="px-2.5 py-2 w-[6%] text-center text-xs font-semibold">Esperada</th>
+                                                    <th className="px-2.5 py-2 w-[6%] text-center text-xs font-semibold">Recibida</th>
+                                                    <th className="px-2.5 py-2 w-[6%] text-center text-xs font-semibold">Diferencia</th>
+                                                    <th className="px-2.5 py-2 w-[17%] text-xs font-semibold">Motivo / Justificación</th>
                                                 </tr>
                                             </thead>
                                              <tbody className="divide-y divide-[#edebe9]">
                                                 {viewingDetail.items.map((it, i) => (
                                                     <tr key={i} className="hover:bg-[#f3f9fd] transition-colors">
-                                                        <td className="px-2 py-1 text-xs text-[#201f1e] truncate" title={it.import_reference}>{it.import_reference || '-'}</td>
-                                                        <td className="px-2 py-1 text-xs font-mono text-[#0078d4] truncate" title={it.waybill}>{it.waybill || '-'}</td>
-                                                        <td className="px-2 py-1 text-xs text-[#201f1e] truncate" title={it.grn_number}>{it.grn_number || '-'}</td>
-                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.order_line || '-'}</td>
-                                                        <td className="px-2 py-1 font-mono text-[#0078d4]">{it.item_code}</td>
-                                                        <td className="px-2 py-1 break-words text-[#201f1e]">{it.description}</td>
-                                                        <td className="px-2 py-1 text-[#201f1e]">{it.location || '-'}</td>
-                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.qty_expected}</td>
-                                                        <td className="px-2 py-1 text-center text-[#201f1e]">{it.qty_received}</td>
-                                                        <td className={`px-2 py-1 text-center font-mono font-normal ${it.difference < 0 ? 'text-[#a4262c]' : it.difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-[#201f1e] truncate" title={it.import_reference}>{it.import_reference || '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-[#0078d4] truncate" title={it.waybill}>{it.waybill || '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-[#201f1e] truncate" title={it.grn_number}>{it.grn_number || '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-center text-[#201f1e]">{it.order_line || '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-[#0078d4]">{it.item_code}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] break-words text-[#201f1e]">{it.description}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-[#201f1e]">{it.location || '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-center text-[#201f1e]">{it.qty_expected}</td>
+                                                        <td className="px-2.5 py-1.5 text-[13px] text-center text-[#201f1e]">{it.qty_received}</td>
+                                                        <td className={`px-2.5 py-1.5 text-[13px] text-center ${it.difference < 0 ? 'text-[#a4262c]' : it.difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                             {it.difference > 0 ? `+${it.difference}` : it.difference}
                                                         </td>
-                                                        <td className="px-2 py-1 text-[11px] text-[#605e5c] break-words">
+                                                        <td className="px-2.5 py-1.5 text-xs text-[#605e5c] break-words">
                                                             {it.difference_reason && <span className="font-normal text-[#201f1e] block">{it.difference_reason}</span>}
                                                             {it.operator_comment && <span>{it.operator_comment}</span>}
                                                             {!it.difference_reason && !it.operator_comment && <span className="text-[#605e5c]">-</span>}
@@ -1224,37 +1224,37 @@ const Reconciliation = () => {
                                             <table className="w-full table-fixed text-left text-sm border-collapse">
                                                 <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0">
                                                     <tr>
-                                                        <th className="px-3 py-1.5 w-[5%] font-normal">ID</th>
-                                                        <th className="px-3 py-1.5 font-normal">GRN</th>
-                                                        <th className="px-3 py-1.5 font-normal">I.R.</th>
-                                                        <th className="px-3 py-1.5 font-normal">Guía</th>
-                                                        <th className="px-3 py-1.5 w-[13%] font-normal">Fecha Guardado</th>
-                                                        <th className="px-3 py-1.5 font-normal">Operador</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Líneas</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Esperada</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Recibida</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Diferencia</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Estado</th>
-                                                        <th className="px-3 py-1.5 w-[16%] text-center font-normal">Acciones</th>
+                                                        <th className="px-3 py-2 w-[5%] text-xs font-semibold">ID</th>
+                                                        <th className="px-3 py-2 text-xs font-semibold">GRN</th>
+                                                        <th className="px-3 py-2 text-xs font-semibold">I.R.</th>
+                                                        <th className="px-3 py-2 text-xs font-semibold">Guía</th>
+                                                        <th className="px-3 py-2 w-[13%] text-xs font-semibold">Fecha Guardado</th>
+                                                        <th className="px-3 py-2 text-xs font-semibold">Operador</th>
+                                                        <th className="px-3 py-2 text-center text-xs font-semibold">Líneas</th>
+                                                        <th className="px-3 py-2 text-center text-xs font-semibold">Esperada</th>
+                                                        <th className="px-3 py-2 text-center text-xs font-semibold">Recibida</th>
+                                                        <th className="px-3 py-2 text-center text-xs font-semibold">Diferencia</th>
+                                                        <th className="px-3 py-2 text-center text-xs font-semibold">Estado</th>
+                                                        <th className="px-3 py-2 w-[16%] text-center text-xs font-semibold">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#edebe9]">
                                                     {savedHistoryList.map((rec) => (
                                                         <tr key={rec.id} className="hover:bg-[#f3f9fd] transition-colors">
-                                                            <td className="px-3 py-1 font-mono text-[#605e5c]">#{rec.id}</td>
-                                                            <td className="px-3 py-1 font-normal text-[#201f1e]">{rec.grn_number}</td>
-                                                            <td className="px-3 py-1 text-[#201f1e]">{rec.import_reference}</td>
-                                                            <td className="px-3 py-1 font-mono text-xs text-[#0078d4]">{rec.waybill || '-'}</td>
-                                                            <td className="px-3 py-1 text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
-                                                            <td className="px-3 py-1 text-[#605e5c]">{rec.reconciled_by}</td>
-                                                            <td className="px-3 py-1 text-center text-[#201f1e]">{rec.total_lines}</td>
-                                                            <td className="px-3 py-1 text-center font-normal text-[#201f1e]">{rec.total_expected}</td>
-                                                            <td className="px-3 py-1 text-center font-normal text-[#201f1e]">{rec.total_received}</td>
-                                                            <td className={`px-3 py-1 text-center font-mono font-normal ${rec.total_difference < 0 ? 'text-[#a4262c]' : rec.total_difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
+                                                            <td className="px-3 py-2 font-normal text-sm text-[#605e5c]">#{rec.id}</td>
+                                                            <td className="px-3 py-2 font-normal text-sm text-[#201f1e]">{rec.grn_number}</td>
+                                                            <td className="px-3 py-2 font-normal text-sm text-[#201f1e]">{rec.import_reference}</td>
+                                                            <td className="px-3 py-2 font-normal text-sm text-[#0078d4]">{rec.waybill || '-'}</td>
+                                                            <td className="px-3 py-2 text-sm text-[#605e5c] break-words">{formatDateShort(rec.reconciled_at)}</td>
+                                                            <td className="px-3 py-2 text-sm text-[#605e5c]">{rec.reconciled_by}</td>
+                                                            <td className="px-3 py-2 text-center text-sm text-[#201f1e]">{rec.total_lines}</td>
+                                                            <td className="px-3 py-2 text-center font-normal text-sm text-[#201f1e]">{rec.total_expected}</td>
+                                                            <td className="px-3 py-2 text-center font-normal text-sm text-[#201f1e]">{rec.total_received}</td>
+                                                            <td className={`px-3 py-2 text-center font-normal text-sm ${rec.total_difference < 0 ? 'text-[#a4262c]' : rec.total_difference > 0 ? 'text-[#0078d4]' : 'text-[#201f1e]'}`}>
                                                                 {rec.total_difference > 0 ? `+${rec.total_difference}` : rec.total_difference}
                                                             </td>
-                                                            <td className="px-3 py-1 text-center">
-                                                                <span className="px-2 py-0.5 rounded text-[11px] font-normal border border-[#d2d0ce] bg-[#f3f3f3] text-[#201f1e]">
+                                                            <td className="px-3 py-2 text-center">
+                                                                <span className="px-2.5 py-0.5 rounded text-xs font-normal border border-[#d2d0ce] bg-[#f3f3f3] text-[#201f1e]">
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
