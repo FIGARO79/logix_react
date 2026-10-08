@@ -79,6 +79,21 @@ const Update = () => {
         fetchSyncStatus();
     }, [setTitle]);
 
+    // Auto-cierre de notificaciones a los 10 segundos
+    useEffect(() => {
+        if (messages.success || messages.error || (!isRobotRunning && messages.info)) {
+            const timer = setTimeout(() => {
+                setMessages(prev => ({
+                    ...prev,
+                    success: '',
+                    error: '',
+                    info: isRobotRunning ? prev.info : ''
+                }));
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [messages.success, messages.error, messages.info, isRobotRunning]);
+
     // Polling robot status
     useEffect(() => {
         let interval;
@@ -246,9 +261,45 @@ const Update = () => {
                 </div>
             </div>
 
-            {messages.error && <div className="mb-6 bg-red-50 text-black px-4 py-3 border border-red-100 text-[12px] font-normal uppercase tracking-widest">{messages.error}</div>}
-            {messages.info && <div className="mb-6 bg-blue-50 text-black px-4 py-3 border border-blue-100 text-[12px] font-normal uppercase tracking-widest animate-pulse">{messages.info}</div>}
-            {messages.success && <div className="mb-6 bg-emerald-50 text-black px-4 py-3 border border-emerald-100 text-[12px] font-normal uppercase tracking-widest">{messages.success}</div>}
+            {messages.error && (
+                <div className="mb-6 bg-red-50 text-black px-4 py-3 border border-red-100 text-[12px] font-normal uppercase tracking-widest flex items-center justify-between">
+                    <span>{messages.error}</span>
+                    <button 
+                        type="button" 
+                        onClick={() => setMessages(prev => ({ ...prev, error: '' }))} 
+                        className="text-zinc-500 hover:text-black ml-4 p-0.5 leading-none text-sm transition-colors"
+                        title="Cerrar"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+            {messages.info && (
+                <div className="mb-6 bg-blue-50 text-black px-4 py-3 border border-blue-100 text-[12px] font-normal uppercase tracking-widest animate-pulse flex items-center justify-between">
+                    <span>{messages.info}</span>
+                    <button 
+                        type="button" 
+                        onClick={() => setMessages(prev => ({ ...prev, info: '' }))} 
+                        className="text-zinc-500 hover:text-black ml-4 p-0.5 leading-none text-sm transition-colors"
+                        title="Cerrar"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+            {messages.success && (
+                <div className="mb-6 bg-emerald-50 text-black px-4 py-3 border border-emerald-100 text-[12px] font-normal uppercase tracking-widest flex items-center justify-between">
+                    <span>{messages.success}</span>
+                    <button 
+                        type="button" 
+                        onClick={() => setMessages(prev => ({ ...prev, success: '' }))} 
+                        className="text-zinc-500 hover:text-black ml-4 p-0.5 leading-none text-sm transition-colors"
+                        title="Cerrar"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 
@@ -513,8 +564,8 @@ const Update = () => {
                         try {
                             const res = await fetch('/api/clear_database', { method: 'POST', body: new FormData(e.target) });
                             const d = await res.json();
-                            if (res.ok) setMessages({ success: d.message }); else setMessages({ error: d.error });
-                        } catch (err) { setMessages({ error: "ERROR CRÍTICO" }); }
+                            if (res.ok) setMessages({ success: d.message, error: '', info: '' }); else setMessages({ success: '', error: d.error, info: '' });
+                        } catch (err) { setMessages({ success: '', error: "ERROR CRÍTICO", info: '' }); }
                         finally { setIsLoading(false); setClearPassword(''); }
                     }} className="space-y-3 pt-6 border-t border-zinc-100 mt-8">
                         <label className="text-[12px] font-normal text-black uppercase">Zona de Riesgo: Reset Total</label>

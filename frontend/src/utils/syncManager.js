@@ -26,9 +26,11 @@ export const downloadMasterData = async () => {
         const grnStore = tx.objectStore('grn_pending');
         await grnStore.clear();
         if (Array.isArray(data.grn_pending)) {
-            for (const row of data.grn_pending) {
+            for (let i = 0; i < data.grn_pending.length; i++) {
+                const row = data.grn_pending[i];
                 if (row && row.Item_Code) {
-                    grnStore.put(row);
+                    const rowId = row.id || `${row.Item_Code}_${row.Order_Number || ''}_${row.Order_Line || ''}_${row.GRN_Number || ''}_${i}`;
+                    grnStore.put({ ...row, id: rowId });
                 }
             }
         } else if (data.grn_pending && typeof data.grn_pending === 'object') {
@@ -213,6 +215,16 @@ export const syncPendingData = async () => {
 
     if (successCount > 0 || failCount > 0) {
         console.log(`Logix Sync: ${successCount} exitosos, ${failCount} fallidos.`);
+    }
+
+    if (successCount > 0 && typeof BroadcastChannel !== 'undefined') {
+        try {
+            const bc = new BroadcastChannel('logix_events');
+            bc.postMessage({ type: 'INBOUND_MUTATED' });
+            bc.close();
+        } catch (e) {
+            console.warn("Error broadcasting sync mutation:", e);
+        }
     }
 };
 

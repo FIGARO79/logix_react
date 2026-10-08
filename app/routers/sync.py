@@ -60,22 +60,26 @@ async def get_master_sync_data(user: str = Depends(login_required), db: AsyncSes
             .filter(pl.col("Item_Code").is_not_null())
             .with_columns([
                 pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-                pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase()
+                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().fill_null(""),
+                pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().fill_null(""),
+                pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().str.replace(r"\.0$", "").fill_null("")
             ])
-            .group_by(["Item_Code", "GRN_Number", "Order_Number"])
+            .group_by(["Item_Code", "GRN_Number", "Order_Number", "Order_Line"])
             .agg(pl.col("Quantity").sum().alias("qty"))
         )
-        for row in summary.to_dicts():
+        for idx, row in enumerate(summary.to_dicts()):
             item = row["Item_Code"]
             grn = row["GRN_Number"]
             order_num = row["Order_Number"]
+            order_line = row["Order_Line"]
             qty = float(row["qty"] or 0)
             if item:
                 grn_data.append({
+                    "id": f"{item}_{order_num}_{order_line}_{grn}_{idx}",
                     "Item_Code": item,
                     "GRN_Number": grn,
                     "Order_Number": order_num,
+                    "Order_Line": order_line,
                     "Quantity": qty
                 })
 

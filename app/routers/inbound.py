@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.utils.auth import permission_required
-from typing import Optional
+from typing import Optional, List
 import orjson
 import os
 
@@ -87,9 +88,9 @@ async def lookup_reference(
 
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, and_
 from app.core.db import get_db
-from app.models.sql_models import IRReconciliation, Log, GRNMaster
+from app.models.sql_models import IRReconciliation, Log, GRNMaster, SavedGRNReconciliation, SavedGRNReconciliationItem
 import datetime
 
 _po_lookup_cache = None
@@ -188,28 +189,12 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
         
     # 2. Obtener asociaciones de po_lookup.json para target_ir
     po_cache = get_po_lookup_cached() or {}
-    po_item_to_ir = po_cache.get("po_item_to_ir", {})
-    po_order_to_ir = po_cache.get("po_order_to_ir", {})
-    customer_ref_data = po_cache.get("customer_ref_to_data", {})
+    po_line_grn_map = po_cache.get("po_line_grn_item_to_ir", {})
+    po_line_map = po_cache.get("po_line_item_to_ir", {})
+    po_grn_item_map = po_cache.get("po_grn_item_to_ir", {})
+    grn_map = po_cache.get("grn_to_ir", {})
+    po_item_map = po_cache.get("po_item_to_ir", {})
     grn_to_ir = await get_grn_to_ir_cached(db)
-
-    target_customer_refs = set()
-    target_item_po_keys = set()
-
-    for key, val in po_item_to_ir.items():
-        if str(val.get("import_ref", "")).strip().upper() == target_ir:
-            target_item_po_keys.add(key.strip().upper())
-            parts = key.split("_", 1)
-            if parts[0]:
-                target_customer_refs.add(parts[0].strip().upper())
-
-    for o_ref, val in po_order_to_ir.items():
-        if str(val.get("import_ref", "")).strip().upper() == target_ir:
-            target_customer_refs.add(o_ref.strip().upper())
-
-    for c_ref, c_val in customer_ref_data.items():
-        if str(c_val.get("import_ref", "")).strip().upper() == target_ir:
-            target_customer_refs.add(c_ref.strip().upper())
 
     grouped_expected = {}
     for row in df.to_dicts():
@@ -219,14 +204,32 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
 
         g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
         g_order = str(row.get("Order_Number", "")).strip().upper()
+        g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
         g_grn = str(row.get("GRN_Number", "")).strip().upper()
         qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
-        po_key = f"{g_order}_{item_code}"
-        is_match = (g_ir == target_ir) or \
-                   (po_key in target_item_po_keys) or \
-                   (g_order and g_order in target_customer_refs) or \
-                   (g_grn and grn_to_ir.get(g_grn) == target_ir)
+        is_match = False
+        if g_ir:
+            is_match = (g_ir == target_ir)
+        else:
+            k_line_grn = f"{g_order}_{g_line}_{item_code}_{g_grn}"
+            k_line = f"{g_order}_{g_line}_{item_code}"
+            k_grn_item = f"{g_grn}_{item_code}"
+            k_item = f"{g_order}_{item_code}"
+
+            resolved_ir = None
+            if g_line and g_grn and k_line_grn in po_line_grn_map:
+                resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
+            elif g_line and k_line in po_line_map:
+                resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
+            elif g_grn and k_grn_item in po_grn_item_map:
+                resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
+            elif g_grn and (g_grn in grn_map or grn_to_ir.get(g_grn) == target_ir):
+                resolved_ir = str(grn_map.get(g_grn, {}).get("import_ref") or grn_to_ir.get(g_grn) or "").strip().upper()
+            elif not g_line and k_item in po_item_map:
+                resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
+
+            is_match = (resolved_ir == target_ir)
 
         if is_match and qty > 0:
             grouped_expected[item_code] = grouped_expected.get(item_code, 0) + qty
@@ -328,14 +331,32 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
 
                 g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
                 g_order = str(row.get("Order_Number", "")).strip().upper()
+                g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
                 g_grn = str(row.get("GRN_Number", "")).strip().upper()
                 qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
-                po_key = f"{g_order}_{item_code}"
-                is_match = (g_ir == target_ir) or \
-                           (po_key in target_item_po_keys) or \
-                           (g_order and g_order in target_customer_refs) or \
-                           (g_grn and grn_to_ir.get(g_grn) == target_ir)
+                is_match = False
+                if g_ir:
+                    is_match = (g_ir == target_ir)
+                else:
+                    k_line_grn = f"{g_order}_{g_line}_{item_code}_{g_grn}"
+                    k_line = f"{g_order}_{g_line}_{item_code}"
+                    k_grn_item = f"{g_grn}_{item_code}"
+                    k_item = f"{g_order}_{item_code}"
+
+                    resolved_ir = None
+                    if g_line and g_grn and k_line_grn in po_line_grn_map:
+                        resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
+                    elif g_line and k_line in po_line_map:
+                        resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
+                    elif g_grn and k_grn_item in po_grn_item_map:
+                        resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
+                    elif g_grn and (g_grn in grn_map or grn_to_ir.get(g_grn) == target_ir):
+                        resolved_ir = str(grn_map.get(g_grn, {}).get("import_ref") or grn_to_ir.get(g_grn) or "").strip().upper()
+                    elif not g_line and k_item in po_item_map:
+                        resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
+
+                    is_match = (resolved_ir == target_ir)
 
                 if is_match and g_grn and qty > 0:
                     if g_grn not in grn_to_items:
@@ -517,3 +538,275 @@ async def delete_ir_reconciliation(
     await db.delete(recon)
     await db.commit()
     return {"message": "Registro de conciliación eliminado exitosamente"}
+
+
+# --- Conciliaciones Históricas Permanentes de GRN (Instantáneas / Snapshots) ---
+
+class SavedGRNReconciliationItemPayload(BaseModel):
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    order_line: Optional[str] = ""
+    item_code: str
+    description: Optional[str] = ""
+    location: Optional[str] = ""
+    relocated_bin: Optional[str] = ""
+    qty_expected: float = 0.0
+    qty_received: float = 0.0
+    difference: float = 0.0
+    difference_reason: Optional[str] = ""
+    operator_comment: Optional[str] = ""
+
+
+class UpsertDraftCommentPayload(BaseModel):
+    """Payload para guardar/actualizar comentario individual en draft."""
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    order_line: Optional[str] = ""
+    item_code: str
+    difference_reason: Optional[str] = ""
+    operator_comment: Optional[str] = ""
+    qty_received: Optional[float] = None
+
+
+class SaveGRNReconciliationPayload(BaseModel):
+    grn_number: str
+    import_reference: str
+    waybill: Optional[str] = ""
+    items: List[SavedGRNReconciliationItemPayload]
+    username: Optional[str] = "admin"
+    notes: Optional[str] = ""
+
+
+@router.post("/upsert_draft_comment")
+async def upsert_draft_comment(
+    payload: UpsertDraftCommentPayload,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """UPSERT: Guarda o actualiza comentario individual en BD (sin reconciliation_id)."""
+    now_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Buscar si ya existe un registro con esta combinación
+    waybill_clean = (payload.waybill or "").strip().upper()
+    conditions = [
+        SavedGRNReconciliationItem.reconciliation_id.is_(None),
+        SavedGRNReconciliationItem.import_reference == payload.import_reference.strip().upper(),
+        SavedGRNReconciliationItem.grn_number == payload.grn_number.strip().upper(),
+        SavedGRNReconciliationItem.item_code == payload.item_code.strip().upper(),
+        SavedGRNReconciliationItem.order_line == (payload.order_line or "").strip(),
+    ]
+
+    existing_item = None
+    if waybill_clean:
+        stmt = select(SavedGRNReconciliationItem).where(
+            and_(*conditions, SavedGRNReconciliationItem.waybill == waybill_clean)
+        )
+        existing_item = (await db.execute(stmt)).scalars().first()
+
+    if not existing_item:
+        stmt = select(SavedGRNReconciliationItem).where(and_(*conditions))
+        existing_item = (await db.execute(stmt)).scalars().first()
+
+    if existing_item:
+        # Actualizar existente
+        if waybill_clean:
+            existing_item.waybill = waybill_clean
+        existing_item.difference_reason = (payload.difference_reason or "").strip()
+        existing_item.operator_comment = (payload.operator_comment or "").strip()
+        if payload.qty_received is not None:
+            existing_item.qty_received = payload.qty_received
+        existing_item.reconciled_at = now_ts
+        db.add(existing_item)
+    else:
+        # Crear nuevo
+        item_row = SavedGRNReconciliationItem(
+            reconciliation_id=None,  # Draft, no associated with snapshot
+            grn_number=payload.grn_number.strip().upper(),
+            import_reference=payload.import_reference.strip().upper(),
+            waybill=waybill_clean,
+            order_line=(payload.order_line or "").strip(),
+            item_code=payload.item_code.strip().upper(),
+            description="",
+            location="",
+            relocated_bin="",
+            qty_expected=0.0,
+            qty_received=payload.qty_received or 0.0,
+            difference=0.0,
+            difference_reason=(payload.difference_reason or "").strip(),
+            operator_comment=(payload.operator_comment or "").strip(),
+            reconciled_at=now_ts,
+        )
+        db.add(item_row)
+    
+    await db.commit()
+    return {"message": "Comentario guardado exitosamente"}
+
+
+@router.post("/save_grn_reconciliation")
+async def save_grn_reconciliation(
+    payload: SaveGRNReconciliationPayload,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Guarda una instantánea permanente de la conciliación de una GRN."""
+    now_ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    total_lines = len(payload.items)
+    total_expected = sum(item.qty_expected for item in payload.items)
+    total_received = sum(item.qty_received for item in payload.items)
+    total_difference = sum(item.difference for item in payload.items)
+    has_diff = any(abs(item.difference) > 0.0001 for item in payload.items)
+    status = "CON_DIFERENCIAS" if has_diff else "CONCILIADO_OK"
+
+    reconciled_by = user if isinstance(user, str) else getattr(user, "username", "admin")
+
+    header = SavedGRNReconciliation(
+        grn_number=payload.grn_number.strip().upper(),
+        import_reference=payload.import_reference.strip().upper(),
+        waybill=(payload.waybill or "").strip().upper(),
+        total_lines=total_lines,
+        total_expected=total_expected,
+        total_received=total_received,
+        total_difference=total_difference,
+        status=status,
+        reconciled_by=reconciled_by,
+        reconciled_at=now_ts,
+        notes=(payload.notes or "").strip(),
+    )
+    db.add(header)
+    await db.flush()
+
+    for it in payload.items:
+        grn_number = it.grn_number.strip().upper()
+        import_reference = it.import_reference.strip().upper()
+        waybill = (it.waybill or "").strip().upper()
+        order_line = (it.order_line or "").strip()
+        item_code = it.item_code.strip().upper()
+
+        # Convertir el borrador de observación en la línea archivada (buscando primero con waybill si está presente)
+        draft_item = None
+        if waybill:
+            stmt_draft = select(SavedGRNReconciliationItem).where(
+                and_(
+                    SavedGRNReconciliationItem.reconciliation_id.is_(None),
+                    SavedGRNReconciliationItem.grn_number == grn_number,
+                    SavedGRNReconciliationItem.import_reference == import_reference,
+                    SavedGRNReconciliationItem.waybill == waybill,
+                    SavedGRNReconciliationItem.item_code == item_code,
+                    SavedGRNReconciliationItem.order_line == order_line,
+                )
+            )
+            draft_item = (await db.execute(stmt_draft)).scalars().first()
+
+        if not draft_item:
+            stmt_draft = select(SavedGRNReconciliationItem).where(
+                and_(
+                    SavedGRNReconciliationItem.reconciliation_id.is_(None),
+                    SavedGRNReconciliationItem.grn_number == grn_number,
+                    SavedGRNReconciliationItem.import_reference == import_reference,
+                    SavedGRNReconciliationItem.item_code == item_code,
+                    SavedGRNReconciliationItem.order_line == order_line,
+                )
+            )
+            draft_item = (await db.execute(stmt_draft)).scalars().first()
+
+        if draft_item:
+            item_row = draft_item
+        else:
+            item_row = SavedGRNReconciliationItem()
+            db.add(item_row)
+
+        # Asignar SIEMPRE reconciliation_id para que no quede huérfano
+        item_row.reconciliation_id = header.id
+        item_row.grn_number = grn_number
+        item_row.import_reference = import_reference
+        item_row.waybill = waybill
+        item_row.order_line = order_line
+        item_row.item_code = item_code
+        item_row.description = (it.description or "").strip()
+        item_row.location = (it.location or "").strip()
+        item_row.relocated_bin = (it.relocated_bin or "").strip()
+        item_row.qty_expected = it.qty_expected
+        item_row.qty_received = it.qty_received
+        item_row.difference = it.difference
+
+        # Preservar motivo u observación del borrador si el payload viene en blanco
+        diff_reason = (it.difference_reason or "").strip()
+        op_comment = (it.operator_comment or "").strip()
+        if not diff_reason and draft_item and draft_item.difference_reason:
+            diff_reason = draft_item.difference_reason
+        if not op_comment and draft_item and draft_item.operator_comment:
+            op_comment = draft_item.operator_comment
+
+        item_row.difference_reason = diff_reason
+        item_row.operator_comment = op_comment
+        item_row.reconciled_at = now_ts
+
+    await db.commit()
+    return {"id": header.id, "message": "Conciliación guardada exitosamente"}
+
+
+@router.get("/saved_grn_reconciliations")
+async def get_saved_grn_reconciliations(
+    grn_filter: Optional[str] = None,
+    ir_filter: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Lista las conciliaciones históricas guardadas."""
+    stmt = select(SavedGRNReconciliation).order_by(SavedGRNReconciliation.id.desc())
+    if grn_filter and grn_filter.strip():
+        stmt = stmt.where(
+            SavedGRNReconciliation.grn_number.ilike(f"%{grn_filter.strip()}%")
+        )
+    if ir_filter and ir_filter.strip():
+        stmt = stmt.where(
+            SavedGRNReconciliation.import_reference.ilike(f"%{ir_filter.strip()}%")
+        )
+
+    result = await db.execute(stmt)
+    headers = result.scalars().all()
+    return [h.to_dict() for h in headers]
+
+
+@router.get("/saved_grn_reconciliations/{recon_id}")
+async def get_saved_grn_reconciliation_detail(
+    recon_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Obtiene el detalle completo de una conciliación histórica guardada."""
+    stmt = select(SavedGRNReconciliation).where(SavedGRNReconciliation.id == recon_id)
+    result = await db.execute(stmt)
+    header = result.scalars().first()
+    if not header:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada")
+
+    stmt_items = (
+        select(SavedGRNReconciliationItem)
+        .where(SavedGRNReconciliationItem.reconciliation_id == recon_id)
+        .order_by(SavedGRNReconciliationItem.id.asc())
+    )
+    res_items = await db.execute(stmt_items)
+    items = res_items.scalars().all()
+
+    return {"header": header.to_dict(), "items": [it.to_dict() for it in items]}
+
+
+@router.delete("/saved_grn_reconciliations/{recon_id}")
+async def delete_saved_grn_reconciliation(
+    recon_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(permission_required("inbound")),
+):
+    """Elimina una conciliación guardada y sus ítems."""
+    stmt = select(SavedGRNReconciliation).where(SavedGRNReconciliation.id == recon_id)
+    result = await db.execute(stmt)
+    header = result.scalars().first()
+    if not header:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada")
+
+    await db.delete(header)
+    await db.commit()
+    return {"message": "Conciliación eliminada exitosamente"}

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, distinct
+from sqlalchemy import select, desc, distinct, delete
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.utils.auth import login_required
 from app.services import db_logs, csv_handler, db_counts, reconciliation_service
 from app.services.slotting_service import slotting_service
-from app.models.sql_models import PickingAudit, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory
+from app.models.sql_models import PickingAudit, PickingPackageItem, CountSession, CycleCountRecording, ReconciliationHistory, SavedGRNReconciliationItem, Log
 
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
@@ -87,84 +87,456 @@ class InboundLogItem(BaseModel):
 @router.get("/reconciliation", response_model=Dict[str, Any])
 async def get_reconciliation_data(
     request: Request,
-    archive_date: Optional[str] = None, 
+    archive_date: Optional[str] = None,
     snapshot_date: Optional[str] = None,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     try:
+        saved_items_result = await db.execute(
+            select(SavedGRNReconciliationItem).order_by(
+                desc(SavedGRNReconciliationItem.id)
+            )
+        )
+        saved_comments = {}
+        for saved_item in saved_items_result.scalars().all():
+            diff_reason = (saved_item.difference_reason or "").strip()
+            op_comment = (saved_item.operator_comment or "").strip()
+            if not diff_reason and not op_comment:
+                continue
+
+            comment = {
+                "Motivo_Diferencia": diff_reason,
+                "Observacion_Operador": op_comment,
+            }
+
+            ir = str(saved_item.import_reference or "").strip().upper()
+            wb = str(saved_item.waybill or "").strip().upper()
+            grn = str(saved_item.grn_number or "").strip().upper()
+            it = str(saved_item.item_code or "").strip().upper()
+            ol = str(saved_item.order_line or "").strip()
+
+            # Indexación con Guía (Waybill) para evitar colisiones
+            if wb:
+                saved_comments.setdefault((ir, wb, grn, it, ol), comment)
+                saved_comments.setdefault((ir, wb, grn, it, ""), comment)
+                saved_comments.setdefault((wb, grn, it, ol), comment)
+                saved_comments.setdefault((wb, it), comment)
+
+            # Indexación sin Guía (retrocompatibilidad)
+            saved_comments.setdefault((ir, grn, it, ol), comment)
+            saved_comments.setdefault((ir, grn, it, ""), comment)
+            saved_comments.setdefault((grn, it), comment)
+            saved_comments.setdefault((ir, it), comment)
+
+        def get_saved_comment(row):
+            ir = str(row.get("import_reference") or row.get("Import_Reference") or "").strip().upper()
+            wb = str(row.get("waybill") or row.get("Waybill") or "").strip().upper()
+            grn = str(row.get("grn_number") or row.get("GRN") or "").strip().upper()
+            it = str(row.get("item_code") or row.get("Codigo_Item") or "").strip().upper()
+            ol = str(row.get("order_line") or row.get("Order_Line") or "").strip()
+
+            if wb:
+                c = (
+                    saved_comments.get((ir, wb, grn, it, ol))
+                    or saved_comments.get((ir, wb, grn, it, ""))
+                    or saved_comments.get((wb, grn, it, ol))
+                    or saved_comments.get((wb, it))
+                )
+                if c:
+                    return c
+
+            return (
+                saved_comments.get((ir, grn, it, ol))
+                or saved_comments.get((ir, grn, it, ""))
+                or saved_comments.get((grn, it))
+                or saved_comments.get((ir, it))
+                or {}
+            )
+
         # 0. Obtener lista de versiones disponibles
         archive_versions = await db_logs.get_archived_versions_db_async(db)
-        snapshot_versions_res = await db.execute(select(distinct(ReconciliationHistory.archive_date)).order_by(desc(ReconciliationHistory.archive_date)))
+        snapshot_versions_res = await db.execute(
+            select(distinct(ReconciliationHistory.archive_date)).order_by(
+                desc(ReconciliationHistory.archive_date)
+            )
+        )
         snapshot_versions = [v for v in snapshot_versions_res.scalars().all()]
 
         # 1. Si se solicita un Snapshot (Congelado)
         if snapshot_date:
-            stmt = select(ReconciliationHistory).where(ReconciliationHistory.archive_date == snapshot_date)
+            stmt = select(ReconciliationHistory).where(
+                ReconciliationHistory.archive_date == snapshot_date
+            )
             res = await db.execute(stmt)
             rows = res.scalars().all()
-            
-            result_data = [{
-                "Import_Reference": r.import_reference,
-                "Waybill": r.waybill,
-                "GRN": r.grn,
-                "Order_Line": getattr(r, 'order_line', '') or '',
-                "Codigo_Item": r.item_code,
-                "Descripcion": r.description,
-                "Ubicacion": getattr(r, 'bin_location', '') or '',
-                "Reubicado": getattr(r, 'relocated_bin', '') or '',
-                "Cant_Esperada": r.qty_expected,
-                "Cant_Recibida": r.qty_received,
-                "Diferencia": r.difference
-            } for r in rows]
+
+            result_data = [
+                {
+                    "Import_Reference": r.import_reference,
+                    "Waybill": r.waybill,
+                    "GRN": r.grn,
+                    "Order_Line": getattr(r, "order_line", "") or "",
+                    "Codigo_Item": r.item_code,
+                    "Descripcion": r.description,
+                    "Ubicacion": getattr(r, "bin_location", "") or "",
+                    "Reubicado": getattr(r, "relocated_bin", "") or "",
+                    "Cant_Esperada": r.qty_expected,
+                    "Cant_Recibida": r.qty_received,
+                    "Diferencia": r.difference,
+                    **get_saved_comment(
+                        {
+                            "import_reference": r.import_reference,
+                            "waybill": r.waybill,
+                            "grn_number": r.grn,
+                            "item_code": r.item_code,
+                            "order_line": getattr(r, "order_line", "") or "",
+                        }
+                    ),
+                }
+                for r in rows
+            ]
 
             return {
                 "data": result_data,
                 "archive_versions": archive_versions,
                 "snapshot_versions": snapshot_versions,
-                "current_snapshot_date": snapshot_date
+                "current_snapshot_date": snapshot_date,
             }
 
         # 2. Lógica de cálculo (Tiempo real o logs archivados) usando el servicio
-        result_data = await reconciliation_service.get_reconciliation_calculations(db, archive_date)
-        
+        result_data = await reconciliation_service.get_reconciliation_calculations(
+            db, archive_date
+        )
+        for row in result_data:
+            row.update(
+                get_saved_comment(
+                    {
+                        "import_reference": row.get("Import_Reference"),
+                        "waybill": row.get("Waybill"),
+                        "grn_number": row.get("GRN"),
+                        "item_code": row.get("Codigo_Item"),
+                        "order_line": row.get("Order_Line"),
+                    }
+                )
+            )
+
         return {
             "data": result_data,
             "archive_versions": archive_versions,
             "snapshot_versions": snapshot_versions,
-            "current_archive_date": archive_date
+            "current_archive_date": archive_date,
         }
 
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class HistoricalReconciliationRow(BaseModel):
+    id: int
+    Import_Reference: str
+    Waybill: str
+    GRN: str
+    Order_Line: Optional[str] = ""
+    Codigo_Item: str
+    Descripcion: str
+    Ubicacion: str
+    Reubicado: str
+    Cant_Esperada: int
+    Cant_Recibida: int
+    Diferencia: int
+    Timestamp: str
+    Snapshot_Date: str
+    Usuario: str
+
+
+class HistoricalReconciliationResponse(BaseModel):
+    data: List[HistoricalReconciliationRow]
+
+
+@router.get("/reconciliation/history", response_model=HistoricalReconciliationResponse)
+async def get_reconciliation_history(
+    snapshot_date: Optional[str] = Query(
+        None, description="Filtrar por lote/snapshot específico"
+    ),
+    grn: Optional[str] = Query(None, description="Filtrar por número de GRN"),
+    waybill: Optional[str] = Query(None, description="Filtrar por número de Waybill"),
+    import_reference: Optional[str] = Query(
+        None, description="Filtrar por Import Reference"
+    ),
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required),
+) -> dict:
+    """
+    Busca registros en el histórico de snapshots aplicando filtros avanzados en la base de datos.
+    """
+    stmt = select(ReconciliationHistory)
+
+    if snapshot_date:
+        stmt = stmt.where(ReconciliationHistory.archive_date == snapshot_date)
+    if grn:
+        stmt = stmt.where(ReconciliationHistory.grn.ilike(f"%{grn.strip()}%"))
+    if waybill:
+        stmt = stmt.where(ReconciliationHistory.waybill.ilike(f"%{waybill.strip()}%"))
+    if import_reference:
+        stmt = stmt.where(
+            ReconciliationHistory.import_reference.ilike(
+                f"%{import_reference.strip()}%"
+            )
+        )
+
+    stmt = stmt.order_by(desc(ReconciliationHistory.timestamp))
+
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    data_mapped = [
+        HistoricalReconciliationRow(
+            id=r.id,
+            Import_Reference=r.import_reference,
+            Waybill=r.waybill,
+            GRN=r.grn,
+            Order_Line=getattr(r, "order_line", "") or "",
+            Codigo_Item=r.item_code,
+            Descripcion=r.description,
+            Ubicacion=r.bin_location or "",
+            Reubicado=r.relocated_bin or "",
+            Cant_Esperada=r.qty_expected,
+            Cant_Recibida=r.qty_received,
+            Diferencia=r.difference,
+            Timestamp=r.timestamp,
+            Snapshot_Date=r.archive_date,
+            Usuario=r.username,
+        )
+        for r in rows
+    ]
+
+    return {"data": data_mapped}
+
+
+@router.post("/reconciliation/restore_row/{row_id}")
+async def restore_historical_reconciliation_row(
+    row_id: int,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required),
+):
+    """
+    Restaura una fila de historial (Snapshot) como un log activo de Inbound (archived_at = None).
+    """
+    stmt = select(ReconciliationHistory).where(ReconciliationHistory.id == row_id)
+    res = await db.execute(stmt)
+    history_row = res.scalar_one_or_none()
+
+    if not history_row:
+        raise HTTPException(status_code=404, detail="Fila histórica no encontrada")
+
+    import datetime
+
+    item_details = await csv_handler.get_item_details_from_master_csv(
+        history_row.item_code, db=db
+    )
+    real_desc = item_details.get("Item_Description") if item_details else None
+    desc_to_use = (
+        real_desc if real_desc and "No en" not in real_desc else history_row.description
+    )
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_log = Log(
+        timestamp=now,
+        importReference=history_row.import_reference,
+        waybill=history_row.waybill,
+        itemCode=history_row.item_code,
+        itemDescription=desc_to_use,
+        binLocation=history_row.bin_location,
+        relocatedBin=history_row.relocated_bin,
+        qtyReceived=history_row.qty_received,
+        qtyGrn=history_row.qty_expected,
+        difference=history_row.difference,
+        username=username,
+        archived_at=None,
+    )
+
+    try:
+        db.add(new_log)
+        await db.commit()
+        return {
+            "message": "Registro de log restaurado a activo correctamente",
+            "log_id": new_log.id,
+        }
+    except Exception as e:
+        await db.rollback()
+        print(f"Error restaurando fila histórica {row_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail="Error interno al restaurar el registro"
+        )
+
+
+class RestoreRowsBulkRequest(BaseModel):
+    row_ids: List[int]
+
+
+@router.post("/reconciliation/restore_rows_bulk")
+async def restore_historical_reconciliation_rows_bulk(
+    payload: RestoreRowsBulkRequest,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required),
+):
+    """
+    Restaura múltiples filas de historial (Snapshots) como logs activos de Inbound (archived_at = None).
+    """
+    if not payload.row_ids:
+        raise HTTPException(
+            status_code=400, detail="Debe especificar al menos un row_id"
+        )
+
+    stmt = select(ReconciliationHistory).where(
+        ReconciliationHistory.id.in_(payload.row_ids)
+    )
+    res = await db.execute(stmt)
+    history_rows = res.scalars().all()
+
+    if not history_rows:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontraron las filas históricas especificadas",
+        )
+
+    import datetime
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_logs = []
+    for r in history_rows:
+        item_details = await csv_handler.get_item_details_from_master_csv(
+            r.item_code, db=db
+        )
+        real_desc = item_details.get("Item_Description") if item_details else None
+        desc_to_use = (
+            real_desc if real_desc and "No en" not in real_desc else r.description
+        )
+
+        new_logs.append(
+            Log(
+                timestamp=now,
+                importReference=r.import_reference,
+                waybill=r.waybill,
+                itemCode=r.item_code,
+                itemDescription=desc_to_use,
+                binLocation=r.bin_location,
+                relocatedBin=r.relocated_bin,
+                qtyReceived=r.qty_received,
+                qtyGrn=r.qty_expected,
+                difference=r.difference,
+                username=username,
+                archived_at=None,
+            )
+        )
+
+    try:
+        db.add_all(new_logs)
+        await db.commit()
+        return {"message": f"Se restauraron {len(new_logs)} registros correctamente"}
+    except Exception as e:
+        await db.rollback()
+        print(f"Error restaurando filas históricas en lote: {e}")
+        raise HTTPException(
+            status_code=500, detail="Error interno al restaurar los registros"
+        )
+
+
+class DeleteRowsBulkRequest(BaseModel):
+    row_ids: List[int]
+
+
+@router.post("/reconciliation/delete_rows_bulk")
+async def delete_historical_reconciliation_rows_bulk(
+    payload: DeleteRowsBulkRequest,
+    db: AsyncSession = Depends(get_db),
+    username: str = Depends(login_required),
+):
+    """
+    Elimina físicamente múltiples filas de historial (Snapshots) de la base de datos.
+    """
+    if not payload.row_ids:
+        raise HTTPException(
+            status_code=400, detail="Debe especificar al menos un row_id"
+        )
+
+    try:
+        stmt = select(ReconciliationHistory).where(
+            ReconciliationHistory.id.in_(payload.row_ids)
+        )
+        res = await db.execute(stmt)
+        history_rows = res.scalars().all()
+
+        if not history_rows:
+            raise HTTPException(
+                status_code=404,
+                detail="No se encontraron las filas históricas especificadas",
+            )
+
+        delete_stmt = delete(ReconciliationHistory).where(
+            ReconciliationHistory.id.in_(payload.row_ids)
+        )
+        await db.execute(delete_stmt)
+        await db.commit()
+
+        return {
+            "message": f"Se eliminaron {len(history_rows)} registros correctamente de los snapshots"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print(f"Error eliminando filas históricas en lote: {e}")
+        raise HTTPException(
+            status_code=500, detail="Error interno al eliminar los registros"
+        )
+
 
 class ReconciliationArchiveRequest(BaseModel):
     data: List[dict]
     client_timestamp: Optional[str] = None
 
+
 @router.post("/reconciliation/archive")
 async def archive_reconciliation_snapshot(
-    payload: ReconciliationArchiveRequest, 
+    payload: ReconciliationArchiveRequest,
+    background_tasks: BackgroundTasks,
     username: str = Depends(login_required),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         archive_date = await reconciliation_service.create_snapshot(
-            db, 
-            payload.data, 
-            username, 
-            client_timestamp=payload.client_timestamp
+            db, payload.data, username, client_timestamp=payload.client_timestamp
         )
-        return {"message": "Instantánea guardada correctamente", "archive_date": archive_date}
+
+        try:
+            from app.core.db import AsyncSessionLocal
+            from app.services.inbound_auditor import run_inbound_audit
+
+            async def _run_audit_snapshot_bg():
+                try:
+                    async with AsyncSessionLocal() as session:
+                        await run_inbound_audit(session)
+                except Exception as bg_err:
+                    print(f"[AUDITOR SNAPSHOT ERROR]: {bg_err}")
+
+            background_tasks.add_task(_run_audit_snapshot_bg)
+        except ImportError:
+            pass
+
+        return {
+            "message": "Instantánea guardada correctamente",
+            "archive_date": archive_date,
+        }
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error al archivar: {e}")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get('/view_picking_audits', response_model=List[PickingAuditSummary])
 async def view_picking_audits_api(request: Request, username: str = Depends(login_required), db: AsyncSession = Depends(get_db)):

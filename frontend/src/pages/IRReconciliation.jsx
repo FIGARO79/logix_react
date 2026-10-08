@@ -35,6 +35,18 @@ const IRReconciliation = () => {
         loadReconciliations();
     }, [setTitle]);
 
+    useEffect(() => {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (event.data?.type === 'INBOUND_MUTATED') {
+                    loadReconciliations();
+                }
+            };
+            return () => bc.close();
+        }
+    }, []);
+
     const loadReconciliations = async () => {
         setLoading(true);
         try {

@@ -430,6 +430,8 @@ async def get_reconciliation_calculations(
             [
                 pl.col("qtyReceived").cast(pl.Int64).alias("Cant_Recibida"),
                 pl.col("Quantity").cast(pl.Int64).alias("Cant_Linea"),
+                pl.col("Total_Esperado_IR").cast(pl.Int64).alias("Total_Esperado_IR"),
+                pl.col("Diferencia").cast(pl.Int64).alias("Diferencia_Real_IR"),
             ]
         )
 
@@ -489,12 +491,18 @@ async def get_reconciliation_calculations(
                     pl.col("binLocation").alias("Ubicacion"),
                     pl.col("relocatedBin").alias("Reubicado"),
                     pl.col("Cant_Linea").alias("Cant_Esperada"),
+                    pl.col("Total_Esperado_IR"),
                     pl.col("Cant_Recibida"),
                     pl.col("Diferencia"),
+                    pl.col("Diferencia_Real_IR"),
                     pl.col("timestamp_log").alias("Timestamp"),
                 ]
             )
-            .sort(["Import_Reference", "GRN"])
+            .with_columns(
+                pl.col("Order_Line").cast(pl.Int64, strict=False).fill_null(0).alias("_order_line_num")
+            )
+            .sort(["Import_Reference", "GRN", "_order_line_num", "Codigo_Item"])
+            .drop(["_order_line_num"])
             .to_dicts()
         )
 

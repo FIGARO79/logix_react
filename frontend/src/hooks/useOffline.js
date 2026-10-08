@@ -25,13 +25,7 @@ export const useOffline = () => {
         if (online) {
             toast.info('Conexión restaurada. Sincronizando datos...');
             await syncPendingData();
-            const count = await refreshPendingCount();
-            if (count === 0) {
-                // Solo recargar si realmente se limpio la cola para evitar bucles si hay errores persistentes
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            }
+            await refreshPendingCount();
         } else {
             toast.warning('Modo offline activado. Los datos se guardarán localmente.');
         }
@@ -42,15 +36,15 @@ export const useOffline = () => {
         window.addEventListener('offline', updateOnlineStatus);
         refreshPendingCount();
 
-        // Intervalo para actualizar el contador y TRATAR de sincronizar si estamos online
+        // Intervalo para actualizar el contador y sincronizar si hay red y la pestaña está activa
         const interval = setInterval(async () => {
+            if (document.hidden) return;
             const count = await refreshPendingCount();
             if (count > 0 && navigator.onLine) {
-                // Intentar sincronizar en segundo plano si hay pendientes y hay red
                 await syncPendingData();
                 await refreshPendingCount();
             }
-        }, 10000); // Cada 10 segundos para no ser tan agresivo si hay fallos
+        }, 15000);
 
         return () => {
             window.removeEventListener('online', updateOnlineStatus);

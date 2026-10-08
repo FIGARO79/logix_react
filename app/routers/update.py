@@ -128,8 +128,10 @@ async def process_po_extractor_logic(file_path: str):
             for row in group.iter_rows(named=True):
                 parsed_grns = parse_grns(row["GRN Number"])
                 grn_normalized = ", ".join(parsed_grns) if parsed_grns else row["GRN Number"]
+                order_line_val = str(row.get("Order Line") or "").strip().replace(".0", "")
                 items_list.append({
                     "item_code": row["Item Code"],
+                    "order_line": order_line_val,
                     "qty": row["Despatched Qty"],
                     "grn": grn_normalized,
                     "customer_ref": row[opt_col]
@@ -148,8 +150,10 @@ async def process_po_extractor_logic(file_path: str):
             for row in group.iter_rows(named=True):
                 parsed_grns = parse_grns(row["GRN Number"])
                 grn_normalized = ", ".join(parsed_grns) if parsed_grns else row["GRN Number"]
+                order_line_val = str(row.get("Order Line") or "").strip().replace(".0", "")
                 items_list.append({
                     "item_code": row["Item Code"],
+                    "order_line": order_line_val,
                     "qty": row["Despatched Qty"],
                     "grn": grn_normalized,
                     "customer_ref": row[opt_col]
@@ -172,6 +176,7 @@ async def process_po_extractor_logic(file_path: str):
                 "items": items_list
             }
             
+        po_line_grn_item_to_ir = {}
         po_line_item_to_ir = {}
         po_grn_item_to_ir = {}
         po_item_to_ir = {}
@@ -181,13 +186,14 @@ async def process_po_extractor_logic(file_path: str):
         for row in df_po.iter_rows(named=True):
             cust_ref = str(row[opt_col]).strip().upper()
             item_code = str(row["Item Code"]).strip().upper()
-            order_line = str(row.get("Order Line") or row.get("Order_Line") or row.get("Order Line Number") or "").strip()
+            order_line = str(row.get("Order Line") or row.get("Order_Line") or row.get("Order Line Number") or "").strip().replace(".0", "")
             ir_str = str(row["Import Ref Code"]).strip().upper()
             waybill_str = str(row["Waybill"]).strip().upper()
             grn_num = str(row.get("GRN Number") or "").strip()
 
             if grn_num and ir_str:
-                for g in parse_grns(grn_num):
+                parsed_list = parse_grns(grn_num)
+                for g in parsed_list:
                     g_clean = g.upper()
                     grn_to_ir[g_clean] = {
                         "import_ref": ir_str,
@@ -198,6 +204,13 @@ async def process_po_extractor_logic(file_path: str):
                             "import_ref": ir_str,
                             "waybill": waybill_str,
                             "order_line": order_line
+                        }
+                    if cust_ref and order_line and item_code:
+                        po_line_grn_item_to_ir[f"{cust_ref}_{order_line}_{item_code}_{g_clean}"] = {
+                            "import_ref": ir_str,
+                            "waybill": waybill_str,
+                            "order_line": order_line,
+                            "grn": g_clean
                         }
 
             if cust_ref:
@@ -230,6 +243,7 @@ async def process_po_extractor_logic(file_path: str):
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
+            "po_line_grn_item_to_ir": po_line_grn_item_to_ir,
             "po_line_item_to_ir": po_line_item_to_ir,
             "po_grn_item_to_ir": po_grn_item_to_ir,
             "po_item_to_ir": po_item_to_ir,

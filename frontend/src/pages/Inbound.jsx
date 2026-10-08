@@ -6,6 +6,7 @@ import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, ge
 
 
 import { checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
+import { useQueryClient } from '@tanstack/react-query';
 import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
@@ -60,9 +61,33 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
 
 
 
+const withTimeout = (promise, ms = 2000, fallback = null) => {
+    return Promise.race([
+        promise,
+        new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+    ]);
+};
+
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { pendingCount, syncPendingData } = useOffline();
+    const queryClient = useQueryClient();
+
+    const notifyInboundMutation = () => {
+        try {
+            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+            queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+            queryClient.invalidateQueries({ queryKey: ['inbound-auditor-alerts'] });
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('logix_events');
+                bc.postMessage({ type: 'INBOUND_MUTATED' });
+                bc.close();
+            }
+        } catch (e) {
+            console.error("Error broadcasting inbound mutation:", e);
+        }
+    };
 
     useEffect(() => { setTitle("Recepción"); }, [setTitle]);
 
@@ -188,9 +213,14 @@ const Inbound = () => {
         loadVersions();
         loadSlottingBins();
 
-        // Check inicial
-        runAutoSync();
-        syncPendingData().then(() => loadLogs());
+        // Check inicial diferido para no bloquear el hilo principal ni la BD al inicio
+        const initTimer = setTimeout(() => {
+            syncPendingData().then(() => {
+                loadLogs();
+                notifyInboundMutation();
+            });
+            runAutoSync();
+        }, 800);
 
         // Intervalo de revisión cada 10 minutos
         const syncInterval = setInterval(() => {
@@ -201,19 +231,31 @@ const Inbound = () => {
         window.addEventListener('focus', handleFocus);
 
         return () => {
+            clearTimeout(initTimer);
             clearInterval(syncInterval);
             window.removeEventListener('focus', handleFocus);
         };
     }, []);
 
     useEffect(() => {
-        // Auto-refresh logs every 10 seconds if online and not viewing history
+        // Auto-refresh logs every 10 seconds if online, not viewing history, and tab is visible
         const logsInterval = setInterval(() => {
-            if (navigator.onLine && !currentVersion) {
+            if (navigator.onLine && !currentVersion && !document.hidden) {
                 loadLogs();
             }
         }, 10000);
-        return () => clearInterval(logsInterval);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && navigator.onLine && !currentVersion) {
+                loadLogs();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(logsInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [currentVersion]);
 
     const loadSlottingBins = async () => {
@@ -294,12 +336,12 @@ const Inbound = () => {
         }
 
         try {
-            const db = await getDB();
-            const allGrns = await db.getAll('grn_pending') || [];
+            const db = await withTimeout(getDB(), 1500, null);
+            if (!db) return;
             const targetIr = importRef.trim().toUpperCase();
             
             // 1. Obtener GRNs asociadas a la IR desde po_lookup (IndexedDB con fallback API)
-            let poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            let poInfo = await withTimeout(db.get('po_lookup', `ir_${targetIr}`), 1000, null);
             if ((!poInfo || !poInfo.items) && navigator.onLine) {
                 try {
                     const res = await fetch(`/api/inbound/lookup_reference?import_ref=${encodeURIComponent(targetIr)}`, { credentials: 'include' });
@@ -314,18 +356,54 @@ const Inbound = () => {
                 }
             }
 
-            const customerRefs = new Set();
-            const itemPoKeys = new Set();
+            const irLineGrnKeys = new Set();
+            const irLineKeys = new Set();
+            const irGrnItemKeys = new Set();
+            const irGrns = new Set();
+            const irItemKeys = new Set();
+            const irItemCodes = new Set();
+
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
                     const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
+                    const line = (it.order_line || it.Order_Line || '').toString().trim().replace(/\.0$/, '');
                     const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
-                    if (cRef) customerRefs.add(cRef);
-                    if (cRef && code) itemPoKeys.add(`${cRef}_${code}`);
+                    const grnVal = (it.grn || it.GRN_Number || '').toString().trim().toUpperCase();
+
+                    if (code) irItemCodes.add(code);
+                    if (cRef && line && code) irLineKeys.add(`${cRef}_${line}_${code}`);
+                    if (cRef && code) irItemKeys.add(`${cRef}_${code}`);
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gClean = g.trim().toUpperCase();
+                            if (gClean) {
+                                irGrns.add(gClean);
+                                if (code) irGrnItemKeys.add(`${gClean}_${code}`);
+                                if (cRef && line && code) irLineGrnKeys.add(`${cRef}_${line}_${code}_${gClean}`);
+                            }
+                        });
+                    }
                 });
             }
 
-            // 2. Filtrar y agrupar EXCLUSIVAMENTE las líneas del Reporte 280 (grn_pending) para esta IR
+            // 2. Obtener registros de grn_pending (usando índice by_item si hay códigos conocidos de la IR)
+            let allGrns = [];
+            try {
+                const tx = db.transaction('grn_pending', 'readonly');
+                const store = tx.objectStore('grn_pending');
+                const hasIndex = store.indexNames && store.indexNames.contains('by_item');
+                if (hasIndex && irItemCodes.size > 0) {
+                    const index = store.index('by_item');
+                    const rowsArr = await Promise.all(Array.from(irItemCodes).map(c => index.getAll(c)));
+                    allGrns = rowsArr.flat();
+                } else {
+                    allGrns = (await withTimeout(store.getAll(), 2000, [])) || [];
+                }
+            } catch (grnErr) {
+                console.warn("Logix: Error leyendo grn_pending para stats:", grnErr);
+            }
+
+            // 3. Filtrar y agrupar EXCLUSIVAMENTE las líneas del Reporte 280 (grn_pending) para esta IR
             const groupedIrLines = {};
             allGrns.forEach(g => {
                 const code = String(g.Item_Code || '').toUpperCase().trim();
@@ -333,11 +411,24 @@ const Inbound = () => {
 
                 const gIr = String(g.Import_Reference || g.ir_map || '').toUpperCase().trim();
                 const gOrder = String(g.Order_Number || '').toUpperCase().trim();
+                const gLine = String(g.Order_Line || '').toUpperCase().trim().replace(/\.0$/, '');
+                const gGrn = String(g.GRN_Number || g.grn_number || '').toUpperCase().trim();
                 const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
 
-                const isMatch = (gIr === targetIr) ||
-                                (gOrder && customerRefs.has(gOrder)) ||
-                                (gOrder && itemPoKeys.has(`${gOrder}_${code}`));
+                let isMatch = false;
+                if (gIr) {
+                    isMatch = (gIr === targetIr);
+                } else if (gLine && gGrn && irLineGrnKeys.has(`${gOrder}_${gLine}_${code}_${gGrn}`)) {
+                    isMatch = true;
+                } else if (gLine && irLineKeys.has(`${gOrder}_${gLine}_${code}`) && (!gGrn || irGrns.has(gGrn))) {
+                    isMatch = true;
+                } else if (gGrn && irGrnItemKeys.has(`${gGrn}_${code}`)) {
+                    isMatch = true;
+                } else if (gGrn && irGrns.has(gGrn) && irItemCodes.has(code)) {
+                    isMatch = true;
+                } else if (!gLine && !gGrn && irItemKeys.has(`${gOrder}_${code}`)) {
+                    isMatch = true;
+                }
 
                 if (isMatch && qty > 0) {
                     if (!groupedIrLines[code]) {
@@ -499,12 +590,24 @@ const Inbound = () => {
                         const code = String(g.Item_Code || '').toUpperCase().trim();
                         const gIr = String(g.Import_Reference || g.ir_map || '').toUpperCase().trim();
                         const gOrder = String(g.Order_Number || '').toUpperCase().trim();
+                        const gLine = String(g.Order_Line || '').toUpperCase().trim().replace(/\.0$/, '');
                         const grnNum = String(g.GRN_Number || g.grn_number || g.grn || '').toUpperCase().trim();
                         const qty = parseInt(g.Quantity || g.quantity || g.qty || 0) || 0;
 
-                        const isMatch = (gIr === targetIr) ||
-                                        (gOrder && customerRefs.has(gOrder)) ||
-                                        (gOrder && itemPoKeys.has(`${gOrder}_${code}`));
+                        let isMatch = false;
+                        if (gIr) {
+                            isMatch = (gIr === targetIr);
+                        } else if (gLine && grnNum && irLineGrnKeys.has(`${gOrder}_${gLine}_${code}_${grnNum}`)) {
+                            isMatch = true;
+                        } else if (gLine && irLineKeys.has(`${gOrder}_${gLine}_${code}`) && (!grnNum || irGrns.has(grnNum))) {
+                            isMatch = true;
+                        } else if (grnNum && irGrnItemKeys.has(`${grnNum}_${code}`)) {
+                            isMatch = true;
+                        } else if (grnNum && irGrns.has(grnNum) && irItemCodes.has(code)) {
+                            isMatch = true;
+                        } else if (!gLine && !grnNum && irItemKeys.has(`${gOrder}_${code}`)) {
+                            isMatch = true;
+                        }
 
                         if (isMatch && grnNum && code && qty > 0) {
                             if (!grnToItems[grnNum]) {
@@ -544,7 +647,7 @@ const Inbound = () => {
 
             const grnProgressPercent = totalGrns > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrns) * 100)) : 0;
 
-            setIrStats({
+            const newStats = {
                 totalLines,
                 completedLines,
                 startedLines,
@@ -556,6 +659,11 @@ const Inbound = () => {
                 totalGrns,
                 completedGrns,
                 grnProgressPercent
+            };
+
+            setIrStats(prev => {
+                const isIdentical = Object.keys(newStats).every(k => prev[k] === newStats[k]);
+                return isIdentical ? prev : newStats;
             });
         } catch (err) {
             console.error("Error calculating IR stats:", err);
@@ -651,25 +759,29 @@ const Inbound = () => {
             console.error("Error loading logs from API", e);
             // Intentar cargar desde caché si estamos offline o la API falla
             if (!version || version === '') {
-                apiLogs = await getCachedData('inbound_logs') || [];
-                console.log("Cargado desde caché local:", apiLogs.length, "registros");
+                try {
+                    apiLogs = (await withTimeout(getCachedData('inbound_logs'), 1500, [])) || [];
+                    console.log("Cargado desde caché local:", apiLogs.length, "registros");
+                } catch { apiLogs = []; }
             }
         }
 
-        // Cargar logs pendientes de IndexedDB
+        // Cargar logs pendientes de IndexedDB (con timeout de protección)
         let pendingLogs = [];
         if (!version || version === '') {
             try {
-                const db = await getDB();
-                const pending = await db.getAll('pending_sync');
-                pendingLogs = pending.map(p => ({
-                    ...p.payload,
-                    id: p.id,
-                    timestamp: p.timestamp,
-                    username: 'LOCAL (Sync)',
-                    isPending: true,
-                    itemDescription: p.payload.itemDescription || 'Cargando...'
-                }));
+                const db = await withTimeout(getDB(), 1500, null);
+                if (db) {
+                    const pending = (await withTimeout(db.getAll('pending_sync'), 1500, [])) || [];
+                    pendingLogs = pending.map(p => ({
+                        ...p.payload,
+                        id: p.id,
+                        timestamp: p.timestamp,
+                        username: 'LOCAL (Sync)',
+                        isPending: true,
+                        itemDescription: p.payload?.itemDescription || 'Cargando...'
+                    }));
+                }
             } catch (e) { console.error("Error loading pending logs", e); }
         }
 
@@ -699,13 +811,15 @@ const Inbound = () => {
 
         let grnMap = {};
         try {
-            const db = await getDB();
-            // Cargar lo esperado por itemCode + importReference de forma optimizada
-            const itemsToQuery = allLogsSorted.map(log => ({
-                itemCode: log.itemCode,
-                importRef: log.importReference || log.importRef || ''
-            }));
-            grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
+            const db = await withTimeout(getDB(), 1500, null);
+            if (db) {
+                // Cargar lo esperado por itemCode + importReference de forma optimizada
+                const itemsToQuery = allLogsSorted.map(log => ({
+                    itemCode: log.itemCode,
+                    importRef: log.importReference || log.importRef || ''
+                }));
+                grnMap = (await withTimeout(getGRNExpectedQtyBulk(db, itemsToQuery), 2500, {})) || {};
+            }
         } catch (e) { console.error("Error loading GRN info", e); }
 
         // Calcular total recibido por itemCode|importReference y encontrar la última entrada (por timestamp) para cada uno
@@ -743,7 +857,6 @@ const Inbound = () => {
         });
 
         setLogs(logsWithGRN);
-        calculateIRStats();
     };
 
     const loadVersions = async () => {
@@ -1042,6 +1155,7 @@ const Inbound = () => {
                         if (typeof editId === 'string' && editId.includes('-')) {
                             await savePendingSync('inbound', payload, editId);
                             triggerDiffCheck();
+                            notifyInboundMutation();
                             loadLogs(); resetForm(); return;
                         }
                         res = await fetch(`/api/update_log/${editId}`, {
@@ -1064,6 +1178,7 @@ const Inbound = () => {
                         });
                     }
                     if (res.ok) {
+                        notifyInboundMutation();
                         if (shouldPrint) handlePrint();
                         triggerDiffCheck();
                         loadLogs();
@@ -1086,6 +1201,7 @@ const Inbound = () => {
                 }
                 setHasWarnedOffline(true);
             }
+            notifyInboundMutation();
             if (shouldPrint) handlePrint();
             triggerDiffCheck();
             loadLogs();
@@ -1103,11 +1219,13 @@ const Inbound = () => {
             try {
                 const db = await getDB();
                 await db.delete('pending_sync', id);
+                notifyInboundMutation();
                 loadLogs(); return;
             } catch (e) { console.error(e); }
         }
         try {
             await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
+            notifyInboundMutation();
             loadLogs();
         } catch (e) { alert("Error"); }
     };
@@ -1116,6 +1234,7 @@ const Inbound = () => {
         if (!confirm("¿Archivar registros actuales y limpiar base?")) return;
         try {
             await fetch(`/api/logs/archive`, { method: 'POST', credentials: 'include' });
+            notifyInboundMutation();
             loadLogs(); loadVersions();
         } catch (e) { alert("Error"); }
     };
@@ -1592,69 +1711,121 @@ const Inbound = () => {
             </div>
             {scannerOpen && <ScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />}
 
-            {/* Notificación Flotante de Diferencias (Centrada en pantalla) */}
+            {/* Modal de Diferencias (Estilo Fluent UI) */}
             {diffAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="max-w-lg w-full shadow-2xl rounded-2xl border border-white/20 overflow-hidden text-white transition-all transform scale-100">
-                        <div className={`p-5 ${diffAlert.type === 'excess' ? 'bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900' : 'bg-gradient-to-br from-red-600 via-rose-700 to-red-900'}`}>
-                            <div className="flex items-start justify-between gap-3 border-b border-white/20 pb-3 mb-3.5">
+                    <div className="max-w-md w-full bg-white rounded-xl shadow-2xl border border-zinc-200/90 overflow-hidden text-zinc-900 transition-all transform scale-100 flex flex-col font-sans">
+                        {/* Barra de acento Fluent superior */}
+                        <div className={`h-1.5 w-full ${diffAlert.type === 'excess' ? 'bg-amber-500' : 'bg-rose-600'}`} />
+
+                        <div className="p-5">
+                            {/* Cabecera Fluent */}
+                            <div className="flex items-start justify-between gap-3 mb-4">
                                 <div className="flex items-center gap-3">
-                                    <span className="p-2.5 bg-white/20 rounded-xl text-3xl flex items-center justify-center backdrop-blur-md shadow-inner">
-                                        {diffAlert.type === 'excess' ? '⚠️' : '🚨'}
-                                    </span>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                        diffAlert.type === 'excess' 
+                                            ? 'bg-amber-50 text-amber-600 border border-amber-200' 
+                                            : 'bg-rose-50 text-rose-600 border border-rose-200'
+                                    }`}>
+                                        {diffAlert.type === 'excess' ? (
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                            </svg>
+                                        )}
+                                    </div>
                                     <div>
-                                        <h4 className="font-black text-base uppercase tracking-wider leading-tight text-white flex items-center gap-2">
-                                            DIFERENCIA DETECTADA EN RECEPCIÓN
-                                        </h4>
-                                        <p className="text-xs text-white/90 font-medium mt-0.5">
-                                            {diffAlert.type === 'excess' ? 'La cantidad acumulada supera lo esperado en GRN' : 'La cantidad acumulada es menor a lo esperado en GRN'}
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-semibold text-zinc-900 leading-tight">
+                                                {diffAlert.type === 'excess' ? 'Sobrante detectado' : 'Faltante detectado'}
+                                            </h3>
+                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                                diffAlert.type === 'excess' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                                            }`}>
+                                                {diffAlert.type === 'excess' ? 'Exceso' : 'Discrepancia'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-zinc-500 mt-0.5">
+                                            {diffAlert.type === 'excess'
+                                                ? 'La cantidad acumulada supera lo esperado en GRN'
+                                                : 'La cantidad acumulada es inferior a lo esperado en GRN'}
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setDiffAlert(null)}
-                                    className="p-1.5 rounded-lg bg-black/20 hover:bg-black/40 text-white/80 hover:text-white transition-colors"
+                                    className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
                                     title="Cerrar notificación"
                                 >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
 
-                            <div className="space-y-2 text-xs bg-black/35 p-3.5 rounded-xl border border-white/10 backdrop-blur-md shadow-inner">
-                                <div className="flex justify-between items-center text-white/90">
-                                    <span className="font-semibold text-white/70">Código / SKU:</span>
-                                    <span className="font-black text-white tracking-wide text-base">{diffAlert.itemCode}</span>
+                            {/* Detalle del Ítem */}
+                            <div className="bg-zinc-50/80 border border-zinc-200/80 rounded-lg p-3 mb-4">
+                                <div className="flex justify-between items-baseline mb-1">
+                                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">SKU / Ítem</span>
+                                    <span className="font-mono text-xs font-semibold text-zinc-900">{diffAlert.itemCode}</span>
                                 </div>
-                                <div className="text-xs text-white/85 truncate font-medium border-b border-white/10 pb-2 mb-2">
-                                    {diffAlert.description}
+                                <p className="text-xs text-zinc-700 truncate font-normal">
+                                    {diffAlert.description || 'Sin descripción disponible'}
+                                </p>
+                                {diffAlert.importRef && (
+                                    <div className="mt-2 pt-2 border-t border-zinc-200/60 flex justify-between items-center text-[11px] text-zinc-500">
+                                        <span>Import Reference:</span>
+                                        <span className="font-mono font-medium text-zinc-800">{diffAlert.importRef}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Cuadrícula de Métricas */}
+                            <div className="grid grid-cols-3 gap-2.5 mb-4 text-center">
+                                <div className="p-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs">
+                                    <div className="text-[10px] uppercase font-semibold text-zinc-500 tracking-wider">Esperado</div>
+                                    <div className="text-lg font-bold text-zinc-800 mt-0.5">{diffAlert.expectedQty}</div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2.5 text-center pt-1">
-                                    <div className="bg-white/10 p-2.5 rounded-lg">
-                                        <div className="text-[10px] uppercase text-white/70 font-semibold">Esperado</div>
-                                        <div className="text-base font-extrabold text-white">{diffAlert.expectedQty}</div>
+                                <div className="p-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs">
+                                    <div className="text-[10px] uppercase font-semibold text-zinc-500 tracking-wider">Recibido</div>
+                                    <div className="text-lg font-bold text-zinc-800 mt-0.5">{diffAlert.totalReceived}</div>
+                                </div>
+                                <div className={`p-2.5 rounded-lg border shadow-xs ${
+                                    diffAlert.type === 'excess'
+                                        ? 'bg-amber-50/90 border-amber-200 text-amber-900'
+                                        : 'bg-rose-50/90 border-rose-200 text-rose-900'
+                                }`}>
+                                    <div className={`text-[10px] uppercase font-semibold tracking-wider ${
+                                        diffAlert.type === 'excess' ? 'text-amber-700' : 'text-rose-700'
+                                    }`}>
+                                        Diferencia
                                     </div>
-                                    <div className="bg-white/10 p-2.5 rounded-lg">
-                                        <div className="text-[10px] uppercase text-white/70 font-semibold">Recibido</div>
-                                        <div className="text-base font-extrabold text-white">{diffAlert.totalReceived}</div>
-                                    </div>
-                                    <div className={`p-2.5 rounded-lg ${diffAlert.type === 'excess' ? 'bg-amber-500/40 border border-amber-300/50' : 'bg-red-500/40 border border-red-300/50'}`}>
-                                        <div className="text-[10px] uppercase text-white/90 font-bold">Diferencia</div>
-                                        <div className="text-base font-black text-white">
-                                            {diffAlert.difference > 0 ? `+${diffAlert.difference}` : diffAlert.difference}
-                                        </div>
+                                    <div className="text-lg font-extrabold mt-0.5">
+                                        {diffAlert.difference > 0 ? `+${diffAlert.difference}` : diffAlert.difference}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-4 flex justify-between items-center">
-                                <span className="text-[11px] text-white/70 italic font-medium">Auto-cierre en 10s</span>
+                            {/* Pie con indicador de tiempo y botón Fluent */}
+                            <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                                <span className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ animationDuration: '10s' }}>
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="30 60" />
+                                    </svg>
+                                    Auto-cierre en 10s
+                                </span>
                                 <button
                                     type="button"
                                     onClick={() => setDiffAlert(null)}
-                                    className="px-5 py-2 bg-white/25 hover:bg-white/35 text-white font-black text-xs rounded-lg backdrop-blur-md transition-all active:scale-95 border border-white/40 shadow-md uppercase tracking-wider"
+                                    className={`px-4 py-1.5 text-xs font-semibold text-white rounded-md shadow-xs active:scale-95 transition-all ${
+                                        diffAlert.type === 'excess'
+                                            ? 'bg-amber-600 hover:bg-amber-700'
+                                            : 'bg-rose-600 hover:bg-rose-700'
+                                    }`}
                                 >
                                     Entendido
                                 </button>

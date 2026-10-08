@@ -432,39 +432,21 @@ async def get_expected_quantity_from_grn_for_import_ref(
     if df_grn_cache is None:
         return None
 
-    customer_refs = set()
-    item_po_keys = set()
-    grns = set()
+    po_line_grn_map = {}
+    po_line_map = {}
+    po_grn_item_map = {}
+    grn_map = {}
+    po_item_map = {}
 
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 cache = orjson.loads(f.read())
-
-            for key, val in cache.get("po_item_to_ir", {}).items():
-                if str(val.get("import_ref", "")).strip().upper() == ref_clean:
-                    item_po_keys.add(key.strip().upper())
-                    parts = key.split("_", 1)
-                    if parts[0]:
-                        customer_refs.add(parts[0].strip().upper())
-
-            for o_ref, val in cache.get("po_order_to_ir", {}).items():
-                if str(val.get("import_ref", "")).strip().upper() == ref_clean:
-                    customer_refs.add(o_ref.strip().upper())
-
-            for c_ref, c_val in cache.get("customer_ref_to_data", {}).items():
-                if str(c_val.get("import_ref", "")).strip().upper() == ref_clean:
-                    customer_refs.add(c_ref.strip().upper())
-
-            ir_info = cache.get("ir_to_data", {}).get(ref_clean, {})
-            for it in ir_info.get("items", []):
-                c_ref = str(it.get("customer_ref", "") or it.get("po_number", "") or "").strip().upper()
-                if c_ref:
-                    customer_refs.add(c_ref)
-                grn_val = it.get("grn", "")
-                if grn_val:
-                    for g in parse_grns(str(grn_val)):
-                        if g.strip(): grns.add(g.strip().upper())
+            po_line_grn_map = cache.get("po_line_grn_item_to_ir", {})
+            po_line_map = cache.get("po_line_item_to_ir", {})
+            po_grn_item_map = cache.get("po_grn_item_to_ir", {})
+            grn_map = cache.get("grn_to_ir", {})
+            po_item_map = cache.get("po_item_to_ir", {})
         except Exception as e:
             print(f"Error cargando po_lookup en get_expected_quantity: {e}")
 
@@ -481,14 +463,32 @@ async def get_expected_quantity_from_grn_for_import_ref(
         for row in sub_df.to_dicts():
             g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
             g_order = str(row.get("Order_Number", "")).strip().upper()
+            g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
             g_grn = str(row.get("GRN_Number", "")).strip().upper()
             qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
-            po_key = f"{g_order}_{item_clean}"
-            is_match = (g_ir == ref_clean) or \
-                       (po_key in item_po_keys) or \
-                       (g_order and g_order in customer_refs) or \
-                       (g_grn and g_grn in grns)
+            is_match = False
+            if g_ir:
+                is_match = (g_ir == ref_clean)
+            else:
+                k_line_grn = f"{g_order}_{g_line}_{item_clean}_{g_grn}"
+                k_line = f"{g_order}_{g_line}_{item_clean}"
+                k_grn_item = f"{g_grn}_{item_clean}"
+                k_item = f"{g_order}_{item_clean}"
+
+                resolved_ir = None
+                if g_line and g_grn and k_line_grn in po_line_grn_map:
+                    resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
+                elif g_line and k_line in po_line_map:
+                    resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
+                elif g_grn and k_grn_item in po_grn_item_map:
+                    resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
+                elif g_grn and g_grn in grn_map:
+                    resolved_ir = str(grn_map[g_grn].get("import_ref", "")).strip().upper()
+                elif not g_line and k_item in po_item_map:
+                    resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
+
+                is_match = (resolved_ir == ref_clean)
 
             if is_match:
                 target_qty += qty
