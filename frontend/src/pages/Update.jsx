@@ -78,7 +78,7 @@ const Update = () => {
         window.open('/api/download_reservations_audit', '_blank');
     };
 
-    const fetchSyncStatus = async () => {
+    const fetchSyncStatus = useCallback(async () => {
         try {
             const res = await fetch('/api/sync/status');
             if (res.ok) {
@@ -88,7 +88,7 @@ const Update = () => {
         } catch (err) {
             console.error("Error fetching sync status:", err);
         }
-    };
+    }, []);
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp || timestamp === 0) return 'SIN DATOS';
@@ -106,6 +106,42 @@ const Update = () => {
             return 'SIN DATOS';
         }
     };
+
+    const checkRobotStatus = useCallback(async (currentTaskId = null) => {
+        try {
+            const res = await fetch('/api/po_robot_status');
+            if (res.ok) {
+                const data = await res.json();
+                // Si seguimos un task_id específico y los IDs difieren, ignorar estados desfasados
+                if (currentTaskId && data.task_id && data.task_id !== currentTaskId) {
+                    return;
+                }
+
+                if (data.status === 'success') {
+                    setRobotMessage({ type: 'success', text: data.message || 'DESCARGA Y PROCESO COMPLETADOS CON ÉXITO.' });
+                    setIsRobotRunning(false);
+                    fetchSyncStatus();
+                    setTimeout(() => fetchSyncStatus(), 1500);
+
+                    // Notificar a toda la aplicación
+                    if (typeof BroadcastChannel !== 'undefined') {
+                        const bc = new BroadcastChannel('logix_events');
+                        bc.postMessage({ type: 'INBOUND_MUTATED' });
+                        bc.close();
+                    }
+                } else if (data.status === 'error') {
+                    setRobotMessage({ type: 'error', text: data.message || 'ERROR EN EJECUCIÓN DEL ROBOT' });
+                    setIsRobotRunning(false);
+                    fetchSyncStatus();
+                } else if (data.status === 'running') {
+                    setIsRobotRunning(true);
+                    setRobotMessage({ type: 'info', text: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
+                }
+            }
+        } catch (err) {
+            console.error("Error al consultar estado del robot:", err);
+        }
+    }, [fetchSyncStatus]);
 
     useEffect(() => {
         setTitle("Datos Maestros");
@@ -125,34 +161,20 @@ const Update = () => {
             } catch (err) { console.error("Error al consultar estado inicial del robot:", err); }
         };
         checkInitialRobotStatus();
-    }, [setTitle]);
+    }, [setTitle, fetchSyncStatus]);
 
-    // Polling robot status independientemente de la carga de archivos
+    // Polling robot status con intervalo rápido (3s) mientras esté activo
     useEffect(() => {
         let interval;
         if (isRobotRunning) {
-            interval = setInterval(async () => {
-                try {
-                    const res = await fetch('/api/po_robot_status');
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.status === 'success') {
-                            setRobotMessage({ type: 'success', text: data.message });
-                            setIsRobotRunning(false);
-                            fetchSyncStatus();
-                        } else if (data.status === 'error') {
-                            setRobotMessage({ type: 'error', text: data.message });
-                            setIsRobotRunning(false);
-                            fetchSyncStatus();
-                        } else if (data.status === 'running') {
-                            setRobotMessage({ type: 'info', text: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
-                        }
-                    }
-                } catch (err) { console.error(err); }
-            }, 10000);
+            interval = setInterval(() => {
+                checkRobotStatus();
+            }, 3000);
         }
-        return () => clearInterval(interval);
-    }, [isRobotRunning]);
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isRobotRunning, checkRobotStatus]);
 
     // Temporizador para auto-ocultar mensajes de notificación tras 8 segundos
     useEffect(() => {
@@ -250,7 +272,7 @@ const Update = () => {
     const handleRunRobot = async () => {
         if (!window.confirm("¿INICIAR ROBOT DE DESCARGA?")) return;
         setIsRobotRunning(true);
-        setRobotMessage({ type: 'info', text: 'SINCRONIZANDO CON PORTAL...' });
+        setRobotMessage({ type: 'info', text: 'CONECTANDO CON EL SERVIDOR...' });
         const fmt = (iso) => iso.split('-').reverse().join('/');
         try {
             const res = await fetch('/api/run_po_robot', {
@@ -258,9 +280,16 @@ const Update = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start_date: fmt(robotStartDate), end_date: fmt(robotEndDate) })
             });
-            if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                setRobotMessage({ type: 'info', text: data.message || 'ROBOT ACTIVADO. SINCRONIZANDO...' });
+                setTimeout(() => checkRobotStatus(data.task_id), 800);
+            } else if (res.status === 409) {
+                setRobotMessage({ type: 'info', text: data.message || 'EL ROBOT YA SE ENCUENTRA EN EJECUCIÓN...' });
+                checkRobotStatus(data.task_id);
+            } else {
                 setIsRobotRunning(false);
-                setRobotMessage({ type: 'error', text: "ERROR AL ACTIVAR ROBOT" });
+                setRobotMessage({ type: 'error', text: data.message || data.detail || "ERROR AL ACTIVAR ROBOT" });
             }
         } catch (err) {
             setIsRobotRunning(false);
