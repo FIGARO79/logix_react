@@ -12,7 +12,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler
-from app.models.sql_models import ReconciliationHistory, GRNMaster
+from app.models.sql_models import (
+    ReconciliationHistory,
+    GRNMaster,
+    SavedGRNReconciliation,
+    SavedGRNReconciliationItem,
+)
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
 
@@ -73,7 +78,7 @@ async def get_reconciliation_calculations(
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill usando Rust (Alta velocidad)
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
         try:
-            # Extraer DB GRNs primero
+            # Extraer DB GRNs primero (de GRNMaster y tablas de conciliaciones guardadas/históricas)
             db_grns = await db.execute(
                 select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
             )
@@ -81,6 +86,37 @@ async def get_reconciliation_calculations(
                 (row.import_reference, row.grn_number, row.waybill)
                 for row in db_grns.all()
             ]
+
+            # Cargar GRNs históricas confirmadas/guardadas para NUNCA desasociarlas
+            saved_headers = await db.execute(
+                select(
+                    SavedGRNReconciliation.import_reference,
+                    SavedGRNReconciliation.grn_number,
+                    SavedGRNReconciliation.waybill,
+                ).where(
+                    SavedGRNReconciliation.grn_number.is_not(None),
+                    SavedGRNReconciliation.grn_number != "",
+                )
+            )
+            for r in saved_headers.all():
+                if r.import_reference and r.grn_number:
+                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
+
+            saved_items = await db.execute(
+                select(
+                    SavedGRNReconciliationItem.import_reference,
+                    SavedGRNReconciliationItem.grn_number,
+                    SavedGRNReconciliationItem.waybill,
+                )
+                .distinct()
+                .where(
+                    SavedGRNReconciliationItem.grn_number.is_not(None),
+                    SavedGRNReconciliationItem.grn_number != "",
+                )
+            )
+            for r in saved_items.all():
+                if r.import_reference and r.grn_number:
+                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
         except Exception as e:
             print(f"[RECONCILIATION] Error loading DB GRNs: {e}")
             db_grns_raw = []
@@ -142,6 +178,75 @@ async def get_reconciliation_calculations(
                 pl.col("wb_map").fill_null("SIN WAYBILL"),
             ]
         )
+
+        # 5.1 PROTECCIÓN Y RECUPERACIÓN DE GRNs COMPLETAS O RECIBIDAS:
+        # Si alguna GRN no tiene I.R. maestra asignada, pero sus ítems ya están registrados
+        # físicamente en los logs de bodega, autodescubrir su I.R. activa para NUNCA
+        # desasociarla ni mostrar la cantidad recibida en cero.
+        unmapped_grns = (
+            df_expected_with_ir.filter(pl.col("ir_map") == "SIN I.R. MAESTRA")
+            .get_column("GRN_Number")
+            .unique()
+            .to_list()
+        )
+        if unmapped_grns and not logs_pl.is_empty():
+            recovered_mappings = []
+            for u_grn in unmapped_grns:
+                grn_item_codes = (
+                    df_expected_with_ir.filter(pl.col("GRN_Number") == u_grn)
+                    .get_column("Item_Code")
+                    .unique()
+                    .to_list()
+                )
+                if not grn_item_codes:
+                    continue
+                matched_logs = logs_pl.filter(
+                    pl.col("itemCode").is_in(grn_item_codes)
+                    & (pl.col("importReference") != "")
+                    & (pl.col("importReference") != "SIN I.R. MAESTRA")
+                )
+                if not matched_logs.is_empty():
+                    top_match = (
+                        matched_logs.group_by("importReference")
+                        .agg(
+                            [
+                                pl.col("itemCode").n_unique().alias("_n_items"),
+                                pl.col("waybill").first().alias("_wb"),
+                            ]
+                        )
+                        .sort("_n_items", descending=True)
+                    )
+                    if not top_match.is_empty():
+                        rec_ir = top_match.row(0, named=True)["importReference"]
+                        rec_wb = top_match.row(0, named=True)["_wb"] or ""
+                        recovered_mappings.append(
+                            {"GRN_Number": u_grn, "_rec_ir": rec_ir, "_rec_wb": rec_wb}
+                        )
+
+            if recovered_mappings:
+                df_rec = pl.DataFrame(recovered_mappings)
+                df_expected_with_ir = (
+                    df_expected_with_ir.join(df_rec, on="GRN_Number", how="left")
+                    .with_columns(
+                        [
+                            pl.when(
+                                (pl.col("ir_map") == "SIN I.R. MAESTRA")
+                                & pl.col("_rec_ir").is_not_null()
+                            )
+                            .then(pl.col("_rec_ir"))
+                            .otherwise(pl.col("ir_map"))
+                            .alias("ir_map"),
+                            pl.when(
+                                (pl.col("wb_map") == "SIN WAYBILL")
+                                & pl.col("_rec_wb").is_not_null()
+                            )
+                            .then(pl.col("_rec_wb"))
+                            .otherwise(pl.col("wb_map"))
+                            .alias("wb_map"),
+                        ]
+                    )
+                    .drop(["_rec_ir", "_rec_wb"])
+                )
 
         # 6. Cálculo de Totales Esperados por IR + Item
         total_exp_ir_item = df_expected_with_ir.group_by(["ir_map", "Item_Code"]).agg(

@@ -122,9 +122,31 @@ async def process_po_extractor_logic(file_path: str):
             ]
         )
 
-        wb_lookup = {}
-        ir_lookup = {}
-        customer_ref_to_grn = {}  # Mapeo: Customer Reference -> {grns, ir, waybill}
+        # Cargar mapeos existentes para NUNCA desasociar GRNs históricas
+        existing_wb = {}
+        existing_ir = {}
+        existing_cust = {}
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                    prev_data = orjson.loads(f.read())
+                    if isinstance(prev_data, dict):
+                        existing_wb = prev_data.get("wb_to_data", {}) or {}
+                        existing_ir = prev_data.get("ir_to_data", {}) or {}
+                        existing_cust = prev_data.get("customer_ref_to_data", {}) or {}
+            except Exception as e_prev:
+                print(f"[PO EXTRACTOR] Warning leyendo lookup anterior: {e_prev}")
+
+        wb_lookup = existing_wb
+        ir_lookup = existing_ir
+        customer_ref_to_grn = {}
+        for ref_key, val in existing_cust.items():
+            if isinstance(val, dict):
+                customer_ref_to_grn[ref_key] = {
+                    "import_ref": val.get("import_ref", ""),
+                    "waybill": val.get("waybill", ""),
+                    "grns": set(val.get("grns", [])),
+                }
 
         # Procesar agrupado por Waybill
         for wb, group in df_po.group_by("Waybill"):
@@ -191,8 +213,11 @@ async def process_po_extractor_logic(file_path: str):
             "updated_at": datetime.datetime.now().isoformat(),
         }
 
-        with open(PO_LOOKUP_JSON_PATH, "wb") as f:
+        # Escritura atómica para evitar que workers o Rust lean un archivo a medio escribir
+        tmp_lookup_path = f"{PO_LOOKUP_JSON_PATH}.tmp.{os.getpid()}"
+        with open(tmp_lookup_path, "wb") as f:
             f.write(orjson.dumps(lookup_data, option=orjson.OPT_INDENT_2))
+        os.replace(tmp_lookup_path, PO_LOOKUP_JSON_PATH)
 
         return True, "Caché de búsqueda generado correctamente."
     except Exception as e:
@@ -391,16 +416,63 @@ async def update_files_post(
                     pass
 
             if update_option_280 == "combine" and os.path.exists(GRN_CSV_FILE_PATH):
+                # 1. Backup de seguridad antes de modificar
+                try:
+                    shutil.copy2(GRN_CSV_FILE_PATH, f"{GRN_CSV_FILE_PATH}.bak")
+                except Exception as e_bak:
+                    print(f"[WARN] No se pudo crear backup de 280: {e_bak}")
+
                 existing_data_df = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0)
-                new_grns = new_data_df.get_column(GRN_COLUMN_NAME_IN_CSV).unique()
-                existing_data_df = existing_data_df.filter(
-                    ~pl.col(GRN_COLUMN_NAME_IN_CSV).is_in(new_grns)
-                )
-                combined_df = pl.concat([existing_data_df, new_data_df], how="vertical")
-                combined_df.write_csv(GRN_CSV_FILE_PATH)
-                message += f'Archivo "{grn_file.filename}" combinado. '
+
+                # 2. Definir clave de negocio para Upsert a nivel de registros/líneas:
+                # Cada línea de recepción contable/física en el 280 se identifica unívocamente por:
+                # [GRN_Number, Order_Number, Order_Line, Item_Code, Serial_Number]
+                key_cols = [
+                    c
+                    for c in [
+                        "GRN_Number",
+                        "Order_Number",
+                        "Order_Line",
+                        "Item_Code",
+                        "Serial_Number",
+                    ]
+                    if c in existing_data_df.columns and c in new_data_df.columns
+                ]
+                if not key_cols or len(key_cols) < 2:
+                    key_cols = [
+                        c
+                        for c in ["GRN_Number", "Item_Code"]
+                        if c in existing_data_df.columns and c in new_data_df.columns
+                    ]
+
+                # 3. Fusión diagonal para preservar todas las columnas
+                combined_df = pl.concat([existing_data_df, new_data_df], how="diagonal")
+
+                # 4. Upsert real: si la línea existe con la misma clave, actualiza con la versión nueva (keep='last').
+                # Si es un registro nuevo, lo añade. Los registros existentes de la misma GRN o de otras GRNs
+                # se PRESERVAN INTACTOS (nunca se borran).
+                if key_cols:
+                    combined_df = combined_df.unique(
+                        subset=key_cols, keep="last", maintain_order=True
+                    )
+                else:
+                    combined_df = combined_df.unique(keep="last", maintain_order=True)
+
+                tmp_grn_path = f"{GRN_CSV_FILE_PATH}.tmp"
+                combined_df.write_csv(tmp_grn_path)
+                os.replace(tmp_grn_path, GRN_CSV_FILE_PATH)
+                message += f'Archivo "{grn_file.filename}" combinado correctamente con Upsert ({len(combined_df)} registros totales). '
             else:
-                new_data_df.write_csv(GRN_CSV_FILE_PATH)
+                # Reemplazo completo (con backup de seguridad)
+                try:
+                    if os.path.exists(GRN_CSV_FILE_PATH):
+                        shutil.copy2(GRN_CSV_FILE_PATH, f"{GRN_CSV_FILE_PATH}.bak")
+                except Exception as e_bak:
+                    print(f"[WARN] No se pudo crear backup de 280: {e_bak}")
+
+                tmp_grn_path = f"{GRN_CSV_FILE_PATH}.tmp"
+                new_data_df.write_csv(tmp_grn_path)
+                os.replace(tmp_grn_path, GRN_CSV_FILE_PATH)
                 message += f'Archivo "{grn_file.filename}" reemplazado. '
             files_uploaded = True
         except Exception as e:
