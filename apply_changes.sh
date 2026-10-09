@@ -12,6 +12,13 @@ set -e # Detener si hay errores
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 
+# Normalizar proxy SOCKS5 a socks5h:// para herramientas como uv y reqwest (resolución remota de DNS en Cloudflare WARP)
+for _var in HTTPS_PROXY HTTP_PROXY ALL_PROXY https_proxy http_proxy all_proxy; do
+    if [[ "${!_var:-}" =~ ^socks5:// ]]; then
+        export "$_var"="socks5h://${!_var#socks5://}"
+    fi
+done
+
 echo "========================================================"
 echo "🔄 INICIANDO ACTUALIZACIÓN DEL SISTEMA LOGIX (UNIFICADO)"
 echo "========================================================"
