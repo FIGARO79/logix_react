@@ -300,7 +300,7 @@ const AdminInventory = () => {
     }, [error]);
 
     return (
-        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-4 pb-6 bg-[#fcfcfc] min-h-screen text-[#201f1e] text-[12px]">
+        <div className="admin-inventory-page max-w-[1400px] mx-auto px-6 pt-6 pb-6 bg-[#f3f3f3] min-h-screen text-[#201f1e] text-[12px]">
 
             {/* Header de la página */}
             <div className="flex justify-between items-center mb-4">

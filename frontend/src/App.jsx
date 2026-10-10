@@ -38,6 +38,7 @@ import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
 import InboundAudit from './pages/InboundAudit';
 import Spinner from './components/Spinner';
+import ReloadPrompt from './components/ReloadPrompt';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
@@ -95,7 +96,6 @@ const AdminProtectedRoute = ({ children }) => {
     return children;
 };
 
-import ReloadPrompt from './components/ReloadPrompt';
 
 function App() {
     return (

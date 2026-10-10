@@ -120,9 +120,9 @@ const CycleCountHistory = () => {
     const visibleRecordings = filteredRecordings.slice(0, displayCount);
 
     return (
-        <div className="cycle-count-history-page w-full h-[calc(100vh-110px)] flex flex-col gap-1 mt-2">
+        <div className="cycle-count-history-page w-full min-h-screen bg-[#f3f3f3] flex flex-col p-4">
             {/* Barra superior de herramientas */}
-            <div className="bg-white border-b border-[#d2d0ce] px-6 py-2 flex justify-end items-center z-20">
+            <div className="bg-white border border-[#d2d0ce] rounded shadow-xs px-4 py-2.5 flex justify-end items-center mb-3">
                 <div className="flex gap-2.5 items-center">
                     <input
                         type="text"
@@ -154,12 +154,13 @@ const CycleCountHistory = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto px-6 pb-4 pt-0 relative">
+            <div className="flex-1 overflow-auto relative">
                 {loading && <div className="text-center p-8 text-xs text-[#605e5c]">Cargando datos...</div>}
                 {error && <div className="bg-[#fde7e9] text-[#a4262c] border border-[#f8b8bc] p-3 rounded text-xs mb-4">{error}</div>}
 
                 {!loading && !error && (
-                    <table className="min-w-max text-left border-collapse bg-white shadow-sm leading-tight">
+                    <div className="bg-white border border-[#d2d0ce] rounded shadow-xs overflow-hidden">
+                        <table className="min-w-max w-full text-left border-collapse leading-tight">
                         <thead className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce] sticky top-0 z-20 shadow-sm font-normal">
                             <tr>
                                 <th className="px-3 py-1.5 text-[11px] font-normal uppercase whitespace-nowrap">SR</th>
@@ -230,7 +231,8 @@ const CycleCountHistory = () => {
                             )}
                         </tbody>
                     </table>
-                )}
+                </div>
+            )}
             </div>
         </div>
     );

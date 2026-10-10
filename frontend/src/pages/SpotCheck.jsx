@@ -279,7 +279,7 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-3 min-h-screen">
+        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-5 min-h-screen bg-[#f3f3f3]">
             <ToastContainer position="top-right" autoClose={2000} />
 
             <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">

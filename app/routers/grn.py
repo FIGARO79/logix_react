@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, desc
 from app.core.db import get_db
@@ -18,41 +18,6 @@ import os
 import polars as pl
 
 router = APIRouter(prefix="/api/grn", tags=["grn"])
-
-
-@router.get("/debug")
-async def debug_auth(request: Request, db: AsyncSession = Depends(get_db)):
-    """Endpoint de diagnóstico para depurar problemas de autenticación."""
-    from app.utils.auth import get_current_user
-    from app.models.sql_models import User
-    from sqlalchemy import select
-
-    username = get_current_user(request)
-    session_data = dict(request.session)
-
-    if not username:
-        return {
-            "logged_in": False,
-            "session_keys": list(request.session.keys()),
-            "session_data": session_data,
-        }
-
-    result = await db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
-
-    return {
-        "logged_in": True,
-        "username": username,
-        "user_id": user.id if user else None,
-        "is_approved": user.is_approved if user else None,
-        "db_permissions": user.permissions if user else None,
-        "permissions_list": user.permissions.split(",")
-        if user and user.permissions
-        else [],
-        "session_keys": list(request.session.keys()),
-        "has_inbound_permission": "inbound"
-        in (user.permissions.split(",") if user and user.permissions else []),
-    }
 
 
 @router.get("", response_model=List[GRNMasterResponse])

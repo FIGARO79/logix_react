@@ -996,19 +996,4 @@ async def update_count_qty(
     return ORJSONResponse({"message": "Cantidad actualizada correctamente"})
 
 
-@router.delete("/counts/{count_id}")
-async def delete_count(
-    count_id: int,
-    db: AsyncSession = Depends(get_db),
-    username: str = Depends(permission_required("inventory")),
-):
-    """API: Elimina un registro de StockCount."""
-    res = await db.execute(select(StockCount).where(StockCount.id == count_id))
-    stock_count = res.scalar_one_or_none()
-    if not stock_count:
-        raise HTTPException(status_code=404, detail="Registro de conteo no encontrado")
-
-    await db.delete(stock_count)
-    await db.commit()
-    return ORJSONResponse({"message": "Registro eliminado correctamente"})
 

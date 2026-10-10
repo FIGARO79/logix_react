@@ -326,7 +326,7 @@ const PickingAuditHistory = () => {
     };
 
     return (
-        <div className="picking-audit-history-page max-w-[1400px] mx-auto px-6 py-6 bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="picking-audit-history-page max-w-[1400px] mx-auto px-6 pt-6 pb-6 bg-[#f3f3f3] min-h-screen text-zinc-800">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {loading && (
@@ -342,11 +342,11 @@ const PickingAuditHistory = () => {
             )}
 
             {!loading && !error && (
-                <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
+                <div className="bg-white border border-[#d2d0ce] rounded shadow-xs overflow-hidden">
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
                             <thead>
-                                <tr className="bg-zinc-100 text-zinc-800 border-b border-zinc-300">
+                                <tr className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce]">
                                     <th className="px-4 py-1.5 text-center w-10">
                                         <input
                                             type="checkbox"

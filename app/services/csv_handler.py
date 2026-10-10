@@ -239,18 +239,6 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
     return None
 
 
-async def get_total_expected_quantity_for_item(item_code: str):
-    global df_grn_cache
-    await reload_cache_if_needed()
-    if df_grn_cache is None:
-        return 0
-    res = df_grn_cache.filter(
-        pl.col("Item_Code").str.strip_chars().str.to_uppercase()
-        == item_code.upper().strip()
-    )
-    return int(res.select(pl.col("Quantity").sum())[0, 0] or 0) if res.height > 0 else 0
-
-
 async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_code: str) -> set:
     po_numbers = set()
     import_ref_clean = import_reference.strip().upper()
@@ -363,24 +351,6 @@ async def get_locations_with_stock_count():
     if not master_qty_map:
         await load_csv_data()
     return len([c for c, q in master_qty_map.items() if q > 0])
-
-
-async def read_csv_safe_polars(file_path: str, columns: list = None):
-    if not os.path.exists(file_path):
-        return None
-    try:
-        df = pl.read_csv(
-            file_path,
-            infer_schema_length=10000,
-            null_values=["", "nan", "NaN"],
-            ignore_errors=True,
-        )
-        if columns:
-            available = [c for c in columns if c in df.columns]
-            return df.select(available)
-        return df
-    except:
-        return None
 
 
 async def get_expected_quantity_from_po(import_reference: str, item_code: str) -> int:

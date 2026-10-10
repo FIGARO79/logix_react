@@ -397,7 +397,7 @@ const OccupancyDashboard = () => {
     ];
 
     return (
-        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-segoe-ui bg-[#fcfcfc] min-h-screen text-[#201f1e] text-[12px] antialiased">
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-segoe-ui bg-[#f3f3f3] min-h-screen text-[#201f1e] text-[12px] antialiased">
 
             {/* Header with Title and Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 bg-white p-3.5 rounded border border-[#d2d0ce] shadow-xs">

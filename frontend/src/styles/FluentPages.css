@@ -36,6 +36,7 @@
     --fluent-subtle: #f9f9f9;
     font-family: var(--logix-font-family, 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif);
     color: var(--fluent-text);
+    background-color: #f3f3f3;
 }
 
 /* Shared rules using CSS nesting */

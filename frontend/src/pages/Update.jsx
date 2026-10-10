@@ -353,7 +353,7 @@ const Update = () => {
     };
 
     return (
-        <div className="update-page max-w-[1440px] mx-auto min-h-screen bg-[#f5f5f5] px-5 py-5 text-[12px] text-[#201f1e] lg:px-10">
+        <div className="update-page max-w-[1440px] mx-auto min-h-screen bg-[#f3f3f3] px-5 py-5 text-[12px] text-[#201f1e] lg:px-10">
 
             {/* Mensajes de Notificación con Temporizador y Cierre Manual */}
             {messages.error && (

@@ -20,21 +20,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Expand cost_per_unit precision from DECIMAL(12,2) to DECIMAL(14,2)."""
-    op.alter_column(
-        'master_items',
-        'cost_per_unit',
-        existing_type=sa.Numeric(12, 2),
-        type_=sa.Numeric(14, 2),
-        existing_nullable=True,
-    )
+    with op.batch_alter_table('master_items', schema=None) as batch_op:
+        batch_op.alter_column(
+            'cost_per_unit',
+            existing_type=sa.Numeric(12, 2),
+            type_=sa.Numeric(14, 2),
+            existing_nullable=True,
+        )
 
 
 def downgrade() -> None:
     """Revert cost_per_unit precision to DECIMAL(12,2)."""
-    op.alter_column(
-        'master_items',
-        'cost_per_unit',
-        existing_type=sa.Numeric(14, 2),
-        type_=sa.Numeric(12, 2),
-        existing_nullable=True,
-    )
+    with op.batch_alter_table('master_items', schema=None) as batch_op:
+        batch_op.alter_column(
+            'cost_per_unit',
+            existing_type=sa.Numeric(14, 2),
+            type_=sa.Numeric(12, 2),
+            existing_nullable=True,
+        )

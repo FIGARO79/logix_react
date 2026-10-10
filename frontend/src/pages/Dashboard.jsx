@@ -297,7 +297,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-[#f5f5f5] px-5 pt-5 pb-12 lg:px-10 lg:pt-7 lg:pb-12">
+        <div className="min-h-[calc(100vh-80px)] bg-[#f3f3f3] px-5 pt-5 pb-12 lg:px-10 lg:pt-7 lg:pb-12">
             <div className="max-w-7xl mx-auto">
                 {/* Feedback Toast */}
                 {feedbackMessage && (

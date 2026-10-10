@@ -332,7 +332,7 @@ const InboundAudit = () => {
     }, [consolidatedIR, activeImportRefsWithShortages]);
 
     return (
-        <div className="inbound-audit-page w-full px-6 py-5 font-segoe-ui bg-white min-h-screen text-black">
+        <div className="inbound-audit-page w-full px-6 py-5 font-segoe-ui bg-[#f3f3f3] min-h-screen text-black">
             {/* ENCABEZADO */}
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 border-b border-black/20 gap-3">
                 <div>

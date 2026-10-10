@@ -111,7 +111,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#f3f2f1] flex items-center justify-center p-6 font-segoe-ui">
+            <div className="min-h-screen bg-[#f3f3f3] flex items-center justify-center p-6 font-segoe-ui">
                 <div className="bg-white p-6 rounded border border-[#d2d0ce] shadow-sm flex items-center gap-3">
                     <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
                     <span className="text-xs text-[#201f1e] font-medium">Generando Packing List...</span>
@@ -122,7 +122,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-[#f3f2f1] flex items-center justify-center p-6 font-segoe-ui">
+            <div className="min-h-screen bg-[#f3f3f3] flex items-center justify-center p-6 font-segoe-ui">
                 <div className="bg-white p-6 rounded border border-red-200 shadow-sm max-w-md">
                     <h3 className="text-sm font-semibold text-red-700 mb-1">Error al generar documento</h3>
                     <p className="text-xs text-[#605e5c]">{error}</p>
@@ -151,7 +151,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
     const isZebra = printFormat === 'zebra';
 
     return (
-        <div className="packing-list-print-page bg-[#f3f2f1] min-h-screen text-black font-sans print:bg-white print:p-0 print:min-h-0">
+        <div className="packing-list-print-page bg-[#f3f3f3] min-h-screen text-black font-sans print:bg-white print:p-0 print:min-h-0">
             {/* ESTILOS DE IMPRESIÓN DINÁMICOS SEGÚN IMPRESORA / FORMATO */}
             <style dangerouslySetInnerHTML={{
                 __html: `

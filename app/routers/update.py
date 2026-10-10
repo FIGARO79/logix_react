@@ -45,13 +45,6 @@ from app.services.csv_to_db import sync_master_csv_to_db
 from app.services.reservation_service import recalculate_xdock_reservations_task
 from app.utils.auth import login_required
 
-
-def np_encoder(obj):
-    if isinstance(obj, np.generic):
-        return obj.item()
-    return str(obj)
-
-
 router = APIRouter(prefix="", tags=["update"])
 
 

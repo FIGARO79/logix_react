@@ -385,7 +385,7 @@ const Layout = () => {
     return (
         <div className="flex min-h-screen flex-col bg-[#f3f3f3] font-sans text-[#201f1e] print:block print:h-auto print:overflow-visible">
             {/* Header / Shell Bar */}
-            <header className="top-header sticky top-0 z-50 flex h-[48px] items-center gap-4 border-b border-[#e1dfdd] bg-white px-4 text-[#201f1e] shadow-none print:hidden no-print">
+            <header className="top-header sticky top-0 z-50 flex h-[48px] items-center gap-4 border-b border-[#d2d0ce] bg-white px-4 text-[#201f1e] shadow-none print:hidden no-print">
                 <button
                     className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
                     onClick={toggleMenu}
@@ -396,7 +396,7 @@ const Layout = () => {
                     </svg>
                 </button>
 
-                <div className="tabs-wrapper flex-grow mr-4 min-w-0">
+                <div className="tabs-wrapper self-stretch flex-grow mr-4 min-w-0">
                     <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                         {tabs.map((tab, index) => {
                             let dropPositionClass = '';

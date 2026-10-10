@@ -168,7 +168,7 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
+        <div className="slotting-config-page max-w-[1400px] mx-auto px-6 pt-6 pb-6 bg-[#f3f3f3] min-h-screen text-black text-[12px] antialiased">
 
             <div className="flex justify-end items-center mb-2 border-b border-zinc-100 pb-1.5 text-black">
                 <div className="flex items-center gap-3">

@@ -21,7 +21,7 @@ from app.utils.auth import permission_required
 
 import orjson
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,16 @@ from app.core.config import PLANNER_CONFIG_PATH, PLANNER_DATA_PATH
 
 CONFIG_FILE = PLANNER_CONFIG_PATH
 PLAN_DATA_FILE = PLANNER_DATA_PATH
+
+
+def _to_valid_freq(val, default: int) -> int:
+    if val == 0 or val == "0":
+        return 0
+    try:
+        parsed = int(val)
+        return max(0, parsed)
+    except (ValueError, TypeError):
+        return default
 
 
 def load_config():
@@ -61,9 +71,10 @@ def load_config():
         "start_date": f"{datetime.datetime.now().year}-01-01",
         "end_date": f"{datetime.datetime.now().year}-12-31",
         "holidays": default_holidays,
+        "frequencies": {"A": 3, "B": 2, "C": 1},
     }
 
-    config = default_config
+    config = dict(default_config)
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "rb") as f:
@@ -71,6 +82,16 @@ def load_config():
                 config.update(loaded)
         except Exception:
             pass
+
+    if "frequencies" not in config or not isinstance(config.get("frequencies"), dict):
+        config["frequencies"] = {"A": 3, "B": 2, "C": 1}
+    else:
+        freqs = config["frequencies"]
+        config["frequencies"] = {
+            "A": _to_valid_freq(freqs.get("A"), 3),
+            "B": _to_valid_freq(freqs.get("B"), 2),
+            "C": _to_valid_freq(freqs.get("C"), 1),
+        }
 
     global HOLIDAYS
     try:
@@ -85,11 +106,22 @@ def load_config():
 
 
 def save_config(config_data):
-    """Guarda la configuración en el archivo JSON."""
+    """Guarda la configuración en el archivo JSON asegurando persistencia de frecuencias."""
+    if "frequencies" not in config_data or not isinstance(config_data.get("frequencies"), dict):
+        config_data["frequencies"] = {"A": 3, "B": 2, "C": 1}
+    else:
+        freqs = config_data["frequencies"]
+        config_data["frequencies"] = {
+            "A": _to_valid_freq(freqs.get("A"), 3),
+            "B": _to_valid_freq(freqs.get("B"), 2),
+            "C": _to_valid_freq(freqs.get("C"), 1),
+        }
+
     with open(CONFIG_FILE, "wb") as f:
         f.write(orjson.dumps(config_data, option=orjson.OPT_INDENT_2))
 
-    global HOLIDAYS
+    global HOLIDAYS, PLANNER_CONFIG
+    PLANNER_CONFIG = config_data
     try:
         HOLIDAYS = {
             datetime.datetime.strptime(d, "%Y-%m-%d").date()
@@ -123,9 +155,14 @@ PLANNER_CONFIG = load_config()
 
 
 class PlannerConfigModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     start_date: str
     end_date: str
     holidays: list[str]
+    frequencies: dict[str, int] = Field(
+        default_factory=lambda: {"A": 3, "B": 2, "C": 1}
+    )
 
 
 FREQUENCY_MAP = {"A": 3, "B": 2, "C": 1}
@@ -147,6 +184,7 @@ async def calculate_count_plan_data(
     end_date: str,
     db: AsyncSession,
     extra_already_planned: dict[str, int] | None = None,
+    frequencies: dict[str, int] | None = None,
 ):
     """Lógica central para calcular el plan de conteos distribuidos en días hábiles."""
     try:
@@ -189,8 +227,8 @@ async def calculate_count_plan_data(
 
     items_pl = pl.DataFrame(data_list)
 
-    current_year = datetime.datetime.now().year
-    start_of_year = f"{current_year}-01-01"
+    planning_year = s_date.year
+    start_of_year = f"{planning_year}-01-01"
     query = (
         select(CycleCount.item_code, func.count(CycleCount.id).label("count"))
         .where(CycleCount.timestamp >= start_of_year)
@@ -199,6 +237,7 @@ async def calculate_count_plan_data(
     result = await db.execute(query)
     previous_counts_map = {row.item_code: row.count for row in result.all()}
 
+    freq_map = frequencies or PLANNER_CONFIG.get("frequencies") or FREQUENCY_MAP
     tasks_to_schedule = []
     for row in items_pl.iter_rows(named=True):
         item_code, abc_code, description = (
@@ -206,7 +245,7 @@ async def calculate_count_plan_data(
             row["ABC_Code_stockroom"],
             row["Item_Description"],
         )
-        required = FREQUENCY_MAP.get(abc_code, 0)
+        required = freq_map.get(abc_code, 0)
         done = previous_counts_map.get(item_code, 0)
         if extra_already_planned:
             done += extra_already_planned.get(item_code, 0)
@@ -246,28 +285,6 @@ async def calculate_count_plan_data(
         )
     df_output = pl.DataFrame(planned_rows)
     return df_output.sort(["Planned Date", "Item Code"])
-
-
-@router.get("/preview_plan")
-async def preview_count_plan(
-    start_date: str = Query(...),
-    end_date: str = Query(...),
-    username: str = Depends(permission_required("planner")),
-    db: AsyncSession = Depends(get_db),
-):
-    df_output = await calculate_count_plan_data(start_date, end_date, db)
-    df_output = df_output.with_columns(pl.col("Planned Date").cast(pl.Utf8))
-
-    # Resúmenes con Polars
-    summary_by_date = df_output.group_by("Planned Date").len(name="count").to_dicts()
-    summary_by_abc = df_output.group_by("ABC Code").len(name="count").to_dicts()
-
-    return {
-        "total_items": len(df_output),
-        "summary_by_date": summary_by_date,
-        "summary_by_abc": summary_by_abc,
-        "details": df_output.to_dicts(),
-    }
 
 
 @router.get("/generate_plan")
@@ -317,8 +334,12 @@ async def update_planner_config(
 ):
     try:
         global PLANNER_CONFIG
-        PLANNER_CONFIG = config.dict()
-        save_config(PLANNER_CONFIG)
+        config_data = (
+            config.model_dump()
+            if hasattr(config, "model_dump")
+            else config.dict()
+        )
+        save_config(config_data)
         return {"message": "Configuración guardada", "config": PLANNER_CONFIG}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -410,6 +431,44 @@ async def update_count_plan(
     result_data = {
         "total_items": len(all_details),
         "details": all_details,
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+    save_plan_data(result_data)
+    return result_data
+
+
+@router.post("/reset_plan")
+async def reset_count_plan(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    username: str = Depends(permission_required("planner")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Reinicia la planificación completa desde cero para un nuevo ciclo/año:
+    Crea un respaldo de seguridad del plan anterior, descarta el histórico
+    persistente y genera una nueva distribución limpia para el rango indicado.
+    """
+    if os.path.exists(PLAN_DATA_FILE):
+        try:
+            import shutil
+
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"{PLAN_DATA_FILE}.backup_{timestamp}"
+            shutil.copy2(PLAN_DATA_FILE, backup_path)
+            logger.info(f"Respaldo de planner_data creado en {backup_path}")
+        except Exception as e:
+            logger.warning(f"No se pudo crear respaldo de planner_data: {e}")
+
+    df_new = await calculate_count_plan_data(start_date, end_date, db)
+    details = df_new.with_columns(
+        pl.col("Planned Date").cast(pl.Utf8)
+    ).to_dicts()
+
+    result_data = {
+        "total_items": len(details),
+        "details": details,
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
 

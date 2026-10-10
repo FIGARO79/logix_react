@@ -73,13 +73,6 @@ fn py_any_to_string(v: &Bound<'_, PyAny>) -> Option<String> {
     }
 }
 
-/// Suma una lista de números enteros de 64 bits a alta velocidad.
-#[pyfunction]
-pub fn sum_list_rust(numbers: Vec<i64>) -> PyResult<i64> {
-    let sum: i64 = numbers.iter().sum();
-    Ok(sum)
-}
-
 /// Calcula sugerencia de ubicación física optimizada en base a reglas de slotting.
 #[pyfunction]
 pub fn get_suggested_bin_rust(

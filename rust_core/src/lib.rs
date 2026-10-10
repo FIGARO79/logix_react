@@ -10,7 +10,6 @@ pub mod general_inventory;
 #[pymodule]
 fn logix_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Slotting / Ubicaciones
-    m.add_function(wrap_pyfunction!(slotting::sum_list_rust, m)?)?;
     m.add_function(wrap_pyfunction!(slotting::get_suggested_bin_rust, m)?)?;
     m.add_function(wrap_pyfunction!(slotting::get_suggested_bins_batch_rust, m)?)?;
     

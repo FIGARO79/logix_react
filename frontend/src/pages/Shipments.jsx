@@ -61,11 +61,11 @@ const Shipments = () => {
     };
 
     return (
-        <div className="shipments-page max-w-[1400px] mx-auto px-6 py-6 bg-[#fcfcfc] min-h-screen text-black">
+        <div className="shipments-page max-w-[1400px] mx-auto px-6 pt-6 pb-6 bg-[#f3f3f3] min-h-screen text-black">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Barra de Acciones */}
-            <div className="mb-1 border-b border-zinc-100 pb-1 flex justify-end items-center">
+            <div className="mb-3 border-b border-[#d2d0ce] pb-2 flex justify-end items-center">
                 <div className="flex items-center gap-6">
                     <button
                         onClick={fetchShipments}

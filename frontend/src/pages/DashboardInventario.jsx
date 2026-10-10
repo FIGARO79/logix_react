@@ -123,7 +123,7 @@ const DashboardInventario = () => {
     );
 
     return (
-        <div className="dashboard-inventario-page max-w-[1440px] mx-auto px-4 py-3 font-segoe-ui bg-[#f9f9f9] min-h-screen text-[#201f1e] leading-normal">
+        <div className="dashboard-inventario-page max-w-[1440px] mx-auto px-4 py-3 font-segoe-ui bg-[#f3f3f3] min-h-screen text-[#201f1e] leading-normal">
 
             {/* Top Navigation & Control Header */}
             <div className="bg-white p-3.5 rounded border border-[#d2d0ce] shadow-xs mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">

@@ -563,9 +563,9 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="reconciliation-page flex flex-col h-full bg-[#f9f9f9] text-[#201f1e] font-segoe-ui">
+        <div className="reconciliation-page flex flex-col h-full bg-[#f3f3f3] text-[#201f1e] font-segoe-ui p-4">
             {/* Barra de Filtros y Acciones */}
-            <div className="px-4 py-2.5 border-b border-[#d2d0ce] bg-white sticky top-0 z-30 shadow-xs">
+            <div className="px-4 py-2.5 border border-[#d2d0ce] bg-white rounded shadow-xs mb-3">
                 <div className="flex flex-wrap items-center gap-2.5">
                     
                     {/* Selector de I.R. */}
@@ -581,7 +581,7 @@ const Reconciliation = () => {
                                     setSelectedIR(e.target.value.trim().toUpperCase());
                                     setSelectedGRN(''); // Reset GRN al cambiar IR
                                 }}
-                                className="w-full h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full !h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="ir-list">
                                 {availableIRs.map(ir => (
@@ -601,7 +601,7 @@ const Reconciliation = () => {
                                 placeholder="TODAS LAS GRN"
                                 value={selectedGRN}
                                 onChange={(e) => setSelectedGRN(e.target.value.trim().toUpperCase())}
-                                className="w-full h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full !h-9 px-2.5 text-sm text-[#201f1e] font-normal bg-white border border-[#8a8886] rounded outline-none uppercase focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                             />
                             <datalist id="grn-list">
                                 {availableGRNs.map(g => (
@@ -618,7 +618,7 @@ const Reconciliation = () => {
                             <input
                                 type="text"
                                 placeholder="Buscar ítem, descripción, ubicación..."
-                                className="w-full h-9 px-3 text-sm bg-white border border-[#8a8886] rounded outline-none text-[#201f1e] font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+                                className="w-full !h-9 px-3 text-sm bg-white border border-[#8a8886] rounded outline-none text-[#201f1e] font-normal focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
                                 style={{ paddingRight: filterText ? '28px' : '10px' }}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
@@ -757,7 +757,7 @@ const Reconciliation = () => {
             </div>
 
             {/* Tabla Principal de Conciliación */}
-            <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col">
                 <div className="bg-white border border-[#d2d0ce] shadow-xs overflow-hidden flex flex-col flex-1 rounded">
                     {loading ? (
                         <div className="flex-1 flex flex-col items-center justify-center py-32 text-[#605e5c] text-sm font-normal">

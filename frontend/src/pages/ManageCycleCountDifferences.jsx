@@ -200,7 +200,7 @@ const ManageCycleCountDifferences = () => {
 
 
     return (
-        <div className="manage-cycle-diff-page max-w-[1800px] mx-auto px-6 pt-3 pb-6 bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="manage-cycle-diff-page max-w-[1800px] mx-auto px-6 pt-6 pb-6 bg-[#f3f3f3] min-h-screen text-zinc-800">
             {/* Filtros */}
             <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
                 <div>

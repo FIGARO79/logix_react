@@ -6,13 +6,12 @@ import datetime
 from collections import defaultdict
 
 from io import BytesIO
-from urllib.parse import urlencode
 from typing import Optional, Dict, Any, List
 from openpyxl.utils import get_column_letter
 from pydantic import BaseModel
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import Response
 from app.core.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, insert, update, text
@@ -233,81 +232,6 @@ async def get_inventory_summary_stats(db: AsyncSession) -> Optional[Dict[str, An
     return summary
 
 
-# ===== RUTAS DE ADMIN INVENTORY =====
-
-
-@router.post("/admin/inventory/start_stage_1", name="start_inventory_stage_1")
-async def start_inventory_stage_1(
-    request: Request,
-    user: str = Depends(permission_required("inventory")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Inicia un nuevo ciclo de inventario en Etapa 1."""
-
-    try:
-        print("Limpiando tablas de inventario para un nuevo ciclo...")
-        await db.execute(update(CycleCount).values(count_id=None))
-        await db.execute(delete(SessionLocation))
-        await db.execute(delete(W2WInventorySnapshot))
-        await db.execute(delete(StockCount))
-        await db.execute(delete(CountSession))
-        await db.execute(delete(RecountList))
-
-        print("Tablas de inventario limpiadas.")
-
-        # Sincronizar maestro de items desde CSV a DB
-        print("Sincronizando maestro de items...")
-        await sync_master_csv_to_db(db)
-        await csv_handler.reload_cache_if_needed()
-        print("Sincronización completada.")
-
-        # Congelar snapshot estático de stock del sistema
-        now_ts = datetime.datetime.now().isoformat(timespec="seconds")
-        snapshot_records = []
-        for code, sys_qty in csv_handler.master_qty_map.items():
-            code_clean = str(code).upper().strip()
-            desc = csv_handler.master_desc_map.get(code_clean, "N/A")
-            bin_loc = csv_handler.master_bin_map.get(code_clean, "SYSTEM")
-            cost = float(csv_handler.master_cost_map.get(code_clean, 0.0))
-            snapshot_records.append(
-                W2WInventorySnapshot(
-                    session_id=0,
-                    item_code=code_clean,
-                    description=desc,
-                    bin_location=bin_loc,
-                    system_qty=float(sys_qty),
-                    unit_cost=cost,
-                    created_at=now_ts,
-                )
-            )
-        if snapshot_records:
-            db.add_all(snapshot_records)
-            print(f"Snapshot estático de inventario congelado con {len(snapshot_records)} ítems.")
-
-        # Actualizar estado
-        stmt_update = (
-            update(AppState)
-            .where(AppState.key == "current_inventory_stage")
-            .values(value="1")
-        )
-        await db.execute(stmt_update)
-
-        await db.commit()
-
-        query_params = urlencode(
-            {
-                "message": "Inventario reiniciado en Etapa 1. Todos los datos y contadores han sido reseteados."
-            }
-        )
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-    except Exception as e:
-        query_params = urlencode({"error": f"Error de base de datos: {e}"})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-
 
 async def get_app_setting(db: AsyncSession, key: str, default_value: str) -> str:
     """Obtiene una configuración de AppState o crea el valor por defecto si no existe."""
@@ -472,69 +396,6 @@ async def process_stage_advance_logic(db: AsyncSession, next_stage: int) -> int:
     return len(items_for_recount)
 
 
-@router.post("/admin/inventory/advance/{next_stage}", name="advance_inventory_stage")
-async def advance_inventory_stage(
-    request: Request,
-    next_stage: int,
-    user: str = Depends(permission_required("inventory")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Avanza el inventario a la siguiente etapa (Redirect HTML)."""
-    try:
-        recount_count = await process_stage_advance_logic(db, next_stage)
-
-        # Actualizar estado de la aplicación
-        stmt_update = (
-            update(AppState)
-            .where(AppState.key == "current_inventory_stage")
-            .values(value=str(next_stage))
-        )
-        await db.execute(stmt_update)
-        await db.commit()
-
-        message = f"Proceso completado. Etapa de inventario avanzada a {next_stage}. Se encontraron {recount_count} ítems con diferencias."
-        query_params = urlencode({"message": message})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-
-    except Exception as e:
-        query_params = urlencode({"error": f"Error inesperado: {e}"})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-
-
-@router.post("/admin/inventory/finalize", name="finalize_inventory")
-async def finalize_inventory(
-    request: Request,
-    user: str = Depends(permission_required("inventory")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Finaliza el ciclo de inventario."""
-    try:
-        stmt_update = (
-            update(AppState)
-            .where(AppState.key == "current_inventory_stage")
-            .values(value="0")
-        )
-        await db.execute(stmt_update)
-        await db.commit()
-
-        query_params = urlencode(
-            {"message": "Ciclo de inventario finalizado y cerrado."}
-        )
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-    except Exception as e:
-        query_params = urlencode({"error": f"Error de base de datos: {e}"})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
-        )
-
-
-@router.get("/admin/inventory/report", name="generate_inventory_report")
 @router.get("/api/admin/inventory/report", name="generate_inventory_report_api")
 async def generate_inventory_report(
     request: Request,
@@ -557,17 +418,9 @@ async def generate_inventory_report(
         )
         rows = result.fetchall()
         if not rows:
-            if request.url.path.startswith("/api/"):
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No hay datos de conteo para generar un informe.",
-                )
-            query_params = urlencode(
-                {"error": "No hay datos de conteo para generar un informe."}
-            )
-            return RedirectResponse(
-                url=f"/admin/inventory?{query_params}",
-                status_code=status.HTTP_302_FOUND,
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No hay datos de conteo para generar un informe.",
             )
 
         # Mapa de tomas por item y etapa: item -> {stage: sum_qty}
@@ -743,14 +596,9 @@ async def generate_inventory_report(
         print(f"Error generando el informe de inventario W2W: {e}")
         if isinstance(e, HTTPException):
             raise e
-        if request.url.path.startswith("/api/"):
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"No se pudo generar el informe: {str(e)}",
-            )
-        query_params = urlencode({"error": f"No se pudo generar el informe: {str(e)}"})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}", status_code=status.HTTP_302_FOUND
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"No se pudo generar el informe: {str(e)}",
         )
 
 
@@ -772,10 +620,9 @@ async def export_recount_list(
         if stage_number >= 4:
             return await generate_inventory_report(request, db, user)
 
-        query_params = urlencode({"error": f"No hay ítems en la lista de reconteo para la Etapa {stage_number}."})
-        return RedirectResponse(
-            url=f"/admin/inventory?{query_params}",
-            status_code=status.HTTP_302_FOUND,
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No hay ítems en la lista de reconteo para la Etapa {stage_number}.",
         )
 
     # Importar la función para obtener detalles del item
@@ -886,6 +733,32 @@ async def start_inventory_stage_1_api(
     await db.execute(delete(StockCount))
     await db.execute(delete(CountSession))
     await db.execute(delete(RecountList))
+
+    # Sincronizar maestro de items desde CSV a DB
+    await sync_master_csv_to_db(db)
+    await csv_handler.reload_cache_if_needed()
+
+    # Congelar snapshot estático de stock del sistema
+    now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+    snapshot_records = []
+    for code, sys_qty in csv_handler.master_qty_map.items():
+        code_clean = str(code).upper().strip()
+        desc = csv_handler.master_desc_map.get(code_clean, "N/A")
+        bin_loc = csv_handler.master_bin_map.get(code_clean, "SYSTEM")
+        cost = float(csv_handler.master_cost_map.get(code_clean, 0.0))
+        snapshot_records.append(
+            W2WInventorySnapshot(
+                session_id=0,
+                item_code=code_clean,
+                description=desc,
+                bin_location=bin_loc,
+                system_qty=float(sys_qty),
+                unit_cost=cost,
+                created_at=now_ts,
+            )
+        )
+    if snapshot_records:
+        db.add_all(snapshot_records)
 
     await db.commit()
     return ORJSONResponse(

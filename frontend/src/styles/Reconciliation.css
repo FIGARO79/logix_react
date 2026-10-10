@@ -43,6 +43,10 @@
     color: var(--reconciliation-text);
 }
 
+.reconciliation-page input[type="text"] {
+    height: 36px;
+}
+
 .reconciliation-page input:focus,
 .reconciliation-page select:focus,
 .reconciliation-page textarea:focus {

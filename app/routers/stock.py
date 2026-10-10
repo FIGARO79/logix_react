@@ -2,24 +2,16 @@
 Router para endpoints de stock/inventario.
 """
 
-from typing import List, Tuple
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.responses import ORJSONResponse
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
-from app.services import csv_handler, db_logs, measurement_service
-from app.utils.auth import login_required, permission_required
+from app.services import csv_handler, db_logs
+from app.utils.auth import permission_required
 from app.models.sql_models import MasterItem
 
 router = APIRouter(prefix="/api", tags=["stock"])
-
-
-class MeasurementRequest(BaseModel):
-    qr_corners: List[Tuple[float, float]]
-    box_corners: List[Tuple[float, float]]
-    qr_real_size: float = 10.0
 
 
 @router.get("/search_items")
@@ -65,19 +57,6 @@ async def search_items(
         }
         for item in items
     ]
-
-
-@router.post("/measure")
-async def measure_dimensions(
-    data: MeasurementRequest, username: str = Depends(login_required)
-):
-    """Endpoint para calcular dimensiones reales usando homografía."""
-    result = measurement_service.calculate_homography_dimensions(
-        data.qr_corners, data.box_corners, data.qr_real_size
-    )
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-    return ORJSONResponse(result)
 
 
 @router.get("/stock")

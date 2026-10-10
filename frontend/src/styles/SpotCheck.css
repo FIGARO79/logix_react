@@ -6,9 +6,9 @@
     --fluent-muted: #605e5c;
     --fluent-border: #d2d0ce;
     --fluent-surface: #ffffff;
-    --fluent-subtle: #f9f9f9;
+    --fluent-subtle: #f3f3f3;
     color: var(--fluent-text);
-    background-color: var(--fluent-subtle) !important;
+    background-color: #f3f3f3 !important;
 }
 
 /* Cards and panels */
