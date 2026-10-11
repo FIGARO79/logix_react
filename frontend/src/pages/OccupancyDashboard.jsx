@@ -285,12 +285,14 @@ const OccupancyDashboard = () => {
     };
 
     if (loading) return (
-        <Spinner size="lg" label="Procesando datos espaciales..." fullPage />
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-6 pb-6 font-segoe-ui bg-[#f3f3f3] min-h-screen flex flex-col items-center justify-center">
+            <Spinner size="lg" label="Procesando datos espaciales..." />
+        </div>
     );
 
     if (!data) return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="bg-red-50 text-red-750 px-4 py-2 rounded border border-red-200 text-[12px] font-normal">Failed to retrieve warehouse metrics.</div>
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-6 pb-6 font-segoe-ui bg-[#f3f3f3] min-h-screen flex items-center justify-center">
+            <div className="bg-red-50 text-red-700 px-4 py-2 rounded border border-red-200 text-[12px] font-normal">No se pudieron obtener las métricas del almacén.</div>
         </div>
     );
 
@@ -397,7 +399,7 @@ const OccupancyDashboard = () => {
     ];
 
     return (
-        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-segoe-ui bg-[#f3f3f3] min-h-screen text-[#201f1e] text-[12px] antialiased">
+        <div className="occupancy-dashboard-page max-w-[1600px] mx-auto px-6 pt-6 pb-6 font-segoe-ui bg-[#f3f3f3] min-h-screen text-[#201f1e] text-[12px] antialiased">
 
             {/* Header with Title and Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 bg-white p-3.5 rounded border border-[#d2d0ce] shadow-xs">
