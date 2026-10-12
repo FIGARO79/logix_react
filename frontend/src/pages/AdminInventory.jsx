@@ -183,6 +183,7 @@ const AdminInventory = () => {
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                bc.postMessage({ type: 'INVENTORY_STAGE_CHANGED', stage: data.stage });
                 bc.close();
             }
         } catch (err) {

@@ -109,10 +109,47 @@ async def get_active_session_for_user(
     if not isinstance(username, str):
         return None
 
+    # Verificar si el inventario global está activo
+    result_stage = await db.execute(
+        select(AppState).where(AppState.key == "current_inventory_stage")
+    )
+    stage_row = result_stage.scalar_one_or_none()
+    current_stage = int(stage_row.value) if (stage_row and stage_row.value) else 0
+
+    now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+
+    if current_stage == 0:
+        # Si el inventario global está finalizado (etapa 0), cerrar cualquier sesión remanente del usuario
+        stmt_close = (
+            update(CountSession)
+            .where(
+                CountSession.user_username == username,
+                CountSession.status == "in_progress",
+            )
+            .values(status="completed", end_time=now_ts)
+        )
+        await db.execute(stmt_close)
+        await db.commit()
+        return None
+
+    # Cerrar sesiones que pertenezcan a etapas anteriores
+    stmt_close_old = (
+        update(CountSession)
+        .where(
+            CountSession.user_username == username,
+            CountSession.status == "in_progress",
+            CountSession.inventory_stage < current_stage,
+        )
+        .values(status="completed", end_time=now_ts)
+    )
+    await db.execute(stmt_close_old)
+
     result = await db.execute(
         select(CountSession)
         .where(
-            CountSession.user_username == username, CountSession.status == "in_progress"
+            CountSession.user_username == username,
+            CountSession.status == "in_progress",
+            CountSession.inventory_stage == current_stage,
         )
         .order_by(CountSession.start_time.desc())
         .limit(1)
@@ -121,6 +158,7 @@ async def get_active_session_for_user(
     if session:
         return {
             "id": session.id,
+            "session_id": session.id,
             "user_username": session.user_username,
             "start_time": session.start_time,
             "end_time": session.end_time,

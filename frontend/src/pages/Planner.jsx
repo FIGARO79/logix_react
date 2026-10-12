@@ -401,22 +401,6 @@ const Planner = () => {
                         </button>
                         <button
                             type="button"
-                            onClick={handleUpdatePlan}
-                            disabled={loading}
-                            className="h-8 px-4 text-xs font-normal text-white bg-[#0078d4] hover:bg-[#106ebe] disabled:opacity-50 rounded transition-colors shadow-xs cursor-pointer"
-                        >
-                            {loading ? 'Calculando...' : 'Actualizar Plan'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleResetPlan}
-                            disabled={loading}
-                            className="h-8 px-3.5 text-xs font-normal text-[#a4262c] bg-white border border-[#a4262c] hover:bg-red-50 disabled:opacity-50 rounded transition-colors shadow-xs cursor-pointer"
-                        >
-                            {loading ? 'Reiniciando...' : 'Reiniciar Plan Anual'}
-                        </button>
-                        <button
-                            type="button"
                             onClick={() => {
                                 const params = new URLSearchParams({
                                     start_date: config.start_date,
@@ -537,7 +521,23 @@ const Planner = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-2 mt-3 pt-2.5 border-t border-[#edebe9]">
+                        <div className="flex flex-wrap justify-end gap-2 mt-3 pt-2.5 border-t border-[#edebe9]">
+                            <button
+                                type="button"
+                                onClick={handleResetPlan}
+                                disabled={loading}
+                                className="h-8 px-3.5 text-xs font-normal text-[#a4262c] bg-white border border-[#a4262c] hover:bg-red-50 disabled:opacity-50 rounded transition-colors shadow-xs cursor-pointer"
+                            >
+                                {loading ? 'Reiniciando...' : 'Reiniciar Plan Anual'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUpdatePlan}
+                                disabled={loading}
+                                className="h-8 px-4 text-xs font-normal text-white bg-[#0078d4] hover:bg-[#106ebe] disabled:opacity-50 rounded transition-colors shadow-xs cursor-pointer"
+                            >
+                                {loading ? 'Calculando...' : 'Actualizar Plan'}
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setIsConfigOpen(false)}

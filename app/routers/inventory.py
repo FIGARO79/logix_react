@@ -787,6 +787,17 @@ async def advance_inventory_stage_api(
 
     recount_count = await process_stage_advance_logic(db, next_stage)
 
+    # Cerrar sesiones activas de etapas previas
+    now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+    await db.execute(
+        update(CountSession)
+        .where(
+            CountSession.status == "in_progress",
+            CountSession.inventory_stage < next_stage,
+        )
+        .values(status="completed", end_time=now_ts)
+    )
+
     stage_state.value = str(next_stage)
     await db.commit()
     return ORJSONResponse(
@@ -803,16 +814,31 @@ async def finalize_inventory_api(
     user: str = Depends(permission_required("inventory")),
     db: AsyncSession = Depends(get_db),
 ):
-    """API: Finaliza inventario."""
+    """API: Finaliza inventario cerrando todas las sesiones activas."""
     result = await db.execute(
         select(AppState).where(AppState.key == "current_inventory_stage")
     )
     stage_state = result.scalar_one_or_none()
     if stage_state:
         stage_state.value = "0"
-        await db.commit()
+    else:
+        stage_state = AppState(key="current_inventory_stage", value="0")
+        db.add(stage_state)
+
+    # Cerrar automáticamente todas las sesiones activas de conteo
+    now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+    await db.execute(
+        update(CountSession)
+        .where(CountSession.status == "in_progress")
+        .values(status="completed", end_time=now_ts)
+    )
+    await db.commit()
+
     return ORJSONResponse(
-        content={"message": "Inventario finalizado correctamente", "stage": 0}
+        content={
+            "message": "Inventario finalizado correctamente. Todas las sesiones activas han sido cerradas.",
+            "stage": 0,
+        }
     )
 
 
@@ -969,6 +995,18 @@ async def save_w2w_count_api(
     db: AsyncSession = Depends(get_db),
 ):
     """API dedicada para guardar tomas de Inventario General W2W (sin alterar conteos cíclicos)."""
+    # 0. Verificar que el inventario esté activo
+    result_stage = await db.execute(
+        select(AppState).where(AppState.key == "current_inventory_stage")
+    )
+    stage_row = result_stage.scalar_one_or_none()
+    current_stage = int(stage_row.value) if (stage_row and stage_row.value) else 0
+    if current_stage == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El inventario ha finalizado o no está activo. No se permiten más conteos.",
+        )
+
     # 1. Verificar que la sesión exista y esté activa
     stmt = select(CountSession).where(CountSession.id == payload.session_id)
     session_row = (await db.execute(stmt)).scalar_one_or_none()

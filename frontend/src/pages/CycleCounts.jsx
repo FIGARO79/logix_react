@@ -110,14 +110,23 @@ const CycleCounts = () => {
                 item_code: item_code.toUpperCase(),
                 counted_qty: parseFloat(counted_qty)
             };
-            const res = await fetch('/api/counts', {
+            const res = await fetch('/api/w2w/save_count', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.detail || "Error al guardar reconteo");
+                const errData = await res.json().catch(() => ({}));
+                const detail = errData.detail || "Error al guardar reconteo";
+                if (
+                    detail.includes("sesión") ||
+                    detail.includes("cerrada") ||
+                    detail.includes("finalizado") ||
+                    detail.includes("no está activo")
+                ) {
+                    checkActiveSession();
+                }
+                throw new Error(detail);
             }
             toast.success(`Reconteo guardado: ${item_code} = ${counted_qty}`);
             setRecountItemModal(null);
@@ -141,12 +150,36 @@ const CycleCounts = () => {
                         const db = await getDB();
                         await db.put('active_sessions', { type: 'cycle_count', ...session });
                     } else {
-                        setActiveSession(null);
+                        setActiveSession((prev) => {
+                            if (prev) {
+                                toast.info("El ciclo de inventario ha finalizado o la sesión fue cerrada. La sesión se cerró automáticamente.");
+                            }
+                            return null;
+                        });
                         const db = await getDB();
                         await db.delete('active_sessions', 'cycle_count');
+                        clearForm();
+                        setCountedLocation('');
+                        setLocationCounts([]);
+                        setSessionLocations([]);
+                        setShowRecountModal(false);
+                        setRecountItemModal(null);
                     }
                 } else {
-                    setActiveSession(null);
+                    setActiveSession((prev) => {
+                        if (prev) {
+                            toast.info("La sesión de inventario fue cerrada.");
+                        }
+                        return null;
+                    });
+                    const db = await getDB();
+                    await db.delete('active_sessions', 'cycle_count');
+                    clearForm();
+                    setCountedLocation('');
+                    setLocationCounts([]);
+                    setSessionLocations([]);
+                    setShowRecountModal(false);
+                    setRecountItemModal(null);
                 }
             } else {
                 // Modo Offline: buscar en caché
@@ -154,7 +187,6 @@ const CycleCounts = () => {
                 const cached = await db.get('active_sessions', 'cycle_count');
                 if (cached) {
                     setActiveSession(cached);
-                    toast.info("Cargada sesión activa de caché local");
                 } else {
                     setActiveSession(null);
                 }
@@ -181,7 +213,12 @@ const CycleCounts = () => {
                 await db.put('active_sessions', { type: 'cycle_count', ...session });
                 toast.success("Sesión de inventario iniciada");
             } else {
-                toast.error("Error iniciando sesión");
+                let errorMsg = "Error iniciando sesión";
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.detail || errorMsg;
+                } catch {}
+                toast.error(errorMsg);
             }
         } catch (e) {
             toast.error("Error de conexión");
@@ -250,6 +287,39 @@ const CycleCounts = () => {
 
     useEffect(() => {
         checkActiveSession();
+
+        let bc;
+        if (typeof BroadcastChannel !== 'undefined') {
+            bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (
+                    event.data?.type === 'CYCLE_COUNT_MUTATED' ||
+                    event.data?.type === 'INVENTORY_STAGE_CHANGED' ||
+                    event.data?.type === 'INVENTORY_FINALIZED'
+                ) {
+                    checkActiveSession();
+                }
+            };
+        }
+
+        const interval = setInterval(() => {
+            if (navigator.onLine && !document.hidden) {
+                checkActiveSession();
+            }
+        }, 5000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && navigator.onLine) {
+                checkActiveSession();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (bc) bc.close();
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [checkActiveSession]);
 
     useEffect(() => {
@@ -411,6 +481,19 @@ const CycleCounts = () => {
                     toast.success("Conteo guardado");
                     clearFormAfterSave();
                     return;
+                } else if (res.status === 400 || res.status === 403) {
+                    const errData = await res.json().catch(() => ({}));
+                    const detail = errData.detail || "";
+                    if (
+                        detail.includes("sesión") ||
+                        detail.includes("cerrada") ||
+                        detail.includes("finalizado") ||
+                        detail.includes("no está activo")
+                    ) {
+                        toast.error(detail || "La sesión o ciclo de inventario ha finalizado.");
+                        checkActiveSession();
+                        return;
+                    }
                 }
             }
 
