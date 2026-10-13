@@ -349,6 +349,7 @@ const Reconciliation = () => {
             'Diferencia': row.Diferencia ?? 0,
             'Motivo Discrepancia': row.Motivo_Diferencia || '',
             'Observación Operador': row.Observacion_Operador || '',
+            'Operador': row.Operador || row.Usuario || row.username || '',
             'Fecha': row.Timestamp ? formatDateShort(row.Timestamp) : ''
         }));
 
@@ -568,7 +569,8 @@ const Reconciliation = () => {
             'Waybill': it.waybill || header.waybill || '',
             'GRN': it.grn_number || header.grn_number || '',
             'Fecha Guardado': header.reconciled_at ? formatDateShort(header.reconciled_at) : '',
-            'Operador': header.reconciled_by || ''
+            'Usuario': it.username || it.Usuario || header.reconciled_by || '',
+            'Operador': it.username || it.Usuario || header.reconciled_by || ''
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(formattedData);
@@ -831,6 +833,7 @@ const Reconciliation = () => {
                                                 { id: 'Cant_Recibida', label: 'Cant. Recibida' },
                                                 { id: 'Diferencia', label: 'Diferencia' },
                                                 { id: 'Motivo', label: 'Motivo / Observación' },
+                                                { id: 'Operador', label: 'Operador' },
                                                 { id: 'Timestamp', label: 'Fecha' },
                                                 { id: 'Acciones', label: 'Acciones' }
                                             ].map((head) => (
@@ -882,6 +885,9 @@ const Reconciliation = () => {
                                                             )}
                                                         </td>
                                                         <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#605e5c]">
+                                                            {row.Operador || row.Usuario || row.username || '-'}
+                                                        </td>
+                                                        <td className="px-3 py-1 font-normal text-sm whitespace-nowrap text-[#605e5c]">
                                                             {formatDateShort(row.Timestamp)}
                                                         </td>
                                                         <td className="px-2 py-1 font-normal text-sm whitespace-nowrap text-center">
@@ -897,7 +903,7 @@ const Reconciliation = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan={14} className="px-4 py-20 text-center text-[#605e5c] text-xs font-normal">
+                                                <td colSpan={15} className="px-4 py-20 text-center text-[#605e5c] text-xs font-normal">
                                                     No se encontraron registros para los filtros seleccionados
                                                 </td>
                                             </tr>

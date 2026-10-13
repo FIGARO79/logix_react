@@ -444,15 +444,20 @@ async def get_reconciliation_calculations(
             [pl.col("binLocation").fill_null(""), pl.col("relocatedBin").fill_null("")]
         )
 
-        # Extraer el timestamp de los logs (el más reciente para el grupo)
+        # Extraer el timestamp y usuario de los logs (el más reciente para el grupo)
         df_timestamps = logs_pl.group_by(["importReference", "itemCode"]).agg(
-            [pl.col("timestamp").last().alias("timestamp_log")]
+            [
+                pl.col("timestamp").last().alias("timestamp_log"),
+                pl.col("username").drop_nulls().last().alias("username_log"),
+            ]
         )
         final = final.join(
             df_timestamps,
             left_on=["ir_map", "Item_Code"],
             right_on=["importReference", "itemCode"],
             how="left",
+        ).with_columns(
+            [pl.col("username_log").fill_null("")]
         )
 
         # Ocultar diferencias duplicadas en la vista
@@ -496,6 +501,8 @@ async def get_reconciliation_calculations(
                     pl.col("Diferencia"),
                     pl.col("Diferencia_Real_IR"),
                     pl.col("timestamp_log").alias("Timestamp"),
+                    pl.col("username_log").alias("Operador"),
+                    pl.col("username_log").alias("Usuario"),
                 ]
             )
             .with_columns(
@@ -550,7 +557,7 @@ async def create_snapshot(
             qty_expected=int(row.get("Cant_Esperada", 0)),
             qty_received=int(row.get("Cant_Recibida", 0)),
             difference=int(row.get("Diferencia", 0)),
-            username=username,
+            username=row.get("Usuario") or row.get("username") or username,
             timestamp=row.get("Timestamp") or base_time_str,
         )
         for row in data

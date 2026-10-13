@@ -184,6 +184,9 @@ async def get_reconciliation_data(
                     "Cant_Esperada": r.qty_expected,
                     "Cant_Recibida": r.qty_received,
                     "Diferencia": r.difference,
+                    "Operador": getattr(r, "username", "") or "",
+                    "Usuario": getattr(r, "username", "") or "",
+                    "Timestamp": getattr(r, "timestamp", "") or "",
                     **get_saved_comment(
                         {
                             "import_reference": r.import_reference,
