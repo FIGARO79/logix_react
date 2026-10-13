@@ -97,12 +97,9 @@ export default defineConfig({
             }
         },
         chunkSizeWarningLimit: 600,
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: true,
-                drop_debugger: true
-            }
-        }
+        minify: 'esbuild'
+    },
+    esbuild: {
+        drop: ['console', 'debugger']
     }
 })

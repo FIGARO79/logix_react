@@ -77,6 +77,21 @@ const Update = () => {
     useEffect(() => {
         setTitle("Datos Maestros");
         fetchSyncStatus();
+        const checkInitialRobotStatus = async () => {
+            try {
+                const res = await fetch('/api/po_robot_status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'running') {
+                        setIsRobotRunning(true);
+                        setMessages(prev => ({ ...prev, info: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' }));
+                    }
+                }
+            } catch (err) {
+                console.error("Error al consultar estado inicial del robot:", err);
+            }
+        };
+        checkInitialRobotStatus();
     }, [setTitle]);
 
     // Auto-cierre de notificaciones a los 10 segundos
@@ -94,7 +109,7 @@ const Update = () => {
         }
     }, [messages.success, messages.error, messages.info, isRobotRunning]);
 
-    // Polling robot status
+    // Polling robot status en tiempo real (cada 2 segundos)
     useEffect(() => {
         let interval;
         if (isRobotRunning) {
@@ -112,11 +127,11 @@ const Update = () => {
                             setIsRobotRunning(false);
                             fetchSyncStatus();
                         } else if (data.status === 'running') {
-                            setMessages({ success: '', error: '', info: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' });
+                            setMessages(prev => ({ ...prev, info: data.message || 'EJECUTANDO ROBOT EN SEGUNDO PLANO...' }));
                         }
                     }
                 } catch (err) { console.error(err); }
-            }, 10000);
+            }, 2000);
         }
         return () => clearInterval(interval);
     }, [isRobotRunning]);
@@ -179,7 +194,8 @@ const Update = () => {
 
     const handleRunRobot = async () => {
         if (!window.confirm("¿INICIAR ROBOT DE DESCARGA?")) return;
-        setIsRobotRunning(true); setMessages({ success: '', error: '', info: 'SINCRONIZANDO CON PORTAL...' });
+        setIsRobotRunning(true);
+        setMessages({ success: '', error: '', info: 'Iniciando conexión con portal...' });
         const fmt = (iso) => iso.split('-').reverse().join('/');
         try {
             const res = await fetch('/api/run_po_robot', {
@@ -187,8 +203,17 @@ const Update = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start_date: fmt(robotStartDate), end_date: fmt(robotEndDate) })
             });
-            if (!res.ok) { setIsRobotRunning(false); setMessages({ success: '', error: "ERROR AL ACTIVAR ROBOT" }); }
-        } catch (err) { setIsRobotRunning(false); }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setIsRobotRunning(false);
+                setMessages({ success: '', error: data.error || data.detail || "ERROR AL ACTIVAR ROBOT", info: '' });
+            } else if (data.message) {
+                setMessages(prev => ({ ...prev, info: data.message }));
+            }
+        } catch (err) {
+            setIsRobotRunning(false);
+            setMessages({ success: '', error: err.message, info: '' });
+        }
     };
 
     const fetchMaestroGrns = async () => {
@@ -332,6 +357,15 @@ const Update = () => {
                             {isRobotRunning ? 'EJECUTANDO...' : 'SINCRO PORTAL'}
                         </button>
                     </div>
+
+                    {isRobotRunning && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded flex items-center gap-3">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                            <div className="text-[12px] text-blue-900 font-mono tracking-tight leading-snug">
+                                {messages.info || "Conectando y procesando en segundo plano..."}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* File Upload Section */}

@@ -21,7 +21,8 @@ from app.core.config import (
     PICKING_CSV_PATH,
     RESERVATION_CSV_PATH,
     GRN_COLUMN_NAME_IN_CSV,
-    ADMIN_PASSWORD
+    ADMIN_PASSWORD,
+    INSTANCE_FOLDER
 )
 from app.services.csv_handler import load_csv_data
 from app.services.csv_to_db import sync_master_csv_to_db
@@ -266,11 +267,36 @@ class PORobotRequest(BaseModel):
     start_date: str
     end_date: str
 
-# Variable global para el estado del robot en memoria
-po_robot_status = {
-    "status": "idle",
-    "message": ""
-}
+PO_ROBOT_STATUS_FILE = os.path.join(INSTANCE_FOLDER, "po_robot_status.json")
+
+def get_robot_status():
+    if os.path.exists(PO_ROBOT_STATUS_FILE):
+        try:
+            with open(PO_ROBOT_STATUS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Si quedó en running pero hace más de 15 minutos, considerarlo timeout/idle
+                if data.get("status") == "running":
+                    ts_str = data.get("timestamp")
+                    if ts_str:
+                        ts = datetime.datetime.fromisoformat(ts_str)
+                        if (datetime.datetime.now() - ts).total_seconds() > 900:
+                            return {"status": "idle", "message": "Proceso anterior expirado."}
+                return data
+        except Exception:
+            pass
+    return {"status": "idle", "message": ""}
+
+def set_robot_status(status_str: str, message: str = ""):
+    try:
+        os.makedirs(INSTANCE_FOLDER, exist_ok=True)
+        with open(PO_ROBOT_STATUS_FILE, "w", encoding="utf-8") as f:
+            json.dump({
+                "status": status_str,
+                "message": message,
+                "timestamp": datetime.datetime.now().isoformat()
+            }, f)
+    except Exception as e:
+        print(f"Error saving robot status: {e}")
 
 @router.post('/api/run_po_robot', response_class=JSONResponse)
 async def run_po_robot_api(
@@ -284,43 +310,46 @@ async def run_po_robot_api(
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
 
+    current_status = get_robot_status()
     # Evitar múltiples ejecuciones concurrentes
-    if po_robot_status["status"] == "running":
+    if current_status["status"] == "running":
         return JSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
 
+    set_robot_status("running", f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}...")
+
     async def execute_robot_task():
-        global po_robot_status
-        po_robot_status["status"] = "running"
-        po_robot_status["message"] = f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
-        
         try:
             from app.services.po_robot import run_po_robot
             from app.core.config import PO_EXTRACTOR_EXCEL_PATH
             
-            # 1. Ejecutar descarga de forma asíncrona nativa
-            success, msg = await run_po_robot(payload.start_date, payload.end_date)
+            # 1. Ejecutar descarga reportando progreso en tiempo real
+            def on_robot_step(step_msg: str):
+                set_robot_status("running", step_msg)
+
+            success, msg = await run_po_robot(payload.start_date, payload.end_date, status_cb=on_robot_step)
             if not success:
-                po_robot_status["status"] = "error"
-                po_robot_status["message"] = f"Error en Robot: {msg}"
-                print(f"❌ {po_robot_status['message']}")
+                err_msg = f"Error en Robot: {msg}"
+                set_robot_status("error", err_msg)
+                print(f"❌ {err_msg}")
                 return
 
             # 2. Procesar el archivo
+            set_robot_status("running", "Descarga completada. Indexando registros y generando caché de búsqueda...")
             success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
             if success_proc:
-                po_robot_status["status"] = "success"
-                po_robot_status["message"] = f"Descarga y proceso completados con éxito. {msg_proc}"
-                print(f"✅ Robot: {po_robot_status['message']}")
-                # Recargar el caché de memoria general
+                set_robot_status("running", "Actualizando datos maestros en memoria RAM...")
                 await load_csv_data()
+                ok_msg = f"Descarga y sincronización completadas con éxito. {msg_proc}"
+                set_robot_status("success", ok_msg)
+                print(f"✅ Robot: {ok_msg}")
             else:
-                po_robot_status["status"] = "error"
-                po_robot_status["message"] = f"Descarga OK pero error en proceso: {msg_proc}"
-                print(f"❌ Robot: {po_robot_status['message']}")
+                fail_msg = f"Descarga OK pero error en indexación: {msg_proc}"
+                set_robot_status("error", fail_msg)
+                print(f"❌ Robot: {fail_msg}")
         except Exception as e:
-            po_robot_status["status"] = "error"
-            po_robot_status["message"] = f"Error crítico inesperado: {str(e)}"
-            print(f"❌ Error crítico en execute_robot_task: {str(e)}")
+            crit_msg = f"Error crítico inesperado: {str(e)}"
+            set_robot_status("error", crit_msg)
+            print(f"❌ Error crítico en execute_robot_task: {crit_msg}")
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
@@ -331,9 +360,8 @@ async def run_po_robot_api(
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
-    # Log para depuración
-    print(f"📡 [STATUS] Robot Status Check: {po_robot_status['status']} - {datetime.datetime.now().strftime('%H:%M:%S')}")
-    return JSONResponse(content=po_robot_status)
+    status_data = get_robot_status()
+    return JSONResponse(content=status_data)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
 @router.post('/api/update', response_class=JSONResponse)
