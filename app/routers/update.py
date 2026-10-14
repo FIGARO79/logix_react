@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, File, UploadFile, Response, BackgroundTasks
 from fastapi.responses import JSONResponse
+from app.core.responses import ORJSONResponse
 import polars as pl
 import os
 import shutil
 import orjson
 import datetime
+import time
 import numpy as np
 from io import BytesIO
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -262,106 +264,151 @@ async def process_po_extractor_logic(file_path: str):
         return False, str(e)
 
 from pydantic import BaseModel
+from app.services.po_robot import (
+    get_persisted_robot_status,
+    set_persisted_robot_status,
+    run_po_robot,
+)
+from app.core.config import PO_EXTRACTOR_EXCEL_PATH
+
 
 class PORobotRequest(BaseModel):
     start_date: str
     end_date: str
 
-PO_ROBOT_STATUS_FILE = os.path.join(INSTANCE_FOLDER, "po_robot_status.json")
 
-def get_robot_status():
-    if os.path.exists(PO_ROBOT_STATUS_FILE):
-        try:
-            with open(PO_ROBOT_STATUS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                # Si quedó en running pero hace más de 15 minutos, considerarlo timeout/idle
-                if data.get("status") == "running":
-                    ts_str = data.get("timestamp")
-                    if ts_str:
-                        ts = datetime.datetime.fromisoformat(ts_str)
-                        if (datetime.datetime.now() - ts).total_seconds() > 900:
-                            return {"status": "idle", "message": "Proceso anterior expirado."}
-                return data
-        except Exception:
-            pass
-    return {"status": "idle", "message": ""}
+def get_robot_status() -> dict:
+    return get_persisted_robot_status()
+
 
 def set_robot_status(status_str: str, message: str = ""):
-    try:
-        os.makedirs(INSTANCE_FOLDER, exist_ok=True)
-        with open(PO_ROBOT_STATUS_FILE, "w", encoding="utf-8") as f:
-            json.dump({
-                "status": status_str,
-                "message": message,
-                "timestamp": datetime.datetime.now().isoformat()
-            }, f)
-    except Exception as e:
-        print(f"Error saving robot status: {e}")
+    return set_persisted_robot_status(status=status_str, message=message)
 
-@router.post('/api/run_po_robot', response_class=JSONResponse)
+
+@router.post("/api/run_po_robot", response_class=ORJSONResponse)
 async def run_po_robot_api(
     payload: PORobotRequest,
     background_tasks: BackgroundTasks,
-    username: str = Depends(login_required)
+    username: str = Depends(login_required),
 ):
     """
     Dispara el robot de descarga de Purchase Order y luego procesa el archivo.
+    Persiste el estado en disco para sincronización entre múltiples workers.
     """
     if not isinstance(username, str):
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
+        return ORJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"}
+        )
 
-    current_status = get_robot_status()
+    current_status = get_persisted_robot_status()
     # Evitar múltiples ejecuciones concurrentes
-    if current_status["status"] == "running":
-        return JSONResponse(content={"message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual."})
+    if current_status.get("status") == "running":
+        return ORJSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "status": "running",
+                "message": "El robot ya se encuentra en ejecución. Por favor, espera a que termine la tarea actual.",
+                "task_id": current_status.get("task_id"),
+            },
+        )
 
-    set_robot_status("running", f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}...")
+    task_id = f"po_robot_{int(time.time())}"
+    initial_msg = (
+        f"Iniciando descarga para el periodo {payload.start_date} a {payload.end_date}..."
+    )
+    set_persisted_robot_status(
+        status="running",
+        message=initial_msg,
+        task_id=task_id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        started_at=time.time(),
+    )
 
     async def execute_robot_task():
-        try:
-            from app.services.po_robot import run_po_robot
-            from app.core.config import PO_EXTRACTOR_EXCEL_PATH
-            
-            # 1. Ejecutar descarga reportando progreso en tiempo real
-            def on_robot_step(step_msg: str):
-                set_robot_status("running", step_msg)
+        async def on_progress(step_text: str):
+            set_persisted_robot_status(
+                status="running",
+                message=step_text,
+                task_id=task_id,
+                start_date=payload.start_date,
+                end_date=payload.end_date,
+            )
 
-            success, msg = await run_po_robot(payload.start_date, payload.end_date, status_cb=on_robot_step)
+        try:
+            # 1. Ejecutar descarga con reporte de progreso
+            success, msg = await run_po_robot(
+                payload.start_date, payload.end_date, progress_callback=on_progress
+            )
             if not success:
                 err_msg = f"Error en Robot: {msg}"
-                set_robot_status("error", err_msg)
-                print(f"❌ {err_msg}")
+                set_persisted_robot_status(
+                    status="error",
+                    message=err_msg,
+                    task_id=task_id,
+                    finished_at=time.time(),
+                )
+                print(f"[ERROR] {err_msg}", flush=True)
                 return
 
             # 2. Procesar el archivo
-            set_robot_status("running", "Descarga completada. Indexando registros y generando caché de búsqueda...")
-            success_proc, msg_proc = await process_po_extractor_logic(PO_EXTRACTOR_EXCEL_PATH)
+            await on_progress("Descarga completada con éxito. Procesando compras en base de datos...")
+            success_proc, msg_proc = await process_po_extractor_logic(
+                PO_EXTRACTOR_EXCEL_PATH
+            )
             if success_proc:
-                set_robot_status("running", "Actualizando datos maestros en memoria RAM...")
-                await load_csv_data()
                 ok_msg = f"Descarga y sincronización completadas con éxito. {msg_proc}"
-                set_robot_status("success", ok_msg)
-                print(f"✅ Robot: {ok_msg}")
+                set_persisted_robot_status(
+                    status="success",
+                    message=ok_msg,
+                    task_id=task_id,
+                    finished_at=time.time(),
+                )
+                print(f"[OK] Robot: {ok_msg}", flush=True)
+                # Recargar el caché de memoria general
+                try:
+                    await load_csv_data()
+                except Exception as e_load:
+                    print(f"[WARN] Error recargando caché RAM: {e_load}", flush=True)
             else:
-                fail_msg = f"Descarga OK pero error en indexación: {msg_proc}"
-                set_robot_status("error", fail_msg)
-                print(f"❌ Robot: {fail_msg}")
+                proc_err = f"Descarga OK pero error en indexación: {msg_proc}"
+                set_persisted_robot_status(
+                    status="error",
+                    message=proc_err,
+                    task_id=task_id,
+                    finished_at=time.time(),
+                )
+                print(f"[ERROR] Robot: {proc_err}", flush=True)
         except Exception as e:
-            crit_msg = f"Error crítico inesperado: {str(e)}"
-            set_robot_status("error", crit_msg)
-            print(f"❌ Error crítico en execute_robot_task: {crit_msg}")
+            exc_msg = f"Falla inesperada en robot: {str(e)}"
+            set_persisted_robot_status(
+                status="error",
+                message=exc_msg,
+                task_id=task_id,
+                finished_at=time.time(),
+            )
+            print(f"[ERROR] Excepción en execute_robot_task: {e}", flush=True)
 
     # Ejecutar en segundo plano para no bloquear al usuario
     background_tasks.add_task(execute_robot_task)
-    
-    return JSONResponse(content={"message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real..."})
 
-@router.get('/api/po_robot_status')
+    return ORJSONResponse(
+        content={
+            "status": "running",
+            "task_id": task_id,
+            "message": f"El robot ha sido activado para el periodo {payload.start_date} a {payload.end_date}. Consultando estado en tiempo real...",
+        }
+    )
+
+
+@router.get("/api/po_robot_status")
 async def get_po_robot_status(username: str = Depends(login_required)):
     if not isinstance(username, str):
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"})
-    status_data = get_robot_status()
-    return JSONResponse(content=status_data)
+        return ORJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Unauthorized"}
+        )
+    status_data = get_persisted_robot_status()
+    return ORJSONResponse(content=status_data)
 
 # --- Endpoint para subir y procesar los archivos (POST) ---
 @router.post('/api/update', response_class=JSONResponse)
