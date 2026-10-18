@@ -64,25 +64,42 @@ const Reconciliation = () => {
             if (cachedData) setIsOfflineData(true);
             return { data: cachedData || [] };
         },
-        refetchInterval: () => {
-            if (location.pathname !== '/reconciliation') return false;
-            return 5000;
-        },
-        refetchOnWindowFocus: true,
+        refetchInterval: false,
+        refetchOnWindowFocus: false,
         refetchOnMount: 'always',
-        staleTime: 0
+        staleTime: 60000
     });
 
     useEffect(() => {
+        // 1. Canal local para pestañas en el mismo navegador
+        let bc;
         if (typeof BroadcastChannel !== 'undefined') {
-            const bc = new BroadcastChannel('logix_events');
+            bc = new BroadcastChannel('logix_events');
             bc.onmessage = (event) => {
                 if (event.data?.type === 'INBOUND_MUTATED') {
                     refetch();
                 }
             };
-            return () => bc.close();
         }
+
+        // 2. EventSource (SSE) para sincronización entre dispositivos diferentes (PDA muelle <-> PC oficina)
+        let eventSource;
+        try {
+            eventSource = new EventSource('/api/events/stream');
+            eventSource.addEventListener('inbound_mutated', () => {
+                refetch();
+            });
+            eventSource.onerror = () => {
+                // El navegador reintenta la conexión automáticamente ante microcortes
+            };
+        } catch (e) {
+            console.warn("Logix: SSE no disponible, usando fallback manual.", e);
+        }
+
+        return () => {
+            if (bc) bc.close();
+            if (eventSource) eventSource.close();
+        };
     }, [refetch]);
 
     const rawData = useMemo(() => queryData?.data || [], [queryData]);

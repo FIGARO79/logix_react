@@ -6,6 +6,7 @@ Unifica la lógica de la vista web y la exportación de Excel, respetando las l�
 import datetime
 import orjson
 import os
+import time
 import polars as pl
 from typing import List, Optional, Dict, Any
 from sqlalchemy import select, text
@@ -20,6 +21,18 @@ from app.models.sql_models import (
 )
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
+# --- Caché en memoria para optimizar el polling de conciliación activa ---
+_ACTIVE_RECONCILIATION_CACHE: Optional[List[Dict[str, Any]]] = None
+_LAST_CACHE_TIME: float = 0.0
+_CACHE_TTL: float = 30.0  # 30 segundos TTL de respaldo
+
+
+def invalidate_reconciliation_cache():
+    """Invalida la caché en memoria de la conciliación activa para forzar recálculo inmediato."""
+    global _ACTIVE_RECONCILIATION_CACHE, _LAST_CACHE_TIME
+    _ACTIVE_RECONCILIATION_CACHE = None
+    _LAST_CACHE_TIME = 0.0
+
 
 async def get_reconciliation_calculations(
     db: AsyncSession, archive_date: Optional[str] = None
@@ -28,6 +41,13 @@ async def get_reconciliation_calculations(
     Ejecuta los cálculos de conciliación cruzando el Reporte 280 con los Logs de Inbound.
     Valida la integridad usando la tríada: IR + Item + Order Number (Customer Ref).
     """
+    global _ACTIVE_RECONCILIATION_CACHE, _LAST_CACHE_TIME
+
+    # Si se consulta la conciliación activa y la caché está fresca, responder al instante (0 ms)
+    if archive_date is None and _ACTIVE_RECONCILIATION_CACHE is not None:
+        if (time.time() - _LAST_CACHE_TIME) < _CACHE_TTL:
+            return _ACTIVE_RECONCILIATION_CACHE
+
     try:
         await csv_handler.reload_cache_if_needed()
 
@@ -39,6 +59,9 @@ async def get_reconciliation_calculations(
         )
         if not logs_list:
             print("[RECONCILIATION] No hay registros de log para procesar.")
+            if archive_date is None:
+                _ACTIVE_RECONCILIATION_CACHE = []
+                _LAST_CACHE_TIME = time.time()
             return []
 
         logs_pl = pl.from_dicts(logs_list)
@@ -361,7 +384,7 @@ async def get_reconciliation_calculations(
         )
 
         # 10. Resultado Final
-        return (
+        result = (
             final.select(
                 [
                     pl.col("ir_map").alias("Import_Reference"),
@@ -387,6 +410,12 @@ async def get_reconciliation_calculations(
             .drop(["_order_line_num"])
             .to_dicts()
         )
+
+        if archive_date is None:
+            _ACTIVE_RECONCILIATION_CACHE = result
+            _LAST_CACHE_TIME = time.time()
+
+        return result
 
     except Exception as e:
         import traceback

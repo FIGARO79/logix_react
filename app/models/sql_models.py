@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, ForeignKey, Text, Numeric, Float
+from sqlalchemy import Integer, String, ForeignKey, Text, Numeric, Float, Index
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.db import Base
 from typing import Optional, List
@@ -79,6 +79,11 @@ class Log(Base):
     )
     archived_at: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
+    __table_args__ = (
+        Index("idx_logs_import_item", "importReference", "itemCode"),
+        Index("idx_logs_import_archived", "importReference", "archived_at"),
+    )
+
 
 class AppState(Base):
     __tablename__ = "app_state"
@@ -122,6 +127,10 @@ class SessionLocation(Base):
 
     session = relationship("CountSession", back_populates="locations")
 
+    __table_args__ = (
+        Index("idx_session_locations_session_code", "session_id", "location_code"),
+    )
+
 
 class RecountList(Base):
     __tablename__ = "recount_list"
@@ -130,7 +139,10 @@ class RecountList(Base):
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
     stage_to_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
-    # Index idx_recount_item_stage exists in raw SQL
+
+    __table_args__ = (
+        Index("idx_recount_item_stage", "item_code", "stage_to_count"),
+    )
 
 
 class StockCount(Base):
@@ -149,6 +161,10 @@ class StockCount(Base):
     username: Mapped[Optional[str]] = mapped_column(String(100))
 
     session = relationship("CountSession", back_populates="counts")
+
+    __table_args__ = (
+        Index("idx_stock_counts_session_item", "session_id", "item_code"),
+    )
 
 
 class W2WInventorySnapshot(Base):

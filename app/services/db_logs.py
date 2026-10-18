@@ -34,6 +34,21 @@ async def add_log(
         return False
 
 
+def _invalidate_recon_cache():
+    """Invalida la caché de conciliación reactivamente y emite evento a clientes conectados."""
+    try:
+        from app.services import reconciliation_service
+        reconciliation_service.invalidate_reconciliation_cache()
+    except Exception:
+        pass
+
+    try:
+        from app.routers import events
+        events.broadcast_event("inbound_mutated", {})
+    except Exception:
+        pass
+
+
 async def save_log_entry_db_async(
     db: AsyncSession, entry_data: Dict[str, Any]
 ) -> Optional[int]:
@@ -67,6 +82,7 @@ async def save_log_entry_db_async(
         db.add(new_log)
         await db.commit()
         await db.refresh(new_log)
+        _invalidate_recon_cache()
         return new_log.id
     except Exception as e:
         print(f"DB Error (save_log_entry_db_async): {e}")
@@ -109,6 +125,7 @@ async def update_log_entry_db_async(
             log.timestamp = entry_data_for_db["timestamp"]
 
         await db.commit()
+        _invalidate_recon_cache()
         return True
     except Exception as e:
         print(f"DB Error (update_log_entry_db_async) para ID {log_id}: {e}")
@@ -328,6 +345,7 @@ async def delete_log_entry_db_async(db: AsyncSession, log_id: int) -> bool:
         stmt = delete(Log).where(Log.id == log_id)
         result = await db.execute(stmt)
         await db.commit()
+        _invalidate_recon_cache()
         return result.rowcount > 0
     except Exception as e:
         print(f"DB Error (delete_log_entry_db_async) para ID {log_id}: {e}")
@@ -375,6 +393,7 @@ async def archive_current_logs_db_async(db: AsyncSession) -> bool:
         )
         await db.execute(stmt)
         await db.commit()
+        _invalidate_recon_cache()
         return True  # Always return true, even if 0 rows updated
     except Exception as e:
         print(f"DB Error (archive_current_logs_db_async): {e}")
@@ -390,6 +409,7 @@ async def restore_archived_logs_db_async(db: AsyncSession, version_date: str) ->
         )
         await db.execute(stmt)
         await db.commit()
+        _invalidate_recon_cache()
         return True
     except Exception as e:
         print(f"DB Error (restore_archived_logs_db_async): {e}")

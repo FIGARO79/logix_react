@@ -47,7 +47,7 @@ from app.routers import measurement
 
 # [NUEVO] Importar router refactorizado para vistas convertidas a API
 from app.routers import api_views
-from app.routers import integrations, sync
+from app.routers import integrations, sync, events
 
 # --- Eventos de ciclo de vida (Lifespan) ---
 @asynccontextmanager
@@ -136,6 +136,7 @@ app.include_router(sync.router)
 app.include_router(express_audit.router)
 app.include_router(spot_check.router)
 app.include_router(measurement.router)
+app.include_router(events.router)
 
 # --- Endpoint de salud ---
 @app.get("/health")

@@ -212,7 +212,7 @@ const Inbound = () => {
                 };
             });
         },
-        refetchInterval: () => currentVersion ? false : 15000,
+        refetchInterval: false,
         refetchOnWindowFocus: false
     });
     const normalizeDate = (dateString) => {
@@ -287,11 +287,38 @@ const Inbound = () => {
             runAutoSync();
         }, 600000);
 
+        // Escuchar eventos de mutación reactiva local entre pestañas
+        let bc;
+        if (typeof BroadcastChannel !== 'undefined') {
+            bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (event.data?.type === 'INBOUND_MUTATED') {
+                    queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+                }
+            };
+        }
+
+        // Escuchar eventos de mutación reactiva remota (SSE entre dispositivos diferentes)
+        let eventSource;
+        try {
+            eventSource = new EventSource('/api/events/stream');
+            eventSource.addEventListener('inbound_mutated', () => {
+                queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            });
+            eventSource.onerror = () => {
+                // Reintento automático nativo del navegador
+            };
+        } catch (e) {
+            console.warn("Logix: SSE no disponible en Inbound.", e);
+        }
+
         const handleFocus = () => runAutoSync();
         window.addEventListener('focus', handleFocus);
 
         return () => {
             clearInterval(syncInterval);
+            if (bc) bc.close();
+            if (eventSource) eventSource.close();
             window.removeEventListener('focus', handleFocus);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
