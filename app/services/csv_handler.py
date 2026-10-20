@@ -198,9 +198,12 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
     # A. Consultar si la propia import_reference es un número de PO (ej: N230731)
     po_numbers.add(import_ref_clean)
 
-    # B. Consultar desde po_lookup.json (ir_to_data / wb_to_data)
     from app.core.config import PO_LOOKUP_JSON_PATH
     import orjson
+
+    grns = set()
+
+    # B. Consultar desde po_lookup.json (ir_to_data / wb_to_data / grn_to_ir)
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
@@ -208,6 +211,12 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
             ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
             items = ir_data.get("items", [])
             for it in items:
+                grn_val = it.get("grn", "")
+                if grn_val:
+                    for g in str(grn_val).split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grns.add(g_clean)
                 if str(it.get("item_code", "")).strip().upper() == item_code_clean:
                     cust_ref = str(it.get("customer_ref", "") or it.get("po_number", "") or it.get("po", "")).strip().upper()
                     if cust_ref:
@@ -216,35 +225,32 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
             wb_data = cache.get("wb_to_data", {}).get(import_ref_clean, {})
             wb_items = wb_data.get("items", [])
             for it in wb_items:
+                grn_val = it.get("grn", "")
+                if grn_val:
+                    for g in str(grn_val).split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grns.add(g_clean)
                 if str(it.get("item_code", "")).strip().upper() == item_code_clean:
                     cust_ref = str(it.get("customer_ref", "") or it.get("po_number", "") or it.get("po", "")).strip().upper()
                     if cust_ref:
                         po_numbers.add(cust_ref)
+
+            for g, info in cache.get("grn_to_ir", {}).items():
+                if isinstance(info, dict) and str(info.get("import_ref", "")).strip().upper() == import_ref_clean:
+                    grns.add(str(g).strip().upper())
         except Exception as e:
             print(f"Error consultando po_lookup para PO numbers: {e}")
 
-    # C. Consultar desde df_grn_cache (Reporte 280) usando las GRNs asociadas si está cargado
+    # C. Consultar desde df_grn_cache (Reporte 280) usando las GRNs asociadas
+    await reload_cache_if_needed()
     global df_grn_cache
     if df_grn_cache is not None and "Order_Number" in df_grn_cache.columns:
         try:
-            grns = set()
-            if os.path.exists(PO_LOOKUP_JSON_PATH):
-                from app.routers.update import parse_grns
-                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                    cache = orjson.loads(f.read())
-                ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
-                for it in ir_data.get("items", []):
-                    grn_val = it.get("grn", "")
-                    if grn_val:
-                        for g in parse_grns(str(grn_val)):
-                            g_clean = g.strip().upper()
-                            if g_clean:
-                                grns.add(g_clean)
-
             if grns:
                 res = df_grn_cache.filter(
-                    (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code_clean) &
-                    (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(grns)))
+                    (pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase() == item_code_clean) &
+                    (pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().is_in(list(grns)))
                 )
                 if res.height > 0:
                     for order_num in res.select(pl.col("Order_Number")).to_series().to_list():
@@ -415,89 +421,105 @@ async def get_expected_quantity_from_grn_for_import_ref(
     import_reference: str, item_code: str, db: Optional[AsyncSession] = None
 ) -> Optional[int]:
     """
-    Busca la cantidad esperada de un artículo específico para una Import Reference dada,
-    consultando EXCLUSIVAMENTE en el Reporte 280 (df_grn_cache) aprovechando las asociaciones
-    por Order_Number / Customer Reference e I.R.
+    Busca la cantidad esperada de un artículo específico en el Reporte 280 (df_grn_cache)
+    utilizando los números de GRN asociados a esa Import Reference en po_lookup.json y GRNMaster.
+    Retorna 0 si no se encuentra.
     """
     if not import_reference or not item_code:
-        return None
+        return 0
 
     ref_clean = import_reference.strip().upper()
     item_clean = item_code.strip().upper()
 
-    from app.core.config import PO_LOOKUP_JSON_PATH
-    import orjson
-
     await reload_cache_if_needed()
     if df_grn_cache is None:
-        return None
+        return 0
 
-    po_line_grn_map = {}
-    po_line_map = {}
-    po_grn_item_map = {}
-    grn_map = {}
-    po_item_map = {}
+    from app.core.config import PO_LOOKUP_JSON_PATH
+    from app.models.sql_models import GRNMaster
+    from sqlalchemy import select, func
+    import orjson
 
+    grns = set()
+
+    # 1. Consultar GRNs desde po_lookup.json
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 cache = orjson.loads(f.read())
-            po_line_grn_map = cache.get("po_line_grn_item_to_ir", {})
-            po_line_map = cache.get("po_line_item_to_ir", {})
-            po_grn_item_map = cache.get("po_grn_item_to_ir", {})
-            grn_map = cache.get("grn_to_ir", {})
-            po_item_map = cache.get("po_item_to_ir", {})
+            ir_data = cache.get("ir_to_data", {}).get(ref_clean, {})
+            for it in ir_data.get("items", []):
+                grn_val = it.get("grn", "")
+                if grn_val:
+                    for g in str(grn_val).split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grns.add(g_clean)
+            for wb, data in cache.get("wb_to_data", {}).items():
+                ir = str(data.get("import_ref", "")).strip().upper()
+                if ir == ref_clean:
+                    for item in data.get("items", []):
+                        grn_val = item.get("grn", "")
+                        if grn_val:
+                            for g in str(grn_val).split(","):
+                                g_clean = g.strip().upper()
+                                if g_clean:
+                                    grns.add(g_clean)
+            for g, info in cache.get("grn_to_ir", {}).items():
+                if isinstance(info, dict) and str(info.get("import_ref", "")).strip().upper() == ref_clean:
+                    grns.add(str(g).strip().upper())
         except Exception as e:
-            print(f"Error cargando po_lookup en get_expected_quantity: {e}")
+            print(f"Error consultando po_lookup en get_expected_quantity: {e}")
 
+    # 2. Consultar GRNs desde Base de Datos SQL GRNMaster
+    if db:
+        try:
+            db_grns = await db.execute(
+                select(GRNMaster.grn_number).where(
+                    func.upper(GRNMaster.import_reference) == ref_clean
+                )
+            )
+            for grn_num_raw in db_grns.scalars().all():
+                if grn_num_raw:
+                    for g in str(grn_num_raw).split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            grns.add(g_clean)
+        except Exception as e:
+            print(f"Error consultando GRNMaster en DB: {e}")
+
+    if grns:
+        try:
+            res = df_grn_cache.filter(
+                (pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase() == item_clean)
+                & (
+                    pl.col("GRN_Number")
+                    .cast(pl.Utf8)
+                    .str.strip_chars()
+                    .str.to_uppercase()
+                    .is_in(list(grns))
+                )
+            )
+            if res.height > 0:
+                return int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
+        except Exception as e:
+            print(f"Error consultando df_grn_cache por GRN: {e}")
+
+    # 3. Fallback: buscar por coincidencia directa de Import_Reference si existe en el CSV
     try:
-        sub_df = df_grn_cache.filter(
-            pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase() == item_clean
-        )
-        if sub_df.height == 0:
-            return 0
-
-        target_qty = 0
-        found_match = False
-
-        for row in sub_df.to_dicts():
-            g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
-            g_order = str(row.get("Order_Number", "")).strip().upper()
-            g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
-            g_grn = str(row.get("GRN_Number", "")).strip().upper()
-            qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
-
-            is_match = False
-            if g_ir:
-                is_match = (g_ir == ref_clean)
-            else:
-                k_line_grn = f"{g_order}_{g_line}_{item_clean}_{g_grn}"
-                k_line = f"{g_order}_{g_line}_{item_clean}"
-                k_grn_item = f"{g_grn}_{item_clean}"
-                k_item = f"{g_order}_{item_clean}"
-
-                resolved_ir = None
-                if g_line and g_grn and k_line_grn in po_line_grn_map:
-                    resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
-                elif g_line and k_line in po_line_map:
-                    resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
-                elif g_grn and k_grn_item in po_grn_item_map:
-                    resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
-                elif g_grn and g_grn in grn_map:
-                    resolved_ir = str(grn_map[g_grn].get("import_ref", "")).strip().upper()
-                elif not g_line and k_item in po_item_map:
-                    resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
-
-                is_match = (resolved_ir == ref_clean)
-
-            if is_match:
-                target_qty += qty
-                found_match = True
-
-        if found_match:
-            return target_qty
-        return 0
+        col_ir = None
+        if "Import_Reference" in df_grn_cache.columns:
+            col_ir = "Import_Reference"
+        elif "ir_map" in df_grn_cache.columns:
+            col_ir = "ir_map"
+        if col_ir:
+            res = df_grn_cache.filter(
+                (pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase() == item_clean)
+                & (pl.col(col_ir).cast(pl.Utf8).str.strip_chars().str.to_uppercase() == ref_clean)
+            )
+            if res.height > 0:
+                return int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
     except Exception as e:
-        print(f"Error consultando df_grn_cache: {e}")
-        return 0
+        print(f"Error en fallback de df_grn_cache: {e}")
 
+    return 0

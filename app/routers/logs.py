@@ -83,10 +83,29 @@ async def find_item(
     # 4. Información de Cross-Docking (Xdock)
     xdock_data = await csv_handler.get_xdock_info(item_code, import_reference=import_reference)
     total_reserved = xdock_data.get("total", 0)
-    xdock_customers = xdock_data.get("customers", [])
+    raw_customers = xdock_data.get("customers", [])
 
     already_received = await db_logs.get_total_received_for_import_reference_async(db, import_reference, item_code)
     xdock_pending = max(0, total_reserved - already_received)
+
+    # Deducir secuencialmente lo recibido para actualizar las cantidades pendientes por cliente
+    xdock_customers = []
+    rem_deduct = float(already_received)
+
+    for c in raw_customers:
+        if isinstance(c, dict):
+            c_qty = float(c.get("qty", 0.0))
+            if rem_deduct >= c_qty:
+                rem_deduct -= c_qty
+            else:
+                pending_c_qty = c_qty - rem_deduct
+                rem_deduct = 0.0
+                c_copy = dict(c)
+                c_copy["qty"] = pending_c_qty
+                c_copy["original_qty"] = c_qty
+                xdock_customers.append(c_copy)
+        else:
+            xdock_customers.append(c)
 
     # 5. ELIMINADO: Ya no sobreescribimos final_suggested_bin con "XDOCK" aquí.
     # El frontend manejará el indicador visual de XDOCK basado en xdock_pending.
@@ -216,6 +235,7 @@ async def _enrich_logs_with_grn_qty(logs: List[Dict[str, Any]]) -> List[Dict[str
             with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                 po_cache = orjson.loads(f.read())
         except: pass
+    po_line_grn_item_to_ir = po_cache.get("po_line_grn_item_to_ir", {})
     po_line_item_to_ir = po_cache.get("po_line_item_to_ir", {})
     po_grn_item_to_ir = po_cache.get("po_grn_item_to_ir", {})
     po_item_to_ir = po_cache.get("po_item_to_ir", {})
@@ -231,23 +251,26 @@ async def _enrich_logs_with_grn_qty(logs: List[Dict[str, Any]]) -> List[Dict[str
 
         g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
         g_order = str(row.get("Order_Number", "")).strip().upper()
-        g_line = str(row.get("Order_Line", "")).strip()
+        g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
         g_grn = str(row.get("GRN_Number", "")).strip().upper()
         qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
         resolved_ir = None
-        po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
+        po_line_grn_key = f"{g_order}_{g_line}_{item_code}_{g_grn}" if (g_line and g_grn) else ""
         po_grn_item_key = f"{g_grn}_{item_code}" if g_grn else ""
+        po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
         po_key = f"{g_order}_{item_code}"
 
-        if po_line_key and po_line_key in po_line_item_to_ir:
-            resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+        if po_line_grn_key and po_line_grn_key in po_line_grn_item_to_ir:
+            resolved_ir = po_line_grn_item_to_ir[po_line_grn_key].get("import_ref")
         elif po_grn_item_key and po_grn_item_key in po_grn_item_to_ir:
             resolved_ir = po_grn_item_to_ir[po_grn_item_key].get("import_ref")
-        elif po_key in po_item_to_ir:
-            resolved_ir = po_item_to_ir[po_key].get("import_ref")
         elif g_grn and g_grn in grn_to_ir:
             resolved_ir = grn_to_ir[g_grn].get("import_ref") if isinstance(grn_to_ir[g_grn], dict) else grn_to_ir[g_grn]
+        elif po_line_key and po_line_key in po_line_item_to_ir:
+            resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+        elif po_key in po_item_to_ir:
+            resolved_ir = po_item_to_ir[po_key].get("import_ref")
         elif g_ir:
             resolved_ir = g_ir
 
@@ -409,10 +432,12 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
                 with open(PO_LOOKUP_JSON_PATH, "rb") as f:
                     po_cache = orjson.loads(f.read())
             except: pass
+        po_line_grn_item_to_ir = po_cache.get("po_line_grn_item_to_ir", {})
         po_line_item_to_ir = po_cache.get("po_line_item_to_ir", {})
         po_grn_item_to_ir = po_cache.get("po_grn_item_to_ir", {})
         po_item_to_ir = po_cache.get("po_item_to_ir", {})
         po_order_to_ir = po_cache.get("po_order_to_ir", {})
+        grn_to_ir = po_cache.get("grn_to_ir", {})
         customer_ref_data = po_cache.get("customer_ref_to_data", {})
 
         for row in df_grn.to_dicts():
@@ -422,23 +447,26 @@ async def export_log(timezone_offset: int = 0, version_date: Optional[str] = Non
             
             g_ir = str(row.get("Import_Reference", "") or row.get("ir_map", "")).strip().upper()
             g_order = str(row.get("Order_Number", "")).strip().upper()
-            g_line = str(row.get("Order_Line", "")).strip()
+            g_line = str(row.get("Order_Line", "")).strip().replace(".0", "")
             g_grn = str(row.get("GRN_Number", "")).strip().upper()
             qty = int(float(str(row.get("Quantity", 0)).replace(",", "."))) if row.get("Quantity") is not None else 0
 
             resolved_ir = None
-            po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
+            po_line_grn_key = f"{g_order}_{g_line}_{item_code}_{g_grn}" if (g_line and g_grn) else ""
             po_grn_item_key = f"{g_grn}_{item_code}" if g_grn else ""
+            po_line_key = f"{g_order}_{g_line}_{item_code}" if g_line else ""
             po_key = f"{g_order}_{item_code}"
 
-            if po_line_key and po_line_key in po_line_item_to_ir:
-                resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+            if po_line_grn_key and po_line_grn_key in po_line_grn_item_to_ir:
+                resolved_ir = po_line_grn_item_to_ir[po_line_grn_key].get("import_ref")
             elif po_grn_item_key and po_grn_item_key in po_grn_item_to_ir:
                 resolved_ir = po_grn_item_to_ir[po_grn_item_key].get("import_ref")
-            elif po_key in po_item_to_ir:
-                resolved_ir = po_item_to_ir[po_key].get("import_ref")
             elif g_grn and g_grn in grn_to_ir:
                 resolved_ir = grn_to_ir[g_grn].get("import_ref") if isinstance(grn_to_ir[g_grn], dict) else grn_to_ir[g_grn]
+            elif po_line_key and po_line_key in po_line_item_to_ir:
+                resolved_ir = po_line_item_to_ir[po_line_key].get("import_ref")
+            elif po_key in po_item_to_ir:
+                resolved_ir = po_item_to_ir[po_key].get("import_ref")
             elif g_ir:
                 resolved_ir = g_ir
 

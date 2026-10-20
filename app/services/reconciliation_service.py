@@ -298,20 +298,14 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (PRIORIZANDO LLAVE COMPUESTA DE LÍNEA)
-        # Prioridad 1: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor) - Nivel de línea (Composite Key)
-        # Prioridad 2: Match exacto por GRN_Number + Item_Code (PO Extractor)
-        # Prioridad 3: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
+        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (PRIORIZANDO GRN FÍSICO)
+        # Prioridad 1: Match exacto por GRN_Number + Item_Code (PO Extractor)
+        # Prioridad 2: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
+        # Prioridad 3: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor) - Nivel de línea (Composite Key)
         # Prioridad 4: Match exacto por Order_Number + Item_Code (PO Extractor)
         # Prioridad 5: Match por Order_Number (PO Extractor)
         df_expected_with_ir = (
             df_280.join(
-                df_po_line_item_map,
-                left_on=["Order_Number", "Order_Line", "Item_Code"],
-                right_on=["order_ref", "line_ref", "item_ref"],
-                how="left",
-            )
-            .join(
                 df_po_grn_item_map,
                 left_on=["GRN_Number", "Item_Code"],
                 right_on=["grn_ref", "item_ref"],
@@ -321,6 +315,12 @@ async def get_reconciliation_calculations(
                 df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
                 left_on="GRN_Number",
                 right_on="grn_map",
+                how="left",
+            )
+            .join(
+                df_po_line_item_map,
+                left_on=["Order_Number", "Order_Line", "Item_Code"],
+                right_on=["order_ref", "line_ref", "item_ref"],
                 how="left",
             )
             .join(
@@ -337,16 +337,16 @@ async def get_reconciliation_calculations(
             )
             .with_columns(
                 [
-                    pl.coalesce(["ir_po_line", "ir_po_grn", "ir_grn_master", "ir_po", "ir_po_order"])
+                    pl.coalesce(["ir_po_grn", "ir_grn_master", "ir_po_line", "ir_po", "ir_po_order"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_po_line", "wb_po_grn", "wb_grn_master", "wb_po", "wb_po_order"])
+                    pl.coalesce(["wb_po_grn", "wb_grn_master", "wb_po_line", "wb_po", "wb_po_order"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
                     pl.when(pl.col("Order_Line") != "")
                     .then(pl.col("Order_Line"))
                     .otherwise(
-                        pl.coalesce(["line_po_line", "line_po_grn", "line_po"])
+                        pl.coalesce(["line_po_grn", "line_po_line", "line_po"])
                     )
                     .fill_null("")
                     .alias("Order_Line"),

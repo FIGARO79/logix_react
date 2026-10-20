@@ -220,12 +220,12 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
             resolved_ir = None
             if g_line and g_grn and k_line_grn in po_line_grn_map:
                 resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
-            elif g_line and k_line in po_line_map:
-                resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
             elif g_grn and k_grn_item in po_grn_item_map:
                 resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
             elif g_grn and (g_grn in grn_map or grn_to_ir.get(g_grn) == target_ir):
                 resolved_ir = str(grn_map.get(g_grn, {}).get("import_ref") or grn_to_ir.get(g_grn) or "").strip().upper()
+            elif g_line and k_line in po_line_map:
+                resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
             elif not g_line and k_item in po_item_map:
                 resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
 
@@ -347,12 +347,12 @@ async def recalculate_ir_stats(db: AsyncSession, import_reference: str) -> dict:
                     resolved_ir = None
                     if g_line and g_grn and k_line_grn in po_line_grn_map:
                         resolved_ir = str(po_line_grn_map[k_line_grn].get("import_ref", "")).strip().upper()
-                    elif g_line and k_line in po_line_map:
-                        resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
                     elif g_grn and k_grn_item in po_grn_item_map:
                         resolved_ir = str(po_grn_item_map[k_grn_item].get("import_ref", "")).strip().upper()
                     elif g_grn and (g_grn in grn_map or grn_to_ir.get(g_grn) == target_ir):
                         resolved_ir = str(grn_map.get(g_grn, {}).get("import_ref") or grn_to_ir.get(g_grn) or "").strip().upper()
+                    elif g_line and k_line in po_line_map:
+                        resolved_ir = str(po_line_map[k_line].get("import_ref", "")).strip().upper()
                     elif not g_line and k_item in po_item_map:
                         resolved_ir = str(po_item_map[k_item].get("import_ref", "")).strip().upper()
 

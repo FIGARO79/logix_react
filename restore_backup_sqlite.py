@@ -4,6 +4,7 @@ import gzip
 import sqlite3
 import shutil
 import asyncio
+import argparse
 
 # Configurar PYTHONPATH dinámicamente para que reconozca el módulo 'app'
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -12,9 +13,13 @@ if PROJECT_ROOT not in sys.path:
 
 # Importaciones de la aplicación (requiere entorno virtual activo)
 from app.core.db import engine, Base
+import app.models.sql_models  # Registrar todos los modelos en Base.metadata
 
 # --- CONFIGURACIÓN DE RUTAS ---
-BACKUP_FILE = os.path.join(PROJECT_ROOT, 'databases', 'backup_logix_db_20260707_020006.sql.gz')
+DEFAULT_BACKUP_FILE = os.path.join(PROJECT_ROOT, 'backup_logix_db_20261019_020005.sql.gz')
+if not os.path.exists(DEFAULT_BACKUP_FILE):
+    DEFAULT_BACKUP_FILE = os.path.join(PROJECT_ROOT, 'databases', 'backup_logix_db_20260707_020006.sql.gz')
+
 INSTANCE_DIR = os.path.join(PROJECT_ROOT, 'instance')
 DB_FILE = os.path.join(INSTANCE_DIR, 'logix_dev.db')
 DB_BAK_FILE = os.path.join(INSTANCE_DIR, 'logix_dev.db.restore_backup.bak')
@@ -177,15 +182,107 @@ def process_and_execute_insert(conn, sql_statement, table_columns):
         print(f"Error: {e}")
         raise e
 
-def main():
-    if not os.path.exists(BACKUP_FILE):
-        print(f"[ERROR] No se encuentra el archivo de respaldo: {BACKUP_FILE}")
+def extract_alembic_version(backup_file):
+    try:
+        with gzip.open(backup_file, 'rt', encoding='utf-8', errors='ignore') as f:
+            recording = False
+            for line in f:
+                if 'alembic_version' in line and 'INSERT INTO' in line:
+                    recording = True
+                if recording:
+                    parts = line.strip().split("'")
+                    if len(parts) >= 2:
+                        return parts[1]
+                    if line.strip().endswith(';'):
+                        break
+    except Exception:
+        pass
+    return 'd9a1b2c3d4e5'
+
+def restore_single_table(backup_file, table_name, db_file):
+    print(f"--- RESTAURANDO TABLA '{table_name}' DESDE {backup_file} EN {db_file} ---")
+    if not os.path.exists(backup_file):
+        print(f"[ERROR] No se encuentra el archivo de respaldo: {backup_file}")
+        sys.exit(1)
+    if not os.path.exists(db_file):
+        print(f"[ERROR] No se encuentra la base de datos destino: {db_file}")
         sys.exit(1)
 
-    print("--- INICIANDO RESTAURACIÓN DE RESPALDO EN SQLITE LOCAL (ENFOQUE INTELIGENTE) ---")
+    table_columns = extract_columns_from_dump(backup_file)
+    if table_name not in table_columns:
+        print(f"[ERROR] La tabla '{table_name}' no existe en el respaldo.")
+        sys.exit(1)
+
+    target_insert_prefix = f"INSERT INTO `{table_name}`"
+
+    bak_path = f"{db_file}.table_{table_name}.bak"
+    print(f"Creando respaldo preventivo en: {bak_path}")
+    shutil.copy2(db_file, bak_path)
+
+    conn = sqlite3.connect(db_file, isolation_level=None)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("PRAGMA foreign_keys = OFF;")
+        cursor.execute("BEGIN TRANSACTION;")
+        print(f"Limpiando registros actuales de '{table_name}'...")
+        cursor.execute(f"DELETE FROM {table_name};")
+
+        print(f"Importando registros de '{table_name}'...")
+        in_insert = False
+        insert_buffer = []
+        statements_count = 0
+
+        with gzip.open(backup_file, 'rt', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                cleaned = clean_sql_line(line)
+                if not in_insert:
+                    if cleaned.startswith(target_insert_prefix):
+                        in_insert = True
+                        insert_buffer = [cleaned]
+                else:
+                    insert_buffer.append(cleaned)
+                    if cleaned.endswith(';'):
+                        statement = " ".join(insert_buffer)
+                        process_and_execute_insert(cursor, statement, table_columns)
+                        statements_count += 1
+                        in_insert = False
+                        insert_buffer = []
+
+        cursor.execute("COMMIT;")
+        cursor.execute("PRAGMA foreign_keys = ON;")
+
+        cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+        final_count = cursor.fetchone()[0]
+        conn.close()
+        print(f"[ÉXITO] Tabla '{table_name}' restaurada correctamente: {final_count} registros importados ({statements_count} bloques).")
+        return final_count
+    except Exception as e:
+        print(f"[ERROR] Falló la restauración de '{table_name}': {e}. Revirtiendo...")
+        conn.rollback()
+        conn.close()
+        shutil.copy2(bak_path, db_file)
+        sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(description="Restaurar base de datos SQLite de desarrollo desde dump MySQL/MariaDB.")
+    parser.add_argument("-b", "--backup", default=DEFAULT_BACKUP_FILE, help="Ruta al archivo .sql.gz del backup")
+    parser.add_argument("-t", "--table", default=None, help="Nombre de una tabla específica a restaurar (ej: logs)")
+    args = parser.parse_args()
+
+    backup_file = args.backup
+    if not os.path.exists(backup_file):
+        print(f"[ERROR] No se encuentra el archivo de respaldo: {backup_file}")
+        sys.exit(1)
+
+    if args.table:
+        restore_single_table(backup_file, args.table, DB_FILE)
+        return
+
+    print("--- INICIANDO RESTAURACIÓN COMPLETA DE RESPALDO EN SQLITE LOCAL ---")
 
     # 1. Extraer columnas del dump antes de hacer cambios
-    table_columns = extract_columns_from_dump(BACKUP_FILE)
+    table_columns = extract_columns_from_dump(backup_file)
 
     # 2. Copia de seguridad de la base de datos vieja
     if os.path.exists(DB_FILE):
@@ -213,10 +310,11 @@ def main():
     cursor = conn.cursor()
     
     try:
-        # Configurar la versión de Alembic manualmente
-        print("Configurando la versión de Alembic a '0a684a51c32b'...")
+        # Configurar la versión de Alembic desde el dump o head
+        alembic_ver = extract_alembic_version(backup_file)
+        print(f"Configurando la versión de Alembic a '{alembic_ver}'...")
         cursor.execute("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY);")
-        cursor.execute("INSERT OR REPLACE INTO alembic_version (version_num) VALUES ('0a684a51c32b');")
+        cursor.execute("INSERT OR REPLACE INTO alembic_version (version_num) VALUES (?);", (alembic_ver,))
         
         # Desactivar restricciones de integridad para la inserción masiva
         cursor.execute("PRAGMA foreign_keys = OFF;")
@@ -229,14 +327,14 @@ def main():
         sys.exit(1)
 
     # 5. Leer y procesar el dump comprimido
-    print(f"Leyendo y parseando el dump comprimido: {BACKUP_FILE}")
+    print(f"Leyendo y parseando el dump comprimido: {backup_file}")
     
     in_insert = False
     insert_buffer = []
     statements_count = 0
 
     try:
-        with gzip.open(BACKUP_FILE, 'rt', encoding='utf-8', errors='ignore') as f:
+        with gzip.open(backup_file, 'rt', encoding='utf-8', errors='ignore') as f:
             for line in f:
                 cleaned = clean_sql_line(line)
                 

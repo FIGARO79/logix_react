@@ -51,6 +51,8 @@ dev.bat
 *.jpg
 *.jpeg
 *.png
+restaurar_base_datos.py
+restore_backup_sqlite.py
 
 
 # Mantener archivos importantes aunque sean txt o md

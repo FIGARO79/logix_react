@@ -356,89 +356,70 @@ const Inbound = () => {
                 }
             }
 
-            const irLineGrnKeys = new Set();
-            const irLineKeys = new Set();
-            const irGrnItemKeys = new Set();
-            const irGrns = new Set();
-            const irItemKeys = new Set();
-            const irItemCodes = new Set();
-
+            const associatedGrns = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
-                    const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
-                    const line = (it.order_line || it.Order_Line || '').toString().trim().replace(/\.0$/, '');
-                    const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
-                    const grnVal = (it.grn || it.GRN_Number || '').toString().trim().toUpperCase();
-
-                    if (code) irItemCodes.add(code);
-                    if (cRef && line && code) irLineKeys.add(`${cRef}_${line}_${code}`);
-                    if (cRef && code) irItemKeys.add(`${cRef}_${code}`);
+                    const grnVal = it.grn || it.GRN_Number || '';
                     if (grnVal) {
-                        grnVal.split(',').forEach(g => {
-                            const gClean = g.trim().toUpperCase();
-                            if (gClean) {
-                                irGrns.add(gClean);
-                                if (code) irGrnItemKeys.add(`${gClean}_${code}`);
-                                if (cRef && line && code) irLineGrnKeys.add(`${cRef}_${line}_${code}_${gClean}`);
-                            }
+                        String(grnVal).split(',').forEach(g => {
+                            const gKey = g.trim().toUpperCase();
+                            if (gKey) associatedGrns.add(gKey);
                         });
                     }
                 });
             }
 
-            // 2. Obtener registros de grn_pending (usando índice by_item si hay códigos conocidos de la IR)
+            // 2. Obtener registros de grn_pending
             let allGrns = [];
             try {
                 const tx = db.transaction('grn_pending', 'readonly');
                 const store = tx.objectStore('grn_pending');
-                const hasIndex = store.indexNames && store.indexNames.contains('by_item');
-                if (hasIndex && irItemCodes.size > 0) {
-                    const index = store.index('by_item');
-                    const rowsArr = await Promise.all(Array.from(irItemCodes).map(c => index.getAll(c)));
-                    allGrns = rowsArr.flat();
-                } else {
-                    allGrns = (await withTimeout(store.getAll(), 2000, [])) || [];
-                }
+                allGrns = (await withTimeout(store.getAll(), 2000, [])) || [];
             } catch (grnErr) {
                 console.warn("Logix: Error leyendo grn_pending para stats:", grnErr);
             }
 
-            // 3. Filtrar y agrupar EXCLUSIVAMENTE las líneas del Reporte 280 (grn_pending) para esta IR
-            const groupedIrLines = {};
+            // 3. Filtrar líneas de la GRN para esta IR de acuerdo a las GRNs asociadas
+            let irLines = [];
             allGrns.forEach(g => {
-                const code = String(g.Item_Code || '').toUpperCase().trim();
-                if (!code) return;
-
-                const gIr = String(g.Import_Reference || g.ir_map || '').toUpperCase().trim();
-                const gOrder = String(g.Order_Number || '').toUpperCase().trim();
-                const gLine = String(g.Order_Line || '').toUpperCase().trim().replace(/\.0$/, '');
-                const gGrn = String(g.GRN_Number || g.grn_number || '').toUpperCase().trim();
-                const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
-
-                let isMatch = false;
-                if (gIr) {
-                    isMatch = (gIr === targetIr);
-                } else if (gLine && gGrn && irLineGrnKeys.has(`${gOrder}_${gLine}_${code}_${gGrn}`)) {
-                    isMatch = true;
-                } else if (gLine && irLineKeys.has(`${gOrder}_${gLine}_${code}`) && (!gGrn || irGrns.has(gGrn))) {
-                    isMatch = true;
-                } else if (gGrn && irGrnItemKeys.has(`${gGrn}_${code}`)) {
-                    isMatch = true;
-                } else if (gGrn && irGrns.has(gGrn) && irItemCodes.has(code)) {
-                    isMatch = true;
-                } else if (!gLine && !gGrn && irItemKeys.has(`${gOrder}_${code}`)) {
-                    isMatch = true;
-                }
-
-                if (isMatch && qty > 0) {
-                    if (!groupedIrLines[code]) {
-                        groupedIrLines[code] = {
-                            Item_Code: code,
-                            total_expected: 0
-                        };
+                if (g.grns) {
+                    let itemExpectedForIr = 0;
+                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                            itemExpectedForIr += parseInt(qty) || 0;
+                        }
+                    });
+                    if (itemExpectedForIr > 0) {
+                        irLines.push({
+                            Item_Code: g.Item_Code,
+                            total_expected: itemExpectedForIr
+                        });
                     }
-                    groupedIrLines[code].total_expected += qty;
+                } else {
+                    const grnNum = (g.GRN_Number || g.grn_number || '').toString().trim().toUpperCase();
+                    if (associatedGrns.size > 0) {
+                        if (grnNum && associatedGrns.has(grnNum)) {
+                            irLines.push(g);
+                        } else if (!grnNum && String(g.Import_Reference || g.ir_map || '').toUpperCase().trim() === targetIr) {
+                            irLines.push(g);
+                        }
+                    } else if (String(g.Import_Reference || g.ir_map || '').toUpperCase().trim() === targetIr) {
+                        irLines.push(g);
+                    }
                 }
+            });
+
+            // 4. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
+            const groupedIrLines = {};
+            irLines.forEach(line => {
+                const code = String(line.Item_Code).toUpperCase().trim();
+                if (!groupedIrLines[code]) {
+                    groupedIrLines[code] = {
+                        Item_Code: code,
+                        total_expected: 0
+                    };
+                }
+                groupedIrLines[code].total_expected += parseInt(line.total_expected || line.Quantity || line.Quantity_Expected || 0) || 0;
             });
 
             const uniqueIrLines = Object.values(groupedIrLines);
@@ -791,7 +772,7 @@ const Inbound = () => {
 
         // 1. Primero los pendientes locales (prioridad más baja)
         pendingLogs.forEach(log => {
-            const key = log.id; // UUID generado por crypto.randomUUID()
+            const key = log.client_id || log.id; // Clave por UUID
             logMap.set(key, log);
         });
 
@@ -800,6 +781,19 @@ const Inbound = () => {
             const key = log.client_id || `server_${log.id}`; // Priorizar client_id UUID
             logMap.set(key, log);
         });
+
+        // 3. Limpieza proactiva de pendientes que ya llegaron al servidor
+        if (!version || version === '') {
+            pendingLogs.forEach(async pLog => {
+                const cId = pLog.client_id || pLog.id;
+                if (cId && apiLogs.some(a => a.client_id === cId)) {
+                    try {
+                        const db = await withTimeout(getDB(), 1500, null);
+                        if (db) await db.delete('pending_sync', pLog.id);
+                    } catch {}
+                }
+            });
+        }
 
         // 3. Ordenar por fecha (más reciente primero)
         const allLogsSorted = Array.from(logMap.values()).sort((a, b) => {
@@ -968,20 +962,54 @@ const Inbound = () => {
                     const itemLogs = logs.filter(l => l.itemCode === normalizedCode && (l.importReference === importRef || l.importRef === importRef));
                     const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
                     
-                    let filteredXdockCustomers = xdockInfo ? xdockInfo.customers : [];
-                    if (importRef && xdockInfo && Array.isArray(xdockInfo.customers)) {
-                        const cleanRef = importRef.trim().toUpperCase();
-                        const matchingCust = xdockInfo.customers.filter(c => 
-                            (c.po_number && c.po_number.trim().toUpperCase() === cleanRef) ||
-                            (c.name && c.name.toUpperCase().includes(cleanRef))
-                        );
-                        if (matchingCust.length > 0) {
-                            filteredXdockCustomers = matchingCust;
+                    // Obtener desglose offline y POs asociadas
+                    const allPos = await db.getAll('po_lookup') || [];
+
+                    // Filtrar Xdock exclusivamente por PO_Number de la IR en offline (alineado a logix_react)
+                    let totalRes = xdockInfo ? xdockInfo.total : 0;
+                    let xdockCustomersList = xdockInfo ? xdockInfo.customers : [];
+                    if (importRef && xdockInfo?.customers?.length > 0 && allPos.length > 0) {
+                        const targetPos = new Set();
+                        for (const po of allPos) {
+                            if (po.type === 'ir' && String(po.value).toUpperCase() === importRef.toUpperCase() && po.items) {
+                                for (const it of po.items) {
+                                    if (String(it.item_code).toUpperCase() === normalizedCode && it.customer_ref) {
+                                        targetPos.add(String(it.customer_ref).toUpperCase());
+                                    }
+                                }
+                            }
+                        }
+                        if (targetPos.size > 0) {
+                            const filteredCusts = xdockInfo.customers.filter(c => {
+                                const po = typeof c === 'object' ? (c.po_number || '') : '';
+                                return po && targetPos.has(String(po).toUpperCase());
+                            });
+                            if (filteredCusts.length > 0) {
+                                const filteredTot = filteredCusts.reduce((acc, c) => acc + (typeof c === 'object' ? (Number(c.qty) || 0) : 0), 0);
+                                totalRes = filteredTot;
+                                let remDeduct = localCumulative;
+                                const custsWithPending = [];
+                                for (const c of filteredCusts) {
+                                    if (typeof c === 'object') {
+                                        const cQty = Number(c.qty) || 0;
+                                        if (remDeduct >= cQty) {
+                                            remDeduct -= cQty;
+                                        } else {
+                                            const pendingQty = cQty - remDeduct;
+                                            remDeduct = 0;
+                                            custsWithPending.push({ ...c, qty: pendingQty });
+                                        }
+                                    } else {
+                                        custsWithPending.push(c);
+                                    }
+                                }
+                                xdockCustomersList = custsWithPending;
+                            } else {
+                                totalRes = 0;
+                                xdockCustomersList = [];
+                            }
                         }
                     }
-                    const totalRes = filteredXdockCustomers.length > 0
-                        ? filteredXdockCustomers.reduce((acc, c) => acc + (parseFloat(c.qty) || 0), 0)
-                        : (xdockInfo ? xdockInfo.total : 0);
                     const xdockRemanente = Math.max(0, totalRes - localCumulative);
 
                     let offlineSuggestedBin = null;
@@ -992,7 +1020,6 @@ const Inbound = () => {
                     }
 
                     // Obtener desglose offline
-                    const allPos = await db.getAll('po_lookup') || [];
                     const offlineBreakdown = [];
                     for (const po of allPos) {
                         if (po.type === 'ir' && po.items) {
@@ -1036,7 +1063,7 @@ const Inbound = () => {
                         defaultQtyGrn: expectedQty,
                         xdockTotal: totalRes,
                         xdockPending: xdockRemanente,
-                        xdockCustomers: filteredXdockCustomers,
+                        xdockCustomers: xdockCustomersList,
                         is_offline_result: true,
                         suggestedBin: offlineSuggestedBin,
                         expectedBreakdown: offlineBreakdown
@@ -1189,7 +1216,7 @@ const Inbound = () => {
             }
 
             // Guardar offline
-            await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
+            await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : targetClientId);
             if (navigator.onLine) {
                 syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
             }
@@ -1364,8 +1391,15 @@ const Inbound = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                     {/* 1. Columna Izquierda: XDOCK Totals */}
                                     {effectiveXdockPending > 0 ? (
-                                        <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm">
-                                            <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">XDOCK</h4>
+                                        <div
+                                            className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
+                                            onClick={() => setRelocatedBin('XDOCK')}
+                                            title="Clic para seleccionar ubicación XDOCK"
+                                        >
+                                            <div className="flex justify-between items-center border-b border-red-100 pb-0.5 mb-1">
+                                                <h4 className="text-[10px] font-medium uppercase text-red-900 tracking-widest">XDOCK</h4>
+                                                <span className="text-[8px] italic text-red-700 font-medium">Tap usar</span>
+                                            </div>
                                             <div className="flex flex-col gap-0.5 text-black font-medium">
                                                 <div className="flex justify-between items-center text-[9px] uppercase"><span>Total Reservado:</span><span>{itemData.xdockTotal}</span></div>
                                                 <div className="flex justify-between items-center text-[9px] uppercase text-red-900 font-medium"><span>Pendiente:</span><span>{effectiveXdockPending} UN</span></div>
@@ -1378,17 +1412,21 @@ const Inbound = () => {
                                         <div className="bg-red-50 border-2 border-red-800 rounded p-2 shadow-sm overflow-hidden">
                                             <h4 className="text-[10px] font-medium uppercase text-red-900 mb-1 border-b border-red-100 pb-0.5 tracking-widest">RESERVAS:</h4>
                                             <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1 font-medium">
-                                                {itemData.xdockCustomers.map((c, idx) => (
-                                                    <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
-                                                        <div className="pr-2 text-black uppercase truncate font-medium"><span className="text-[9px]">{c?.name || 'SIN NOMBRE'}</span></div>
-                                                        <span className="text-red-700 whitespace-nowrap font-medium">{c?.qty || 0} UN</span>
-                                                    </div>
-                                                ))}
+                                                {itemData.xdockCustomers.map((c, idx) => {
+                                                    const custName = typeof c === 'string' ? c : (c?.name || c?.customer_name || 'SIN NOMBRE');
+                                                    const custQty = (typeof c === 'object' && c?.qty !== undefined) ? `${c.qty} UN` : null;
+                                                    return (
+                                                        <div key={idx} className="flex justify-between items-baseline text-[10px] border-b border-red-50 last:border-0 pb-0.5">
+                                                            <div className="pr-2 text-black uppercase truncate font-medium"><span className="text-[9px]">{custName}</span></div>
+                                                            {custQty && <span className="text-red-700 whitespace-nowrap font-medium">{custQty}</span>}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     ) : (effectiveXdockPending > 0 ? <div className="bg-gray-50 border border-red-200 rounded p-2 text-[10px] text-gray-800 font-medium italic flex items-center justify-center">Sin detalles</div> : <div className="hidden sm:block"></div>)}
 
-                                    {/* 3. Columna Derecha: Sugerida (Slotting) */}
+                                    {/* 3. Columna Derecha: Sugerida (Slotting o XDOCK) */}
                                     {itemData?.suggestedBin ? (
                                         <div className={`rounded p-2 shadow-sm cursor-pointer border-2 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'bg-amber-50 border-amber-400 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100'}`} onClick={() => setRelocatedBin(itemData.suggestedBin)}>
                                             <div className="flex justify-between border-b border-opacity-20 pb-0.5 mb-1">
@@ -1408,7 +1446,22 @@ const Inbound = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    ) : <div className="hidden sm:block"></div>}
+                                    ) : (effectiveXdockPending > 0 ? (
+                                        <div className="rounded p-2 shadow-sm cursor-pointer border-2 bg-red-50 border-red-500 hover:bg-red-100 transition-colors" onClick={() => setRelocatedBin('XDOCK')}>
+                                            <div className="flex justify-between border-b border-red-200 pb-0.5 mb-1">
+                                                <span className="text-[10px] font-medium uppercase text-red-800">Sugerida: XDOCK</span>
+                                                <span className="text-[8px] italic text-red-700 font-medium">Tap usar</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <svg className="w-4 h-4 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                <span className="text-base font-mono font-medium text-red-900">XDOCK</span>
+                                                <span className="ml-auto text-[10px] font-medium bg-red-700 text-white px-1.5 py-0.5 rounded shadow-sm">RESERVA</span>
+                                            </div>
+                                        </div>
+                                    ) : <div className="hidden sm:block"></div>)}
                                 </div>
                             )}
 

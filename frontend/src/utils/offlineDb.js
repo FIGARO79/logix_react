@@ -159,84 +159,55 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
     const normalizedCode = itemCode.trim().toUpperCase();
 
     try {
-        // 1. Obtener órdenes y claves asociadas a la IR desde po_lookup
+        // 1. Obtener GRNs asociadas a la IR desde po_lookup
         const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
-        const irLineGrnKeys = new Set();
-        const irLineKeys = new Set();
-        const irGrnItemKeys = new Set();
-        const irGrns = new Set();
-        const irItemKeys = new Set();
-        const irItemCodes = new Set();
-
+        const associatedGrns = new Set();
         if (poInfo && poInfo.items) {
             poInfo.items.forEach(it => {
-                const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
-                const line = (it.order_line || it.Order_Line || '').toString().trim().replace(/\.0$/, '');
-                const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
-                const grnVal = (it.grn || it.GRN_Number || '').toString().trim().toUpperCase();
-
-                if (code) irItemCodes.add(code);
-                if (cRef && line && code) irLineKeys.add(`${cRef}_${line}_${code}`);
-                if (cRef && code) irItemKeys.add(`${cRef}_${code}`);
+                const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
                 if (grnVal) {
                     grnVal.split(',').forEach(g => {
-                        const gClean = g.trim().toUpperCase();
-                        if (gClean) {
-                            irGrns.add(gClean);
-                            if (code) irGrnItemKeys.add(`${gClean}_${code}`);
-                            if (cRef && line && code) irLineGrnKeys.add(`${cRef}_${line}_${code}_${gClean}`);
+                        const gKey = g.trim();
+                        if (gKey) {
+                            associatedGrns.add(gKey);
                         }
                     });
                 }
             });
         }
 
-        // 2. Consultar EXCLUSIVAMENTE en grn_pending (Reporte 280)
-        let allGrns = [];
-        try {
-            const tx = db.transaction('grn_pending', 'readonly');
-            const store = tx.objectStore('grn_pending');
-            if (store.indexNames && store.indexNames.contains('by_item')) {
-                allGrns = await store.index('by_item').getAll(normalizedCode) || [];
-            } else {
-                allGrns = await store.getAll() || [];
-            }
-        } catch {
-            allGrns = await db.getAll('grn_pending') || [];
+        // 2. Obtener todos los registros de grn_pending
+        const allGrns = await db.getAll('grn_pending') || [];
+        const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
+
+        // 3. Si tenemos GRNs asociadas, buscar en el objeto grns o por GRN_Number
+        if (associatedGrns.size > 0) {
+            let sum = 0;
+            itemGrns.forEach(g => {
+                if (g.grns) {
+                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                            sum += parseInt(qty) || 0;
+                        }
+                    });
+                } else {
+                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    if (grnNum && associatedGrns.has(grnNum)) {
+                        sum += parseInt(g.total_expected || g.Quantity || 0) || 0;
+                    }
+                }
+            });
+            return sum;
         }
-        
-        let expectedSum = 0;
-        allGrns.forEach(g => {
-            const code = (g.Item_Code || '').toString().trim().toUpperCase();
-            if (code !== normalizedCode) return;
 
-            const gIr = (g.Import_Reference || g.ir_map || '').toString().trim().toUpperCase();
-            const gOrder = (g.Order_Number || '').toString().trim().toUpperCase();
-            const gLine = (g.Order_Line || '').toString().trim().replace(/\.0$/, '');
-            const gGrn = (g.GRN_Number || g.grn_number || '').toString().trim().toUpperCase();
-            const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
-
-            let isMatch = false;
-            if (gIr) {
-                isMatch = (gIr === normalizedIr);
-            } else if (gLine && gGrn && irLineGrnKeys.has(`${gOrder}_${gLine}_${code}_${gGrn}`)) {
-                isMatch = true;
-            } else if (gLine && irLineKeys.has(`${gOrder}_${gLine}_${code}`) && (!gGrn || irGrns.has(gGrn))) {
-                isMatch = true;
-            } else if (gGrn && irGrnItemKeys.has(`${gGrn}_${code}`)) {
-                isMatch = true;
-            } else if (gGrn && irGrns.has(gGrn) && irItemCodes.has(code)) {
-                isMatch = true;
-            } else if (!gLine && !gGrn && irItemKeys.has(`${gOrder}_${code}`)) {
-                isMatch = true;
-            }
-
-            if (isMatch) {
-                expectedSum += qty;
+        // Fallback si no hay GRNs asociadas pero hay coincidencia por Import_Reference
+        let fallbackSum = 0;
+        itemGrns.forEach(g => {
+            if (String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr) {
+                fallbackSum += parseInt(g.total_expected || g.Quantity || 0) || 0;
             }
         });
-
-        return expectedSum;
+        return fallbackSum;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -262,132 +233,98 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
             }
         });
 
-        // 1. Obtener po_lookup para las IR únicas
-        const irPoMap = new Map();
+        // 1. Obtener po_lookup para las IR únicas en paralelo
+        const poInfoMap = new Map();
         await Promise.all(Array.from(uniqueIrs).map(async ir => {
             try {
                 const poInfo = await db.get('po_lookup', `ir_${ir}`);
-                if (poInfo && poInfo.items) {
-                    const irLineGrnKeys = new Set();
-                    const irLineKeys = new Set();
-                    const irGrnItemKeys = new Set();
-                    const irGrns = new Set();
-                    const irItemKeys = new Set();
-                    const irItemCodes = new Set();
-
-                    poInfo.items.forEach(it => {
-                        const cRef = (it.customer_ref || it.Order_Number || '').toString().trim().toUpperCase();
-                        const line = (it.order_line || it.Order_Line || '').toString().trim().replace(/\.0$/, '');
-                        const code = (it.item_code || it.Item_Code || '').toString().trim().toUpperCase();
-                        const grnVal = (it.grn || it.GRN_Number || '').toString().trim().toUpperCase();
-
-                        if (code) irItemCodes.add(code);
-                        if (cRef && line && code) irLineKeys.add(`${cRef}_${line}_${code}`);
-                        if (cRef && code) irItemKeys.add(`${cRef}_${code}`);
-                        if (grnVal) {
-                            grnVal.split(',').forEach(g => {
-                                const gClean = g.trim().toUpperCase();
-                                if (gClean) {
-                                    irGrns.add(gClean);
-                                    if (code) irGrnItemKeys.add(`${gClean}_${code}`);
-                                    if (cRef && line && code) irLineGrnKeys.add(`${cRef}_${line}_${code}_${gClean}`);
-                                }
-                            });
-                        }
-                    });
-                    irPoMap.set(ir, { irLineGrnKeys, irLineKeys, irGrnItemKeys, irGrns, irItemKeys, irItemCodes });
+                if (poInfo) {
+                    poInfoMap.set(ir, poInfo);
                 }
             } catch (e) {
                 console.error(`Error al consultar po_lookup para IR ${ir}:`, e);
             }
         }));
 
-        // 2. Obtener registros de grn_pending consultando el índice 'by_item' (O(K) en vez de O(N) masivo)
-        const grnsByCode = new Map();
-        try {
-            const tx = db.transaction('grn_pending', 'readonly');
-            const store = tx.objectStore('grn_pending');
-            const hasIndex = store.indexNames && store.indexNames.contains('by_item');
-            const uniqueCodes = Array.from(new Set(items.map(it => (it.itemCode || '').toString().trim().toUpperCase()).filter(Boolean)));
-            
-            if (hasIndex && uniqueCodes.length > 0) {
-                const index = store.index('by_item');
-                await Promise.all(uniqueCodes.map(async code => {
-                    const rows = await index.getAll(code);
-                    if (rows && rows.length > 0) {
-                        grnsByCode.set(code, rows);
-                    }
-                }));
-            } else {
-                // Fallback si no tiene índice o no hay códigos
-                const allGrns = await store.getAll() || [];
-                allGrns.forEach(g => {
-                    const code = (g.Item_Code || '').toString().trim().toUpperCase();
-                    if (!code) return;
-                    if (!grnsByCode.has(code)) {
-                        grnsByCode.set(code, []);
-                    }
-                    grnsByCode.get(code).push(g);
-                });
-            }
-        } catch (idxErr) {
-            console.warn("Logix: Fallback en lectura indexada de grn_pending:", idxErr);
-        }
+        // 2. Obtener todos los registros de grn_pending de una sola vez
+        const allGrns = await db.getAll('grn_pending') || [];
 
-        // 4. Calcular la cantidad esperada exclusivamente desde grn_pending para cada ítem
+        // 3. Indexar grn_pending por SKU para búsqueda rápida
+        const grnsByItem = new Map();
+        allGrns.forEach(g => {
+            if (g.Item_Code) {
+                const code = String(g.Item_Code).toUpperCase().trim();
+                if (!grnsByItem.has(code)) {
+                    grnsByItem.set(code, []);
+                }
+                grnsByItem.get(code).push(g);
+            }
+        });
+
+        // 4. Calcular el total esperado para cada ítem solicitado
         items.forEach(item => {
-            const importRef = (item.importRef || '').trim().toUpperCase();
-            const itemCode = (item.itemCode || '').trim().toUpperCase();
-            const key = `${item.itemCode}|${item.importRef}`;
+            const importRef = item.importRef || '';
+            const itemCode = item.itemCode || '';
+            const key = `${itemCode}|${importRef}`;
 
             if (!importRef || !itemCode) {
                 resultMap[key] = 0;
                 return;
             }
 
-            const poData = irPoMap.get(importRef);
-            if (!poData) {
-                resultMap[key] = 0;
-                return;
+            const normalizedIr = importRef.trim().toUpperCase();
+            const normalizedCode = itemCode.trim().toUpperCase();
+
+            const poInfo = poInfoMap.get(normalizedIr);
+            const associatedGrns = new Set();
+            if (poInfo && poInfo.items) {
+                poInfo.items.forEach(it => {
+                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gKey = g.trim();
+                            if (gKey) {
+                                associatedGrns.add(gKey);
+                            }
+                        });
+                    }
+                });
             }
 
-            const { irLineGrnKeys, irLineKeys, irGrnItemKeys, irGrns, irItemKeys, irItemCodes } = poData;
-            const relevantGrns = grnsByCode.get(itemCode) || [];
+            const itemGrns = grnsByItem.get(normalizedCode) || [];
 
             let sum = 0;
-            relevantGrns.forEach(g => {
-                const gIr = (g.Import_Reference || g.ir_map || '').toString().trim().toUpperCase();
-                const gOrder = (g.Order_Number || '').toString().trim().toUpperCase();
-                const gLine = (g.Order_Line || '').toString().trim().replace(/\.0$/, '');
-                const gGrn = (g.GRN_Number || g.grn_number || '').toString().trim().toUpperCase();
-                const qty = parseInt(g.Quantity || g.Quantity_Expected || g.total_expected || 0) || 0;
+            if (associatedGrns.size > 0) {
+                itemGrns.forEach(g => {
+                    if (g.grns) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                sum += parseInt(qty) || 0;
+                            }
+                        });
+                    } else {
+                        const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                        if (grnNum && associatedGrns.has(grnNum)) {
+                            sum += parseInt(g.total_expected || g.Quantity || 0) || 0;
+                        }
+                    }
+                });
+            }
 
-                let isMatch = false;
-                if (gIr) {
-                    isMatch = (gIr === importRef);
-                } else if (gLine && gGrn && irLineGrnKeys.has(`${gOrder}_${gLine}_${itemCode}_${gGrn}`)) {
-                    isMatch = true;
-                } else if (gLine && irLineKeys.has(`${gOrder}_${gLine}_${itemCode}`) && (!gGrn || irGrns.has(gGrn))) {
-                    isMatch = true;
-                } else if (gGrn && irGrnItemKeys.has(`${gGrn}_${itemCode}`)) {
-                    isMatch = true;
-                } else if (gGrn && irGrns.has(gGrn) && irItemCodes.has(itemCode)) {
-                    isMatch = true;
-                } else if (!gLine && !gGrn && irItemKeys.has(`${gOrder}_${itemCode}`)) {
-                    isMatch = true;
-                }
-
-                if (isMatch) {
-                    sum += qty;
-                }
-            });
-
-            resultMap[key] = sum;
+            if (sum > 0) {
+                resultMap[key] = sum;
+            } else {
+                // Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
+                const fallbackSum = itemGrns
+                    .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
+                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected || curr.Quantity || 0) || 0), 0);
+                resultMap[key] = fallbackSum;
+            }
         });
 
         return resultMap;
-    } catch (err) {
-        console.error("Error in getGRNExpectedQtyBulk:", err);
+    } catch (e) {
+        console.error("Error al obtener cantidades esperadas de GRN en lote:", e);
         return {};
     }
 };
