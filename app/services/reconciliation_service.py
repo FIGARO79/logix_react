@@ -298,9 +298,51 @@ async def get_reconciliation_calculations(
             ]
         )
 
+        # 4.b Inferir GRN -> IR desde los logs físicos (GRNs sin maestro).
+        # Un GRN pertenece a una sola IR: se elige la IR donde se recibió físicamente
+        # la mayoría (>= 50%) de los ítems del GRN. Evita que el fallback por PO
+        # (Order_Number) reparta un mismo GRN entre IRs/guías de otros embarques del mismo PO.
+        logs_ir_items = (
+            logs_pl.filter(
+                pl.col("importReference").is_not_null() & (pl.col("importReference") != "")
+            )
+            .select(["importReference", "itemCode", "waybill"])
+            .unique(subset=["importReference", "itemCode"])
+        )
+        grn_items = df_280.select(["GRN_Number", "Item_Code"]).unique()
+        grn_item_counts = grn_items.group_by("GRN_Number").agg(pl.len().alias("_n_items"))
+        df_grn_from_logs = (
+            grn_items.join(logs_ir_items, left_on="Item_Code", right_on="itemCode", how="inner")
+            .group_by(["GRN_Number", "importReference"])
+            .agg(
+                [
+                    pl.len().alias("_n_match"),
+                    pl.col("waybill")
+                    .filter(pl.col("waybill") != "")
+                    .mode()
+                    .first()
+                    .str.strip_chars()
+                    .str.to_uppercase()
+                    .alias("wb_grn_logs"),
+                ]
+            )
+            .join(grn_item_counts, on="GRN_Number")
+            .filter((pl.col("_n_match") / pl.col("_n_items")) >= 0.5)
+            .sort(["GRN_Number", "_n_match"], descending=[False, True])
+            .unique(subset=["GRN_Number"], keep="first", maintain_order=True)
+            .select(
+                [
+                    pl.col("GRN_Number").alias("grn_logs"),
+                    pl.col("importReference").alias("ir_grn_logs"),
+                    "wb_grn_logs",
+                ]
+            )
+        )
+
         # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (PRIORIZANDO GRN FÍSICO)
         # Prioridad 1: Match exacto por GRN_Number + Item_Code (PO Extractor)
         # Prioridad 2: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
+        # Prioridad 2.b: GRN -> IR inferido desde logs físicos (paso 4.b)
         # Prioridad 3: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor) - Nivel de línea (Composite Key)
         # Prioridad 4: Match exacto por Order_Number + Item_Code (PO Extractor)
         # Prioridad 5: Match por Order_Number (PO Extractor)
@@ -315,6 +357,12 @@ async def get_reconciliation_calculations(
                 df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
                 left_on="GRN_Number",
                 right_on="grn_map",
+                how="left",
+            )
+            .join(
+                df_grn_from_logs,
+                left_on="GRN_Number",
+                right_on="grn_logs",
                 how="left",
             )
             .join(
@@ -337,10 +385,10 @@ async def get_reconciliation_calculations(
             )
             .with_columns(
                 [
-                    pl.coalesce(["ir_po_grn", "ir_grn_master", "ir_po_line", "ir_po", "ir_po_order"])
+                    pl.coalesce(["ir_po_grn", "ir_grn_master", "ir_grn_logs", "ir_po_line", "ir_po", "ir_po_order"])
                     .fill_null("SIN I.R. MAESTRA")
                     .alias("ir_map"),
-                    pl.coalesce(["wb_po_grn", "wb_grn_master", "wb_po_line", "wb_po", "wb_po_order"])
+                    pl.coalesce(["wb_po_grn", "wb_grn_master", "wb_grn_logs", "wb_po_line", "wb_po", "wb_po_order"])
                     .fill_null("SIN WAYBILL")
                     .alias("wb_map"),
                     pl.when(pl.col("Order_Line") != "")
