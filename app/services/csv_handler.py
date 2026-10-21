@@ -24,6 +24,34 @@ _mtime_master = 0.0
 _mtime_grn = 0.0
 
 
+
+def parse_quantity_smart(val) -> float:
+    if val is None:
+        return 0.0
+    val_str = str(val).strip()
+    if not val_str:
+        return 0.0
+
+    if "," in val_str and "." in val_str:
+        last_comma = val_str.rfind(",")
+        last_dot = val_str.rfind(".")
+        if last_comma > last_dot:
+            val_str = val_str.replace(".", "").replace(",", ".")
+        else:
+            val_str = val_str.replace(",", "")
+    elif "," in val_str:
+        parts = val_str.split(",")
+        if len(parts[-1]) != 3:
+            val_str = val_str.replace(",", ".")
+        else:
+            val_str = val_str.replace(",", "")
+
+    try:
+        return float(val_str)
+    except ValueError:
+        return 0.0
+
+
 async def generate_reservation_cache():
     """Carga y procesa el CSV de reservaciones para Xdock usando Rust."""
     global reservation_qty_map

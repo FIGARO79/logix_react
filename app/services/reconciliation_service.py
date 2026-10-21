@@ -11,7 +11,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import db_logs, csv_handler
-from app.models.sql_models import ReconciliationHistory, GRNMaster
+from app.models.sql_models import (
+    ReconciliationHistory,
+    GRNMaster,
+    SavedGRNReconciliation,
+    SavedGRNReconciliationItem,
+)
 from app.core.config import PO_LOOKUP_JSON_PATH, GRN_JSON_DATA_PATH
 
 
@@ -72,7 +77,7 @@ async def get_reconciliation_calculations(
         # 3. Construir Mapa Maestro de GRN -> IR/Waybill usando Rust (Alta velocidad)
         # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
         try:
-            # Extraer DB GRNs primero
+            # Extraer DB GRNs primero (de GRNMaster y tablas de conciliaciones guardadas/históricas)
             db_grns = await db.execute(
                 select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
             )
@@ -80,6 +85,37 @@ async def get_reconciliation_calculations(
                 (row.import_reference, row.grn_number, row.waybill)
                 for row in db_grns.all()
             ]
+
+            # Cargar GRNs históricas confirmadas/guardadas para NUNCA desasociarlas
+            saved_headers = await db.execute(
+                select(
+                    SavedGRNReconciliation.import_reference,
+                    SavedGRNReconciliation.grn_number,
+                    SavedGRNReconciliation.waybill,
+                ).where(
+                    SavedGRNReconciliation.grn_number.is_not(None),
+                    SavedGRNReconciliation.grn_number != "",
+                )
+            )
+            for r in saved_headers.all():
+                if r.import_reference and r.grn_number:
+                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
+
+            saved_items = await db.execute(
+                select(
+                    SavedGRNReconciliationItem.import_reference,
+                    SavedGRNReconciliationItem.grn_number,
+                    SavedGRNReconciliationItem.waybill,
+                )
+                .distinct()
+                .where(
+                    SavedGRNReconciliationItem.grn_number.is_not(None),
+                    SavedGRNReconciliationItem.grn_number != "",
+                )
+            )
+            for r in saved_items.all():
+                if r.import_reference and r.grn_number:
+                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
         except Exception as e:
             print(f"[RECONCILIATION] Error loading DB GRNs: {e}")
             db_grns_raw = []
@@ -104,172 +140,6 @@ async def get_reconciliation_calculations(
                 schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8}
             )
 
-        # 3.b Cargar mapa desde po_lookup.json por (Order_Number + Order_Line + Item_Code), (Order_Number + Item_Code) y Order_Number
-        po_line_item_records = []
-        po_grn_item_records = []
-        po_item_records = []
-        po_order_records = []
-        if os.path.exists(PO_LOOKUP_JSON_PATH):
-            try:
-                import orjson
-
-                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                    po_lookup_data = orjson.loads(f.read())
-
-                if "grn_to_ir" in po_lookup_data:
-                    extra_grns = [
-                        {"grn_map": str(g).strip().upper(), "ir_map": val.get("import_ref", "").strip().upper(), "wb_map": val.get("waybill", "").strip().upper()}
-                        for g, val in po_lookup_data["grn_to_ir"].items()
-                        if g and val.get("import_ref")
-                    ]
-                    if extra_grns:
-                        df_extra_grn = pl.DataFrame(extra_grns)
-                        df_grn_master = pl.concat([df_grn_master, df_extra_grn], how="diagonal").unique(subset=["grn_map"])
-
-                if "po_grn_item_to_ir" in po_lookup_data:
-                    for key, val in po_lookup_data["po_grn_item_to_ir"].items():
-                        parts = key.split("_", 1)
-                        if len(parts) == 2:
-                            line_val = str(val.get("order_line", "")).strip()
-                            if line_val.endswith(".0"):
-                                line_val = line_val[:-2]
-                            po_grn_item_records.append(
-                                {
-                                    "grn_ref": parts[0].strip().upper(),
-                                    "item_ref": parts[1].strip().upper(),
-                                    "ir_po_grn": val.get("import_ref", "").strip().upper(),
-                                    "wb_po_grn": val.get("waybill", "").strip().upper(),
-                                    "line_po_grn": line_val,
-                                }
-                            )
-
-                if "po_line_item_to_ir" in po_lookup_data:
-                    for key, val in po_lookup_data["po_line_item_to_ir"].items():
-                        parts = key.rsplit("_", 2)
-                        if len(parts) == 3:
-                            line_val = parts[1].strip()
-                            if line_val.endswith(".0"):
-                                line_val = line_val[:-2]
-                            po_line_item_records.append(
-                                {
-                                    "order_ref": parts[0].strip().upper(),
-                                    "line_ref": line_val,
-                                    "item_ref": parts[2].strip().upper(),
-                                    "ir_po_line": val.get("import_ref", "").strip().upper(),
-                                    "wb_po_line": val.get("waybill", "").strip().upper(),
-                                    "line_po_line": line_val,
-                                }
-                            )
-
-                if "po_item_to_ir" in po_lookup_data:
-                    for key, val in po_lookup_data["po_item_to_ir"].items():
-                        parts = key.split("_", 1)
-                        if len(parts) == 2:
-                            line_val = str(val.get("order_line", "")).strip()
-                            if line_val.endswith(".0"):
-                                line_val = line_val[:-2]
-                            po_item_records.append(
-                                {
-                                    "order_ref": parts[0].strip().upper(),
-                                    "item_ref": parts[1].strip().upper(),
-                                    "ir_po": val.get("import_ref", "").strip().upper(),
-                                    "wb_po": val.get("waybill", "").strip().upper(),
-                                    "line_po": line_val,
-                                }
-                            )
-
-                if "po_order_to_ir" in po_lookup_data:
-                    for order_ref, val in po_lookup_data["po_order_to_ir"].items():
-                        po_order_records.append(
-                            {
-                                "order_ref": order_ref.strip().upper(),
-                                "ir_po_order": val.get("import_ref", "").strip().upper(),
-                                "wb_po_order": val.get("waybill", "").strip().upper(),
-                            }
-                        )
-
-                # Fallback: construir dinámicamente si po_item_to_ir no estaba en el JSON antiguo
-                if not po_item_records and "wb_to_data" in po_lookup_data:
-                    for wb_code, wb_info in po_lookup_data["wb_to_data"].items():
-                        ir_code = str(wb_info.get("import_ref", "")).strip().upper()
-                        wb_clean = str(wb_code).strip().upper()
-                        for item in wb_info.get("items", []):
-                            cust_ref = str(item.get("customer_ref", "")).strip().upper()
-                            item_code = str(item.get("item_code", "")).strip().upper()
-                            if cust_ref and item_code:
-                                po_item_records.append(
-                                    {
-                                        "order_ref": cust_ref,
-                                        "item_ref": item_code,
-                                        "ir_po": ir_code,
-                                        "wb_po": wb_clean,
-                                    }
-                                )
-                                po_order_records.append(
-                                    {
-                                        "order_ref": cust_ref,
-                                        "ir_po_order": ir_code,
-                                        "wb_po_order": wb_clean,
-                                    }
-                                )
-            except Exception as e:
-                print(f"[RECONCILIATION] Error leyendo PO lookup json: {e}")
-
-        df_po_line_item_map = (
-            pl.DataFrame(po_line_item_records)
-            if po_line_item_records
-            else pl.DataFrame(
-                schema={
-                    "order_ref": pl.Utf8,
-                    "line_ref": pl.Utf8,
-                    "item_ref": pl.Utf8,
-                    "ir_po_line": pl.Utf8,
-                    "wb_po_line": pl.Utf8,
-                    "line_po_line": pl.Utf8,
-                }
-            )
-        ).unique(subset=["order_ref", "line_ref", "item_ref"])
-
-        df_po_grn_item_map = (
-            pl.DataFrame(po_grn_item_records)
-            if po_grn_item_records
-            else pl.DataFrame(
-                schema={
-                    "grn_ref": pl.Utf8,
-                    "item_ref": pl.Utf8,
-                    "ir_po_grn": pl.Utf8,
-                    "wb_po_grn": pl.Utf8,
-                    "line_po_grn": pl.Utf8,
-                }
-            )
-        ).unique(subset=["grn_ref", "item_ref"])
-
-        df_po_item_map = (
-            pl.DataFrame(po_item_records)
-            if po_item_records
-            else pl.DataFrame(
-                schema={
-                    "order_ref": pl.Utf8,
-                    "item_ref": pl.Utf8,
-                    "ir_po": pl.Utf8,
-                    "wb_po": pl.Utf8,
-                    "line_po": pl.Utf8,
-                }
-            )
-        ).unique(subset=["order_ref", "item_ref"])
-
-        df_po_order_map = (
-            pl.DataFrame(po_order_records)
-            if po_order_records
-            else pl.DataFrame(
-                schema={
-                    "order_ref": pl.Utf8,
-                    "ir_po_order": pl.Utf8,
-                    "wb_po_order": pl.Utf8,
-                }
-            )
-        ).unique(subset=["order_ref"])
-
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
         if grn_pl is None:
@@ -286,8 +156,7 @@ async def get_reconciliation_calculations(
                 pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
                 pl.col("Quantity")
                 .cast(pl.Utf8)
-                .str.replace_all(",", ".")
-                .cast(pl.Float64, strict=False)
+                .map_elements(csv_handler.parse_quantity_smart, return_dtype=pl.Float64)
                 .fill_null(0.0),
                 pl.col("Order_Number")
                 .cast(pl.Utf8)
@@ -298,121 +167,149 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 4.b Inferir GRN -> IR desde los logs físicos (GRNs sin maestro).
-        # Un GRN pertenece a una sola IR: se elige la IR donde se recibió físicamente
-        # la mayoría (>= 50%) de los ítems del GRN. Evita que el fallback por PO
-        # (Order_Number) reparta un mismo GRN entre IRs/guías de otros embarques del mismo PO.
-        logs_ir_items = (
-            logs_pl.filter(
-                pl.col("importReference").is_not_null() & (pl.col("importReference") != "")
-            )
-            .select(["importReference", "itemCode", "waybill"])
-            .unique(subset=["importReference", "itemCode"])
-        )
-        grn_items = df_280.select(["GRN_Number", "Item_Code"]).unique()
-        grn_item_counts = grn_items.group_by("GRN_Number").agg(pl.len().alias("_n_items"))
-        df_grn_from_logs = (
-            grn_items.join(logs_ir_items, left_on="Item_Code", right_on="itemCode", how="inner")
-            .group_by(["GRN_Number", "importReference"])
-            .agg(
-                [
-                    pl.len().alias("_n_match"),
-                    pl.col("waybill")
-                    .filter(pl.col("waybill") != "")
-                    .mode()
-                    .first()
-                    .str.strip_chars()
-                    .str.to_uppercase()
-                    .alias("wb_grn_logs"),
-                ]
-            )
-            .join(grn_item_counts, on="GRN_Number")
-            .filter((pl.col("_n_match") / pl.col("_n_items")) >= 0.5)
-            .sort(["GRN_Number", "_n_match"], descending=[False, True])
-            .unique(subset=["GRN_Number"], keep="first", maintain_order=True)
-            .select(
-                [
-                    pl.col("GRN_Number").alias("grn_logs"),
-                    pl.col("importReference").alias("ir_grn_logs"),
-                    "wb_grn_logs",
-                ]
-            )
+        # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
+        # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
+        df_expected_with_ir = df_280.join(
+            df_grn_master, left_on="GRN_Number", right_on="grn_map", how="left"
+        ).with_columns(
+            [
+                pl.col("ir_map").fill_null("SIN I.R. MAESTRA"),
+                pl.col("wb_map").fill_null("SIN WAYBILL"),
+            ]
         )
 
-        # 5. ASOCIACIÓN STRICTA DE I.R. Y WAYBILL AL REPORTE 280 (PRIORIZANDO GRN FÍSICO)
-        # Prioridad 1: Match exacto por GRN_Number + Item_Code (PO Extractor)
-        # Prioridad 2: Match directo por GRN en Maestro de GRN (po_lookup.json grn_to_ir / DB GRNMaster)
-        # Prioridad 2.b: GRN -> IR inferido desde logs físicos (paso 4.b)
-        # Prioridad 3: Match exacto por Order_Number + Order_Line + Item_Code (PO Extractor) - Nivel de línea (Composite Key)
-        # Prioridad 4: Match exacto por Order_Number + Item_Code (PO Extractor)
-        # Prioridad 5: Match por Order_Number (PO Extractor)
-        df_expected_with_ir = (
-            df_280.join(
-                df_po_grn_item_map,
-                left_on=["GRN_Number", "Item_Code"],
-                right_on=["grn_ref", "item_ref"],
-                how="left",
-            )
-            .join(
-                df_grn_master.rename({"ir_map": "ir_grn_master", "wb_map": "wb_grn_master"}),
-                left_on="GRN_Number",
-                right_on="grn_map",
-                how="left",
-            )
-            .join(
-                df_grn_from_logs,
-                left_on="GRN_Number",
-                right_on="grn_logs",
-                how="left",
-            )
-            .join(
-                df_po_line_item_map,
-                left_on=["Order_Number", "Order_Line", "Item_Code"],
-                right_on=["order_ref", "line_ref", "item_ref"],
-                how="left",
-            )
-            .join(
-                df_po_item_map,
-                left_on=["Order_Number", "Item_Code"],
-                right_on=["order_ref", "item_ref"],
-                how="left",
-            )
-            .join(
-                df_po_order_map,
-                left_on="Order_Number",
-                right_on="order_ref",
-                how="left",
-            )
-            .with_columns(
-                [
-                    pl.coalesce(["ir_po_grn", "ir_grn_master", "ir_grn_logs", "ir_po_line", "ir_po", "ir_po_order"])
-                    .fill_null("SIN I.R. MAESTRA")
-                    .alias("ir_map"),
-                    pl.coalesce(["wb_po_grn", "wb_grn_master", "wb_grn_logs", "wb_po_line", "wb_po", "wb_po_order"])
-                    .fill_null("SIN WAYBILL")
-                    .alias("wb_map"),
-                    pl.when(pl.col("Order_Line") != "")
-                    .then(pl.col("Order_Line"))
-                    .otherwise(
-                        pl.coalesce(["line_po_grn", "line_po_line", "line_po"])
-                    )
-                    .fill_null("")
-                    .alias("Order_Line"),
-                ]
-            )
-            .select(
-                [
-                    "GRN_Number",
-                    "Item_Code",
-                    "Item_Description",
-                    "Quantity",
-                    "Order_Number",
-                    "Order_Line",
-                    "ir_map",
-                    "wb_map",
-                ]
-            )
+        # 5.1 PROTECCIÓN Y RECUPERACIÓN DE GRNs COMPLETAS O RECIBIDAS:
+        # Si alguna GRN no tiene I.R. maestra asignada, pero sus ítems ya están registrados
+        # físicamente en los logs de bodega, autodescubrir su I.R. activa validando la tríada
+        # (IR + Item + Order_Number) y garantizando que jamás se secuestre una IR que ya
+        # tiene sus GRNs oficiales asignadas en el PO Extractor / Maestro.
+        unmapped_grns = (
+            df_expected_with_ir.filter(pl.col("ir_map") == "SIN I.R. MAESTRA")
+            .get_column("GRN_Number")
+            .unique()
+            .to_list()
         )
+        if unmapped_grns and not logs_pl.is_empty():
+            # Cargar mapas de GRNs y órdenes oficiales por IR desde po_lookup.json
+            ir_to_orders = {}
+            ir_to_known_grns = {}
+            if os.path.exists(PO_LOOKUP_JSON_PATH):
+                try:
+                    import orjson
+                    with open(PO_LOOKUP_JSON_PATH, "rb") as f:
+                        po_lookup_cache = orjson.loads(f.read())
+                    for ir_k, ir_v in po_lookup_cache.get("ir_to_data", {}).items():
+                        ir_clean = ir_k.strip().upper()
+                        items_list = ir_v.get("items", [])
+                        ir_to_orders[ir_clean] = {
+                            str(it.get("customer_ref", "")).strip().upper()
+                            for it in items_list
+                            if it.get("customer_ref")
+                        }
+                        grn_set = set()
+                        for it in items_list:
+                            g_val = it.get("grn")
+                            if g_val:
+                                for part in str(g_val).split(","):
+                                    p_clean = part.strip().upper()
+                                    if p_clean:
+                                        grn_set.add(p_clean)
+                        ir_to_known_grns[ir_clean] = grn_set
+                except Exception as po_err:
+                    print(f"[RECONCILIATION] Error loading po_lookup for validation: {po_err}")
+                    ir_to_orders = {}
+                    ir_to_known_grns = {}
+
+            recovered_mappings = []
+            for u_grn in unmapped_grns:
+                grn_sub = df_expected_with_ir.filter(pl.col("GRN_Number") == u_grn)
+                grn_item_codes = (
+                    grn_sub.get_column("Item_Code")
+                    .unique()
+                    .to_list()
+                )
+                if not grn_item_codes:
+                    continue
+
+                grn_orders = {
+                    str(o).strip().upper()
+                    for o in grn_sub.get_column("Order_Number").unique().to_list()
+                    if o
+                }
+
+                matched_logs = logs_pl.filter(
+                    pl.col("itemCode").is_in(grn_item_codes)
+                    & (pl.col("importReference") != "")
+                    & (pl.col("importReference") != "SIN I.R. MAESTRA")
+                )
+                if not matched_logs.is_empty():
+                    top_matches = (
+                        matched_logs.group_by("importReference")
+                        .agg(
+                            [
+                                pl.col("itemCode").n_unique().alias("_n_items"),
+                                pl.col("waybill").first().alias("_wb"),
+                            ]
+                        )
+                        .sort("_n_items", descending=True)
+                    )
+
+                    rec_ir = None
+                    rec_wb = None
+                    for candidate in top_matches.to_dicts():
+                        cand_ir = candidate["importReference"].strip().upper()
+                        known_grns = ir_to_known_grns.get(cand_ir, set())
+                        known_orders = ir_to_orders.get(cand_ir, set())
+
+                        # REGLA DE ORO CONTRA SECUESTRO:
+                        # Si la IR candidata ya tiene sus GRNs oficiales en el PO Extractor,
+                        # ninguna otra GRN huérfana puede asociarse a ella.
+                        if known_grns:
+                            continue
+
+                        # Solo para IRs sin GRNs definidas o manuales de bodega:
+                        if known_orders:
+                            if grn_orders and grn_orders.intersection(known_orders):
+                                rec_ir = cand_ir
+                                rec_wb = candidate["_wb"] or ""
+                                break
+                        else:
+                            # IR manual (no en PO Extractor): requiere que coincidan todos los ítems o la mayoría (>= 50%)
+                            n_match = candidate["_n_items"]
+                            if n_match >= len(grn_item_codes) or (len(grn_item_codes) > 1 and n_match / len(grn_item_codes) >= 0.5):
+                                rec_ir = cand_ir
+                                rec_wb = candidate["_wb"] or ""
+                                break
+
+                    if rec_ir:
+                        recovered_mappings.append(
+                            {"GRN_Number": u_grn, "_rec_ir": rec_ir, "_rec_wb": rec_wb}
+                        )
+
+            if recovered_mappings:
+                df_rec = pl.DataFrame(recovered_mappings)
+                df_expected_with_ir = (
+                    df_expected_with_ir.join(df_rec, on="GRN_Number", how="left")
+                    .with_columns(
+                        [
+                            pl.when(
+                                (pl.col("ir_map") == "SIN I.R. MAESTRA")
+                                & pl.col("_rec_ir").is_not_null()
+                            )
+                            .then(pl.col("_rec_ir"))
+                            .otherwise(pl.col("ir_map"))
+                            .alias("ir_map"),
+                            pl.when(
+                                (pl.col("wb_map") == "SIN WAYBILL")
+                                & pl.col("_rec_wb").is_not_null()
+                            )
+                            .then(pl.col("_rec_wb"))
+                            .otherwise(pl.col("wb_map"))
+                            .alias("wb_map"),
+                        ]
+                    )
+                    .drop(["_rec_ir", "_rec_wb"])
+                )
 
         # 6. Cálculo de Totales Esperados por IR + Item
         total_exp_ir_item = df_expected_with_ir.group_by(["ir_map", "Item_Code"]).agg(

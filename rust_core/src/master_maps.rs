@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 use serde_json::Value;
 
-/// Parsea cadenas de GRN separadas por comas, barras, guiones, punto y coma o saltos de línea sin expansión de rangos.
+/// Parsea cadenas de GRN separadas por comas, punto y coma, saltos de línea o espacios sin romper guiones ni slashes.
 fn split_grn_string(val: &str) -> Vec<String> {
     let mut result = Vec::new();
-    for part in val.split(&[',', '/', '-', ';', '\n'][..]) {
+    for part in val.split(|c: char| c == ',' || c == ';' || c == '\n' || c == '\r' || c.is_whitespace()) {
         let part_clean = part.trim().to_uppercase();
         if !part_clean.is_empty() {
             result.push(part_clean);
@@ -51,7 +51,7 @@ pub fn build_master_maps_rust(
         }
     }
 
-    // 2. B. Desde DB GRN Master
+    // 2. B. Desde DB GRN Master y Saved Reconciliations
     for (ir_raw, grn_raw, wb_raw) in db_grns {
         let ir = ir_raw.unwrap_or_default().trim().to_uppercase();
         let grns = grn_raw.unwrap_or_default();
@@ -63,9 +63,32 @@ pub fn build_master_maps_rust(
         }
     }
 
-    // 3. C. Desde po_lookup.json (GRN Number de PO Extractor)
+    // 3. C. Desde po_lookup.json
     if let Ok(data) = std::fs::read_to_string(po_lookup_path) {
         if let Ok(json) = serde_json::from_str::<Value>(&data) {
+            // C.1 Desde wb_to_data -> items -> grn
+            if let Some(wb_to_data) = json.get("wb_to_data").and_then(|v| v.as_object()) {
+                for (wb_raw, data_obj) in wb_to_data {
+                    let ir = data_obj.get("import_ref")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim().to_uppercase();
+                    let wb = wb_raw.trim().to_uppercase();
+                    if !ir.is_empty() {
+                        if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                            for item in items {
+                                if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
+                                    for g in split_grn_string(grn_val) {
+                                        master_maps.push((g, ir.clone(), wb.clone()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // C.2 Desde grn_to_ir
             if let Some(grn_obj) = json.get("grn_to_ir").and_then(|v| v.as_object()) {
                 for (grn_key, val) in grn_obj {
                     let ir = val.get("import_ref")
@@ -88,4 +111,3 @@ pub fn build_master_maps_rust(
 
     Ok(master_maps)
 }
-
