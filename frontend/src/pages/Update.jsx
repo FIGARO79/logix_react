@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import '../styles/Update.css';
 
@@ -47,6 +47,81 @@ const Update = () => {
     const [maestroSearchTerm, setMaestroSearchTerm] = useState('');
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewedFile, setPreviewedFile] = useState(null);
+
+    // Estados y Refs para selección por arrastre con clic sostenido (Drag to Select)
+    const isDragSelectingMaestroRef = useRef(false);
+    const dragSelectModeMaestroRef = useRef(true);
+    const [, setIsDragSelectingMaestro] = useState(false);
+
+    const isDragSelecting280Ref = useRef(false);
+    const dragSelectMode280Ref = useRef(true);
+    const [, setIsDragSelecting280] = useState(false);
+
+    // Listener global para soltar el clic en cualquier parte de la ventana
+    useEffect(() => {
+        const handleGlobalMouseUp = () => {
+            if (isDragSelectingMaestroRef.current) {
+                isDragSelectingMaestroRef.current = false;
+                setIsDragSelectingMaestro(false);
+            }
+            if (isDragSelecting280Ref.current) {
+                isDragSelecting280Ref.current = false;
+                setIsDragSelecting280(false);
+            }
+        };
+        window.addEventListener('mouseup', handleGlobalMouseUp);
+        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }, []);
+
+    // Handlers para arrastrar y seleccionar en Maestro GRN
+    const handleMaestroMouseDown = (grnStr, e) => {
+        if (e.button !== 0) return; // Solo clic izquierdo
+        e.preventDefault(); // Evitar selección nativa de texto
+        const shouldSelect = !selectedMaestroGrns.includes(grnStr);
+        isDragSelectingMaestroRef.current = true;
+        dragSelectModeMaestroRef.current = shouldSelect;
+        setIsDragSelectingMaestro(true);
+        setSelectedMaestroGrns(prev => 
+            shouldSelect 
+                ? (prev.includes(grnStr) ? prev : [...prev, grnStr]) 
+                : prev.filter(g => g !== grnStr)
+        );
+    };
+
+    const handleMaestroMouseEnter = (grnStr) => {
+        if (!isDragSelectingMaestroRef.current) return;
+        const mode = dragSelectModeMaestroRef.current;
+        setSelectedMaestroGrns(prev => 
+            mode 
+                ? (prev.includes(grnStr) ? prev : [...prev, grnStr]) 
+                : prev.filter(g => g !== grnStr)
+        );
+    };
+
+    // Handlers para arrastrar y seleccionar en Filtro GRN 280
+    const handle280MouseDown = (grn, e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const shouldSelect = !selectedGrns.includes(grn);
+        isDragSelecting280Ref.current = true;
+        dragSelectMode280Ref.current = shouldSelect;
+        setIsDragSelecting280(true);
+        setSelectedGrns(prev => 
+            shouldSelect 
+                ? (prev.includes(grn) ? prev : [...prev, grn]) 
+                : prev.filter(g => g !== grn)
+        );
+    };
+
+    const handle280MouseEnter = (grn) => {
+        if (!isDragSelecting280Ref.current) return;
+        const mode = dragSelectMode280Ref.current;
+        setSelectedGrns(prev => 
+            mode 
+                ? (prev.includes(grn) ? prev : [...prev, grn]) 
+                : prev.filter(g => g !== grn)
+        );
+    };
 
     const fetchSyncStatus = useCallback(async () => {
         try {
@@ -579,18 +654,30 @@ const Update = () => {
                                             </div>
                                         </div>
 
-                                        <div className="max-h-24 overflow-y-auto bg-white p-2 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1.5 rounded">
-                                            {availableGrns.map(grn => (
-                                                <label key={grn} className="flex items-center gap-1.5 p-0.5 rounded hover:bg-zinc-50 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedGrns.includes(grn)}
-                                                        onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))}
-                                                        className="accent-[#0078d4]"
-                                                    />
-                                                    <span className="text-[10px] font-normal text-zinc-800">{grn}</span>
-                                                </label>
-                                            ))}
+                                        <div className="max-h-24 overflow-y-auto bg-white p-2 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1.5 rounded select-none">
+                                            {availableGrns.map(grn => {
+                                                const isSelected = selectedGrns.includes(grn);
+                                                return (
+                                                    <div
+                                                        key={grn}
+                                                        onMouseDown={(e) => handle280MouseDown(grn, e)}
+                                                        onMouseEnter={() => handle280MouseEnter(grn)}
+                                                        className={`flex items-center gap-1.5 px-1 py-0.5 rounded cursor-pointer select-none transition-colors ${
+                                                            isSelected ? 'bg-blue-50 text-blue-900 font-medium' : 'hover:bg-zinc-50 text-zinc-800'
+                                                        }`}
+                                                        title="Arrastra con clic sostenido para seleccionar múltiples"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            readOnly
+                                                            tabIndex={-1}
+                                                            className="accent-[#0078d4] pointer-events-none"
+                                                        />
+                                                        <span className="text-[10px] font-mono">{grn}</span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -819,7 +906,7 @@ const Update = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="max-h-36 overflow-y-auto bg-white p-1.5 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1 rounded">
+                                                    <div className="max-h-36 overflow-y-auto bg-white p-1.5 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1 rounded select-none">
                                                         {maestroGrns
                                                             .filter(grn => {
                                                                 const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
@@ -827,16 +914,28 @@ const Update = () => {
                                                             })
                                                             .map((grn, idx) => {
                                                                 const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
+                                                                const isSelected = selectedMaestroGrns.includes(grnStr);
                                                                 return (
-                                                                    <label key={grnStr || idx} className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-zinc-50 cursor-pointer">
+                                                                    <div
+                                                                        key={grnStr || idx}
+                                                                        onMouseDown={(e) => handleMaestroMouseDown(grnStr, e)}
+                                                                        onMouseEnter={() => handleMaestroMouseEnter(grnStr)}
+                                                                        className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded cursor-pointer select-none transition-colors ${
+                                                                            isSelected 
+                                                                                ? 'bg-blue-50 text-blue-900 font-medium' 
+                                                                                : 'hover:bg-zinc-50 text-zinc-800'
+                                                                        }`}
+                                                                        title="Arrastra con clic sostenido para seleccionar múltiples"
+                                                                    >
                                                                         <input
                                                                             type="checkbox"
-                                                                            checked={selectedMaestroGrns.includes(grnStr)}
-                                                                            onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grnStr]) : setSelectedMaestroGrns(p => p.filter(g => g !== grnStr))}
-                                                                            className="accent-[#0078d4]"
+                                                                            checked={isSelected}
+                                                                            readOnly
+                                                                            tabIndex={-1}
+                                                                            className="accent-[#0078d4] pointer-events-none"
                                                                         />
-                                                                        <span className="text-[10px] font-normal text-zinc-800 font-mono truncate">{grnStr}</span>
-                                                                    </label>
+                                                                        <span className="text-[10px] font-normal font-mono truncate">{grnStr}</span>
+                                                                    </div>
                                                                 );
                                                             })}
                                                     </div>
