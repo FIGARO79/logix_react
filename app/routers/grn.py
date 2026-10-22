@@ -138,15 +138,15 @@ async def sync_grn_master(
 @router.get("/unique_references", response_model=List[str])
 async def list_unique_references(
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(permission_required("inbound"))
+    username: str = Depends(permission_required(["inbound", "stock", "inventory", "planner", "counts"]))
 ):
-    """Lista los números de GRN únicos extrayendo EXCLUSIVAMENTE del archivo CSV 280 actual."""
+    """Lista los números de GRN únicos extrayendo del archivo CSV 280 actual y de la base de datos."""
     grns = set()
     
     if os.path.exists(GRN_CSV_FILE_PATH):
         try:
-            # Leer el archivo CSV 280 (Fuente de verdad actual)
-            df_280 = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=10000)
+            # Leer el archivo CSV 280 con infer_schema_length=0 para tratar todas las columnas como texto (evita fallos de parsing por comas en Quantity o Value)
+            df_280 = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0, ignore_errors=True, truncate_ragged_lines=True)
             
             # Identificar la columna de GRN (suele ser GRN_Number)
             col_name = None
@@ -167,6 +167,19 @@ async def list_unique_references(
                                 grns.add(val)
         except Exception as e:
             print(f"Error leyendo CSV 280 para referencias: {e}")
+
+    # También consultar GRNs existentes en la base de datos SQL (GRNMaster)
+    try:
+        stmt = select(GRNMaster.grn_number)
+        res_db = await db.execute(stmt)
+        for g_num in res_db.scalars().all():
+            if g_num:
+                for part in str(g_num).split(','):
+                    val = str(part).strip().upper()
+                    if val and 2 <= len(val) <= 25:
+                        grns.add(val)
+    except Exception as e:
+        print(f"Error consultando GRNMaster para referencias: {e}")
         
     return sorted(list(grns))
 
@@ -174,7 +187,7 @@ async def list_unique_references(
 async def delete_grn_bulk(
     payload: GRNBulkDeleteRequest,
     db: AsyncSession = Depends(get_db),
-    username: str = Depends(permission_required("inbound"))
+    username: str = Depends(permission_required(["inbound", "stock", "inventory", "planner", "counts"]))
 ):
     """Elimina registros del maestro y limpia asociaciones en JSON y CSV 280 basándose en GRN_Numbers."""
     from app.models.sql_models import Log, ReconciliationHistory # Importar modelos necesarios
@@ -234,7 +247,7 @@ async def delete_grn_bulk(
     # --- 4. LIMPIEZA EN EL CSV 280 (ELIMINACIÓN FÍSICA) ---
     if os.path.exists(GRN_CSV_FILE_PATH):
         try:
-            df_280 = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=10000)
+            df_280 = pl.read_csv(GRN_CSV_FILE_PATH, infer_schema_length=0, ignore_errors=True, truncate_ragged_lines=True)
             initial_count = df_280.height
             # Identificar columna
             col_name = "GRN_Number"
@@ -251,6 +264,12 @@ async def delete_grn_bulk(
             if df_280.height < initial_count:
                 df_280.write_csv(GRN_CSV_FILE_PATH)
                 print(f"CSV 280 actualizado: {initial_count - df_280.height} filas eliminadas.")
+                # Recargar la memoria RAM para que el cambio sea inmediato en toda la app
+                try:
+                    from app.services.csv_handler import load_csv_data
+                    await load_csv_data()
+                except Exception as e_cache:
+                    print(f"Error recargando caché CSV: {e_cache}")
         except Exception as e:
             print(f"Error actualizando CSV 280: {e}")
 

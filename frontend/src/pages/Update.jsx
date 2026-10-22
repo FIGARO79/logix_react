@@ -43,12 +43,14 @@ const Update = () => {
     const [maestroGrns, setMaestroGrns] = useState([]);
     const [selectedMaestroGrns, setSelectedMaestroGrns] = useState([]);
     const [isFetchingMaestro, setIsFetchingMaestro] = useState(false);
+    const [showMaestroList, setShowMaestroList] = useState(false);
+    const [maestroSearchTerm, setMaestroSearchTerm] = useState('');
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewedFile, setPreviewedFile] = useState(null);
 
     const fetchSyncStatus = useCallback(async () => {
         try {
-            const res = await fetch('/api/sync/status');
+            const res = await fetch('/api/sync/status', { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 setSyncStatus(data);
@@ -118,7 +120,7 @@ const Update = () => {
         // Verificar si el robot ya está ejecutándose al cargar la vista
         const checkInitialRobotStatus = async () => {
             try {
-                const res = await fetch('/api/po_robot_status');
+                const res = await fetch('/api/po_robot_status', { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === 'running') {
@@ -168,7 +170,7 @@ const Update = () => {
         setIsPreviewing(true); setPreviewedFile(file);
         try {
             const formData = new FormData(); formData.append('file', file);
-            const res = await fetch('/api/preview_grn_file', { method: 'POST', body: formData });
+            const res = await fetch('/api/preview_grn_file', { method: 'POST', body: formData, credentials: 'include' });
             const data = await res.json();
             if (res.ok && data.grns) {
                 setAvailableGrns(data.grns); setSelectedGrns(data.grns);
@@ -208,7 +210,7 @@ const Update = () => {
         if (availableGrns.length > 0) formData.append('selected_grns_280', JSON.stringify(selectedGrns));
 
         try {
-            const res = await fetch('/api/update', { method: 'POST', body: formData });
+            const res = await fetch('/api/update', { method: 'POST', body: formData, credentials: 'include' });
             const data = await res.json();
             if (res.ok) { 
                 setMessages({ success: data.message, error: '', info: '' }); 
@@ -236,6 +238,7 @@ const Update = () => {
             const res = await fetch('/api/run_po_robot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ start_date: fmt(robotStartDate), end_date: fmt(robotEndDate) })
             });
             const data = await res.json().catch(() => ({}));
@@ -259,10 +262,11 @@ const Update = () => {
         setIsFetchingMaestro(true);
         setMessages({ success: '', error: '', info: '' });
         try {
-            const res = await fetch('/api/grn/unique_references');
+            const res = await fetch('/api/grn/unique_references', { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 setMaestroGrns(data);
+                setShowMaestroList(true);
                 if (data.length === 0) {
                     setMessages({ success: '', error: '', info: "EL MAESTRO ESTÁ VACÍO. NO HAY GRNS PARA ELIMINAR." });
                 }
@@ -278,6 +282,18 @@ const Update = () => {
         }
     };
 
+    const toggleMaestroList = () => {
+        if (showMaestroList) {
+            setShowMaestroList(false);
+        } else {
+            if (maestroGrns.length === 0) {
+                fetchMaestroGrns();
+            } else {
+                setShowMaestroList(true);
+            }
+        }
+    };
+
     const handleDeleteMaestroGrns = async (e) => {
         e.preventDefault();
         if (selectedMaestroGrns.length === 0) return alert("Seleccione al menos un GRN");
@@ -288,6 +304,7 @@ const Update = () => {
             const res = await fetch('/api/grn/delete_bulk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     grn_numbers: selectedMaestroGrns,
                     password: deleteMaestroPassword
@@ -739,79 +756,134 @@ const Update = () => {
                                         </label>
                                         <button
                                             type="button"
-                                            onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({ ...prev, info: '' })) } : fetchMaestroGrns}
+                                            onClick={toggleMaestroList}
                                             disabled={isFetchingMaestro}
                                             className="h-5 px-2 text-[9px] font-normal uppercase rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
                                         >
-                                            {isFetchingMaestro ? 'Cargando...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'Ocultar' : 'Ver Lista')}
+                                            {isFetchingMaestro ? 'Cargando...' : (showMaestroList ? 'Ocultar' : 'Ver Lista')}
                                         </button>
                                     </div>
 
-                                    {maestroGrns.length > 0 ? (
+                                    {showMaestroList && (
                                         <div className="space-y-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-normal text-zinc-700 uppercase">{maestroGrns.length} GRNs encontrados</span>
-                                                <div className="flex gap-2">
-                                                    <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer">Todas</button>
-                                                    <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer">Ninguna</button>
-                                                </div>
-                                            </div>
-                                            <div className="max-h-24 overflow-y-auto bg-white p-1.5 border border-zinc-200 rounded space-y-0.5">
-                                                {maestroGrns.map((grn, idx) => {
-                                                    const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
-                                                    return (
-                                                        <label key={grnStr || idx} className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-zinc-50 cursor-pointer">
+                                            {maestroGrns.length > 0 ? (
+                                                <>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-zinc-200">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-normal text-zinc-700 uppercase">
+                                                                {maestroGrns.filter(g => {
+                                                                    const str = typeof g === 'string' ? g : g?.reference || g?.grn || String(g);
+                                                                    return str.toLowerCase().includes(maestroSearchTerm.toLowerCase());
+                                                                }).length} de {maestroGrns.length} GRNs {selectedMaestroGrns.length > 0 && `(${selectedMaestroGrns.length} sel.)`}
+                                                            </span>
+                                                            <div className="flex gap-2 border-l border-zinc-300 pl-2 text-[10px]">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const visible = maestroGrns
+                                                                            .map(g => (typeof g === 'string' ? g : g?.reference || g?.grn || String(g)))
+                                                                            .filter(s => s.toLowerCase().includes(maestroSearchTerm.toLowerCase()));
+                                                                        setSelectedMaestroGrns(prev => Array.from(new Set([...prev, ...visible])));
+                                                                    }}
+                                                                    className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer"
+                                                                >
+                                                                    {maestroSearchTerm ? 'Marcar Visibles' : 'Todas'}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedMaestroGrns([])}
+                                                                    className="text-[9px] font-normal text-[#0078d4] hover:underline uppercase cursor-pointer"
+                                                                >
+                                                                    Ninguna
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
                                                             <input
-                                                                type="checkbox"
-                                                                checked={selectedMaestroGrns.includes(grnStr)}
-                                                                onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grnStr]) : setSelectedMaestroGrns(p => p.filter(g => g !== grnStr))}
-                                                                className="accent-[#0078d4]"
+                                                                type="text"
+                                                                placeholder="Buscar GRN..."
+                                                                value={maestroSearchTerm}
+                                                                onChange={e => setMaestroSearchTerm(e.target.value)}
+                                                                className="h-6 border border-zinc-300 rounded px-2 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#0078d4] w-28 sm:w-36 font-mono"
                                                             />
-                                                            <span className="text-[10px] font-normal text-zinc-800">{grnStr}</span>
-                                                        </label>
-                                                    );
-                                                })}
-                                            </div>
+                                                            {maestroSearchTerm && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setMaestroSearchTerm('')}
+                                                                    className="text-zinc-400 hover:text-zinc-600 text-[10px] font-mono px-1"
+                                                                    title="Limpiar búsqueda"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
 
-                                            <form onSubmit={handleDeleteMaestroGrns} className="space-y-1.5">
-                                                <div className="relative w-full">
-                                                    <input
-                                                        type={showDeleteMaestroPassword ? "text" : "password"}
-                                                        placeholder="Contraseña de Administrador"
-                                                        value={deleteMaestroPassword}
-                                                        onChange={e => setDeleteMaestroPassword(e.target.value)}
-                                                        className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#0078d4]"
-                                                        required
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowDeleteMaestroPassword(!showDeleteMaestroPassword)}
-                                                        className="w-6 h-6 !p-0 absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-700 cursor-pointer"
-                                                        tabIndex={-1}
-                                                    >
-                                                        {showDeleteMaestroPassword ? (
-                                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                            </svg>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                                <button
-                                                    type="submit"
-                                                    disabled={isLoading || selectedMaestroGrns.length === 0}
-                                                    className="w-full h-7 text-[10px] font-normal text-white uppercase rounded bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
-                                                >
-                                                    Eliminar Seleccionados ({selectedMaestroGrns.length})
-                                                </button>
-                                            </form>
+                                                    <div className="max-h-36 overflow-y-auto bg-white p-1.5 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1 rounded">
+                                                        {maestroGrns
+                                                            .filter(grn => {
+                                                                const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
+                                                                return grnStr.toLowerCase().includes(maestroSearchTerm.toLowerCase());
+                                                            })
+                                                            .map((grn, idx) => {
+                                                                const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
+                                                                return (
+                                                                    <label key={grnStr || idx} className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-zinc-50 cursor-pointer">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedMaestroGrns.includes(grnStr)}
+                                                                            onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grnStr]) : setSelectedMaestroGrns(p => p.filter(g => g !== grnStr))}
+                                                                            className="accent-[#0078d4]"
+                                                                        />
+                                                                        <span className="text-[10px] font-normal text-zinc-800 font-mono truncate">{grnStr}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                    </div>
+
+                                                    <form onSubmit={handleDeleteMaestroGrns} className="space-y-1.5">
+                                                        <div className="relative w-full">
+                                                            <input
+                                                                type={showDeleteMaestroPassword ? "text" : "password"}
+                                                                placeholder="Contraseña de Administrador"
+                                                                value={deleteMaestroPassword}
+                                                                onChange={e => setDeleteMaestroPassword(e.target.value)}
+                                                                className="w-full h-7 border border-zinc-300 rounded pl-2.5 pr-8 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#0078d4]"
+                                                                required
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowDeleteMaestroPassword(!showDeleteMaestroPassword)}
+                                                                className="w-6 h-6 !p-0 absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-700 cursor-pointer"
+                                                                tabIndex={-1}
+                                                            >
+                                                                {showDeleteMaestroPassword ? (
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '13px', height: '13px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        <button
+                                                            type="submit"
+                                                            disabled={isLoading || selectedMaestroGrns.length === 0}
+                                                            className="w-full h-7 text-[10px] font-normal text-white uppercase rounded bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
+                                                        >
+                                                            Eliminar Seleccionados ({selectedMaestroGrns.length})
+                                                        </button>
+                                                    </form>
+                                                </>
+                                            ) : (
+                                                <p className="text-[10px] text-zinc-500 italic py-2 text-center">
+                                                    {messages.info || "El maestro está vacío o no contiene números de GRN registrados."}
+                                                </p>
+                                            )}
                                         </div>
-                                    ) : (
-                                        messages.info && <p className="text-[10px] text-zinc-600 bg-zinc-50 p-2 rounded border border-zinc-200 font-normal">{messages.info}</p>
                                     )}
                                 </div>
                             </div>
