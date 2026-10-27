@@ -106,11 +106,13 @@ const OccupancyDashboard = () => {
                 const total = zData.total || 0;
                 const vacios = Math.max(0, total - occupied);
                 const pct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                const zoneTotalSkus = zData.total_skus ?? Object.values(zData.levels || {}).reduce((acc, lvl) => acc + (lvl.occupied_skus || 0), 0);
+                const zoneDensity = occupied > 0 ? (zoneTotalSkus / occupied).toFixed(1) : '0.0';
                 statsRows.push({
                     'CATEGORÍA': 'DESGLOSE POR ZONA',
                     'MÉTRICA / INDICADOR': `Zona: ${zoneName}`,
-                    'VALOR': `${occupied} / ${total} Bins (${pct}% Ocupación)`,
-                    'DETALLE': `${vacios} Vacíos • ${occupied} Ocupados`
+                    'VALOR': `${occupied} / ${total} Bins (${pct}% Ocupación) • ${zoneTotalSkus} SKUs`,
+                    'DETALLE': `Densidad: ${zoneDensity} SKUs/bin • ${vacios} Vacíos • ${occupied} Ocupados`
                 });
             });
 
@@ -500,6 +502,10 @@ const OccupancyDashboard = () => {
                                 const zoneOccupancyPct = zoneData.total > 0
                                     ? Math.round((zoneData.occupied / zoneData.total) * 100)
                                     : 0;
+                                const zoneTotalSkus = zoneData.total_skus ?? Object.values(zoneData.levels || {}).reduce((acc, lvl) => acc + (lvl.occupied_skus || 0), 0);
+                                const zoneDensity = zoneData.occupied > 0
+                                    ? (zoneTotalSkus / zoneData.occupied).toFixed(1)
+                                    : '0.0';
                                 const isZoneSelected = selectedCell && selectedCell.zone === zoneName && selectedCell.level === null;
                                 return (
                                     <tr key={zoneName} className="hover:bg-zinc-50/50 transition-colors">
@@ -516,6 +522,11 @@ const OccupancyDashboard = () => {
                                             </div>
                                             <div className="text-[14px] text-[#1F1E1E] font-normal mt-0.5 uppercase">
                                                 {zoneData.total} Bins Total • {zoneOccupancyPct}% Ocupación
+                                            </div>
+                                            <div className="text-[12px] text-[#605e5c] font-normal mt-0.5 uppercase flex items-center gap-1.5">
+                                                <span>{zoneTotalSkus.toLocaleString()} SKUs</span>
+                                                <span>•</span>
+                                                <span className="text-[#0078d4] font-normal">{zoneDensity} SKUs/Bin</span>
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
@@ -723,8 +734,9 @@ const OccupancyDashboard = () => {
 
                 {/* 2. SKU Volume Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm text-black">
-                    <h3 className="text-[14px] font-normal text-black uppercase mb-4 border-b border-zinc-100 pb-2">
-                        Densidad de SKUs por Zona
+                    <h3 className="text-[14px] font-normal text-black uppercase mb-4 border-b border-zinc-100 pb-2 flex justify-between items-center">
+                        <span>Densidad de SKUs por Zona</span>
+                        <span className="text-[11px] text-[#605e5c] font-normal lowercase">(promedio por bin ocupado)</span>
                     </h3>
                     <div className="space-y-4">
                         {(() => {
@@ -733,14 +745,21 @@ const OccupancyDashboard = () => {
                                 const maxVal = Object.values(data.analytics.zones_by_items)[0] || 1;
                                 const pct = Math.round((count / maxVal) * 100);
                                 const itemPct = totalItems > 0 ? ((count / totalItems) * 100).toFixed(1) : 0;
+                                const zData = data.zones?.[zone];
+                                const occBins = zData?.occupied || 0;
+                                const density = occBins > 0 ? (count / occBins).toFixed(1) : '0.0';
                                 return (
                                     <div key={zone}>
                                         <div className="flex justify-between text-[14px] font-normal text-black mb-1">
-                                            <span>{zone}</span>
-                                            <span className="text-black font-normal text-[14px]">
-                                                {count}
-                                                <span className="text-black font-normal text-[14px] ml-2">({itemPct}%)</span>
-                                            </span>
+                                            <span className="font-normal text-black">{zone}</span>
+                                            <div className="text-right">
+                                                <span className="text-black font-normal text-[14px]">
+                                                    {count.toLocaleString()} SKUs ({itemPct}%)
+                                                </span>
+                                                <span className="text-[#0078d4] font-normal text-[12px] ml-2">
+                                                    • {density} SKUs/bin
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                                             <div className="h-full bg-blue-500" style={{ width: `${pct}%` }}></div>

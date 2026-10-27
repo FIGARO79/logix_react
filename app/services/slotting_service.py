@@ -514,6 +514,16 @@ class SlottingService:
             else:
                 report["summary"]["available_bins"] += 1
 
+        # Calcular métricas consolidadas por zona: total SKUs y densidad de SKU/bin
+        for z_name, z_info in report["zones"].items():
+            z_skus = sum(lvl.get("occupied_skus", 0) for lvl in z_info["levels"].values())
+            z_info["total_skus"] = z_skus
+            z_info["sku_density"] = (
+                round(z_skus / z_info["occupied"], 1)
+                if z_info.get("occupied", 0) > 0
+                else 0.0
+            )
+
         report["summary"]["total_items"] = total_items
         if report["summary"]["total_bins"] > 0:
             report["summary"]["occupancy_pct"] = round(
