@@ -124,7 +124,7 @@ const CycleCounts = () => {
                     detail.includes("finalizado") ||
                     detail.includes("no está activo")
                 ) {
-                    checkActiveSession();
+                    checkActiveSession(true);
                 }
                 throw new Error(detail);
             }
@@ -137,15 +137,29 @@ const CycleCounts = () => {
         }
     };
 
-    const checkActiveSession = useCallback(async () => {
-        setCheckingSession(true);
+    const checkActiveSession = useCallback(async (isBackground = false) => {
+        if (!isBackground) {
+            setCheckingSession(true);
+        }
         try {
             if (isOnline) {
                 const res = await fetch('/api/sessions/active');
                 if (res.ok) {
                     const session = await res.json();
                     if (session && (session.id || session.session_id)) {
-                        setActiveSession(session);
+                        setActiveSession((prev) => {
+                            const prevId = prev?.id || prev?.session_id;
+                            const nextId = session.id || session.session_id;
+                            if (
+                                prev &&
+                                prevId === nextId &&
+                                prev.status === session.status &&
+                                (prev.user_username || prev.username) === (session.user_username || session.username)
+                            ) {
+                                return prev;
+                            }
+                            return session;
+                        });
                         // Guardar en caché
                         const db = await getDB();
                         await db.put('active_sessions', { type: 'cycle_count', ...session });
@@ -153,49 +167,57 @@ const CycleCounts = () => {
                         setActiveSession((prev) => {
                             if (prev) {
                                 toast.info("El ciclo de inventario ha finalizado o la sesión fue cerrada. La sesión se cerró automáticamente.");
+                                clearForm();
+                                setCountedLocation('');
+                                setLocationCounts([]);
+                                setSessionLocations([]);
+                                setShowRecountModal(false);
+                                setRecountItemModal(null);
                             }
                             return null;
                         });
                         const db = await getDB();
                         await db.delete('active_sessions', 'cycle_count');
-                        clearForm();
-                        setCountedLocation('');
-                        setLocationCounts([]);
-                        setSessionLocations([]);
-                        setShowRecountModal(false);
-                        setRecountItemModal(null);
                     }
                 } else {
                     setActiveSession((prev) => {
                         if (prev) {
                             toast.info("La sesión de inventario fue cerrada.");
+                            clearForm();
+                            setCountedLocation('');
+                            setLocationCounts([]);
+                            setSessionLocations([]);
+                            setShowRecountModal(false);
+                            setRecountItemModal(null);
                         }
                         return null;
                     });
                     const db = await getDB();
                     await db.delete('active_sessions', 'cycle_count');
-                    clearForm();
-                    setCountedLocation('');
-                    setLocationCounts([]);
-                    setSessionLocations([]);
-                    setShowRecountModal(false);
-                    setRecountItemModal(null);
                 }
             } else {
                 // Modo Offline: buscar en caché
                 const db = await getDB();
                 const cached = await db.get('active_sessions', 'cycle_count');
                 if (cached) {
-                    setActiveSession(cached);
+                    setActiveSession((prev) => {
+                        const prevId = prev?.id || prev?.session_id;
+                        const nextId = cached.id || cached.session_id;
+                        return prev && prevId === nextId ? prev : cached;
+                    });
                 } else {
                     setActiveSession(null);
                 }
             }
         } catch (e) {
             console.error(e);
-            setActiveSession(null);
+            if (!isBackground) {
+                setActiveSession(null);
+            }
         } finally {
-            setCheckingSession(false);
+            if (!isBackground) {
+                setCheckingSession(false);
+            }
         }
     }, [isOnline]);
 
@@ -251,19 +273,20 @@ const CycleCounts = () => {
         }
     };
 
+    const activeSessionId = activeSession?.id || activeSession?.session_id;
+
     const updateSidebarData = useCallback(async () => {
-        if (!activeSession) return;
+        if (!activeSessionId) return;
 
         if (isOnline) {
-            const sessionId = activeSession.id || activeSession.session_id;
             try {
-                const res = await fetch(`/api/sessions/${sessionId}/locations`);
+                const res = await fetch(`/api/sessions/${activeSessionId}/locations`);
                 if (res.ok) setSessionLocations(await res.json());
             } catch (e) { console.error(e); }
 
             if (countedLocation) {
                 try {
-                    const res = await fetch(`/api/sessions/${sessionId}/counts/${encodeURIComponent(countedLocation)}`);
+                    const res = await fetch(`/api/sessions/${activeSessionId}/counts/${encodeURIComponent(countedLocation)}`);
                     if (res.ok) setLocationCounts(await res.json());
                 } catch (e) { console.error(e); }
             } else {
@@ -283,10 +306,10 @@ const CycleCounts = () => {
                 }));
             setLocationCounts(localMatches);
         }
-    }, [activeSession, isOnline, countedLocation, fetchRecountList]);
+    }, [activeSessionId, isOnline, countedLocation, fetchRecountList]);
 
     useEffect(() => {
-        checkActiveSession();
+        checkActiveSession(false);
 
         let bc;
         if (typeof BroadcastChannel !== 'undefined') {
@@ -297,20 +320,21 @@ const CycleCounts = () => {
                     event.data?.type === 'INVENTORY_STAGE_CHANGED' ||
                     event.data?.type === 'INVENTORY_FINALIZED'
                 ) {
-                    checkActiveSession();
+                    checkActiveSession(true);
+                    fetchRecountList();
                 }
             };
         }
 
         const interval = setInterval(() => {
             if (navigator.onLine && !document.hidden) {
-                checkActiveSession();
+                checkActiveSession(true);
             }
         }, 5000);
 
         const handleVisibilityChange = () => {
             if (!document.hidden && navigator.onLine) {
-                checkActiveSession();
+                checkActiveSession(true);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -320,14 +344,13 @@ const CycleCounts = () => {
             clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [checkActiveSession]);
+    }, [checkActiveSession, fetchRecountList]);
 
     useEffect(() => {
-        if (activeSession) {
+        if (activeSessionId) {
             updateSidebarData();
-            fetchRecountList();
         }
-    }, [activeSession, countedLocation, updateSidebarData, fetchRecountList]);
+    }, [activeSessionId, countedLocation, updateSidebarData]);
 
     const loadSlottingBins = useCallback(async () => {
         let binsLoaded = false;
@@ -491,7 +514,7 @@ const CycleCounts = () => {
                         detail.includes("no está activo")
                     ) {
                         toast.error(detail || "La sesión o ciclo de inventario ha finalizado.");
-                        checkActiveSession();
+                        checkActiveSession(true);
                         return;
                     }
                 }
