@@ -726,13 +726,23 @@ async def start_inventory_stage_1_api(
     else:
         stage_state.value = "1"
 
-    # Limpiar tablas respetando FK constraints
+    # Limpiar tablas respetando FK constraints y reiniciar correlativos (AUTO_INCREMENT = 1)
     await db.execute(update(CycleCount).values(count_id=None))
     await db.execute(delete(SessionLocation))
     await db.execute(delete(W2WInventorySnapshot))
     await db.execute(delete(StockCount))
     await db.execute(delete(CountSession))
     await db.execute(delete(RecountList))
+
+    # Reiniciar correlativos de auto-incremento a 1 (MariaDB / MySQL)
+    try:
+        await db.execute(text("ALTER TABLE session_locations AUTO_INCREMENT = 1;"))
+        await db.execute(text("ALTER TABLE stock_counts AUTO_INCREMENT = 1;"))
+        await db.execute(text("ALTER TABLE count_sessions AUTO_INCREMENT = 1;"))
+        await db.execute(text("ALTER TABLE recount_list AUTO_INCREMENT = 1;"))
+        await db.execute(text("ALTER TABLE w2w_inventory_snapshots AUTO_INCREMENT = 1;"))
+    except Exception as e:
+        print(f"Aviso al reiniciar AUTO_INCREMENT: {e}")
 
     # Sincronizar maestro de items desde CSV a DB
     await sync_master_csv_to_db(db)

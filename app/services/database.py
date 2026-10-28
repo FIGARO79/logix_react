@@ -80,4 +80,3 @@ async def run_migrations():
     
     await ensure_cycle_count_columns()
     await ensure_default_admin()
-
