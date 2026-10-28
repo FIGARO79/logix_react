@@ -360,8 +360,12 @@ async def get_reconciliation_calculations(
             how="left",
         )
 
-        # Ocultar diferencias duplicadas en la vista
-        final = final.sort(["ir_map", "Item_Code", "GRN_Number"])
+        # Distribuir Cant_Recibida en cascada línea por línea dentro de cada (ir_map, Item_Code)
+        # respetando el orden de GRN y Order_Line para no duplicar cantidades recibidas ni diferencias
+        final = final.with_columns(
+            pl.col("Order_Line").cast(pl.Int64, strict=False).fill_null(0).alias("_order_line_num")
+        ).sort(["ir_map", "Item_Code", "GRN_Number", "_order_line_num"])
+
         final = (
             final.with_columns(
                 [
@@ -373,14 +377,26 @@ async def get_reconciliation_calculations(
                     .count()
                     .over(["ir_map", "Item_Code"])
                     .alias("_group_size"),
+                    (
+                        pl.col("Cant_Linea")
+                        .cum_sum()
+                        .over(["ir_map", "Item_Code"])
+                        - pl.col("Cant_Linea")
+                    ).alias("_prev_cum_exp"),
                 ]
             )
             .with_columns(
-                Diferencia=pl.when(pl.col("_row_num") == pl.col("_group_size"))
-                .then(pl.col("Diferencia").cast(pl.Int64))
-                .otherwise(pl.lit(0, dtype=pl.Int64))
+                _rem_rec=(pl.col("Cant_Recibida") - pl.col("_prev_cum_exp")).clip(lower_bound=0)
             )
-            .drop(["_row_num", "_group_size"])
+            .with_columns(
+                Cant_Recibida=pl.when(pl.col("_row_num") < pl.col("_group_size"))
+                .then(pl.min_horizontal(pl.col("Cant_Linea"), pl.col("_rem_rec")).cast(pl.Int64))
+                .otherwise(pl.col("_rem_rec").cast(pl.Int64))
+            )
+            .with_columns(
+                Diferencia=(pl.col("Cant_Recibida") - pl.col("Cant_Linea")).cast(pl.Int64)
+            )
+            .drop(["_row_num", "_group_size", "_prev_cum_exp", "_rem_rec"])
         )
 
         # 10. Resultado Final
@@ -401,10 +417,8 @@ async def get_reconciliation_calculations(
                     pl.col("Diferencia"),
                     pl.col("Diferencia_Real_IR"),
                     pl.col("timestamp_log").alias("Timestamp"),
+                    pl.col("_order_line_num"),
                 ]
-            )
-            .with_columns(
-                pl.col("Order_Line").cast(pl.Int64, strict=False).fill_null(0).alias("_order_line_num")
             )
             .sort(["Import_Reference", "GRN", "_order_line_num", "Codigo_Item"])
             .drop(["_order_line_num"])

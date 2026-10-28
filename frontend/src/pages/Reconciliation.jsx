@@ -270,12 +270,14 @@ const Reconciliation = () => {
     const reconciliationSummary = useMemo(() => {
         let totalExp = 0;
         let totalRec = 0;
+        let totalDiff = 0;
         let diffLines = 0;
         let justifiedLines = 0;
 
         finalDisplayData.forEach(r => {
             totalExp += (r.Cant_Esperada || 0);
             totalRec += (r.Cant_Recibida || 0);
+            totalDiff += (r.Diferencia || 0);
             if (Math.abs(r.Diferencia || 0) > 0.0001) {
                 diffLines++;
                 if (r.Motivo_Diferencia || r.Observacion_Operador) {
@@ -288,7 +290,7 @@ const Reconciliation = () => {
             totalLines: finalDisplayData.length,
             totalExp,
             totalRec,
-            totalDiff: totalRec - totalExp,
+            totalDiff,
             diffLines,
             justifiedLines
         };
