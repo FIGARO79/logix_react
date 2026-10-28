@@ -10,6 +10,31 @@ import { parseGS1Barcode } from '../utils/gs1Parser';
 import Spinner from '../components/Spinner';
 import '../styles/SpotCheck.css';
 
+// Icono funcional de Código QR para escáner (Fluent UI)
+const QrIcon = ({ size = 18, color = "#0078d4" }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        style={{ width: `${size}px`, height: `${size}px`, minWidth: `${size}px`, minHeight: `${size}px`, display: 'block', flexShrink: 0 }}
+    >
+        <rect x="2.5" y="2.5" width="7" height="7" rx="1.5" stroke={color} strokeWidth="2" fill="none" />
+        <rect x="5" y="5" width="2" height="2" fill={color} />
+        <rect x="14.5" y="2.5" width="7" height="7" rx="1.5" stroke={color} strokeWidth="2" fill="none" />
+        <rect x="17" y="5" width="2" height="2" fill={color} />
+        <rect x="2.5" y="14.5" width="7" height="7" rx="1.5" stroke={color} strokeWidth="2" fill="none" />
+        <rect x="5" y="17" width="2" height="2" fill={color} />
+        <rect x="14.5" y="14.5" width="2.5" height="2.5" fill={color} />
+        <rect x="19" y="14.5" width="2.5" height="2.5" fill={color} />
+        <rect x="14.5" y="19" width="2.5" height="2.5" fill={color} />
+        <rect x="19" y="19" width="2.5" height="2.5" fill={color} />
+        <rect x="11" y="4" width="2" height="3" fill={color} />
+        <rect x="11" y="11" width="2" height="2" fill={color} />
+        <rect x="4" y="11" width="3" height="2" fill={color} />
+    </svg>
+);
+
 const SpotCheck = () => {
     const context = useTabContext();
     const setTitle = context ? context.setTitle : null;
@@ -49,7 +74,9 @@ const SpotCheck = () => {
                 const cached = await getCachedData('recent_spot_checks');
                 if (cached) setRecentChecks(cached);
             }
-        } catch (e) { console.error("Error al cargar historial", e); }
+        } catch (e) { 
+            console.error("Error al cargar historial", e); 
+        }
     }, [isOnline]);
 
     useEffect(() => {
@@ -150,8 +177,11 @@ const SpotCheck = () => {
                     }
                 }
             }
-        } catch (e) { toast.error("Error de conexión"); }
-        finally { setLoading(false); }
+        } catch (e) { 
+            toast.error("Error de conexión"); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const selectItemFromResult = (item) => {
@@ -177,7 +207,7 @@ const SpotCheck = () => {
     const handleSave = async (e) => {
         if (e) e.preventDefault();
         if (!binLocation || !itemCode || !physicalQty || !itemData) {
-            toast.warning("Complete todos los campos");
+            toast.warning("Complete todos los campos antes de registrar");
             return;
         }
 
@@ -200,7 +230,7 @@ const SpotCheck = () => {
                 });
 
                 if (res.ok) {
-                    toast.success("Hallazgo registrado");
+                    toast.success("Hallazgo registrado con éxito");
                     clearForm();
                     fetchRecentChecks();
                     return;
@@ -224,8 +254,9 @@ const SpotCheck = () => {
             await savePendingSync('spot_check', payload);
             toast.info("Registrado localmente (Offline)");
             clearForm();
+        } finally { 
+            setIsSaving(false); 
         }
-        finally { setIsSaving(false); }
     };
 
     const handleClearTable = async () => {
@@ -246,7 +277,9 @@ const SpotCheck = () => {
                 const err = await res.json();
                 toast.error(err.detail || "Error al limpiar la tabla");
             }
-        } catch (e) { toast.error("Error de conexión"); }
+        } catch (e) { 
+            toast.error("Error de conexión al limpiar"); 
+        }
     };
 
     const handleExport = () => {
@@ -271,187 +304,316 @@ const SpotCheck = () => {
         return new Date(dateStr).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
     };
 
-    const scannerIcon = (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-        </svg>
-    );
-
     return (
-        <div className="spot-check-page max-w-[1200px] mx-auto px-6 py-5 min-h-screen bg-[#f3f3f3]">
+        <div className="spot-check-page max-w-[1300px] mx-auto px-4 sm:px-6 py-5 min-h-screen bg-[#f3f3f3] text-[#201f1e]">
             <ToastContainer position="top-right" autoClose={2000} />
 
-            <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">
-                <div>
-                    {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium  animate-pulse">MODO OFFLINE</span>}
+            {/* Header / Command Bar - Estilo Fluent UI */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-[#edebe9] gap-3">
+                <div className="flex items-center gap-3">
+                    <div>
+                        <h1 className="text-xl font-semibold text-[#201f1e] tracking-tight">
+                            Conteo por Ubicación
+                        </h1>
+                        <p className="text-xs text-[#605e5c]">
+                            Verificación física rápida y registro de hallazgos por BIN
+                        </p>
+                    </div>
+                    {!isOnline && (
+                        <span className="text-[11px] bg-[#fde7e9] text-[#a4262c] px-2.5 py-0.5 rounded border border-[#f1c0c0] font-semibold animate-pulse">
+                            MODO OFFLINE
+                        </span>
+                    )}
                 </div>
-                <button
-                    onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-normal uppercase px-6 h-9 flex items-center border-2 border-black"
-                >
-                    Stock
-                </button>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate('/stock')}
+                        className="h-8 px-3.5 bg-white border border-[#8a8886] hover:border-[#201f1e] hover:bg-[#f3f2f1] text-[#201f1e] text-xs font-semibold rounded flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        title="Ir a Consulta de Stock"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[#0078d4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Consultar Stock
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Panel Izquierdo: Formulario de Conteo */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white border border-zinc-300 shadow-sm p-6 rounded-lg space-y-6 sticky top-24">
-                        <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}`}</style>
+                    <div className="bg-white border border-[#d2d0ce] shadow-xs p-5 rounded space-y-4 sticky top-20">
+                        {/* Cabecera del formulario */}
+                        <div className="flex items-center justify-between pb-2 border-b border-[#edebe9]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#605e5c] flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#0078d4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Registrar Conteo
+                            </span>
+                            {(itemCode || binLocation || physicalQty) && (
+                                <button
+                                    onClick={clearForm}
+                                    className="text-[11px] text-[#0078d4] hover:underline cursor-pointer"
+                                >
+                                    Limpiar
+                                </button>
+                            )}
+                        </div>
 
+                        {/* Campo BIN */}
                         <div>
-                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Ubicación (BIN)</label>
-                            <div className="flex">
+                            <label className="text-xs font-semibold text-[#201f1e] mb-1.5 block">
+                                Ubicación Física (BIN)
+                            </label>
+                            <div className="input-group-fluent">
                                 <input
                                     ref={binRef}
                                     type="text"
                                     value={binLocation}
                                     onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
-                                    style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-mono font-medium  text-black text-lg outline-none focus:border-zinc-900 transition-colors py-0"
-                                    placeholder="BIN"
+                                    className="font-mono font-bold text-sm text-[#201f1e] placeholder:font-sans placeholder:font-normal placeholder:text-[#a19f9d]"
+                                    placeholder="Ej: RA11A"
                                 />
                                 <button
+                                    type="button"
                                     onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
-                                    style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="scanner-btn-fluent"
+                                    title="Escanear BIN con Cámara"
                                 >
-                                    {scannerIcon}
+                                    <QrIcon size={18} color="#0078d4" />
                                 </button>
                             </div>
                         </div>
 
+                        {/* Campo Código / Descripción */}
                         <div>
-                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Código o Descripción</label>
-                            <div className="flex">
+                            <label className="text-xs font-semibold text-[#201f1e] mb-1.5 block">
+                                Código de Ítem o Descripción
+                            </label>
+                            <div className="input-group-fluent">
                                 <input
                                     ref={itemRef}
                                     type="text"
                                     value={itemCode}
                                     onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                                    style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-medium  text-black outline-none focus:border-zinc-900 transition-colors py-0"
-                                    placeholder="SKU o DESCRIPCIÓN"
+                                    className="font-mono font-medium text-sm text-[#201f1e] placeholder:font-sans placeholder:font-normal placeholder:text-[#a19f9d]"
+                                    placeholder="SKU o Descripción"
                                 />
                                 <button
+                                    type="button"
                                     onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
-                                    style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="scanner-btn-fluent"
+                                    title="Escanear Código con Cámara"
                                 >
-                                    {scannerIcon}
+                                    <QrIcon size={18} color="#0078d4" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Lista de Resultados de Búsqueda */}
+                        {/* Lista de Resultados de Búsqueda Múltiple */}
                         {searchResults.length > 0 && (
-                            <div className="bg-blue-50 border-2 border-blue-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
-                                <div className="p-2 bg-blue-100 text-[10px] font-medium  text-blue-800 uppercase">Seleccione un ítem:</div>
+                            <div className="bg-white border border-[#0078d4] rounded shadow-md overflow-hidden max-h-52 overflow-y-auto divide-y divide-[#edebe9]">
+                                <div className="px-3 py-1.5 bg-[#eff6fc] text-[11px] font-semibold text-[#0078d4] uppercase">
+                                    Seleccione un ítem ({searchResults.length} coincidencias):
+                                </div>
                                 {searchResults.map((item) => (
                                     <div 
                                         key={item.itemCode}
                                         onClick={() => selectItemFromResult(item)}
-                                        className="p-3 border-b border-blue-100 hover:bg-white cursor-pointer transition-colors"
+                                        className="p-2.5 hover:bg-[#f3f9fd] cursor-pointer transition-colors"
                                     >
-                                        <div className="font-medium  text-zinc-900">{item.itemCode}</div>
-                                        <div className="text-[10px] text-zinc-600 truncate">{item.description}</div>
+                                        <div className="font-semibold text-xs text-[#0078d4] font-mono">{item.itemCode}</div>
+                                        <div className="text-[11px] text-[#605e5c] truncate">{item.description}</div>
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        <div className="p-3 bg-zinc-100 border border-zinc-300 rounded text-[12px] font-black text-black uppercase leading-tight shadow-inner">
-                            {loading ? (
-                                <div className="flex items-center gap-2">
-                                    <Spinner size="xs" />
-                                    Buscando...
+                        {/* Tarjeta de Información del Ítem */}
+                        {loading ? (
+                            <div className="p-3.5 bg-[#faf9f8] border border-[#edebe9] rounded text-xs text-[#605e5c] flex items-center gap-2">
+                                <Spinner size="xs" />
+                                <span>Buscando en catálogo maestro...</span>
+                            </div>
+                        ) : itemData ? (
+                            <div className="p-3.5 bg-[#f8f9fa] border border-[#d2d0ce] rounded space-y-2">
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-wider text-[#605e5c] font-semibold">Descripción del Artículo</div>
+                                    <div className="text-xs font-semibold text-[#201f1e] leading-snug">{itemData.description}</div>
                                 </div>
-                            ) : (itemData?.description || '— ESPERANDO ARTÍCULO —')}
-                        </div>
+                                <div className="pt-2 border-t border-[#edebe9] flex flex-wrap gap-2 text-xs">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[#605e5c]">BIN Teórico:</span>
+                                        <span className="font-mono font-semibold px-2 py-0.5 rounded text-[11px] bg-[#eff6fc] text-[#0078d4] border border-[#c7e0f4]">
+                                            {itemData.system_bin || 'N/A'}
+                                        </span>
+                                    </div>
+                                    {itemData.additional_locations && (
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[#605e5c]">Adicionales:</span>
+                                            <span className="font-mono text-[11px] text-[#605e5c]">
+                                                {itemData.additional_locations}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-[#faf9f8] border border-dashed border-[#d2d0ce] rounded text-center text-xs text-[#a19f9d]">
+                                Escanea o busca un artículo para validar su ubicación teórica
+                            </div>
+                        )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                        {/* Cantidad y Botón Guardar */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end pt-1">
                             <div>
-                                <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Cantidad</label>
+                                <label className="text-xs font-semibold text-[#201f1e] mb-1.5 block">Cantidad Física</label>
                                 <input
                                     ref={qtyRef}
                                     type="number"
                                     value={physicalQty}
                                     onChange={(e) => setPhysicalQty(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                    style={{ height: '40px' }}
-                                    className="w-full px-3 border border-zinc-400 rounded text-center font-black text-2xl text-black outline-none focus:border-zinc-900 py-0"
+                                    className="w-full text-center font-bold text-lg text-[#201f1e]"
                                     placeholder="0"
                                 />
                             </div>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving || !itemData}
-                                style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-normal uppercase text-[11px] hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
-                            >
-                                {isSaving ? '...' : 'REGISTRAR'}
-                            </button>
+                            <div>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving || !itemData || !physicalQty || !binLocation}
+                                    className="action-btn-fluent w-full bg-[#0078d4] hover:bg-[#106ebe] text-white disabled:bg-[#f3f2f1] disabled:text-[#a19f9d] disabled:border-[#d2d0ce] cursor-pointer disabled:cursor-not-allowed shadow-xs"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Spinner size="xs" />
+                                            <span>Guardando...</span>
+                                        </>
+                                    ) : (
+                                        'REGISTRAR'
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Panel Derecho: Tabla de Hallazgos Recientes */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white border border-zinc-300 shadow-md overflow-hidden rounded-lg">
-                        <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-normal text-black uppercase">Hallazgos Recientes</h2>
+                    <div className="bg-white border border-[#d2d0ce] shadow-xs rounded overflow-hidden">
+                        {/* Cabecera / Command Bar de la tabla */}
+                        <div className="bg-[#f8f9fa] px-4 py-2.5 border-b border-[#edebe9] flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-[#201f1e]">Hallazgos Recientes</h2>
+                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#eff6fc] text-[#0078d4] border border-[#c7e0f4]">
+                                    {recentChecks.length}
+                                </span>
+                            </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-normal uppercase text-[#0078d4] hover:text-[#106ebe] flex items-center gap-1 border border-[#0078d4]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
+                                    disabled={recentChecks.length === 0}
+                                    className="text-xs font-semibold text-[#0078d4] hover:text-[#106ebe] flex items-center gap-1.5 border border-[#c7e0f4] px-2.5 py-1 rounded bg-white hover:bg-[#eff6fc] transition-all shadow-2xs disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                                    title="Exportar a archivo Excel"
                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[#107c10]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
                                     Excel
                                 </button>
                                 <button
                                     onClick={handleClearTable}
-                                    className="text-[10px] font-medium  uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
+                                    disabled={recentChecks.length === 0}
+                                    className="text-xs font-semibold text-[#a4262c] hover:text-[#7d1d22] flex items-center gap-1.5 border border-[#f1c0c0] px-2.5 py-1 rounded bg-white hover:bg-[#fde7e9] transition-all shadow-2xs disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                                    title="Limpiar registros de la tabla"
                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[#a4262c]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
                                     Limpiar
                                 </button>
                             </div>
                         </div>
+
+                        {/* Contenedor de la tabla */}
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-zinc-100 text-zinc-600 border-b border-zinc-300 text-[9px] uppercase font-normal">
+                                <thead className="bg-[#f3f2f1] text-[#605e5c] border-b border-[#edebe9] text-[11px] uppercase font-semibold">
                                     <tr>
-                                        <th className="px-3 py-1.5">Hora</th>
-                                        <th className="px-3 py-1.5">Bin Encontrado</th>
-                                        <th className="px-3 py-1.5">Bin Default</th>
-                                        <th className="px-3 py-1.5">Item</th>
-                                        <th className="px-3 py-1.5 text-center">Cant</th>
-                                        <th className="px-3 py-1.5">Usuario</th>
+                                        <th className="px-3.5 py-2">Hora</th>
+                                        <th className="px-3.5 py-2">Bin Encontrado</th>
+                                        <th className="px-3.5 py-2">Bin Sistema</th>
+                                        <th className="px-3.5 py-2">Artículo</th>
+                                        <th className="px-3.5 py-2 text-center">Cant.</th>
+                                        <th className="px-3.5 py-2">Usuario</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-sm">
+                                <tbody className="text-sm divide-y divide-[#f3f2f1]">
                                     {recentChecks.length === 0 ? (
-                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-zinc-400 font-medium uppercase">No hay registros recientes</td></tr>
+                                        <tr>
+                                            <td colSpan="6" className="px-4 py-12 text-center text-[#a19f9d]">
+                                                <div className="flex flex-col items-center justify-center gap-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-[#c8c6c4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                                    </svg>
+                                                    <span className="text-xs font-medium">No hay registros recientes de conteo por ubicación</span>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     ) : (
                                         recentChecks.map((check) => {
-                                             const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
-                                             return (
-                                                 <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                     <td className="px-3 py-1 text-zinc-600 font-medium font-mono">{formatDate(check.timestamp)}</td>
-                                                     <td className="px-3 py-1 font-black text-sm">
-                                                         <span className={`px-2 py-0.5 rounded font-mono ${isMatch ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
-                                                             {check.bin_location}
-                                                         </span>
-                                                     </td>
-                                                     <td className="px-3 py-1 font-mono font-bold text-zinc-700">{check.system_bin || check.default_bin || 'N/A'}</td>
-                                                     <td className="px-3 py-1">
-                                                         <div className="font-bold text-[#0078d4] text-sm">{check.item_code}</div>
-                                                        <div className="text-[9px] text-zinc-600 font-medium truncate max-w-[200px]">{check.item_description}</div>
-                                                     </td>
-                                                     <td className="px-3 py-1 text-center font-black text-base text-black">{check.quantity}</td>
-                                                     <td className="px-3 py-1 uppercase text-zinc-600 font-medium">{check.username}</td>
-                                                 </tr>
-                                             );
-                                         })
+                                            const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
+                                            return (
+                                                <tr key={check.id} className="hover:bg-[#f8f9fa] transition-colors">
+                                                    <td className="px-3.5 py-2 text-[#605e5c] font-mono text-xs">
+                                                        {formatDate(check.timestamp)}
+                                                    </td>
+                                                    <td className="px-3.5 py-2 font-mono">
+                                                        {isMatch ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-xs font-semibold bg-[#dff6dd] text-[#107c10] border border-[#c8e6c9]">
+                                                                <svg className="w-3 h-3 text-[#107c10]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                {check.bin_location}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-xs font-semibold bg-[#fff4ce] text-[#ca5010] border border-[#ffe0b2]" title="Ubicación física diferente al sistema">
+                                                                <svg className="w-3 h-3 text-[#ca5010]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                </svg>
+                                                                {check.bin_location}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3.5 py-2 font-mono text-xs font-medium text-[#605e5c]">
+                                                        {check.system_bin || check.default_bin || 'N/A'}
+                                                    </td>
+                                                    <td className="px-3.5 py-2">
+                                                        <div className="font-semibold text-[#0078d4] text-xs font-mono">{check.item_code}</div>
+                                                        <div className="text-[11px] text-[#605e5c] truncate max-w-[220px]" title={check.item_description}>
+                                                            {check.item_description}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3.5 py-2 text-center font-bold text-sm text-[#201f1e]">
+                                                        {check.quantity}
+                                                    </td>
+                                                    <td className="px-3.5 py-2 text-xs text-[#605e5c] uppercase">
+                                                        <div className="flex items-center gap-1">
+                                                            <span>{check.username}</span>
+                                                            {check.is_pending && (
+                                                                <span className="text-[9px] bg-[#fde7e9] text-[#a4262c] px-1 py-0.2 rounded font-semibold">
+                                                                    Offline
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
