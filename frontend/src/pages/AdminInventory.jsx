@@ -111,8 +111,7 @@ const AdminInventory = () => {
             'Etapa 4': item.c4 !== null ? item.c4 : '',
             'Contado': item.is_counted ? item.final_counted : 'Sin Contar',
             'Diferencia': item.is_counted ? item.diff_qty : '',
-            'Valor Diferencia': item.is_counted ? item.diff_val : '',
-            'Estado': item.is_counted ? (item.status === 'OK' ? 'Cuadrado' : item.status) : 'PENDIENTE CONTEO'
+            'Valor Diferencia': item.is_counted ? item.diff_val : ''
         }));
         const worksheet = XLSX.utils.json_to_sheet(formattedData);
         const workbook = XLSX.utils.book_new();

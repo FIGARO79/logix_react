@@ -741,31 +741,12 @@ async def export_all_counts(
                 content={"error": f"No hay datos para exportar en la Etapa {stage}" if stage else "No hay datos para exportar"}, status_code=400
             )
 
-        # 2. Cargar tolerancias desde AppState
-        res_qty_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_qty_tolerance"))
-        qty_tol_val = res_qty_tol.scalar_one_or_none()
-        qty_tolerance = float(qty_tol_val) if qty_tol_val else 0.02
-
-        res_val_tol = await db.execute(select(AppState.value).where(AppState.key == "w2w_val_tolerance"))
-        val_tol_val = res_val_tol.scalar_one_or_none()
-        val_tolerance = float(val_tol_val) if val_tol_val else 10.00
-
-        # 3. Formatear las filas para que coincidan con la estructura exacta de la tabla
+        # 2. Formatear las filas para que coincidan con la estructura exacta de la tabla (sin columna Estado)
         formatted_rows = []
         for c in counts:
             sys_qty = float(c.get("system_qty") or 0.0)
             cnt_qty = float(c.get("counted_qty") or 0.0)
             diff = c.get("difference") if c.get("difference") is not None else (cnt_qty - sys_qty)
-            abs_diff = abs(diff)
-
-            status = "SIN DIF"
-            if abs_diff > 0.0001:
-                if c.get("manually_approved") or c.get("status") == "APPROVED_MANUAL":
-                    status = "APROB SUPERV"
-                else:
-                    exceeds_qty = (abs_diff / sys_qty) > qty_tolerance if sys_qty > 0 else abs_diff > 0
-                    exceeds_val = (abs_diff * float(c.get("cost_per_unit") or 0)) > val_tolerance
-                    status = "EXCEDE TOLER" if (exceeds_qty or exceeds_val) else "AUTO OK"
 
             ts_raw = c.get("timestamp")
             if ts_raw:
@@ -791,12 +772,11 @@ async def export_all_counts(
                 "Cant. Física": cnt_qty,
                 "Cant. Sistema": sys_qty,
                 "Diferencia": diff,
-                "Estado": status,
             })
 
         df_export = pl.from_dicts(formatted_rows)
 
-        # 4. Generar Excel estilizado con openpyxl (mismos colores y alineaciones de la app)
+        # 3. Generar Excel estilizado con openpyxl (mismos colores y alineaciones de la app)
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Reporte_Conteos"
@@ -819,7 +799,7 @@ async def export_all_counts(
             ws.append(list(row_data))
 
         numeric_cols = {"Cant. Física", "Cant. Sistema", "Diferencia"}
-        centered_cols = {"ID", "Sesión", "Etapa", "Fecha / Hora", "Estado"}
+        centered_cols = {"ID", "Sesión", "Etapa", "Fecha / Hora"}
 
         for row in ws.iter_rows(min_row=2):
             for col_idx, cell in enumerate(row, start=1):
@@ -994,6 +974,3 @@ async def update_count_qty(
     stock_count.counted_qty = payload.counted_qty
     await db.commit()
     return ORJSONResponse({"message": "Cantidad actualizada correctamente"})
-
-
-
