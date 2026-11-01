@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::HashMap;
 
-/// Módulo para Conteos Cíclicos de Campo / Auditorías por Ubicación
+// Módulo para Conteos Cíclicos de Campo / Auditorías por Ubicación
 
 /// Calcula las diferencias de conteos cíclicos por ubicación a alta velocidad.
 #[pyfunction]
@@ -23,7 +23,7 @@ pub fn calculate_cycle_count_differences_rust<'py>(
         let key = (item_clean, loc_clean);
         counts_by_key_stage
             .entry(key)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .entry(stage)
             .and_modify(|q| *q += qty)
             .or_insert(qty);

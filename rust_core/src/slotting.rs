@@ -201,14 +201,12 @@ pub fn get_suggested_bin_rust(
             let current_score = info.score;
             let exile_max_score_val: i32 = zone_rules.exile_max_score.parse().unwrap_or(3);
 
-            if current_spot == ideal_spot {
-                if ideal_spot == "hot" && current_score >= 8 {
-                    return Ok(None);
-                } else if ideal_spot == "cold" && current_score <= exile_max_score_val {
-                    return Ok(None);
-                } else if ideal_spot == "warm" {
-                    return Ok(None);
-                }
+            if current_spot == ideal_spot
+                && ((ideal_spot == "hot" && current_score >= 8)
+                    || (ideal_spot == "cold" && current_score <= exile_max_score_val)
+                    || ideal_spot == "warm")
+            {
+                return Ok(None);
             }
         }
     }
@@ -518,17 +516,13 @@ pub fn get_suggested_bins_batch_rust(
                     let current_spot = info.spot.as_ref().map(|s| s.to_lowercase()).unwrap_or_else(|| "cold".to_string());
                     let current_score = info.score;
 
-                    if current_spot == ideal_spot {
-                        if ideal_spot == "hot" && current_score >= 8 {
-                            results.push(None);
-                            skip_recalc = true;
-                        } else if ideal_spot == "cold" && current_score <= exile_max_score_val {
-                            results.push(None);
-                            skip_recalc = true;
-                        } else if ideal_spot == "warm" {
-                            results.push(None);
-                            skip_recalc = true;
-                        }
+                    if current_spot == ideal_spot
+                        && ((ideal_spot == "hot" && current_score >= 8)
+                            || (ideal_spot == "cold" && current_score <= exile_max_score_val)
+                            || ideal_spot == "warm")
+                    {
+                        results.push(None);
+                        skip_recalc = true;
                     }
                 }
             }

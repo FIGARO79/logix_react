@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::{HashMap, HashSet};
 
-/// Módulo dedicado exclusivamente para Inventario General (W2W / Ciclos Generales)
+// Módulo dedicado exclusivamente para Inventario General (W2W / Ciclos Generales)
 
 /// 1. Consolida y calcula la lista de reconciliación de Inventario General (Etapas 1-4).
 #[pyfunction]
@@ -24,7 +24,7 @@ pub fn calculate_reconciliation_rust<'py>(
         }
         counts_by_item
             .entry(code)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .entry(stage)
             .and_modify(|q| *q += counted_qty)
             .or_insert(counted_qty);
@@ -218,7 +218,7 @@ pub fn calculate_general_inventory_stats_rust<'py>(
         counted_items.insert(code.clone());
         counts_by_item
             .entry(code)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .entry(stage)
             .and_modify(|q| *q += qty)
             .or_insert(qty);
