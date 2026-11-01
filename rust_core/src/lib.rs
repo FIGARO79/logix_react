@@ -1,6 +1,3 @@
-// Falso positivo conocido de clippy con el macro #[pyfunction] de PyO3 0.22 (PyResult<T>).
-#![allow(clippy::useless_conversion)]
-
 use pyo3::prelude::*;
 
 pub mod slotting;
