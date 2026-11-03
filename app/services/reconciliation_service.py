@@ -66,28 +66,63 @@ async def get_reconciliation_calculations(
 
         logs_pl = pl.from_dicts(logs_list)
 
+        master_desc_map = csv_handler.master_desc_map or {}
+
+        def resolve_item_description(item_code: Any, existing_desc: Any = None) -> str:
+            code_clean = str(item_code or "").strip().upper()
+            if existing_desc is not None:
+                desc_str = str(existing_desc).strip()
+                if (
+                    desc_str
+                    and desc_str.lower() not in ("none", "nan", "null", "")
+                    and not desc_str.lower().startswith("no en")
+                ):
+                    return desc_str
+            master_desc = master_desc_map.get(code_clean)
+            if master_desc is not None:
+                m_str = str(master_desc).strip()
+                if (
+                    m_str
+                    and m_str.lower() not in ("none", "nan", "null", "")
+                    and not m_str.lower().startswith("no en")
+                ):
+                    return m_str
+            return code_clean
+
         # 2. Normalizar Logs
-        logs_pl = logs_pl.with_columns(
-            [
-                pl.col("importReference")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase(),
-                pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-                pl.col("waybill").cast(pl.Utf8).fill_null(""),
-                pl.col("qtyReceived")
-                .cast(pl.Utf8)
-                .str.replace_all(",", "")
-                .cast(pl.Float64, strict=False)
-                .fill_null(0.0),
-            ]
-        )
+        log_cols = [
+            pl.col("importReference")
+            .cast(pl.Utf8)
+            .str.strip_chars()
+            .str.to_uppercase(),
+            pl.col("itemCode").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("waybill").cast(pl.Utf8).fill_null(""),
+            pl.col("qtyReceived")
+            .cast(pl.Utf8)
+            .str.replace_all(",", "")
+            .cast(pl.Float64, strict=False)
+            .fill_null(0.0),
+        ]
+        if "itemDescription" in logs_pl.columns:
+            log_cols.append(pl.col("itemDescription").cast(pl.Utf8).fill_null(""))
+        else:
+            log_cols.append(pl.lit("").alias("itemDescription"))
+
+        logs_pl = logs_pl.with_columns(log_cols)
 
         # Agrupar logs por IR + Item (Ancla física)
         logs_grouped = logs_pl.group_by(["importReference", "itemCode"]).agg(
             [
                 pl.col("qtyReceived").sum().alias("qtyReceived"),
                 pl.col("waybill").first().alias("Waybill_Log"),
+                pl.col("itemDescription")
+                .filter(
+                    (pl.col("itemDescription") != "")
+                    & (~pl.col("itemDescription").str.to_lowercase().str.contains("no en"))
+                )
+                .first()
+                .fill_null("")
+                .alias("itemDescription_Log"),
             ]
         )
 
@@ -166,30 +201,51 @@ async def get_reconciliation_calculations(
 
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
-        if grn_pl is None:
-            return []
-        if "Order_Number" not in grn_pl.columns:
-            grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Number"))
-        if "Order_Line" not in grn_pl.columns:
-            grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Line"))
+        if grn_pl is None or grn_pl.is_empty():
+            df_280 = pl.DataFrame(
+                schema={
+                    "GRN_Number": pl.Utf8,
+                    "Item_Code": pl.Utf8,
+                    "Item_Description": pl.Utf8,
+                    "Quantity": pl.Float64,
+                    "Order_Number": pl.Utf8,
+                    "Order_Line": pl.Utf8,
+                }
+            )
+        else:
+            if "Order_Number" not in grn_pl.columns:
+                grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Number"))
+            if "Order_Line" not in grn_pl.columns:
+                grn_pl = grn_pl.with_columns(pl.lit("").alias("Order_Line"))
+            if "Item_Description" not in grn_pl.columns:
+                grn_pl = grn_pl.with_columns(pl.lit("").alias("Item_Description"))
 
-        df_280 = grn_pl.select(
-            [
-                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-                pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
-                pl.col("Item_Description").cast(pl.Utf8).fill_null("No en sistema 280"),
-                pl.col("Quantity")
-                .cast(pl.Utf8)
-                .map_elements(csv_handler.parse_quantity_smart, return_dtype=pl.Float64)
-                .fill_null(0.0),
-                pl.col("Order_Number")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase()
-                .fill_null(""),
-                pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
-            ]
-        )
+            df_280 = grn_pl.select(
+                [
+                    pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                    pl.col("Item_Code").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+                    pl.col("Item_Description").cast(pl.Utf8).fill_null(""),
+                    pl.col("Quantity")
+                    .cast(pl.Utf8)
+                    .map_elements(csv_handler.parse_quantity_smart, return_dtype=pl.Float64)
+                    .fill_null(0.0),
+                    pl.col("Order_Number")
+                    .cast(pl.Utf8)
+                    .str.strip_chars()
+                    .str.to_uppercase()
+                    .fill_null(""),
+                    pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
+                ]
+            )
+            if not df_280.is_empty():
+                df_280 = df_280.with_columns(
+                    pl.struct(["Item_Code", "Item_Description"])
+                    .map_elements(
+                        lambda s: resolve_item_description(s["Item_Code"], s.get("Item_Description")),
+                        return_dtype=pl.Utf8,
+                    )
+                    .alias("Item_Description")
+                )
 
         # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
         # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
@@ -291,19 +347,41 @@ async def get_reconciliation_calculations(
             left_on=["importReference", "itemCode"],
             right_on=["ir_map", "Item_Code"],
             how="anti",
-        ).with_columns(
-            [
-                pl.col("importReference").alias("ir_map"),
-                pl.col("Waybill_Log").alias("wb_map"),
-                pl.lit("SIN GRN").alias("GRN_Number"),
-                pl.col("itemCode").alias("Item_Code"),
-                pl.lit("No en reporte 280").alias("Item_Description"),
-                pl.lit(0.0).alias("Quantity"),
-                pl.lit(0.0).alias("Total_Esperado_IR"),
-                pl.lit("").alias("Order_Number"),
-                pl.lit("").alias("Order_Line"),
-            ]
         )
+        if not logs_sin_grn.is_empty():
+            logs_sin_grn = logs_sin_grn.with_columns(
+                [
+                    pl.col("importReference").alias("ir_map"),
+                    pl.col("Waybill_Log").alias("wb_map"),
+                    pl.lit("SIN GRN").alias("GRN_Number"),
+                    pl.col("itemCode").alias("Item_Code"),
+                    pl.struct(["itemCode", "itemDescription_Log"])
+                    .map_elements(
+                        lambda s: resolve_item_description(s["itemCode"], s.get("itemDescription_Log")),
+                        return_dtype=pl.Utf8,
+                    )
+                    .alias("Item_Description"),
+                    pl.lit(0.0).alias("Quantity"),
+                    pl.lit(0.0).alias("Total_Esperado_IR"),
+                    pl.lit("").alias("Order_Number"),
+                    pl.lit("").alias("Order_Line"),
+                ]
+            )
+        else:
+            logs_sin_grn = pl.DataFrame(
+                schema={
+                    "ir_map": pl.Utf8,
+                    "wb_map": pl.Utf8,
+                    "GRN_Number": pl.Utf8,
+                    "Item_Code": pl.Utf8,
+                    "Item_Description": pl.Utf8,
+                    "Quantity": pl.Float64,
+                    "Order_Number": pl.Utf8,
+                    "Order_Line": pl.Utf8,
+                    "Total_Esperado_IR": pl.Float64,
+                    "qtyReceived": pl.Float64,
+                }
+            )
 
         # Unificar
         common_cols = [
@@ -321,6 +399,16 @@ async def get_reconciliation_calculations(
         final = pl.concat(
             [final.select(common_cols), logs_sin_grn.select(common_cols)],
             how="diagonal",
+        )
+
+        # Garantizar que ninguna fila en la conciliación conserve texto tipo "No en reporte 280" o "No en sistema 280"
+        final = final.with_columns(
+            pl.struct(["Item_Code", "Item_Description"])
+            .map_elements(
+                lambda s: resolve_item_description(s["Item_Code"], s.get("Item_Description")),
+                return_dtype=pl.Utf8,
+            )
+            .alias("Item_Description")
         )
 
         # 9. Cálculos de Diferencia y Ubicaciones

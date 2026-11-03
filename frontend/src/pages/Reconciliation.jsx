@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
-import { cacheData, getCachedData } from '../utils/offlineDb';
+import { cacheData, getCachedData, getDB } from '../utils/offlineDb';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { exportExcelFile } from '../utils/exportExcel';
@@ -19,6 +19,34 @@ const Reconciliation = () => {
     const [filterNoDiff, setFilterNoDiff] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'GRN', direction: 'ascending' });
     const [isOfflineData, setIsOfflineData] = useState(false);
+    const [localMasterDescs, setLocalMasterDescs] = useState({});
+
+    // Cargar descripciones del maestro local (IndexedDB) para soporte offline / fallback
+    useEffect(() => {
+        let isMounted = true;
+        const loadMasterDescs = async () => {
+            try {
+                const db = await getDB();
+                if (!db.objectStoreNames.contains('master_items')) return;
+                const tx = db.transaction('master_items', 'readonly');
+                const store = tx.objectStore('master_items');
+                const all = await store.getAll();
+                if (isMounted && all && all.length > 0) {
+                    const map = {};
+                    all.forEach(item => {
+                        if (item.Item_Code && item.Item_Description) {
+                            map[String(item.Item_Code).toUpperCase().trim()] = item.Item_Description;
+                        }
+                    });
+                    setLocalMasterDescs(map);
+                }
+            } catch (e) {
+                // Silencioso ante fallos de lectura de IndexedDB
+            }
+        };
+        loadMasterDescs();
+        return () => { isMounted = false; };
+    }, []);
 
     // Estado local para justificaciones y rectificaciones de diferencias por fila (clave: `${IR}_${GRN}_${ItemCode}_${OrderLine}`)
     const [differenceEdits, setDifferenceEdits] = useState({});
@@ -165,13 +193,25 @@ const Reconciliation = () => {
         return rawData.map(row => {
             const edit = differenceEdits[getRowKey(row)] || differenceEdits[getLegacyRowKey(row)];
 
-            if (!edit) return row;
+            // Resolver descripción limpia evitando siempre "No en reporte 280" o "No en sistema 280"
+            const rawDesc = (row.Descripcion || '').trim();
+            let cleanDesc = (rawDesc && !rawDesc.toLowerCase().includes('no en reporte') && !rawDesc.toLowerCase().includes('no en sistema'))
+                ? rawDesc
+                : '';
+
+            if (!cleanDesc) {
+                const codeUpper = String(row.Codigo_Item || '').toUpperCase().trim();
+                cleanDesc = localMasterDescs[codeUpper] || row.Codigo_Item || '-';
+            }
+
+            if (!edit) return { ...row, Descripcion: cleanDesc };
 
             const rectQty = edit.rectified_qty !== undefined && edit.rectified_qty !== '' ? Number(edit.rectified_qty) : row.Cant_Recibida;
             const diff = rectQty - row.Cant_Esperada;
 
             return {
                 ...row,
+                Descripcion: cleanDesc,
                 Cant_Recibida: rectQty,
                 Diferencia: diff,
                 Motivo_Diferencia: edit.difference_reason || '',
@@ -179,7 +219,7 @@ const Reconciliation = () => {
                 hasCustomEdit: true
             };
         });
-    }, [rawData, differenceEdits]);
+    }, [rawData, differenceEdits, localMasterDescs]);
 
     // Filtrar por IR seleccionada, GRN seleccionada y búsqueda en texto
     const filteredBySelectors = useMemo(() => {
