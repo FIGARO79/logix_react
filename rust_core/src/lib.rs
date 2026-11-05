@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 pub mod counts;
+pub mod csv_cache;
 pub mod general_inventory;
 pub mod master_maps;
 pub mod reservations;
@@ -9,6 +10,26 @@ pub mod slotting;
 /// Módulo de extensión de Python en Rust (`logix_rust_core`).
 #[pymodule]
 fn logix_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Caché CSV y JSON nativo en memoria (csv_handler)
+    m.add_function(wrap_pyfunction!(csv_cache::parse_quantity_smart_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(csv_cache::parse_quantity_column_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(csv_cache::load_master_csv_maps_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(csv_cache::load_grn_csv_cache_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(csv_cache::get_master_item_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        csv_cache::get_po_numbers_for_import_ref_and_item_rust,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        csv_cache::get_expected_quantity_from_po_rust,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        csv_cache::get_expected_breakdown_by_item_rust,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(csv_cache::get_expected_grn_qty_rust, m)?)?;
+
     // Slotting / Ubicaciones
     m.add_function(wrap_pyfunction!(slotting::get_suggested_bin_rust, m)?)?;
     m.add_function(wrap_pyfunction!(

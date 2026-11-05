@@ -297,3 +297,91 @@ def test_slotting_suggests_better_bin_and_batch(slotting_env):
         storage, turnover, zone_rules, mix_limits, batch_items, occupancy
     )
     assert batch_res == [None, "RACK-HOT-9", "MIN-01"]
+
+
+# =====================================================================
+# 6. CACHÉ CSV Y JSON NATIVO EN MEMORIA (csv_cache.rs)
+# =====================================================================
+
+def test_parse_quantity_smart_and_column_rust():
+    assert logix_rust_core.parse_quantity_smart_rust(None) == pytest.approx(0.0)
+    assert logix_rust_core.parse_quantity_smart_rust("") == pytest.approx(0.0)
+    assert logix_rust_core.parse_quantity_smart_rust("1.200,50") == pytest.approx(1200.50)
+    assert logix_rust_core.parse_quantity_smart_rust("1,200.50") == pytest.approx(1200.50)
+    assert logix_rust_core.parse_quantity_smart_rust("9,0") == pytest.approx(9.0)
+    assert logix_rust_core.parse_quantity_smart_rust("1,200") == pytest.approx(1200.0)
+
+    col = logix_rust_core.parse_quantity_column_rust(["1.200,50", "9,0", None, "nan", "25"])
+    assert col == pytest.approx([1200.50, 9.0, 0.0, 0.0, 25.0])
+
+
+def test_csv_cache_master_grn_and_po_lookup_rust(tmp_path):
+    master_csv = tmp_path / "AURRSGLBD0250.csv"
+    master_csv.write_text(
+        "Item_Code,Item_Description,ABC_Code_stockroom,Physical_Qty,Frozen_Qty,"
+        "Weight_per_Unit,Bin_1,Aditional_Bin_Location,SupersededBy,SIC_Code_stockroom,"
+        "Date_Last_Received,Stockroom,Item_Type,Item_Class,Item_Group_Major,SIC_Code_Company,Cost_per_Unit\n"
+        'sku-01,FILTER ELEMENT,A,"15,0",0,1.2,B-01-02,,,W,2026-10-01,MAIN,P,1,G1,W,"45,50"\n',
+        encoding="utf-8",
+    )
+
+    grn_csv = tmp_path / "AURRSGLBD0280.csv"
+    grn_csv.write_text(
+        "GRN_Number,Item_Code,Quantity,Item_Description,Order_Number,Order_Line\n"
+        'grn-100,sku-01,"12,0",FILTER ELEMENT,po-280,1\n'
+        'grn-100,sku-01,"8,0",FILTER ELEMENT,po-280,2\n',
+        encoding="utf-8",
+    )
+
+    po_lookup = tmp_path / "po_lookup.json"
+    po_lookup.write_text(
+        json.dumps({
+            "ir_to_data": {
+                "IR-500": {
+                    "items": [
+                        {
+                            "item_code": "sku-01",
+                            "qty": 20,
+                            "customer_ref": "po-cust-1",
+                            "grn": "grn-100",
+                        }
+                    ]
+                }
+            },
+            "wb_to_data": {},
+        }),
+        encoding="utf-8",
+    )
+
+    grn_json = tmp_path / "grn_master_data.json"
+    grn_json.write_text("[]", encoding="utf-8")
+
+    qty_map, cost_map, desc_map, bin_map = logix_rust_core.load_master_csv_maps_rust(str(master_csv))
+    assert qty_map["SKU-01"] == 15
+    assert cost_map["SKU-01"] == pytest.approx(45.50)
+    assert desc_map["SKU-01"] == "FILTER ELEMENT"
+    assert bin_map["SKU-01"] == "B-01-02"
+
+    item = logix_rust_core.get_master_item_rust("sku-01", str(master_csv))
+    assert item is not None
+    assert item["Item_Code"] == "SKU-01"
+    assert item["Physical_Qty"] == pytest.approx(15.0)
+
+    po_nums = set(
+        logix_rust_core.get_po_numbers_for_import_ref_and_item_rust(
+            "ir-500", "sku-01", str(po_lookup), str(grn_csv)
+        )
+    )
+    assert po_nums == {"PO-CUST-1", "PO-280"}
+
+    exp_po = logix_rust_core.get_expected_quantity_from_po_rust("ir-500", "sku-01", str(po_lookup))
+    assert exp_po == 20
+
+    breakdown = logix_rust_core.get_expected_breakdown_by_item_rust("sku-01", str(po_lookup))
+    assert breakdown == [{"ir": "IR-500", "grn": "GRN-100", "qty": 20}]
+
+    exp_grn = logix_rust_core.get_expected_grn_qty_rust(
+        "ir-500", "sku-01", [], str(po_lookup), str(grn_json), str(grn_csv)
+    )
+    assert exp_grn == 20
+

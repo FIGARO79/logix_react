@@ -9,9 +9,16 @@ from app.core.config import (
     ITEM_MASTER_CSV_PATH,
     GRN_CSV_FILE_PATH,
     RESERVATION_CSV_PATH,
+    PO_LOOKUP_JSON_PATH,
+    GRN_JSON_DATA_PATH,
     COLUMNS_TO_READ_MASTER,
     COLUMNS_TO_READ_GRN,
 )
+
+try:
+    import logix_rust_core as _rust_core
+except ImportError:
+    _rust_core = None
 
 # --- Caché Global ---
 df_master_cache: Optional[pl.DataFrame] = None
@@ -29,12 +36,15 @@ _mtime_reservation = 0.0
 
 
 def parse_quantity_smart(val) -> float:
+    if _rust_core is not None and hasattr(_rust_core, "parse_quantity_smart_rust"):
+        return _rust_core.parse_quantity_smart_rust(val)
+
     if val is None:
         return 0.0
     val_str = str(val).strip()
     if not val_str:
         return 0.0
-    
+
     if "," in val_str and "." in val_str:
         last_comma = val_str.rfind(",")
         last_dot = val_str.rfind(".")
@@ -52,7 +62,7 @@ def parse_quantity_smart(val) -> float:
         else:
             # Separador de miles ambiguo, asume entero (ej. 1,200)
             val_str = val_str.replace(",", "")
-            
+
     try:
         return float(val_str)
     except ValueError:
@@ -93,51 +103,75 @@ async def load_csv_data():
                 infer_schema_length=0,
                 null_values=["", "nan", "NaN"],
                 ignore_errors=True,
-            )
-            df_master_cache = raw_master.filter(
-                pl.col("Item_Code").is_not_null()
-            ).with_columns(
-                [
-                    pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-                    pl.col("Physical_Qty")
-                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
-                    .fill_null(0.0),
-                    pl.col("Frozen_Qty")
-                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
-                    .fill_null(0.0),
-                    pl.col("Cost_per_Unit")
-                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
-                    .fill_null(0.0),
-                ]
-            )
-            master_qty_map = {
-                str(r["Item_Code"]): int(r["Physical_Qty"])
-                for r in df_master_cache.select(
-                    ["Item_Code", "Physical_Qty"]
-                ).to_dicts()
-                if r["Item_Code"]
-            }
-            master_cost_map = {
-                str(r["Item_Code"]): float(r["Cost_per_Unit"])
-                for r in df_master_cache.select(
-                    ["Item_Code", "Cost_per_Unit"]
-                ).to_dicts()
-                if r["Item_Code"]
-            }
-            master_desc_map = {
-                str(r["Item_Code"]): str(r["Item_Description"])
-                for r in df_master_cache.select(
-                    ["Item_Code", "Item_Description"]
-                ).to_dicts()
-                if r["Item_Code"]
-            }
-            master_bin_map = {
-                str(r["Item_Code"]): str(r.get("Bin_1") or "N/A")
-                for r in df_master_cache.select(
-                    ["Item_Code", "Bin_1"]
-                ).to_dicts()
-                if r["Item_Code"]
-            }
+            ).filter(pl.col("Item_Code").is_not_null())
+
+            if _rust_core is not None and hasattr(_rust_core, "load_master_csv_maps_rust"):
+                phys_col = _rust_core.parse_quantity_column_rust(
+                    raw_master["Physical_Qty"].to_list()
+                )
+                froz_col = _rust_core.parse_quantity_column_rust(
+                    raw_master["Frozen_Qty"].to_list()
+                )
+                cost_col = _rust_core.parse_quantity_column_rust(
+                    raw_master["Cost_per_Unit"].to_list()
+                )
+                df_master_cache = raw_master.with_columns(
+                    [
+                        pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                        pl.Series("Physical_Qty", phys_col, dtype=pl.Float64),
+                        pl.Series("Frozen_Qty", froz_col, dtype=pl.Float64),
+                        pl.Series("Cost_per_Unit", cost_col, dtype=pl.Float64),
+                    ]
+                )
+                (
+                    master_qty_map,
+                    master_cost_map,
+                    master_desc_map,
+                    master_bin_map,
+                ) = _rust_core.load_master_csv_maps_rust(ITEM_MASTER_CSV_PATH)
+            else:
+                df_master_cache = raw_master.with_columns(
+                    [
+                        pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                        pl.col("Physical_Qty")
+                        .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
+                        .fill_null(0.0),
+                        pl.col("Frozen_Qty")
+                        .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
+                        .fill_null(0.0),
+                        pl.col("Cost_per_Unit")
+                        .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
+                        .fill_null(0.0),
+                    ]
+                )
+                master_qty_map = {
+                    str(r["Item_Code"]): int(r["Physical_Qty"])
+                    for r in df_master_cache.select(
+                        ["Item_Code", "Physical_Qty"]
+                    ).to_dicts()
+                    if r["Item_Code"]
+                }
+                master_cost_map = {
+                    str(r["Item_Code"]): float(r["Cost_per_Unit"])
+                    for r in df_master_cache.select(
+                        ["Item_Code", "Cost_per_Unit"]
+                    ).to_dicts()
+                    if r["Item_Code"]
+                }
+                master_desc_map = {
+                    str(r["Item_Code"]): str(r["Item_Description"])
+                    for r in df_master_cache.select(
+                        ["Item_Code", "Item_Description"]
+                    ).to_dicts()
+                    if r["Item_Code"]
+                }
+                master_bin_map = {
+                    str(r["Item_Code"]): str(r.get("Bin_1") or "N/A")
+                    for r in df_master_cache.select(
+                        ["Item_Code", "Bin_1"]
+                    ).to_dicts()
+                    if r["Item_Code"]
+                }
         except Exception as e:
             print(f"Error cargando Master CSV ({ITEM_MASTER_CSV_PATH}): {e}")
 
@@ -151,16 +185,24 @@ async def load_csv_data():
                 infer_schema_length=0,
                 null_values=["", "nan", "NaN"],
                 ignore_errors=True,
-            )
-            df_grn_cache = raw_grn.filter(
-                pl.col("Item_Code").is_not_null()
-            ).with_columns(
-                [
-                    pl.col("Quantity")
-                    .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
-                    .fill_null(0.0)
-                ]
-            )
+            ).filter(pl.col("Item_Code").is_not_null())
+
+            if _rust_core is not None and hasattr(_rust_core, "load_grn_csv_cache_rust"):
+                qty_col = _rust_core.parse_quantity_column_rust(
+                    raw_grn["Quantity"].to_list()
+                )
+                df_grn_cache = raw_grn.with_columns(
+                    [pl.Series("Quantity", qty_col, dtype=pl.Float64)]
+                )
+                _rust_core.load_grn_csv_cache_rust(GRN_CSV_FILE_PATH)
+            else:
+                df_grn_cache = raw_grn.with_columns(
+                    [
+                        pl.col("Quantity")
+                        .map_elements(parse_quantity_smart, return_dtype=pl.Float64)
+                        .fill_null(0.0)
+                    ]
+                )
         except Exception as e:
             print(f"Error cargando GRN CSV ({GRN_CSV_FILE_PATH}): {e}")
 
@@ -170,7 +212,7 @@ async def load_csv_data():
     except Exception as e:
         print(f"Error cargando Reservaciones: {e}")
 
-    print(f"[POLARS] Sincronizacion RAM completa ({time.time() - t0:.3f}s)")
+    print(f"[RUST+POLARS] Sincronizacion RAM completa ({time.time() - t0:.3f}s)")
 
 
 async def reload_cache_if_needed():
@@ -200,7 +242,7 @@ async def reload_cache_if_needed():
 
 
 async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = None):
-    """Obtiene detalles del ítem con prioridad en DB SQL y fallback en Polars."""
+    """Obtiene detalles del ítem con prioridad en DB SQL y fallback en Rust/Polars."""
     item_code = item_code.upper().strip()
 
     # 1. Prioridad: Base de Datos SQL
@@ -229,9 +271,17 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
         except Exception as e:
             print(f"Error consultando MasterItem en DB: {e}")
 
-    # 2. Fallback: Caché en RAM (Polars)
-    global df_master_cache
+    # 2. Fallback: Caché en RAM O(1) en Rust (con fallback a Polars)
     await reload_cache_if_needed()
+    if _rust_core is not None and hasattr(_rust_core, "get_master_item_rust"):
+        try:
+            res_rust = _rust_core.get_master_item_rust(item_code, ITEM_MASTER_CSV_PATH)
+            if res_rust is not None:
+                return res_rust
+        except Exception as e:
+            print(f"Error consultando get_master_item_rust: {e}")
+
+    global df_master_cache
     if df_master_cache is not None:
         res = df_master_cache.filter(pl.col("Item_Code") == item_code)
         if res.height > 0:
@@ -240,38 +290,43 @@ async def get_item_details_from_master_csv(item_code: str, db: AsyncSession = No
 
 
 async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_code: str) -> set:
-    po_numbers = set()
     import_ref_clean = import_reference.strip().upper()
     item_code_clean = item_code.strip().upper()
     if not import_ref_clean or not item_code_clean:
-        return po_numbers
+        return set()
 
-    # A. Consultar desde po_lookup.json (ir_to_data)
-    from app.core.config import PO_LOOKUP_JSON_PATH
-    import orjson
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
+    if _rust_core is not None and hasattr(
+        _rust_core, "get_po_numbers_for_import_ref_and_item_rust"
+    ):
         try:
-            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                cache = orjson.loads(f.read())
-            ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
-            items = ir_data.get("items", [])
-            for it in items:
-                if str(it.get("item_code", "")).strip().upper() == item_code_clean:
-                    cust_ref = str(it.get("customer_ref", "")).strip().upper()
-                    if cust_ref:
-                        po_numbers.add(cust_ref)
+            res = _rust_core.get_po_numbers_for_import_ref_and_item_rust(
+                import_ref_clean,
+                item_code_clean,
+                PO_LOOKUP_JSON_PATH,
+                GRN_CSV_FILE_PATH,
+            )
+            return set(res)
         except Exception as e:
-            print(f"Error consultando po_lookup para PO numbers: {e}")
+            print(f"Error en get_po_numbers_for_import_ref_and_item_rust: {e}")
+
+    po_numbers = set()
+    # A. Consultar desde po_lookup.json (ir_to_data)
+    cache = get_po_lookup_cached()
+    if cache:
+        ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
+        items = ir_data.get("items", [])
+        for it in items:
+            if str(it.get("item_code", "")).strip().upper() == item_code_clean:
+                cust_ref = str(it.get("customer_ref", "")).strip().upper()
+                if cust_ref:
+                    po_numbers.add(cust_ref)
 
     # B. Consultar desde df_grn_cache (Reporte 280) usando las GRNs asociadas si está cargado
     global df_grn_cache
     if df_grn_cache is not None and "Order_Number" in df_grn_cache.columns:
         try:
             grns = set()
-            from app.core.config import PO_LOOKUP_JSON_PATH
-            if os.path.exists(PO_LOOKUP_JSON_PATH):
-                with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                    cache = orjson.loads(f.read())
+            if cache:
                 ir_data = cache.get("ir_to_data", {}).get(import_ref_clean, {})
                 for it in ir_data.get("items", []):
                     grn_val = it.get("grn", "")
@@ -283,8 +338,8 @@ async def get_po_numbers_for_import_ref_and_item(import_reference: str, item_cod
 
             if grns:
                 res = df_grn_cache.filter(
-                    (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code_clean) &
-                    (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(grns)))
+                    (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code_clean)
+                    & (pl.col("GRN_Number").str.strip_chars().str.to_uppercase().is_in(list(grns)))
                 )
                 if res.height > 0:
                     for order_num in res.select(pl.col("Order_Number")).to_series().to_list():
@@ -357,16 +412,23 @@ async def get_expected_quantity_from_po(import_reference: str, item_code: str) -
     """Busca la cantidad esperada de un artículo específico para una Import Reference dada en la caché de PO."""
     if not import_reference or not item_code:
         return 0
-    from app.core.config import PO_LOOKUP_JSON_PATH
-    import orjson
 
     import_reference = import_reference.strip().upper()
     item_code = item_code.strip().upper()
 
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
+    if _rust_core is not None and hasattr(_rust_core, "get_expected_quantity_from_po_rust"):
         try:
-            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                cache = orjson.loads(f.read())
+            return int(
+                _rust_core.get_expected_quantity_from_po_rust(
+                    import_reference, item_code, PO_LOOKUP_JSON_PATH
+                )
+            )
+        except Exception as e:
+            print(f"Error en get_expected_quantity_from_po_rust: {e}")
+
+    cache = get_po_lookup_cached()
+    if cache:
+        try:
             ir_data = cache.get("ir_to_data", {}).get(import_reference, {})
             items = ir_data.get("items", [])
 
@@ -376,7 +438,7 @@ async def get_expected_quantity_from_po(import_reference: str, item_code: str) -
                 if str(it.get("item_code", "")).strip().upper() == item_code:
                     try:
                         total_qty += int(float(it.get("qty", 0)))
-                    except:
+                    except Exception:
                         pass
             return total_qty
         except Exception as e:
@@ -390,16 +452,18 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
     if not item_code:
         return []
 
-    from app.core.config import PO_LOOKUP_JSON_PATH
-    import orjson
+    if _rust_core is not None and hasattr(_rust_core, "get_expected_breakdown_by_item_rust"):
+        try:
+            return list(
+                _rust_core.get_expected_breakdown_by_item_rust(item_code, PO_LOOKUP_JSON_PATH)
+            )
+        except Exception as e:
+            print(f"Error en get_expected_breakdown_by_item_rust: {e}")
 
     breakdown = []
-
-    if os.path.exists(PO_LOOKUP_JSON_PATH):
+    cache = get_po_lookup_cached()
+    if cache:
         try:
-            with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-                cache = orjson.loads(f.read())
-
             ir_to_data = cache.get("ir_to_data", {})
             for ir_ref, data in ir_to_data.items():
                 items = data.get("items", [])
@@ -409,7 +473,7 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
                     if str(it.get("item_code", "")).strip().upper() == item_code:
                         try:
                             item_qty += int(float(it.get("qty", 0)))
-                        except:
+                        except Exception:
                             pass
                         grn_val = it.get("grn", "")
                         if grn_val:
@@ -434,10 +498,11 @@ async def get_expected_breakdown_by_item(item_code: str) -> list:
 _po_lookup_cache_data = None
 _po_lookup_mtime = 0.0
 
+
 def get_po_lookup_cached():
     global _po_lookup_cache_data, _po_lookup_mtime
-    from app.core.config import PO_LOOKUP_JSON_PATH
     import orjson
+
     if os.path.exists(PO_LOOKUP_JSON_PATH):
         try:
             mtime = os.path.getmtime(PO_LOOKUP_JSON_PATH)
@@ -450,13 +515,15 @@ def get_po_lookup_cached():
             pass
     return {}
 
+
 _grn_json_cache_map = None
 _grn_json_mtime = 0.0
 
+
 def get_grn_json_map_cached():
     global _grn_json_cache_map, _grn_json_mtime
-    from app.core.config import GRN_JSON_DATA_PATH
     import orjson
+
     if os.path.exists(GRN_JSON_DATA_PATH):
         try:
             mtime = os.path.getmtime(GRN_JSON_DATA_PATH)
@@ -466,8 +533,16 @@ def get_grn_json_map_cached():
                 ir_map = {}
                 if isinstance(grn_data, list):
                     for row in grn_data:
-                        ir = str(row.get("Import_Reference", row.get("import_reference", ""))).strip().upper()
-                        grn = str(row.get("GRN_Number", row.get("grn_number", ""))).strip().upper()
+                        ir = (
+                            str(row.get("Import_Reference", row.get("import_reference", "")))
+                            .strip()
+                            .upper()
+                        )
+                        grn = (
+                            str(row.get("GRN_Number", row.get("grn_number", "")))
+                            .strip()
+                            .upper()
+                        )
                         if ir and grn:
                             if ir not in ir_map:
                                 ir_map[ir] = set()
@@ -498,7 +573,41 @@ async def get_expected_quantity_from_grn_for_import_ref(
     from app.models.sql_models import GRNMaster
     from sqlalchemy import select, func
 
-    grns = set()
+    db_grn_list = []
+
+    # C. Consultar desde la Base de Datos SQL GRNMaster
+    if db:
+        try:
+            db_grns = await db.execute(
+                select(GRNMaster.grn_number).where(
+                    func.upper(GRNMaster.import_reference) == import_reference
+                )
+            )
+            for grn_num_raw in db_grns.scalars().all():
+                if grn_num_raw:
+                    for g in str(grn_num_raw).split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            db_grn_list.append(g_clean)
+        except Exception as e:
+            print(f"Error consultando GRNMaster en DB para buscar GRNs: {e}")
+
+    await reload_cache_if_needed()
+
+    if _rust_core is not None and hasattr(_rust_core, "get_expected_grn_qty_rust"):
+        try:
+            return _rust_core.get_expected_grn_qty_rust(
+                import_reference,
+                item_code,
+                db_grn_list,
+                PO_LOOKUP_JSON_PATH,
+                GRN_JSON_DATA_PATH,
+                GRN_CSV_FILE_PATH,
+            )
+        except Exception as e:
+            print(f"Error en get_expected_grn_qty_rust: {e}")
+
+    grns = set(db_grn_list)
 
     # A. Consultar desde po_lookup.json
     cache = get_po_lookup_cached()
@@ -525,27 +634,9 @@ async def get_expected_quantity_from_grn_for_import_ref(
     if import_reference in grn_map:
         grns.update(grn_map[import_reference])
 
-    # C. Consultar desde la Base de Datos SQL GRNMaster
-    if db:
-        try:
-            db_grns = await db.execute(
-                select(GRNMaster.grn_number).where(
-                    func.upper(GRNMaster.import_reference) == import_reference
-                )
-            )
-            for grn_num_raw in db_grns.scalars().all():
-                if grn_num_raw:
-                    for g in str(grn_num_raw).split(","):
-                        g_clean = g.strip().upper()
-                        if g_clean:
-                            grns.add(g_clean)
-        except Exception as e:
-            print(f"Error consultando GRNMaster en DB para buscar GRNs: {e}")
-
     if not grns:
         return None
 
-    await reload_cache_if_needed()
     if df_grn_cache is None:
         return None
 
