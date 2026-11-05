@@ -113,19 +113,22 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
     const normalizedCode = itemCode.trim().toUpperCase();
 
     try {
-        // 1. Obtener GRNs asociadas a la IR desde po_lookup
+        // 1. Obtener GRNs asociadas a la IR desde po_lookup (filtrando por itemCode para no cruzar GRNs de otros ítems)
         const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
         const associatedGrns = new Set();
         if (poInfo && poInfo.items) {
             poInfo.items.forEach(it => {
-                const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                if (grnVal) {
-                    grnVal.split(',').forEach(g => {
-                        const gKey = g.trim();
-                        if (gKey) {
-                            associatedGrns.add(gKey);
-                        }
-                    });
+                const itCode = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                if (!itCode || itCode === normalizedCode) {
+                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                    if (grnVal) {
+                        grnVal.split(',').forEach(g => {
+                            const gKey = g.trim();
+                            if (gKey) {
+                                associatedGrns.add(gKey);
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -154,11 +157,19 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
             if (sum > 0) return sum;
         }
 
-        // 4. Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
+        // 4. Fallback 1: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
         const fallbackSum = itemGrns
             .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
             .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
-        return fallbackSum;
+        if (fallbackSum > 0) return fallbackSum;
+
+        // 5. Fallback 2: buscar en po_lookup si aún no hay registros en grn_pending (no hay 280 cargado)
+        if (poInfo && poInfo.items) {
+            return poInfo.items
+                .filter(it => String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode)
+                .reduce((acc, curr) => acc + (parseInt(it.qty || it.Quantity || 0) || 0), 0);
+        }
+        return 0;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -231,14 +242,17 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
             const associatedGrns = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
-                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                    if (grnVal) {
-                        grnVal.split(',').forEach(g => {
-                            const gKey = g.trim();
-                            if (gKey) {
-                                associatedGrns.add(gKey);
-                            }
-                        });
+                    const itCode = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                    if (!itCode || itCode === normalizedCode) {
+                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        if (grnVal) {
+                            grnVal.split(',').forEach(g => {
+                                const gKey = g.trim();
+                                if (gKey) {
+                                    associatedGrns.add(gKey);
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -266,10 +280,17 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
             if (sum > 0) {
                 resultMap[key] = sum;
             } else {
-                // Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
-                const fallbackSum = itemGrns
+                // Fallback 1: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
+                let fallbackSum = itemGrns
                     .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
                     .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+
+                // Fallback 2: buscar en po_lookup si aún no hay registros en grn_pending (no hay 280)
+                if (fallbackSum === 0 && poInfo && poInfo.items) {
+                    fallbackSum = poInfo.items
+                        .filter(it => String(it.item_code || it.Item_Code || '').toUpperCase().trim() === normalizedCode)
+                        .reduce((acc, curr) => acc + (parseInt(it.qty || it.Quantity || 0) || 0), 0);
+                }
                 resultMap[key] = fallbackSum;
             }
         });

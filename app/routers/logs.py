@@ -63,6 +63,10 @@ async def find_item(
             import_reference, item_code, db=db
         )
     ) or 0
+    if not expected_quantity:
+        expected_quantity = await csv_handler.get_expected_quantity_from_po(
+            import_reference, item_code
+        )
 
     original_bin = item_details.get("Bin_1", "N/A")
 
@@ -271,11 +275,17 @@ async def add_log(
             status_code=404, detail="El código de ítem no existe en el maestro."
         )
 
-    expected_qty = data.qtyGrn
-    if expected_qty is None:
+    grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+        data.importReference, item_code_form, db=db
+    )
+    if grn_exp is not None and grn_exp > 0:
+        expected_qty = grn_exp
+    elif data.qtyGrn is not None and data.qtyGrn > 0:
+        expected_qty = data.qtyGrn
+    else:
         expected_qty = (
-            await csv_handler.get_expected_quantity_from_grn_for_import_ref(
-                data.importReference, item_code_form, db=db
+            await csv_handler.get_expected_quantity_from_po(
+                data.importReference, item_code_form
             )
         ) or 0
 

@@ -185,14 +185,17 @@ async def align_log_totals(
 
 
     for group_key in list(totals_received.keys()):
-        if expected_map.get(group_key, 0) == 0:
-            ref, item = group_key[1], group_key[2]
-            if ref and item:
-                grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
-                    ref, item, db=db
-                )
-                if grn_exp:
-                    expected_map[group_key] = int(grn_exp)
+        ref, item = group_key[1], group_key[2]
+        if ref and item:
+            grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+                ref, item, db=db
+            )
+            if grn_exp is not None and grn_exp > 0:
+                expected_map[group_key] = int(grn_exp)
+            elif expected_map.get(group_key, 0) == 0:
+                po_exp = await csv_handler.get_expected_quantity_from_po(ref, item)
+                if po_exp:
+                    expected_map[group_key] = int(po_exp)
 
     aligned_logs = []
     for log in logs_copy:
@@ -283,10 +286,26 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                 }
             )
 
+        aligned = await align_log_totals(result_list, db=db)
+
+        # Sincronizar en DB si hubo corrección en los campos de cantidad esperada o diferencia
+        log_obj_map = {l.id: l for l in logs}
+        for item in aligned:
+            log_id = item.get("id")
+            if log_id in log_obj_map:
+                obj = log_obj_map[log_id]
+                new_exp = item.get("qtyGrn")
+                new_diff = item.get("difference")
+                if obj.qtyGrn != new_exp or obj.difference != new_diff:
+                    obj.qtyGrn = new_exp
+                    obj.difference = new_diff
+                    db.add(obj)
+                    db_needs_commit = True
+
         if db_needs_commit:
             await db.commit()
 
-        return await align_log_totals(result_list, db=db)
+        return aligned
     except Exception as e:
         print(f"DB Error (load_log_data_db_async): {e}")
         return []
@@ -494,10 +513,26 @@ async def load_archived_log_data_db_async(
                 }
             )
 
+        aligned = await align_log_totals(result_list, db=db)
+
+        # Sincronizar en DB si hubo corrección en los campos de cantidad esperada o diferencia
+        log_obj_map = {l.id: l for l in logs}
+        for item in aligned:
+            log_id = item.get("id")
+            if log_id in log_obj_map:
+                obj = log_obj_map[log_id]
+                new_exp = item.get("qtyGrn")
+                new_diff = item.get("difference")
+                if obj.qtyGrn != new_exp or obj.difference != new_diff:
+                    obj.qtyGrn = new_exp
+                    obj.difference = new_diff
+                    db.add(obj)
+                    db_needs_commit = True
+
         if db_needs_commit:
             await db.commit()
 
-        return await align_log_totals(result_list, db=db)
+        return aligned
     except Exception as e:
         print(f"DB Error (load_archived_log_data_db_async): {e}")
         return []

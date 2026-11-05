@@ -201,7 +201,7 @@ const Inbound = () => {
                 const code = log.itemCode;
                 const ir = log.importReference || log.importRef || '';
                 const key = `${code}|${ir}`;
-                const expected = log.qtyGrn || grnMap[key] || 0;
+                const expected = (grnMap[key] !== undefined && grnMap[key] > 0) ? grnMap[key] : (log.qtyGrn || 0);
                 const totalReceived = totalsMap[key] || 0;
                 const isLatest = latestEntryMap[key] === log.id;
 
