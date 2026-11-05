@@ -293,6 +293,7 @@ const Inbound = () => {
             bc = new BroadcastChannel('logix_events');
             bc.onmessage = (event) => {
                 if (event.data?.type === 'INBOUND_MUTATED') {
+                    runAutoSync();
                     queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
                 }
             };
@@ -303,6 +304,7 @@ const Inbound = () => {
         try {
             eventSource = new EventSource('/api/events/stream');
             eventSource.addEventListener('inbound_mutated', () => {
+                runAutoSync();
                 queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
             });
             eventSource.onerror = () => {
@@ -412,9 +414,10 @@ const Inbound = () => {
             const allGrns = await db.getAll('grn_pending') || [];
             const targetIr = importRef.trim().toUpperCase();
             
-            // 1. Obtener GRNs asociadas a la IR desde po_lookup
+            // 1. Obtener GRNs y Orders asociados a la IR desde po_lookup
             const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
             const associatedGrns = new Set();
+            const associatedOrders = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
                     const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
@@ -426,20 +429,35 @@ const Inbound = () => {
                             }
                         });
                     }
+                    const custRef = it.customer_ref ? String(it.customer_ref).toUpperCase().trim() : '';
+                    if (custRef) {
+                        associatedOrders.add(custRef);
+                    }
                 });
             }
 
-            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
+            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino Order_Number, sino fallback a Import_Reference)
             let irLines = [];
             allGrns.forEach(g => {
-                if (g.grns) {
-                    // Si el nuevo formato estructurado de grns está presente:
+                if (g.grns || g.orders) {
+                    // Si el nuevo formato estructurado de grns/orders está presente:
                     let itemExpectedForIr = 0;
-                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                            itemExpectedForIr += parseInt(qty) || 0;
-                        }
-                    });
+                    let matched = false;
+                    if (g.grns && associatedGrns.size > 0) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                itemExpectedForIr += parseInt(qty) || 0;
+                                matched = true;
+                            }
+                        });
+                    }
+                    if (!matched && g.orders && associatedOrders.size > 0) {
+                        Object.entries(g.orders).forEach(([orderNum, qty]) => {
+                            if (associatedOrders.has(orderNum.toUpperCase().trim())) {
+                                itemExpectedForIr += parseInt(qty) || 0;
+                            }
+                        });
+                    }
                     if (itemExpectedForIr > 0) {
                         irLines.push({
                             Item_Code: g.Item_Code,
@@ -449,12 +467,11 @@ const Inbound = () => {
                 } else {
                     // Fallback para formato antiguo / registros planos
                     const grnNum = (g.GRN_Number || '').trim().toUpperCase();
-                    if (associatedGrns.size > 0) {
-                        if (grnNum && associatedGrns.has(grnNum)) {
-                            irLines.push(g);
-                        } else if (!grnNum && String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
-                            irLines.push(g);
-                        }
+                    const orderNum = (g.Order_Number || '').trim().toUpperCase();
+                    if (associatedGrns.size > 0 && grnNum && associatedGrns.has(grnNum)) {
+                        irLines.push(g);
+                    } else if (associatedOrders.size > 0 && orderNum && associatedOrders.has(orderNum)) {
+                        irLines.push(g);
                     } else if (String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
                         irLines.push(g);
                     }
@@ -576,8 +593,24 @@ const Inbound = () => {
                     
                     poInfo.items.forEach(it => {
                         const itemCode = String(it.item_code).toUpperCase().trim();
-                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        let grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
                         const qty = parseInt(it.qty) || 0;
+
+                        // Si no tiene GRN pero tiene customer_ref, buscar coincidencia en allGrns
+                        if (!grnVal && it.customer_ref) {
+                            const cRef = String(it.customer_ref).toUpperCase().trim();
+                            for (const g of allGrns) {
+                                if (String(g.Item_Code).toUpperCase().trim() === itemCode) {
+                                    if (g.orders && g.orders[cRef] && g.grns) {
+                                        const found = Object.keys(g.grns).join(',');
+                                        if (found) {
+                                            grnVal = found;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         
                         if (grnVal) {
                             grnVal.split(',').forEach(g => {
@@ -601,7 +634,9 @@ const Inbound = () => {
                                         if (!grnToItems[gKeyUpper]) {
                                             grnToItems[gKeyUpper] = [];
                                         }
-                                        grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
+                                        if (!grnToItems[gKeyUpper].some(x => x.itemCode === itemCode)) {
+                                            grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
+                                        }
                                     }
                                 }
                             });

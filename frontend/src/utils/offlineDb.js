@@ -113,9 +113,10 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
     const normalizedCode = itemCode.trim().toUpperCase();
 
     try {
-        // 1. Obtener GRNs asociadas a la IR desde po_lookup
+        // 1. Obtener GRNs y Orders asociados a la IR desde po_lookup
         const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
         const associatedGrns = new Set();
+        const associatedOrders = new Set();
         if (poInfo && poInfo.items) {
             poInfo.items.forEach(it => {
                 const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
@@ -127,6 +128,11 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
                         }
                     });
                 }
+                const itCode = it.item_code ? String(it.item_code).toUpperCase().trim() : '';
+                const custRef = it.customer_ref ? String(it.customer_ref).toUpperCase().trim() : '';
+                if (custRef && (!itCode || itCode === normalizedCode)) {
+                    associatedOrders.add(custRef);
+                }
             });
         }
 
@@ -134,19 +140,33 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
         const allGrns = await db.getAll('grn_pending') || [];
         const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
 
-        // 3. Si tenemos GRNs asociadas, buscar en el objeto grns
-        if (associatedGrns.size > 0) {
+        // 3. Si tenemos GRNs o pedidos asociados, buscar en el objeto grns/orders
+        if (associatedGrns.size > 0 || associatedOrders.size > 0) {
             let sum = 0;
             itemGrns.forEach(g => {
-                if (g.grns) {
-                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                            sum += parseInt(qty) || 0;
-                        }
-                    });
+                if (g.grns || g.orders) {
+                    let matched = false;
+                    if (g.grns && associatedGrns.size > 0) {
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                sum += parseInt(qty) || 0;
+                                matched = true;
+                            }
+                        });
+                    }
+                    if (!matched && g.orders && associatedOrders.size > 0) {
+                        Object.entries(g.orders).forEach(([orderNum, qty]) => {
+                            if (associatedOrders.has(orderNum.toUpperCase().trim())) {
+                                sum += parseInt(qty) || 0;
+                            }
+                        });
+                    }
                 } else {
                     const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    const orderNum = (g.Order_Number || '').trim().toUpperCase();
                     if (grnNum && associatedGrns.has(grnNum)) {
+                        sum += parseInt(g.total_expected) || 0;
+                    } else if (orderNum && associatedOrders.has(orderNum)) {
                         sum += parseInt(g.total_expected) || 0;
                     }
                 }
@@ -229,6 +249,7 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
 
             const poInfo = poInfoMap.get(normalizedIr);
             const associatedGrns = new Set();
+            const associatedOrders = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
                     const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
@@ -240,23 +261,42 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
                             }
                         });
                     }
+                    const itCode = it.item_code ? String(it.item_code).toUpperCase().trim() : '';
+                    const custRef = it.customer_ref ? String(it.customer_ref).toUpperCase().trim() : '';
+                    if (custRef && (!itCode || itCode === normalizedCode)) {
+                        associatedOrders.add(custRef);
+                    }
                 });
             }
 
             const itemGrns = grnsByItem.get(normalizedCode) || [];
 
             let sum = 0;
-            if (associatedGrns.size > 0) {
+            if (associatedGrns.size > 0 || associatedOrders.size > 0) {
                 itemGrns.forEach(g => {
-                    if (g.grns) {
-                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                                sum += parseInt(qty) || 0;
-                            }
-                        });
+                    if (g.grns || g.orders) {
+                        let matched = false;
+                        if (g.grns && associatedGrns.size > 0) {
+                            Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                                if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                    sum += parseInt(qty) || 0;
+                                    matched = true;
+                                }
+                            });
+                        }
+                        if (!matched && g.orders && associatedOrders.size > 0) {
+                            Object.entries(g.orders).forEach(([orderNum, qty]) => {
+                                if (associatedOrders.has(orderNum.toUpperCase().trim())) {
+                                    sum += parseInt(qty) || 0;
+                                }
+                            });
+                        }
                     } else {
                         const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                        const orderNum = (g.Order_Number || '').trim().toUpperCase();
                         if (grnNum && associatedGrns.has(grnNum)) {
+                            sum += parseInt(g.total_expected) || 0;
+                        } else if (orderNum && associatedOrders.has(orderNum)) {
                             sum += parseInt(g.total_expected) || 0;
                         }
                     }
