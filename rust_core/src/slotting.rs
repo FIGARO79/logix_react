@@ -75,9 +75,16 @@ fn parse_storage(storage_dict: &Bound<'_, PyDict>) -> PyResult<HashMap<String, B
     for (key, val) in storage_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let zone: Option<String> = val_dict.get_item("zone")?.and_then(|v| py_any_to_string(&v));
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
-            let score: i32 = val_dict.get_item("score")?.and_then(|v| v.extract().ok()).unwrap_or(0);
+            let zone: Option<String> = val_dict
+                .get_item("zone")?
+                .and_then(|v| py_any_to_string(&v));
+            let spot: Option<String> = val_dict
+                .get_item("spot")?
+                .and_then(|v| py_any_to_string(&v));
+            let score: i32 = val_dict
+                .get_item("score")?
+                .and_then(|v| v.extract().ok())
+                .unwrap_or(0);
 
             let level: i32 = if let Some(lvl_val) = val_dict.get_item("level")? {
                 if let Ok(i) = lvl_val.extract::<i32>() {
@@ -91,7 +98,15 @@ fn parse_storage(storage_dict: &Bound<'_, PyDict>) -> PyResult<HashMap<String, B
                 0
             };
 
-            storage.insert(key_str, BinInfo { zone, level, score, spot });
+            storage.insert(
+                key_str,
+                BinInfo {
+                    zone,
+                    level,
+                    score,
+                    spot,
+                },
+            );
         }
     }
     Ok(storage)
@@ -102,7 +117,9 @@ fn parse_turnover(turnover_dict: &Bound<'_, PyDict>) -> PyResult<HashMap<String,
     for (key, val) in turnover_dict.iter() {
         let key_str: String = key.extract()?;
         if let Ok(val_dict) = val.downcast::<PyDict>() {
-            let spot: Option<String> = val_dict.get_item("spot")?.and_then(|v| py_any_to_string(&v));
+            let spot: Option<String> = val_dict
+                .get_item("spot")?
+                .and_then(|v| py_any_to_string(&v));
             turnover.insert(key_str, TurnoverInfo { spot });
         }
     }
@@ -284,7 +301,10 @@ pub fn compute_suggested_bin_for_item(
     }
 
     let description = item_details.Item_Description.to_uppercase();
-    let is_cantilever = rules.cantilever_kw.iter().any(|kw| description.contains(kw));
+    let is_cantilever = rules
+        .cantilever_kw
+        .iter()
+        .any(|kw| description.contains(kw));
     let weight_val_clean = item_details.Weight_per_Unit.replace(',', "");
     let weight: f64 = weight_val_clean.parse().unwrap_or(0.0);
 
@@ -487,12 +507,7 @@ pub fn get_suggested_bins_batch_rust(
         for entry in parsed_items {
             if let Some((details, sic_code)) = entry {
                 let suggested = compute_suggested_bin_for_item(
-                    &storage,
-                    &turnover,
-                    &rules,
-                    &details,
-                    &occupancy,
-                    &sic_code,
+                    &storage, &turnover, &rules, &details, &occupancy, &sic_code,
                 );
                 if let Some(ref bin) = suggested {
                     *occupancy.entry(bin.to_uppercase()).or_insert(0) += 1;

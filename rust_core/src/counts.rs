@@ -70,8 +70,14 @@ pub fn calculate_cycle_count_differences_rust<'py>(
     let result_list = PyList::empty(py);
 
     for (item, loc) in all_keys {
-        let (sys_qty, unit_cost) = system_map.get(&(item.clone(), loc.clone())).copied().unwrap_or((0.0, 0.0));
-        let (cnt_qty, stage_used) = physical_map.get(&(item.clone(), loc.clone())).copied().unwrap_or((0.0, 1));
+        let (sys_qty, unit_cost) = system_map
+            .get(&(item.clone(), loc.clone()))
+            .copied()
+            .unwrap_or((0.0, 0.0));
+        let (cnt_qty, stage_used) = physical_map
+            .get(&(item.clone(), loc.clone()))
+            .copied()
+            .unwrap_or((0.0, 1));
         let diff_qty = cnt_qty - sys_qty;
         let diff_val = diff_qty * unit_cost;
 

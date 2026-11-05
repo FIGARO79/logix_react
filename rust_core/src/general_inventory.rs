@@ -70,10 +70,12 @@ pub fn calculate_reconciliation_rust<'py>(
         let mut rows: Vec<ReconciliationRow> = Vec::with_capacity(all_keys.len());
 
         for code in all_keys {
-            let (desc, bin, sys_qty, cost) = master_map
-                .get(&code)
-                .cloned()
-                .unwrap_or(("ITEM NO CATALOGADO".to_string(), "N/A".to_string(), 0.0, 0.0));
+            let (desc, bin, sys_qty, cost) = master_map.get(&code).cloned().unwrap_or((
+                "ITEM NO CATALOGADO".to_string(),
+                "N/A".to_string(),
+                0.0,
+                0.0,
+            ));
 
             let stage_counts = counts_by_item.get(&code);
             let c1 = stage_counts.and_then(|m| m.get(&1)).copied();

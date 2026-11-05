@@ -1,7 +1,7 @@
+use csv::ReaderBuilder;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use std::collections::HashMap;
-use csv::ReaderBuilder;
 
 /// Procesa el CSV de reservaciones y genera un caché consolidado.
 #[pyfunction]
@@ -24,12 +24,15 @@ pub fn generate_reservation_cache_rust<'py>(
                 pyo3::exceptions::PyIOError::new_err(format!("No se pudo abrir el CSV: {}", e))
             })?;
 
-        let headers = rdr.headers().map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!(
-                "Error leyendo cabecera del CSV: {}",
-                e
-            ))
-        })?.clone();
+        let headers = rdr
+            .headers()
+            .map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "Error leyendo cabecera del CSV: {}",
+                    e
+                ))
+            })?
+            .clone();
 
         let mut item_code_idx = None;
         let mut customer_name_idx = None;
@@ -189,7 +192,8 @@ pub fn generate_reservation_cache_rust<'py>(
             });
         }
 
-        let mut so_line_map: HashMap<(String, String, String, String, String), f64> = HashMap::new();
+        let mut so_line_map: HashMap<(String, String, String, String, String), f64> =
+            HashMap::new();
         let mut unkeyed_agg: HashMap<(String, String, String), f64> = HashMap::new();
 
         for res in raw_records {
@@ -248,13 +252,14 @@ pub fn generate_reservation_cache_rust<'py>(
         inner_dict.set_item("total", agg.total_qty)?;
 
         // Ordenar clientes determinísticamente por PO_Number y Nombre de Cliente
-        let mut sorted_details: Vec<((String, String), f64)> = agg.customer_details.into_iter().collect();
+        let mut sorted_details: Vec<((String, String), f64)> =
+            agg.customer_details.into_iter().collect();
         sorted_details.sort_by(|a, b| {
-            let po_cmp = a.0.1.cmp(&b.0.1);
+            let po_cmp = a.0 .1.cmp(&b.0 .1);
             if po_cmp != std::cmp::Ordering::Equal {
                 po_cmp
             } else {
-                a.0.0.cmp(&b.0.0)
+                a.0 .0.cmp(&b.0 .0)
             }
         });
 

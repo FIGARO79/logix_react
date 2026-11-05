@@ -82,11 +82,7 @@ pub fn build_master_maps_rust(
                                         for g in grn_val.split(',') {
                                             let g_clean = g.trim().to_uppercase();
                                             if !g_clean.is_empty() {
-                                                master_maps.push((
-                                                    g_clean,
-                                                    ir.clone(),
-                                                    wb.clone(),
-                                                ));
+                                                master_maps.push((g_clean, ir.clone(), wb.clone()));
                                             }
                                         }
                                     }
