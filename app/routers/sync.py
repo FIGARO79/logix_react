@@ -72,45 +72,29 @@ async def get_master_sync_data(user: str = Depends(login_required)):
     if csv_handler.df_grn_cache is not None:
         import polars as pl
 
-        cols_to_group = ["Item_Code", "GRN_Number"]
-        with_cols = [
-            pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
-            pl.col("GRN_Number")
-            .cast(pl.Utf8)
-            .str.strip_chars()
-            .str.to_uppercase(),
-        ]
-        has_order = "Order_Number" in csv_handler.df_grn_cache.columns
-        if has_order:
-            with_cols.append(
-                pl.col("Order_Number")
-                .cast(pl.Utf8)
-                .str.strip_chars()
-                .str.to_uppercase()
-            )
-            cols_to_group.append("Order_Number")
-
         summary = (
             csv_handler.df_grn_cache.filter(pl.col("Item_Code").is_not_null())
-            .with_columns(with_cols)
-            .group_by(cols_to_group)
+            .with_columns(
+                [
+                    pl.col("Item_Code").str.strip_chars().str.to_uppercase(),
+                    pl.col("GRN_Number")
+                    .cast(pl.Utf8)
+                    .str.strip_chars()
+                    .str.to_uppercase(),
+                ]
+            )
+            .group_by(["Item_Code", "GRN_Number"])
             .agg(pl.col("Quantity").sum().alias("qty"))
         )
         for row in summary.to_dicts():
             item = row["Item_Code"]
             grn = row["GRN_Number"]
-            order = row.get("Order_Number", "") if has_order else ""
             qty = int(row["qty"] or 0)
             if not item:
                 continue
             if item not in grn_data:
-                grn_data[item] = {"grns": {}, "orders": {}, "total_expected": 0}
-            if "orders" not in grn_data[item]:
-                grn_data[item]["orders"] = {}
-            if grn:
-                grn_data[item]["grns"][grn] = grn_data[item]["grns"].get(grn, 0) + qty
-            if order:
-                grn_data[item]["orders"][order] = grn_data[item]["orders"].get(order, 0) + qty
+                grn_data[item] = {"grns": {}, "total_expected": 0}
+            grn_data[item]["grns"][grn] = qty
             grn_data[item]["total_expected"] += qty
 
     # 3. Xdock (Reservations) - Asegurar que el caché esté cargado y actualizado

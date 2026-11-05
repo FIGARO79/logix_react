@@ -56,7 +56,6 @@ struct CsvMemoryCache {
     po_ir_items: HashMap<String, Vec<PoLookupItem>>,
     po_ir_ordered: Vec<(String, Vec<PoLookupItem>)>,
     po_wb_ir_grns: HashMap<String, Vec<String>>,
-    po_wb_ir_customer_refs: HashMap<String, Vec<String>>,
 
     grn_json_mtime: u128,
     grn_json_ir_map: HashMap<String, Vec<String>>,
@@ -390,7 +389,6 @@ fn ensure_po_lookup_loaded(po_lookup_path: &str) {
     let mut po_ir_items: HashMap<String, Vec<PoLookupItem>> = HashMap::new();
     let mut po_ir_ordered: Vec<(String, Vec<PoLookupItem>)> = Vec::new();
     let mut po_wb_ir_grns: HashMap<String, Vec<String>> = HashMap::new();
-    let mut po_wb_ir_customer_refs: HashMap<String, Vec<String>> = HashMap::new();
 
     if let Some(ir_to_data) = json.get("ir_to_data").and_then(|v| v.as_object()) {
         for (ir_key, data_obj) in ir_to_data {
@@ -433,8 +431,7 @@ fn ensure_po_lookup_loaded(po_lookup_path: &str) {
                 continue;
             }
             if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                let entry = po_wb_ir_grns.entry(ir.clone()).or_default();
-                let entry_refs = po_wb_ir_customer_refs.entry(ir).or_default();
+                let entry = po_wb_ir_grns.entry(ir).or_default();
                 for it in items {
                     let grn_raw = json_val_to_string(it.get("grn"));
                     for g in grn_raw.split(',') {
@@ -442,12 +439,6 @@ fn ensure_po_lookup_loaded(po_lookup_path: &str) {
                         if !g_clean.is_empty() {
                             entry.push(g_clean);
                         }
-                    }
-                    let c_ref = json_val_to_string(it.get("customer_ref"))
-                        .trim()
-                        .to_uppercase();
-                    if !c_ref.is_empty() {
-                        entry_refs.push(c_ref);
                     }
                 }
             }
@@ -459,7 +450,6 @@ fn ensure_po_lookup_loaded(po_lookup_path: &str) {
         guard.po_ir_items = po_ir_items;
         guard.po_ir_ordered = po_ir_ordered;
         guard.po_wb_ir_grns = po_wb_ir_grns;
-        guard.po_wb_ir_customer_refs = po_wb_ir_customer_refs;
     }
 }
 
@@ -788,31 +778,17 @@ pub fn get_expected_grn_qty_rust(
         }
 
         if let Ok(guard) = get_cache().read() {
-            let mut item_customer_refs: HashSet<String> = HashSet::new();
-            let mut ir_customer_refs: HashSet<String> = HashSet::new();
-
             // A. Desde po_lookup.json (ir_to_data + wb_to_data)
             if let Some(items) = guard.po_ir_items.get(&ir_clean) {
                 for it in items {
                     for g in &it.grns {
                         grns.insert(g.clone());
                     }
-                    if !it.customer_ref.is_empty() {
-                        ir_customer_refs.insert(it.customer_ref.clone());
-                        if it.item_code == item_clean {
-                            item_customer_refs.insert(it.customer_ref.clone());
-                        }
-                    }
                 }
             }
             if let Some(wb_grns) = guard.po_wb_ir_grns.get(&ir_clean) {
                 for g in wb_grns {
                     grns.insert(g.clone());
-                }
-            }
-            if let Some(wb_refs) = guard.po_wb_ir_customer_refs.get(&ir_clean) {
-                for r in wb_refs {
-                    ir_customer_refs.insert(r.clone());
                 }
             }
 
@@ -823,13 +799,7 @@ pub fn get_expected_grn_qty_rust(
                 }
             }
 
-            let customer_refs = if !item_customer_refs.is_empty() {
-                &item_customer_refs
-            } else {
-                &ir_customer_refs
-            };
-
-            if (grns.is_empty() && customer_refs.is_empty()) || !guard.grn_loaded {
+            if grns.is_empty() || !guard.grn_loaded {
                 return None;
             }
 
@@ -838,9 +808,7 @@ pub fn get_expected_grn_qty_rust(
                 let mut matched = false;
                 let mut sum_qty: f64 = 0.0;
                 for row in rows {
-                    let matches_grn = !row.grn_number.is_empty() && grns.contains(&row.grn_number);
-                    let matches_order = !row.order_number.is_empty() && customer_refs.contains(&row.order_number);
-                    if matches_grn || matches_order {
+                    if grns.contains(&row.grn_number) {
                         matched = true;
                         sum_qty += row.quantity;
                     }

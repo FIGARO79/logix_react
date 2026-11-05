@@ -185,13 +185,14 @@ async def align_log_totals(
 
 
     for group_key in list(totals_received.keys()):
-        ref, item = group_key[1], group_key[2]
-        if ref and item:
-            grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
-                ref, item, db=db
-            )
-            if grn_exp is not None and grn_exp > 0:
-                expected_map[group_key] = int(grn_exp)
+        if expected_map.get(group_key, 0) == 0:
+            ref, item = group_key[1], group_key[2]
+            if ref and item:
+                grn_exp = await csv_handler.get_expected_quantity_from_grn_for_import_ref(
+                    ref, item, db=db
+                )
+                if grn_exp:
+                    expected_map[group_key] = int(grn_exp)
 
     aligned_logs = []
     for log in logs_copy:
@@ -240,7 +241,6 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
         item_desc_cache = {}
         db_needs_commit = False
 
-        log_orm_map = {log.id: log for log in logs}
         result_list = []
         for log in logs:
             desc = log.itemDescription
@@ -283,23 +283,10 @@ async def load_log_data_db_async(db: AsyncSession) -> List[Dict[str, Any]]:
                 }
             )
 
-        aligned_list = await align_log_totals(result_list, db=db)
-
-        for aligned in aligned_list:
-            orm_log = log_orm_map.get(aligned.get("id"))
-            if orm_log is not None:
-                new_exp = aligned.get("qtyGrn")
-                new_diff = aligned.get("difference")
-                if orm_log.qtyGrn != new_exp or orm_log.difference != new_diff:
-                    orm_log.qtyGrn = new_exp
-                    orm_log.difference = new_diff
-                    db.add(orm_log)
-                    db_needs_commit = True
-
         if db_needs_commit:
             await db.commit()
 
-        return aligned_list
+        return await align_log_totals(result_list, db=db)
     except Exception as e:
         print(f"DB Error (load_log_data_db_async): {e}")
         return []

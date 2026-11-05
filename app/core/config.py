@@ -10,7 +10,6 @@ PROJECT_ROOT = os.path.dirname(
 )  # Sube dos niveles (app/core -> project root)
 
 DATABASE_FOLDER = os.path.join(PROJECT_ROOT, "databases")
-os.makedirs(DATABASE_FOLDER, exist_ok=True)
 ITEM_MASTER_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSGLBD0250.csv")
 RESERVATION_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSLAMP0006.csv")
 RESERVATION_RAW_CSV_PATH = os.path.join(DATABASE_FOLDER, "AURRSLAMP0006_raw.csv")

@@ -572,13 +572,6 @@ async def update_files_post(
             except Exception as e:
                 print(f"[UPDATE ERROR] Error en load_csv_data: {e}")
 
-            # 4.1 Invalidar caché y notificar a clientes (SSE) que los maestros/GRNs cambiaron
-            try:
-                from app.services import db_logs
-                db_logs._invalidate_recon_cache()
-            except Exception as e:
-                print(f"[UPDATE ERROR] Error notificando mutación: {e}")
-
             # 5. Ejecutar auditoría de recepción con datos frescos en DB y RAM
             try:
                 async with AsyncSessionLocal() as session:

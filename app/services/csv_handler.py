@@ -89,86 +89,6 @@ async def generate_reservation_cache():
         reservation_qty_map = {}
 
 
-def enrich_po_lookup_from_grn_csv() -> bool:
-    """
-    Enriquece po_lookup.json vinculando números de GRN desde el Reporte 280 (AURRSGLBD0280.csv)
-    para aquellos ítems u órdenes donde 'grn' está vacío pero 'customer_ref' coincide con 'Order_Number'.
-    """
-    if not os.path.exists(PO_LOOKUP_JSON_PATH) or not os.path.exists(GRN_CSV_FILE_PATH):
-        return False
-
-    try:
-        import orjson
-
-        df_280 = pl.read_csv(
-            GRN_CSV_FILE_PATH,
-            columns=["GRN_Number", "Order_Number"],
-            infer_schema_length=0,
-            ignore_errors=True,
-        ).filter(
-            pl.col("Order_Number").is_not_null()
-            & (pl.col("Order_Number") != "")
-            & pl.col("GRN_Number").is_not_null()
-            & (pl.col("GRN_Number") != "")
-        )
-
-        order_to_grns: Dict[str, set] = {}
-        for row in df_280.unique().iter_rows(named=True):
-            order = str(row["Order_Number"]).strip().upper()
-            grn = str(row["GRN_Number"]).strip().upper()
-            if order and grn:
-                order_to_grns.setdefault(order, set()).add(grn)
-
-        if not order_to_grns:
-            return False
-
-        with open(PO_LOOKUP_JSON_PATH, "rb") as f:
-            po_data = orjson.loads(f.read())
-
-        changed = False
-
-        for ir, data in po_data.get("ir_to_data", {}).items():
-            for it in data.get("items", []):
-                if not it.get("grn"):
-                    cust = str(it.get("customer_ref") or "").strip().upper()
-                    if cust in order_to_grns:
-                        it["grn"] = ",".join(sorted(order_to_grns[cust]))
-                        changed = True
-
-        for wb, data in po_data.get("wb_to_data", {}).items():
-            for it in data.get("items", []):
-                if not it.get("grn"):
-                    cust = str(it.get("customer_ref") or "").strip().upper()
-                    if cust in order_to_grns:
-                        it["grn"] = ",".join(sorted(order_to_grns[cust]))
-                        changed = True
-
-        for cust_key, data in po_data.get("customer_ref_to_data", {}).items():
-            cust = str(cust_key).strip().upper()
-            if cust in order_to_grns:
-                existing = set(
-                    str(g).strip().upper()
-                    for g in data.get("grns", [])
-                    if str(g).strip()
-                )
-                new_grns = existing | order_to_grns[cust]
-                if new_grns != existing:
-                    data["grns"] = sorted(list(new_grns))
-                    changed = True
-
-        if changed:
-            tmp_path = f"{PO_LOOKUP_JSON_PATH}.tmp.{os.getpid()}"
-            with open(tmp_path, "wb") as f:
-                f.write(orjson.dumps(po_data, option=orjson.OPT_INDENT_2))
-            os.replace(tmp_path, PO_LOOKUP_JSON_PATH)
-            return True
-
-        return False
-    except Exception as e:
-        print(f"[PO LOOKUP] Error enriqueciendo po_lookup con GRNs: {e}")
-        return False
-
-
 async def load_csv_data():
     global df_master_cache, df_grn_cache, master_qty_map, master_cost_map, master_desc_map, master_bin_map, _mtime_master, _mtime_grn
     t0 = time.time()
@@ -285,12 +205,6 @@ async def load_csv_data():
                 )
         except Exception as e:
             print(f"Error cargando GRN CSV ({GRN_CSV_FILE_PATH}): {e}")
-
-    # 2.1 Enriquecer po_lookup.json con números de GRN del Reporte 280
-    try:
-        enrich_po_lookup_from_grn_csv()
-    except Exception as e:
-        print(f"Error enriqueciendo po_lookup desde Reporte 280: {e}")
 
     # 3. Cargar Reservaciones (AURRSLAMP0006)
     try:
@@ -694,7 +608,6 @@ async def get_expected_quantity_from_grn_for_import_ref(
             print(f"Error en get_expected_grn_qty_rust: {e}")
 
     grns = set(db_grn_list)
-    customer_refs = set()
 
     # A. Consultar desde po_lookup.json
     cache = get_po_lookup_cached()
@@ -706,11 +619,6 @@ async def get_expected_quantity_from_grn_for_import_ref(
                 for g in str(grn_val).split(","):
                     if g.strip():
                         grns.add(g.strip().upper())
-            it_code = str(it.get("item_code", "")).strip().upper()
-            c_ref = str(it.get("customer_ref", "")).strip().upper()
-            if c_ref and (not it_code or it_code == item_code):
-                customer_refs.add(c_ref)
-
         for wb, data in cache.get("wb_to_data", {}).items():
             ir = str(data.get("import_ref", "")).strip().upper()
             if ir == import_reference:
@@ -720,46 +628,34 @@ async def get_expected_quantity_from_grn_for_import_ref(
                         for g in str(grn_val).split(","):
                             if g.strip():
                                 grns.add(g.strip().upper())
-                    it_code = str(item.get("item_code", "")).strip().upper()
-                    c_ref = str(item.get("customer_ref", "")).strip().upper()
-                    if c_ref and (not it_code or it_code == item_code):
-                        customer_refs.add(c_ref)
 
     # B. Consultar desde grn_master_data.json (usando mapa indexado en memoria)
     grn_map = get_grn_json_map_cached()
     if import_reference in grn_map:
         grns.update(grn_map[import_reference])
 
-    if not grns and not customer_refs:
+    if not grns:
         return None
 
     if df_grn_cache is None:
         return None
 
     grn_list_str = [str(g) for g in grns]
-    customer_ref_list_str = [str(c) for c in customer_refs]
 
     try:
-        filter_expr = pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code
-        match_conditions = []
-        if grn_list_str:
-            match_conditions.append(
-                pl.col("GRN_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().is_in(grn_list_str)
+        res = df_grn_cache.filter(
+            (pl.col("Item_Code").str.strip_chars().str.to_uppercase() == item_code)
+            & (
+                pl.col("GRN_Number")
+                .cast(pl.Utf8)
+                .str.strip_chars()
+                .str.to_uppercase()
+                .is_in(grn_list_str)
             )
-        if customer_ref_list_str and "Order_Number" in df_grn_cache.columns:
-            match_conditions.append(
-                pl.col("Order_Number").cast(pl.Utf8).str.strip_chars().str.to_uppercase().is_in(customer_ref_list_str)
-            )
-        if match_conditions:
-            combined_match = match_conditions[0]
-            for cond in match_conditions[1:]:
-                combined_match = combined_match | cond
-            filter_expr = filter_expr & combined_match
-
-            res = df_grn_cache.filter(filter_expr)
-            if res.height > 0:
-                total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
-                return total_qty
+        )
+        if res.height > 0:
+            total_qty = int(res.select(pl.col("Quantity").sum())[0, 0] or 0)
+            return total_qty
     except Exception as e:
         print(f"Error consultando cantidad en cache de GRN: {e}")
 

@@ -28,7 +28,7 @@ export const downloadMasterData = async () => {
         for (const [code, info] of Object.entries(data.grn_pending)) {
             if (code && code !== 'null' && code !== 'undefined') {
                 if (info && typeof info === 'object') {
-                    grnStore.put({ Item_Code: code, grns: info.grns, orders: info.orders, total_expected: info.total_expected });
+                    grnStore.put({ Item_Code: code, grns: info.grns, total_expected: info.total_expected });
                 } else {
                     grnStore.put({ Item_Code: code, total_expected: info });
                 }
