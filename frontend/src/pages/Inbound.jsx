@@ -32,30 +32,30 @@ const Dial = ({ percent, label, valueText, strokeColor = "#0078d4", strokeWidth 
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
-    
+
     return (
         <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
             <div className="relative flex items-center justify-center" style={{ width: '85px', height: '85px' }}>
                 <svg className="transform -rotate-90" style={{ width: '85px', height: '85px' }}>
-                    <circle 
-                        cx="42.5" 
-                        cy="42.5" 
-                        r={radius} 
-                        className="text-zinc-200" 
-                        strokeWidth={trackStrokeWidth} 
-                        stroke="currentColor" 
-                        fill="transparent" 
+                    <circle
+                        cx="42.5"
+                        cy="42.5"
+                        r={radius}
+                        className="text-zinc-200"
+                        strokeWidth={trackStrokeWidth}
+                        stroke="currentColor"
+                        fill="transparent"
                     />
-                    <circle 
-                        cx="42.5" 
-                        cy="42.5" 
-                        r={radius} 
-                        stroke={strokeColor} 
-                        strokeWidth={strokeWidth} 
-                        strokeDasharray={circumference} 
-                        strokeDashoffset={offset} 
-                        strokeLinecap="round" 
-                        fill="transparent" 
+                    <circle
+                        cx="42.5"
+                        cy="42.5"
+                        r={radius}
+                        stroke={strokeColor}
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        fill="transparent"
                         className="transition-all duration-500 ease-out"
                     />
                 </svg>
@@ -411,7 +411,7 @@ const Inbound = () => {
             const db = await getDB();
             const allGrns = await db.getAll('grn_pending') || [];
             const targetIr = importRef.trim().toUpperCase();
-            
+
             // 1. Obtener GRNs asociadas a la IR desde po_lookup
             const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
             const associatedGrns = new Set();
@@ -460,7 +460,7 @@ const Inbound = () => {
                     }
                 }
             });
-            
+
             // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
             const groupedIrLines = {};
             irLines.forEach(line => {
@@ -569,33 +569,33 @@ const Inbound = () => {
             let totalGrns = 0;
             let completedGrns = 0;
             let grnTotalProgress = 0;
-            
+
             try {
                 if (poInfo && poInfo.items) {
                     const grnToItems = {}; // grn -> [ {itemCode, expected} ]
-                    
+
                     poInfo.items.forEach(it => {
                         const itemCode = String(it.item_code).toUpperCase().trim();
                         const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
                         const qty = parseInt(it.qty) || 0;
-                        
+
                         if (grnVal) {
                             grnVal.split(',').forEach(g => {
                                 const gKey = g.trim();
                                 if (gKey) {
                                     const gKeyUpper = gKey.toUpperCase().trim();
-                                    
+
                                     // Determinar la cantidad esperada de forma inteligente
                                     let expectedQty = 0;
                                     const has280Data = uniqueIrLines.length > 0;
-                                    
-                                    if (grnDetailExpectedMap[itemCode] !== undefined && 
+
+                                    if (grnDetailExpectedMap[itemCode] !== undefined &&
                                         grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
                                         expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
                                     } else if (!has280Data) {
                                         expectedQty = qty;
                                     }
-                                    
+
                                     // Solo incluir en el avance si realmente se espera recibir unidades en esa GRN
                                     if (expectedQty > 0) {
                                         if (!grnToItems[gKeyUpper]) {
@@ -607,24 +607,24 @@ const Inbound = () => {
                             });
                         }
                     });
-                    
+
                     const grnList = Object.keys(grnToItems);
                     totalGrns = grnList.length;
-                    
+
                     grnList.forEach(grn => {
                         const itemsInGrn = grnToItems[grn];
                         let itemsCompleted = 0;
-                        
+
                         itemsInGrn.forEach(it => {
                             const recQty = receivedMap[it.itemCode] || 0;
                             if (recQty >= it.expected) {
                                 itemsCompleted += 1;
                             }
                         });
-                        
+
                         const grnProgress = itemsInGrn.length > 0 ? itemsCompleted / itemsInGrn.length : 0;
                         grnTotalProgress += grnProgress;
-                        
+
                         if (grnProgress === 1 && itemsInGrn.length > 0) {
                             completedGrns += 1;
                         }
@@ -1362,36 +1362,36 @@ const Inbound = () => {
                             <h2 className="text-[12px] font-normal text-black uppercase tracking-normal mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
                                 Tablero de Control: {importRef || "S.I.R."}
                             </h2>
-                            
+
                             {importRef ? (
                                 <div className="flex-grow flex flex-col justify-between">
                                     <div className="grid grid-cols-2 gap-2">
-                                        <Dial 
-                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.completedLines / irStats.totalLines) * 100)) : 0} 
-                                            label="Líneas OK" 
-                                            valueText={`${irStats.completedLines}/${irStats.totalLines}`} 
+                                        <Dial
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.completedLines / irStats.totalLines) * 100)) : 0}
+                                            label="Líneas OK"
+                                            valueText={`${irStats.completedLines}/${irStats.totalLines}`}
                                             strokeColor="#0078d4"
                                         />
-                                        <Dial 
-                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.startedLines / irStats.totalLines) * 100)) : 0} 
-                                            label="Iniciadas" 
-                                            valueText={`${irStats.startedLines}/${irStats.totalLines}`} 
+                                        <Dial
+                                            percent={irStats.totalLines > 0 ? Math.min(100, Math.round((irStats.startedLines / irStats.totalLines) * 100)) : 0}
+                                            label="Iniciadas"
+                                            valueText={`${irStats.startedLines}/${irStats.totalLines}`}
                                             strokeColor="#ca5010"
                                         />
-                                        <Dial 
-                                            percent={irStats.expectedUnits > 0 ? Math.min(100, Math.round((irStats.receivedUnits / irStats.expectedUnits) * 100)) : 0} 
-                                            label="Unidades" 
-                                            valueText={`${irStats.receivedUnits}/${irStats.expectedUnits}`} 
+                                        <Dial
+                                            percent={irStats.expectedUnits > 0 ? Math.min(100, Math.round((irStats.receivedUnits / irStats.expectedUnits) * 100)) : 0}
+                                            label="Unidades"
+                                            valueText={`${irStats.receivedUnits}/${irStats.expectedUnits}`}
                                             strokeColor="#107c10"
                                         />
-                                        <Dial 
-                                            percent={irStats.totalGrns > 0 ? irStats.grnProgressPercent : 0} 
-                                            label="GRNs OK" 
-                                            valueText={`${irStats.completedGrns}/${irStats.totalGrns}`} 
+                                        <Dial
+                                            percent={irStats.totalGrns > 0 ? irStats.grnProgressPercent : 0}
+                                            label="GRNs OK"
+                                            valueText={`${irStats.completedGrns}/${irStats.totalGrns}`}
                                             strokeColor="#8764b8"
                                         />
                                     </div>
-                                    
+
                                     <div className="mt-4 space-y-2">
                                         <div className="text-[11px] uppercase font-normal text-zinc-800 tracking-normal">Desglose de Diferencias (GRN)</div>
                                         <div className="grid grid-cols-3 gap-2">
@@ -1506,7 +1506,7 @@ const Inbound = () => {
                             </thead>
 
                             <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
+                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase">No hay registros</td></tr> : filteredLogs.map((log, idx) => (
                                     <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
                                         <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
