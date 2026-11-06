@@ -71,7 +71,7 @@ async def process_po_extractor_logic(file_path: str):
             "Despatched Qty",
             "GRN Number",
         ]
-        opt_col = "Customer Reference"
+        opt_cols = ["Customer Reference", "Order Line", "Order Number", "Reception Status"]
 
         # Leer todo el Excel primero para verificar columnas
         df_full = pl.read_excel(file_path)
@@ -88,16 +88,14 @@ async def process_po_extractor_logic(file_path: str):
             df_full.select(available_cols).select(pl.all().cast(pl.Utf8)).fill_null("")
         )
 
-        # Manejar columna opcional "Customer Reference"
-        if opt_col in df_full.columns:
-            df_po = df_po.with_columns(
-                df_full.get_column(opt_col).cast(pl.Utf8).fill_null("").alias(opt_col)
-            )
-        else:
-            print(
-                f"Advertencia: Columna '{opt_col}' no encontrada en el Excel. Se usará vacía."
-            )
-            df_po = df_po.with_columns(pl.lit("").alias(opt_col))
+        # Manejar columnas opcionales adicionales (Customer Reference, Order Line, Order Number, Reception Status)
+        for col_name in opt_cols:
+            if col_name in df_full.columns:
+                df_po = df_po.with_columns(
+                    df_full.get_column(col_name).cast(pl.Utf8).fill_null("").alias(col_name)
+                )
+            else:
+                df_po = df_po.with_columns(pl.lit("").alias(col_name))
 
         # LIMPIEZA CRÍTICA
         df_po = df_po.filter(
@@ -111,7 +109,10 @@ async def process_po_extractor_logic(file_path: str):
                 pl.col("Import Ref Code").str.strip_chars().str.to_uppercase(),
                 pl.col("Item Code").str.strip_chars().str.to_uppercase(),
                 pl.col("GRN Number").str.replace_all("/", ",").str.strip_chars(),
-                pl.col(opt_col).str.strip_chars().str.to_uppercase(),
+                pl.col("Customer Reference").str.strip_chars().str.to_uppercase(),
+                pl.col("Order Line").str.strip_chars().str.replace(r"^0+", ""),
+                pl.col("Order Number").str.strip_chars().str.to_uppercase(),
+                pl.col("Reception Status").str.strip_chars().str.to_uppercase(),
             ]
         )
 
@@ -132,14 +133,10 @@ async def process_po_extractor_logic(file_path: str):
 
         wb_lookup = existing_wb
         ir_lookup = existing_ir
+        # customer_ref_to_data se reconstruye desde cero con cada Excel: una orden puede
+        # abarcar múltiples I.R., y fusionar el histórico arrastraba asociaciones
+        # Orden -> I.R. / GRN contaminadas (ej. GRN 23327 -> 26-0900).
         customer_ref_to_grn = {}
-        for ref_key, val in existing_cust.items():
-            if isinstance(val, dict):
-                customer_ref_to_grn[ref_key] = {
-                    "import_ref": val.get("import_ref", ""),
-                    "waybill": val.get("waybill", ""),
-                    "grns": set(val.get("grns", [])),
-                }
 
         # Procesar agrupado por Waybill
         for wb, group in df_po.group_by("Waybill"):
@@ -147,12 +144,16 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
+                c_ref = (str(row.get("Customer Reference") or "").strip() or str(row.get("Order Number") or "").strip()).upper()
                 items_list.append(
                     {
                         "item_code": row["Item Code"],
                         "qty": row["Despatched Qty"],
                         "grn": row["GRN Number"],
-                        "customer_ref": row[opt_col],
+                        "customer_ref": c_ref,
+                        "order_line": row["Order Line"],
+                        "order_number": row["Order Number"],
+                        "status": row.get("Reception Status", ""),
                     }
                 )
 
@@ -167,20 +168,23 @@ async def process_po_extractor_logic(file_path: str):
             first_row = group.row(0, named=True)
             items_list = []
             for row in group.iter_rows(named=True):
+                c_ref = (str(row.get("Customer Reference") or "").strip() or str(row.get("Order Number") or "").strip()).upper()
                 items_list.append(
                     {
                         "item_code": row["Item Code"],
                         "qty": row["Despatched Qty"],
                         "grn": row["GRN Number"],
-                        "customer_ref": row[opt_col],
+                        "customer_ref": c_ref,
+                        "order_line": row["Order Line"],
+                        "order_number": row["Order Number"],
+                        "status": row.get("Reception Status", ""),
                     }
                 )
 
                 # Mapeo por Customer Reference (solo si existe)
-                cust_ref = row[opt_col]
-                if cust_ref:
-                    if cust_ref not in customer_ref_to_grn:
-                        customer_ref_to_grn[cust_ref] = {
+                if c_ref:
+                    if c_ref not in customer_ref_to_grn:
+                        customer_ref_to_grn[c_ref] = {
                             "import_ref": ir_str,
                             "waybill": row["Waybill"],
                             "grns": set(),
@@ -191,18 +195,47 @@ async def process_po_extractor_logic(file_path: str):
                             for g in row["GRN Number"].split(",")
                             if g.strip()
                         )
-                        customer_ref_to_grn[cust_ref]["grns"].update(grns_in_row)
+                        customer_ref_to_grn[c_ref]["grns"].update(grns_in_row)
 
             ir_lookup[ir_str] = {"waybill": first_row["Waybill"], "items": items_list}
 
         # Convertir sets a listas para JSON
         for ref in customer_ref_to_grn:
-            customer_ref_to_grn[ref]["grns"] = list(customer_ref_to_grn[ref]["grns"])
+            customer_ref_to_grn[ref]["grns"] = sorted(list(customer_ref_to_grn[ref]["grns"]))
+
+        # Mapeos directos NO AMBIGUOS por (orden+ítem) y (orden+ítem+línea)
+        # Solo se registran si mapean de manera estricta y única a una sola I.R.
+        order_line_ir_candidates = {}
+        order_item_ir_candidates = {}
+        for ir_key, ir_val in ir_lookup.items():
+            wb = ir_val.get("waybill", "")
+            for it in ir_val.get("items", []):
+                c_ref = (str(it.get("customer_ref") or "").strip() or str(it.get("order_number") or "").strip()).upper()
+                it_c = str(it.get("item_code") or "").strip().upper()
+                o_ln = str(it.get("order_line") or "").strip().lstrip("0")
+                if c_ref and it_c:
+                    key_item = f"{c_ref}|{it_c}"
+                    order_item_ir_candidates.setdefault(key_item, set()).add((ir_key, wb))
+                    if o_ln:
+                        key_line = f"{c_ref}|{it_c}|{o_ln}"
+                        order_line_ir_candidates.setdefault(key_line, set()).add((ir_key, wb))
+
+        order_item_map = {}
+        for k_ln, cand_set in order_line_ir_candidates.items():
+            if len(cand_set) == 1:
+                single_ir, single_wb = next(iter(cand_set))
+                order_item_map[k_ln] = {"import_ref": single_ir, "waybill": single_wb}
+
+        for k_it, cand_set in order_item_ir_candidates.items():
+            if len(cand_set) == 1:
+                single_ir, single_wb = next(iter(cand_set))
+                order_item_map[k_it] = {"import_ref": single_ir, "waybill": single_wb}
 
         lookup_data = {
             "wb_to_data": wb_lookup,
             "ir_to_data": ir_lookup,
             "customer_ref_to_data": customer_ref_to_grn,
+            "order_item_to_data": order_item_map,
             "updated_at": datetime.datetime.now().isoformat(),
         }
 

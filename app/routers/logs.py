@@ -697,11 +697,15 @@ async def export_reconciliation(
             final_df = pl.DataFrame(result_data, infer_schema_length=None)
 
             # Seleccionar y renombrar para el reporte Excel (manteniendo nombres de columnas del reporte)
-            df_for_export = final_df.select(
+            cols_export = [
+                pl.col("Import_Reference").alias("I.R."),
+                pl.col("Waybill").alias("Waybill"),
+                pl.col("GRN").alias("GRN"),
+            ]
+            if "Order_Line" in final_df.columns:
+                cols_export.append(pl.col("Order_Line").alias("Línea PO"))
+            cols_export.extend(
                 [
-                    pl.col("Import_Reference").alias("I.R."),
-                    pl.col("Waybill").alias("Waybill"),
-                    pl.col("GRN").alias("GRN"),
                     pl.col("Codigo_Item").alias("Código Item"),
                     pl.col("Descripcion").alias("Descripción"),
                     pl.col("Ubicacion").alias("Ubicación"),
@@ -712,6 +716,7 @@ async def export_reconciliation(
                     pl.col("Timestamp").alias("Fecha_ISO"),
                 ]
             )
+            df_for_export = final_df.select(cols_export)
 
             # Ajustar la zona horaria en la columna Fecha usando Polars o mapeo manual
             def _adjust_tz(val):

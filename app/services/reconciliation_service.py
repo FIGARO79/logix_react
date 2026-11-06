@@ -133,17 +133,22 @@ async def get_reconciliation_calculations(
             ]
         )
 
-        # 3. Construir Mapa Maestro de GRN -> IR/Waybill usando Rust (Alta velocidad)
-        # Queremos saber a qué IR pertenece cada GRN para no duplicar filas.
+        # 3. Construir Mapa Maestro de GRN -> IR/Waybill
+        db_grn_map = {}
         try:
             # Extraer DB GRNs primero (de GRNMaster y tablas de conciliaciones guardadas/históricas)
             db_grns = await db.execute(
                 select(GRNMaster.import_reference, GRNMaster.grn_number, GRNMaster.waybill)
             )
-            db_grns_raw = [
-                (row.import_reference, row.grn_number, row.waybill)
-                for row in db_grns.all()
-            ]
+            for row in db_grns.all():
+                ir_val = str(row.import_reference or "").strip().upper()
+                grn_val = str(row.grn_number or "").strip()
+                wb_val = str(row.waybill or "").strip().upper()
+                if ir_val and grn_val:
+                    for g in grn_val.split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            db_grn_map.setdefault(g_clean, set()).add((ir_val, wb_val))
 
             # Cargar GRNs históricas confirmadas/guardadas para NUNCA desasociarlas
             saved_headers = await db.execute(
@@ -157,8 +162,14 @@ async def get_reconciliation_calculations(
                 )
             )
             for r in saved_headers.all():
-                if r.import_reference and r.grn_number:
-                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
+                ir_val = str(r.import_reference or "").strip().upper()
+                grn_val = str(r.grn_number or "").strip()
+                wb_val = str(r.waybill or "").strip().upper()
+                if ir_val and grn_val:
+                    for g in grn_val.split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            db_grn_map.setdefault(g_clean, set()).add((ir_val, wb_val))
 
             saved_items = await db.execute(
                 select(
@@ -173,31 +184,16 @@ async def get_reconciliation_calculations(
                 )
             )
             for r in saved_items.all():
-                if r.import_reference and r.grn_number:
-                    db_grns_raw.append((r.import_reference, r.grn_number, r.waybill or ""))
+                ir_val = str(r.import_reference or "").strip().upper()
+                grn_val = str(r.grn_number or "").strip()
+                wb_val = str(r.waybill or "").strip().upper()
+                if ir_val and grn_val:
+                    for g in grn_val.split(","):
+                        g_clean = g.strip().upper()
+                        if g_clean:
+                            db_grn_map.setdefault(g_clean, set()).add((ir_val, wb_val))
         except Exception as e:
             print(f"[RECONCILIATION] Error loading DB GRNs: {e}")
-            db_grns_raw = []
-
-        try:
-            import logix_rust_core
-            master_maps = logix_rust_core.build_master_maps_rust(
-                db_grns_raw,
-                str(GRN_JSON_DATA_PATH),
-                str(PO_LOOKUP_JSON_PATH)
-            )
-        except Exception as e:
-            print(f"[RECONCILIATION] Error construyendo master maps en Rust: {e}")
-            master_maps = []
-
-        if master_maps:
-            df_grn_master = pl.DataFrame(
-                master_maps, schema=["grn_map", "ir_map", "wb_map"], orient="row"
-            ).unique(subset=["grn_map"])
-        else:
-            df_grn_master = pl.DataFrame(
-                schema={"grn_map": pl.Utf8, "ir_map": pl.Utf8, "wb_map": pl.Utf8}
-            )
 
         # 4. Normalizar Reporte 280
         grn_pl = csv_handler.df_grn_cache
@@ -234,7 +230,11 @@ async def get_reconciliation_calculations(
                     .str.strip_chars()
                     .str.to_uppercase()
                     .fill_null(""),
-                    pl.col("Order_Line").cast(pl.Utf8).str.strip_chars().fill_null(""),
+                    pl.col("Order_Line")
+                    .cast(pl.Utf8)
+                    .str.strip_chars()
+                    .str.replace(r"^0+", "")
+                    .fill_null(""),
                 ]
             )
             if not df_280.is_empty():
@@ -247,21 +247,142 @@ async def get_reconciliation_calculations(
                     .alias("Item_Description")
                 )
 
-        # 5. ASOCIACIÓN MEJORADA: 280 + IR (Basado en el GRN)
-        # Esto evita que una línea de la 280 se duplique si el item/orden aparece en varias IRs.
-        df_expected_with_ir = df_280.join(
-            df_grn_master, left_on="GRN_Number", right_on="grn_map", how="left"
-        ).with_columns(
+        # 5. ASOCIACIÓN INTEGRAL MULTIDIMENSIONAL ESTRICTA:
+        # Se asocian simultáneamente: (GRN_Number, Order_Number, Order_Line, Item_Code).
+        # CERO asignaciones arbitrarias; si existen ambigüedades no unívocas, no se adivina.
+        exact_grn_line_map = {}
+        line_map = {}
+        exact_grn_item_map = {}
+        item_map = {}
+
+        if os.path.exists(PO_LOOKUP_JSON_PATH):
+            try:
+                import orjson
+
+                with open(PO_LOOKUP_JSON_PATH, "rb") as f_po:
+                    po_data = orjson.loads(f_po.read())
+
+                for ir_k, val in po_data.get("ir_to_data", {}).items():
+                    ir_clean = str(ir_k).strip().upper()
+                    wb_clean = str(val.get("waybill", "")).strip().upper()
+                    for it in val.get("items", []):
+                        c_ref = (str(it.get("customer_ref") or "").strip() or str(it.get("order_number") or "").strip()).upper()
+                        it_c = str(it.get("item_code", "")).strip().upper()
+                        o_ln = str(it.get("order_line", "")).strip().lstrip("0")
+                        status_val = str(it.get("status", "")).strip().upper()
+                        grn_val = str(it.get("grn", "")).replace("/", ",").strip().upper()
+                        grns = [g.strip() for g in grn_val.split(",") if g.strip()]
+
+                        if c_ref and it_c:
+                            for g in grns:
+                                exact_grn_item_map.setdefault((c_ref, it_c, g), set()).add((ir_clean, wb_clean))
+                                if o_ln:
+                                    exact_grn_line_map.setdefault((c_ref, it_c, o_ln, g), set()).add((ir_clean, wb_clean))
+                            item_map.setdefault((c_ref, it_c), set()).add((ir_clean, wb_clean))
+                            if o_ln:
+                                line_map.setdefault((c_ref, it_c, o_ln), set()).add((ir_clean, wb_clean, status_val))
+            except Exception as e_po_map:
+                print(f"[RECONCILIATION] Error cargando po_lookup para cruce integral: {e_po_map}")
+
+        resolved_irs = []
+        resolved_wbs = []
+
+        for r in df_280.iter_rows(named=True):
+            g = str(r.get("GRN_Number") or "").strip().upper()
+            o = str(r.get("Order_Number") or "").strip().upper()
+            l = str(r.get("Order_Line") or "").strip().lstrip("0")
+            i = str(r.get("Item_Code") or "").strip().upper()
+
+            ir_match = None
+            wb_match = None
+
+            # Prioridad 1: Match Cuádruple Exacto (GRN + Orden + Línea + Ítem)
+            if o and i and l and g:
+                c1 = exact_grn_line_map.get((o, i, l, g))
+                if c1 and len(c1) == 1:
+                    ir_match, wb_match = next(iter(c1))
+
+            # Prioridad 2: Match Compuesto Exacto de Línea (Orden + Línea + Ítem)
+            if not ir_match and o and i and l:
+                c2 = line_map.get((o, i, l))
+                if c2:
+                    unique_irs = {x[:2] for x in c2}
+                    if len(unique_irs) == 1:
+                        ir_match, wb_match = next(iter(unique_irs))
+                    else:
+                        # Si está en varias IRs por despacho dividido, desambiguar si solo una está COMPLETE/recibida
+                        comp = {x[:2] for x in c2 if x[2] == "COMPLETE"}
+                        if len(comp) == 1:
+                            ir_match, wb_match = next(iter(comp))
+
+            # Prioridad 3: Match Compuesto de Ítem y GRN (GRN + Orden + Ítem)
+            if not ir_match and o and i and g:
+                c3 = exact_grn_item_map.get((o, i, g))
+                if c3 and len(c3) == 1:
+                    ir_match, wb_match = next(iter(c3))
+
+            # Prioridad 4: Match Compuesto Unívoco de Ítem (Orden + Ítem)
+            # Solo si la combinación Orden + Ítem pertenece a una ÚNICA Import Reference
+            if not ir_match and o and i:
+                c4 = item_map.get((o, i))
+                if c4 and len(c4) == 1:
+                    ir_match, wb_match = next(iter(c4))
+
+            # Prioridad 5: Mapeo explícito desde DB GRN Master si es unívoco
+            if not ir_match and g:
+                c5 = db_grn_map.get(g)
+                if c5 and len(c5) == 1:
+                    ir_match, wb_match = next(iter(c5))
+
+            resolved_irs.append(ir_match or "SIN I.R. MAESTRA")
+            resolved_wbs.append(wb_match or "SIN WAYBILL")
+
+        df_expected_with_ir = df_280.with_columns(
             [
-                pl.col("ir_map").fill_null("SIN I.R. MAESTRA"),
-                pl.col("wb_map").fill_null("SIN WAYBILL"),
+                pl.Series("ir_map", resolved_irs, dtype=pl.Utf8),
+                pl.Series("wb_map", resolved_wbs, dtype=pl.Utf8),
             ]
         )
 
-        # 5.1 PROTECCIÓN Y RECUPERACIÓN DE GRNs COMPLETAS O RECIBIDAS:
-        # Si alguna GRN no tiene I.R. maestra asignada, pero sus ítems ya están registrados
-        # físicamente en los logs de bodega, autodescubrir su I.R. activa para NUNCA
-        # desasociarla ni mostrar la cantidad recibida en cero.
+        # 5.1 PROPAGACIÓN ESTRICTA INTER-GRN (ÚNICA Y EXCLUSIVAMENTE SI ES UNÁNIME):
+        # El GRN_Number agrupa físicamente la entrega en bodega.
+        # Si todas las líneas resueltas del GRN apuntan a EXACTAMENTE UNA MISMA I.R. y Waybill,
+        # cualquier línea huérfana de esa misma recepción física hereda dicha I.R.
+        # Si el GRN contiene líneas de múltiples I.R. diferentes, NUNCA se propaga arbitrariamente.
+        grn_unanimous = (
+            df_expected_with_ir.filter(
+                (pl.col("ir_map") != "SIN I.R. MAESTRA")
+                & (pl.col("GRN_Number") != "")
+            )
+            .group_by("GRN_Number")
+            .agg(
+                [
+                    pl.col("ir_map").n_unique().alias("_n_ir"),
+                    pl.col("ir_map").first().alias("_grn_ir_prop"),
+                    pl.col("wb_map").first().alias("_grn_wb_prop"),
+                ]
+            )
+            .filter(pl.col("_n_ir") == 1)
+        )
+        if not grn_unanimous.is_empty():
+            df_expected_with_ir = (
+                df_expected_with_ir.join(grn_unanimous, on="GRN_Number", how="left")
+                .with_columns(
+                    [
+                        pl.when(pl.col("ir_map") == "SIN I.R. MAESTRA")
+                        .then(pl.col("_grn_ir_prop").fill_null("SIN I.R. MAESTRA"))
+                        .otherwise(pl.col("ir_map"))
+                        .alias("ir_map"),
+                        pl.when(pl.col("wb_map") == "SIN WAYBILL")
+                        .then(pl.col("_grn_wb_prop").fill_null("SIN WAYBILL"))
+                        .otherwise(pl.col("wb_map"))
+                        .alias("wb_map"),
+                    ]
+                )
+                .drop(["_n_ir", "_grn_ir_prop", "_grn_wb_prop"])
+            )
+
+        # 5.2 PROTECCIÓN Y RECUPERACIÓN DE GRNs RECIBIDAS (SOLO SI ES UNÍVOCO):
         unmapped_grns = (
             df_expected_with_ir.filter(pl.col("ir_map") == "SIN I.R. MAESTRA")
             .get_column("GRN_Number")
@@ -284,23 +405,12 @@ async def get_reconciliation_calculations(
                     & (pl.col("importReference") != "")
                     & (pl.col("importReference") != "SIN I.R. MAESTRA")
                 )
-                if not matched_logs.is_empty():
-                    top_match = (
-                        matched_logs.group_by("importReference")
-                        .agg(
-                            [
-                                pl.col("itemCode").n_unique().alias("_n_items"),
-                                pl.col("waybill").first().alias("_wb"),
-                            ]
-                        )
-                        .sort("_n_items", descending=True)
+                if not matched_logs.is_empty() and matched_logs.get_column("importReference").n_unique() == 1:
+                    rec_ir = matched_logs.row(0, named=True)["importReference"]
+                    rec_wb = matched_logs.row(0, named=True).get("waybill", "") or ""
+                    recovered_mappings.append(
+                        {"GRN_Number": u_grn, "_rec_ir": rec_ir, "_rec_wb": rec_wb}
                     )
-                    if not top_match.is_empty():
-                        rec_ir = top_match.row(0, named=True)["importReference"]
-                        rec_wb = top_match.row(0, named=True)["_wb"] or ""
-                        recovered_mappings.append(
-                            {"GRN_Number": u_grn, "_rec_ir": rec_ir, "_rec_wb": rec_wb}
-                        )
 
             if recovered_mappings:
                 df_rec = pl.DataFrame(recovered_mappings)
@@ -494,6 +604,7 @@ async def get_reconciliation_calculations(
                     pl.col("ir_map").alias("Import_Reference"),
                     pl.col("wb_map").alias("Waybill"),
                     pl.col("GRN_Number").alias("GRN"),
+                    pl.col("Order_Number").alias("Order_Number"),
                     pl.col("Order_Line").alias("Order_Line"),
                     pl.col("Item_Code").alias("Codigo_Item"),
                     pl.col("Item_Description").alias("Descripcion"),
